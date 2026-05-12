@@ -221,7 +221,7 @@ var codeReader = null;
 var videoStream = null;
 var selectedSite = '';
 const API_URL =
-  'https://script.google.com/macros/s/AKfycbxOTn5hP9CxjdeDqiD2xag6RLQv6tqLnv455pLF-2VPLZPJB5dhaGYW2u6BCcy9TIVGhA/exec';
+  'https://script.google.com/macros/s/AKfycbxkQa418a2ziIWwnUGTGPaaChwFaUGGmeOfqLIU2HeFMmC9dTy6aRPkH-KOxbKXauu3Tw/exec';
 
 window.onload = function() {
   document.getElementById('editDate').value =
@@ -412,19 +412,14 @@ async function submitAll() {
 
   try {
 
-    const res = await fetch(API_URL, {
+    const res = await fetch(
 
-      method: 'POST',
+      API_URL +
+      '?action=updateItems' +
+      '&data=' +
+      encodeURIComponent(JSON.stringify(queue))
 
-      headers: {
-        'Content-Type': 'application/json'
-      },
-
-      body: JSON.stringify({
-        action: 'updateItems',
-        items: queue
-      })
-    });
+    );
 
     const data = await res.json();
 
@@ -432,7 +427,7 @@ async function submitAll() {
 
     if (data.status === 'ok') {
 
-      var count = queue.length;
+      const count = queue.length;
 
       queue = [];
 
@@ -445,14 +440,20 @@ async function submitAll() {
 
     } else {
 
-      showToast(data.message, 'error');
+      showToast(
+        data.message || 'Error',
+        'error'
+      );
     }
 
   } catch(err) {
 
     btn.disabled = false;
 
-    showToast(err.message, 'error');
+    showToast(
+      'เกิดข้อผิดพลาด: ' + err.message,
+      'error'
+    );
   }
 
   btn.textContent =
