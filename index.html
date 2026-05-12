@@ -176,9 +176,12 @@ main{max-width:680px;margin:0 auto;padding:20px 16px 100px;}
     <div class="result-header">
       <div style="display:flex;align-items:center;gap:10px">
         <div class="doc-badge" id="rBarcode">—</div>
-        <span style="font-size:14px;font-weight:500">ข้อมูลเอกสาร</span>
+        <span style="font-size:14px;font-weight:500" id="rTitle">ข้อมูลเอกสาร</span>
       </div>
       <div class="spinner" id="loadSpinner" style="display:none"></div>
+    </div>
+    <div id="notFoundBanner" style="display:none;background:rgba(251,191,36,0.1);border-bottom:1px solid rgba(251,191,36,0.3);padding:10px 16px;font-size:12px;color:#fbbf24;">
+      ไม่พบ barcode นี้ในระบบ — จะบันทึกเป็น NOT FOUND ใน Log
     </div>
     <div class="fields-grid">
       <div class="field-cell"><div class="field-label">Ref No.</div><div class="field-value mono" id="fRef">—</div></div>
@@ -321,9 +324,18 @@ async function fetchDoc(barcode) {
     document.getElementById('loadSpinner').style.display = 'none';
 
     if (data.status === 'ok') {
-      showDoc(data.data);
+      showDoc(data.data, false);
     } else {
-      showToast('ไม่พบ barcode: ' + barcode, 'error');
+      // ไม่พบ — แสดง panel ว่างให้ user กรอกเองได้
+      showDoc({
+        barcode       : barcode,
+        ref_no        : '',
+        qty           : '',
+        origin_name   : '',
+        destination_name : '',
+        created_date  : '',
+        received_date : ''
+      }, true);
     }
   } catch(err) {
     document.getElementById('loadSpinner').style.display = 'none';
@@ -343,16 +355,26 @@ function formatDate(val) {
   } catch(e) { return val; }
 }
 
-function showDoc(d) {
+function showDoc(d, notFound) {
   currentDoc = d;
-  document.getElementById('rBarcode').textContent = d.barcode;
-  document.getElementById('fRef').textContent = d.ref_no || '—';
-  document.getElementById('fCreated').textContent = formatDate(d.created_date);
-  document.getElementById('fOrigin').textContent = d.origin_name || '—';
-  document.getElementById('fDest').textContent = d.destination_name || '—';
-  document.getElementById('fQty').textContent = d.qty !== undefined ? d.qty : '—';
+  currentDoc.not_found = notFound ? true : false;
+
+  document.getElementById('rBarcode').textContent    = d.barcode;
+  document.getElementById('rTitle').textContent      = notFound ? 'ไม่พบในระบบ' : 'ข้อมูลเอกสาร';
+  document.getElementById('rBarcode').style.background = notFound
+    ? 'rgba(251,191,36,0.12)' : 'rgba(56,189,248,0.12)';
+  document.getElementById('rBarcode').style.borderColor = notFound
+    ? 'rgba(251,191,36,0.4)' : 'rgba(56,189,248,0.3)';
+  document.getElementById('rBarcode').style.color = notFound ? '#fbbf24' : '#38bdf8';
+  document.getElementById('notFoundBanner').style.display = notFound ? 'block' : 'none';
+
+  document.getElementById('fRef').textContent      = d.ref_no        || '—';
+  document.getElementById('fCreated').textContent  = formatDate(d.created_date);
+  document.getElementById('fOrigin').textContent   = d.origin_name   || '—';
+  document.getElementById('fDest').textContent     = d.destination_name || '—';
+  document.getElementById('fQty').textContent      = d.qty !== undefined && d.qty !== '' ? d.qty : '—';
   document.getElementById('fReceived').textContent = formatDate(d.received_date);
-  document.getElementById('editQty').value = d.qty || '';
+  document.getElementById('editQty').value         = d.qty || '';
   document.getElementById('resultPanel').classList.add('visible');
 }
 
@@ -401,7 +423,7 @@ function renderQueue() {
 
 function scrollToQueue() { document.getElementById('queueSection').scrollIntoView({ behavior: 'smooth' }); }
 
-// ── Submit ─────────────────────────
+// ── Submit ผ่าน google.script.run ─────────────────────────
 async function submitAll() {
   if (!queue.length) return;
 
