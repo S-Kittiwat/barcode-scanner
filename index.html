@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>รับเอกสาร</title>
-<script src="https://unpkg.com/@zxing/library@latest/umd/index.min.js"></script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
 :root{--bg:#0f172a;--surface:#1e293b;--surface2:#263348;--border:#334155;--accent:#38bdf8;--success:#34d399;--warn:#fbbf24;--danger:#f87171;--text:#f1f5f9;--muted:#94a3b8;--font:'IBM Plex Sans Thai',sans-serif;--mono:'IBM Plex Mono',monospace;--r:12px;--rs:8px;}
@@ -154,10 +154,7 @@ main{max-width:680px;margin:0 auto;padding:20px 16px 100px;}
       <span>สแกน Barcode</span>
       <button class="scan-btn" id="scanBtn" onclick="toggleScanner()">เปิดกล้อง</button>
     </div>
-    <div id="reader" style="display:none;background:#000;width:100%;position:relative;">
-      <video id="scanVideo" style="width:100%;max-height:260px;object-fit:cover;" muted playsinline></video>
-      <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);border:2px solid #38bdf8;width:220px;height:100px;border-radius:8px;pointer-events:none;"></div>
-    </div>
+    <div id="reader" style="display:none;width:100%;"></div>
     <div class="manual-row">
       <input class="manual-input" id="manualInput" type="text"
         placeholder="พิมพ์ barcode หรือสแกนด้วยเครื่องอ่าน..."
@@ -249,38 +246,34 @@ function changeSite() {
 function toggleScanner() { scanning ? stopScanner() : startScanner(); }
 
 function startScanner() {
-  var el  = document.getElementById('reader');
-  var vid = document.getElementById('scanVideo');
-  el.style.display = 'block';
-
-  navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
-    .then(function(stream) {
-      videoStream = stream;
-      vid.srcObject = stream;
-      vid.play();
-      scanning = true;
-      var b = document.getElementById('scanBtn');
-      b.textContent = 'หยุดกล้อง'; b.classList.add('stop');
-
-      codeReader = new ZXing.BrowserMultiFormatReader();
-      codeReader.decodeFromVideoElement(vid, function(result, err) {
-        if (result) {
-          stopScanner();
-          var text = result.getText();
-          document.getElementById('manualInput').value = text;
-          fetchDoc(text);
-        }
-      });
-    })
-    .catch(function(err) {
-      el.style.display = 'none';
-      showToast('ไม่สามารถเปิดกล้องได้: ' + err.message, 'error');
-    });
+  document.getElementById('reader').style.display = 'block';
+  codeReader = new Html5Qrcode('reader');
+  codeReader.start(
+    { facingMode: 'environment' },
+    { fps: 10, qrbox: { width: 250, height: 150 } },
+    function(decoded) {
+      stopScanner();
+      document.getElementById('manualInput').value = decoded;
+      fetchDoc(decoded);
+    },
+    function() {}
+  ).then(function() {
+    scanning = true;
+    var b = document.getElementById('scanBtn');
+    b.textContent = 'หยุดกล้อง'; b.classList.add('stop');
+  }).catch(function(err) {
+    document.getElementById('reader').style.display = 'none';
+    showToast('ไม่สามารถเปิดกล้องได้: ' + err, 'error');
+  });
 }
 
 function stopScanner() {
-  if (codeReader) { codeReader.reset(); codeReader = null; }
-  if (videoStream) { videoStream.getTracks().forEach(function(t) { t.stop(); }); videoStream = null; }
+  if (codeReader) {
+    codeReader.stop().then(function() {
+      codeReader.clear();
+      codeReader = null;
+    }).catch(function() { codeReader = null; });
+  }
   document.getElementById('reader').style.display = 'none';
   scanning = false;
   var b = document.getElementById('scanBtn');
