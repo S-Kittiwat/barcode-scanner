@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>DocScan</title>
+<title>รับเอกสาร</title>
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
@@ -72,7 +72,7 @@ main{max-width:680px;margin:0 auto;padding:20px 16px 100px;}
 .empty{text-align:center;padding:32px 16px;color:var(--muted);font-size:13px;}
 .site-overlay{position:fixed;inset:0;background:var(--bg);z-index:500;display:flex;align-items:center;justify-content:center;padding:24px;}
 .site-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);width:100%;max-width:420px;overflow:hidden;}
-.site-box-header{padding:20px 20px 16px;border-bottom:1px solid var(--border);}
+.site-box-header{padding:20px 20px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
 .site-box-title{font-size:16px;font-weight:600;margin-bottom:4px;}
 .site-box-sub{font-size:12px;color:var(--muted);}
 .site-box-body{padding:20px;}
@@ -86,15 +86,48 @@ main{max-width:680px;margin:0 auto;padding:20px 16px 100px;}
 .site-input:focus{border-color:var(--accent);}
 .site-input::placeholder{color:var(--muted);}
 .site-badge{background:rgba(56,189,248,0.12);border:1px solid rgba(56,189,248,0.3);color:var(--accent);font-size:12px;padding:3px 10px;border-radius:6px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px;}
-@media(max-width:480px){.fields-grid{grid-template-columns:1fr;}.edit-row{grid-template-columns:1fr;}}
+.help-btn{width:30px;height:30px;border-radius:50%;background:var(--surface2);border:1px solid var(--border);color:var(--muted);font-family:var(--font);font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background 0.15s,color 0.15s;}
+.help-btn:hover{background:var(--accent);color:#0f172a;border-color:var(--accent);}
+.manual-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:600;display:none;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;}
+.manual-overlay.open{display:flex;}
+.manual-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);width:100%;max-width:520px;overflow:hidden;margin:auto;}
+.manual-head{padding:18px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.manual-head-title{font-size:16px;font-weight:600;}
+.manual-close{background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;line-height:1;padding:2px 6px;}
+.manual-close:hover{color:var(--danger);}
+.manual-body{padding:20px;display:flex;flex-direction:column;gap:20px;}
+.manual-step{display:flex;gap:14px;align-items:flex-start;}
+.manual-step-num{width:28px;height:28px;border-radius:50%;background:var(--accent);color:#0f172a;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;}
+.manual-step-content{flex:1;}
+.manual-step-title{font-size:14px;font-weight:600;margin-bottom:4px;}
+.manual-step-desc{font-size:13px;color:var(--muted);line-height:1.7;}
+.manual-step-desc b{color:var(--text);}
+.manual-divider{border:none;border-top:1px solid var(--border);}
+.manual-note{background:rgba(56,189,248,0.08);border:1px solid rgba(56,189,248,0.2);border-radius:var(--rs);padding:12px 14px;font-size:12px;color:var(--muted);line-height:1.7;}
+.manual-note b{color:var(--accent);}
+.manual-warn{background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.2);border-radius:var(--rs);padding:12px 14px;font-size:12px;color:var(--muted);line-height:1.7;}
+.manual-warn b{color:var(--warn);}
+.manual-doc-label{font-size:11px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:0.06em;margin:14px 0 6px;}
+.manual-doc-type{font-size:12px;color:var(--muted);margin-bottom:6px;font-weight:500;}
+.manual-field-map{background:var(--surface2);border-radius:var(--rs);overflow:hidden;border:1px solid var(--border);margin-bottom:4px;}
+.manual-field-row{display:grid;grid-template-columns:130px 20px 1fr;align-items:center;padding:7px 12px;border-bottom:1px solid var(--border);font-size:12px;}
+.manual-field-row:last-child{border-bottom:none;}
+.manual-field-row-edit{background:rgba(56,189,248,0.06);}
+.manual-field-app{font-family:var(--mono);font-size:11px;color:var(--accent);}
+.manual-field-arrow{color:var(--muted);text-align:center;}
+.manual-field-doc{color:var(--text);}
+@media(max-width:480px){.fields-grid{grid-template-columns:1fr;}.edit-row{grid-template-columns:1fr;}.manual-field-row{grid-template-columns:100px 16px 1fr;}}
 </style>
 </head>
 <body>
 <div class="site-overlay" id="siteOverlay">
   <div class="site-box">
     <div class="site-box-header">
-      <div class="site-box-title">เลือก Site งาน</div>
-      <div class="site-box-sub">กรุณาเลือก Site ก่อนเริ่มสแกน barcode</div>
+      <div>
+        <div class="site-box-title">เลือก Site งาน</div>
+        <div class="site-box-sub">กรุณากรอกข้อมูลก่อนเริ่มสแกน barcode</div>
+      </div>
+      <button class="help-btn" onclick="openManual()" title="คู่มือการใช้งาน">?</button>
     </div>
     <div class="site-box-body">
       <label class="site-label">รหัสพนักงาน</label>
@@ -138,7 +171,239 @@ main{max-width:680px;margin:0 auto;padding:20px 16px 100px;}
   </div>
 </div>
 
-<header>
+<!-- Manual Modal -->
+<div class="manual-overlay" id="manualOverlay">
+  <div class="manual-box">
+    <div class="manual-head">
+      <div class="manual-head-title">คู่มือการใช้งาน DocScan</div>
+      <button class="manual-close" onclick="closeManual()">×</button>
+    </div>
+    <div class="manual-body">
+
+      <div class="manual-step">
+        <div class="manual-step-num">1</div>
+        <div class="manual-step-content">
+          <div class="manual-step-title">กรอกข้อมูลผู้ใช้งาน</div>
+          <div class="manual-step-desc">
+            เมื่อเปิดแอปครั้งแรก ระบบจะให้กรอก<br>
+            <b>รหัสพนักงาน</b> เช่น 001234<br>
+            <b>ชื่อ-นามสกุล</b> ของผู้กรอกข้อมูล<br>
+            <b>Email</b> ของพนักงาน<br>
+            <b>Site / คลังสินค้า</b> ที่ปฏิบัติงานอยู่<br>
+            จากนั้นกด <b>เริ่มสแกน</b>
+          </div>
+        </div>
+      </div>
+
+      <hr class="manual-divider">
+
+      <div class="manual-step">
+        <div class="manual-step-num">2</div>
+        <div class="manual-step-content">
+          <div class="manual-step-title">สแกน Barcode</div>
+          <div class="manual-step-desc">
+            <b>วิธีที่ 1 — กล้องมือถือ</b><br>
+            กดปุ่ม <b>เปิดกล้อง</b> แล้วจับ barcode ให้อยู่ในกรอบ ระบบจะค้นหาอัตโนมัติ<br><br>
+            <b>วิธีที่ 2 — พิมพ์หรือสแกนด้วยเครื่องอ่าน</b><br>
+            พิมพ์หรือใช้เครื่องสแกนในช่องค้นหา แล้วกด <b>ค้นหา</b> หรือ Enter
+          </div>
+          <div class="manual-doc-label">ตำแหน่ง Barcode บนเอกสาร</div>
+
+          <div class="manual-doc-type">BRS / CHEP Docket — สแกน Barcode มุมขวากลาง</div>
+          <svg width="100%" viewBox="0 0 480 180" style="display:block;margin-bottom:16px;border-radius:8px;">
+            <rect x="0" y="0" width="480" height="180" rx="4" fill="#f1f5f9" stroke="#94a3b8" stroke-width="0.5"/>
+            <!-- Header -->
+            <rect x="0" y="0" width="100" height="45" rx="4" fill="#cbd5e1" stroke="#94a3b8" stroke-width="0.5"/>
+            <rect x="100" y="0" width="200" height="45" fill="#cbd5e1" stroke="#94a3b8" stroke-width="0.5"/>
+            <rect x="300" y="0" width="180" height="45" fill="#cbd5e1" stroke="#94a3b8" stroke-width="0.5"/>
+            <text font-family="IBM Plex Sans Thai,sans-serif" font-size="9" fill="#475569" x="50" y="26" text-anchor="middle">โลโก้</text>
+            <text font-family="IBM Plex Sans Thai,sans-serif" font-size="9" fill="#475569" x="200" y="26" text-anchor="middle">ชื่อเอกสาร</text>
+            <text font-family="IBM Plex Sans Thai,sans-serif" font-size="9" fill="#475569" x="390" y="26" text-anchor="middle">Barcode 1 (เลขเอกสาร)</text>
+            <!-- Row 2 -->
+            <rect x="0" y="45" width="120" height="45" fill="#f1f5f9" stroke="#94a3b8" stroke-width="0.5"/>
+            <rect x="120" y="45" width="180" height="45" fill="#f1f5f9" stroke="#94a3b8" stroke-width="0.5"/>
+            <rect x="300" y="45" width="180" height="45" fill="#f1f5f9" stroke="#94a3b8" stroke-width="0.5"/>
+            <text font-family="IBM Plex Sans Thai,sans-serif" font-size="9" fill="#475569" x="60" y="70" text-anchor="middle">โอนจาก</text>
+            <text font-family="IBM Plex Sans Thai,sans-serif" font-size="9" fill="#475569" x="210" y="70" text-anchor="middle">เลขที่เอกสาร / D/O</text>
+            <text font-family="IBM Plex Sans Thai,sans-serif" font-size="9" fill="#475569" x="390" y="70" text-anchor="middle">วันที่สร้าง / วันที่ส่ง</text>
+            <!-- Row 3 — Barcode 2 highlighted -->
+            <rect x="0" y="90" width="120" height="40" fill="#f1f5f9" stroke="#94a3b8" stroke-width="0.5"/>
+            <rect x="120" y="90" width="180" height="40" fill="#f1f5f9" stroke="#94a3b8" stroke-width="0.5"/>
+            <rect x="300" y="90" width="180" height="40" fill="#dbeafe" stroke="#0369a1" stroke-width="1.5"/>
+            <text font-family="IBM Plex Sans Thai,sans-serif" font-size="9" fill="#475569" x="60" y="113" text-anchor="middle">บริษัทขนส่ง</text>
+            <text font-family="IBM Plex Sans Thai,sans-serif" font-size="9" fill="#475569" x="210" y="113" text-anchor="middle">ทะเบียนรถ</text>
+            <text font-family="IBM Plex Sans Thai,sans-serif" font-size="10" fill="#0369a1" font-weight="600" x="390" y="107" text-anchor="middle">Barcode 2</text>
+            <text font-family="IBM Plex Sans Thai,sans-serif" font-size="9" fill="#0369a1" x="390" y="121" text-anchor="middle">สแกนตรงนี้</text>
+            <!-- Row 4,5 -->
+            <rect x="0" y="130" width="120" height="30" fill="#f1f5f9" stroke="#94a3b8" stroke-width="0.5"/>
+            <rect x="120" y="130" width="360" height="30" fill="#f1f5f9" stroke="#94a3b8" stroke-width="0.5"/>
+            <text font-family="IBM Plex Sans Thai,sans-serif" font-size="9" fill="#475569" x="60" y="148" text-anchor="middle">โอนไป</text>
+            <text font-family="IBM Plex Sans Thai,sans-serif" font-size="9" fill="#475569" x="300" y="148" text-anchor="middle">รหัสอุปกรณ์ / จำนวนที่โอน / จำนวนที่ได้รับจริง</text>
+            <!-- Arrow callout -->
+          </svg>
+
+          <div class="manual-doc-type">LOSCAM ECD — สแกน Barcode มุมล่างซ้าย</div>
+          <svg width="100%" viewBox="0 0 480 180" style="display:block;border-radius:8px;">
+            <rect x="0" y="0" width="480" height="180" rx="4" fill="#f1f5f9" stroke="#94a3b8" stroke-width="0.5"/>
+            <!-- Header -->
+            <rect x="0" y="0" width="100" height="45" rx="4" fill="#cbd5e1" stroke="#94a3b8" stroke-width="0.5"/>
+            <rect x="100" y="0" width="200" height="45" fill="#cbd5e1" stroke="#94a3b8" stroke-width="0.5"/>
+            <rect x="300" y="0" width="90" height="45" fill="#cbd5e1" stroke="#94a3b8" stroke-width="0.5"/>
+            <rect x="390" y="0" width="90" height="45" fill="#cbd5e1" stroke="#94a3b8" stroke-width="0.5"/>
+            <text font-family="IBM Plex Sans Thai,sans-serif" font-size="9" fill="#475569" x="50" y="26" text-anchor="middle">LOSCAM</text>
+            <text font-family="IBM Plex Sans Thai,sans-serif" font-size="9" fill="#475569" x="200" y="22" text-anchor="middle">ECD / ชื่อบริษัท</text>
+            <text font-family="IBM Plex Sans Thai,sans-serif" font-size="9" fill="#475569" x="345" y="26" text-anchor="middle">Docket No.</text>
+            <text font-family="IBM Plex Sans Thai,sans-serif" font-size="9" fill="#1e293b" x="435" y="26" text-anchor="middle">T0000000</text>
+            <!-- Title bar -->
+            <rect x="0" y="45" width="480" height="20" fill="#cbd5e1" stroke="#94a3b8" stroke-width="0.5"/>
+            <text font-family="IBM Plex Sans Thai,sans-serif" font-size="9" fill="#475569" x="240" y="59" text-anchor="middle">EQUIPMENT CONTROL DOCKET (ECD)</text>
+            <!-- Data rows -->
+            <rect x="0"   y="65" width="240" height="25" fill="#f1f5f9" stroke="#94a3b8" stroke-width="0.5"/>
+            <rect x="240" y="65" width="240" height="25" fill="#f1f5f9" stroke="#94a3b8" stroke-width="0.5"/>
+            <text font-family="IBM Plex Sans Thai,sans-serif" font-size="9" fill="#475569" x="120" y="81" text-anchor="middle">Transfer From / Account No.</text>
+            <text font-family="IBM Plex Sans Thai,sans-serif" font-size="9" fill="#475569" x="360" y="81" text-anchor="middle">Transfer To / Account No. / DO</text>
+            <rect x="0"   y="90" width="240" height="25" fill="#f1f5f9" stroke="#94a3b8" stroke-width="0.5"/>
+            <rect x="240" y="90" width="240" height="25" fill="#f1f5f9" stroke="#94a3b8" stroke-width="0.5"/>
+            <text font-family="IBM Plex Sans Thai,sans-serif" font-size="9" fill="#475569" x="120" y="106" text-anchor="middle">Equipment Moved / ประเภท / จำนวน</text>
+            <text font-family="IBM Plex Sans Thai,sans-serif" font-size="9" fill="#475569" x="360" y="106" text-anchor="middle">ลายเซ็น / Transport Co.</text>
+            <!-- Bottom bar with Barcode highlighted -->
+            <rect x="0"   y="115" width="480" height="40" fill="#cbd5e1" stroke="#94a3b8" stroke-width="0.5"/>
+            <rect x="6"   y="120" width="100" height="28" rx="2" fill="#dbeafe" stroke="#0369a1" stroke-width="1.5"/>
+            <text font-family="IBM Plex Sans Thai,sans-serif" font-size="10" fill="#0369a1" font-weight="600" x="56" y="131" text-anchor="middle">Barcode</text>
+            <text font-family="IBM Plex Sans Thai,sans-serif" font-size="9" fill="#0369a1" x="56" y="143" text-anchor="middle">สแกนตรงนี้</text>
+            <text font-family="IBM Plex Sans Thai,sans-serif" font-size="9" fill="#475569" x="300" y="131" text-anchor="middle">Reference / เลขที่อ้างอิง</text>
+            <text font-family="IBM Plex Sans Thai,sans-serif" font-size="9" fill="#475569" x="430" y="131" text-anchor="middle">Date / วันที่</text>
+            <!-- Arrow -->
+            <defs><marker id="a2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="#0369a1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+          </svg>
+        </div>
+      </div>
+
+      <hr class="manual-divider">
+
+      <div class="manual-step">
+        <div class="manual-step-num">3</div>
+        <div class="manual-step-content">
+          <div class="manual-step-title">ตรวจสอบและแก้ไขข้อมูล</div>
+          <div class="manual-step-desc">
+            ระบบจะแสดงข้อมูลเอกสารจากฐานข้อมูล ตรวจสอบให้ตรงกับเอกสารจริงในช่องต่างๆ ดังนี้
+          </div>
+
+          <div class="manual-doc-label">เปรียบเทียบข้อมูลกับเอกสาร BRS/CHEP</div>
+          <div class="manual-field-map">
+            <div class="manual-field-row">
+              <div class="manual-field-app">Ref No.</div>
+              <div class="manual-field-arrow">→</div>
+              <div class="manual-field-doc">เลขที่เอกสาร BRS</div>
+            </div>
+            <div class="manual-field-row">
+              <div class="manual-field-app">Origin</div>
+              <div class="manual-field-arrow">→</div>
+              <div class="manual-field-doc">โอนจาก (ชื่อโรงงาน/คลัง)</div>
+            </div>
+            <div class="manual-field-row">
+              <div class="manual-field-app">Destination</div>
+              <div class="manual-field-arrow">→</div>
+              <div class="manual-field-doc">โอนไป (ชื่อปลายทาง)</div>
+            </div>
+            <div class="manual-field-row">
+              <div class="manual-field-app">QTY (เดิม)</div>
+              <div class="manual-field-arrow">→</div>
+              <div class="manual-field-doc">จำนวนที่โอน (ตัว)</div>
+            </div>
+            <div class="manual-field-row manual-field-row-edit">
+              <div class="manual-field-app">✏ QTY ที่รับจริง</div>
+              <div class="manual-field-arrow">→</div>
+              <div class="manual-field-doc">จำนวนที่ได้รับจริง (ตัว) — กรอกเอง</div>
+            </div>
+            <div class="manual-field-row manual-field-row-edit">
+              <div class="manual-field-app">✏ วันที่รับ</div>
+              <div class="manual-field-arrow">→</div>
+              <div class="manual-field-doc">วันที่ได้รับจริง — กรอกเอง</div>
+            </div>
+          </div>
+
+          <div class="manual-doc-label" style="margin-top:14px;">เปรียบเทียบข้อมูลกับเอกสาร LOSCAM ECD</div>
+          <div class="manual-field-map">
+            <div class="manual-field-row">
+              <div class="manual-field-app">Ref No.</div>
+              <div class="manual-field-arrow">→</div>
+              <div class="manual-field-doc">Reference / Docket No.</div>
+            </div>
+            <div class="manual-field-row">
+              <div class="manual-field-app">Origin</div>
+              <div class="manual-field-arrow">→</div>
+              <div class="manual-field-doc">Transfer From / โอนจาก</div>
+            </div>
+            <div class="manual-field-row">
+              <div class="manual-field-app">Destination</div>
+              <div class="manual-field-arrow">→</div>
+              <div class="manual-field-doc">Transfer To / โอนไป</div>
+            </div>
+            <div class="manual-field-row">
+              <div class="manual-field-app">QTY (เดิม)</div>
+              <div class="manual-field-arrow">→</div>
+              <div class="manual-field-doc">Sent / ยอดที่ส่ง</div>
+            </div>
+            <div class="manual-field-row manual-field-row-edit">
+              <div class="manual-field-app">✏ QTY ที่รับจริง</div>
+              <div class="manual-field-arrow">→</div>
+              <div class="manual-field-doc">Received / ยอดที่รับ — กรอกเอง</div>
+            </div>
+            <div class="manual-field-row manual-field-row-edit">
+              <div class="manual-field-app">✏ วันที่รับ</div>
+              <div class="manual-field-arrow">→</div>
+              <div class="manual-field-doc">Date / วันที่ — กรอกเอง</div>
+            </div>
+          </div>
+
+          <div class="manual-step-desc" style="margin-top:12px;">
+            เมื่อตรวจสอบครบแล้ว กด <b>+ เพิ่มลงรายการ</b>
+          </div>
+        </div>
+      </div>
+
+      <hr class="manual-divider">
+
+      <div class="manual-step">
+        <div class="manual-step-num">4</div>
+        <div class="manual-step-content">
+          <div class="manual-step-title">สแกนต่อได้เรื่อยๆ</div>
+          <div class="manual-step-desc">
+            สแกน barcode ถัดไปได้เลยโดยไม่ต้อง Submit ทีละรายการ ระบบจะเก็บรายการไว้ใน <b>รายการรอ Submit</b> ด้านล่าง<br><br>
+            หากต้องการลบรายการใด กดปุ่ม <b>×</b> ที่รายการนั้น
+          </div>
+        </div>
+      </div>
+
+      <hr class="manual-divider">
+
+      <div class="manual-step">
+        <div class="manual-step-num">5</div>
+        <div class="manual-step-content">
+          <div class="manual-step-title">ยืนยันและบันทึก</div>
+          <div class="manual-step-desc">
+            เมื่อสแกนครบแล้ว กดปุ่ม <b>ยืนยัน X รายการ สู่ Google Sheet</b> ด้านล่างหน้าจอ ระบบจะบันทึกข้อมูลทั้งหมดพร้อมกันในครั้งเดียว
+          </div>
+        </div>
+      </div>
+
+      <hr class="manual-divider">
+
+      <div class="manual-warn">
+        <b>กรณีไม่พบ Barcode ในระบบ</b><br>
+        หาก barcode ยังไม่มีในฐานข้อมูล ระบบจะแสดงสัญลักษณ์สีเหลือง สามารถกรอก QTY และวันที่รับได้ตามปกติ ข้อมูลจะถูกบันทึกเป็น <b>NOT FOUND</b> เพื่อรอการอัปเดตฐานข้อมูลในภายหลัง
+      </div>
+
+      <div class="manual-note">
+        <b>สอบถามเพิ่มเติม</b> ติดต่อ <a href="mailto:Palletmanagement@brs-group.com" style="color:var(--accent);">Palletmanagement@brs-group.com</a>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+
   <div class="logo">
     <div class="logo-icon">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0f172a" stroke-width="2.5">
@@ -151,6 +416,7 @@ main{max-width:680px;margin:0 auto;padding:20px 16px 100px;}
   </div>
   <div style="display:flex;align-items:center;gap:8px;">
     <div class="site-badge" id="siteBadge" onclick="changeSite()" title="คลิกเพื่อเปลี่ยน Site">—</div>
+    <button class="help-btn" onclick="openManual()" title="คู่มือการใช้งาน">?</button>
     <button class="cart-btn" onclick="scrollToQueue()">
       รายการ <span class="cart-count" id="cartCount">0</span>
     </button>
@@ -184,22 +450,22 @@ main{max-width:680px;margin:0 auto;padding:20px 16px 100px;}
       ไม่พบ barcode นี้ในระบบ — จะบันทึกเป็น NOT FOUND ใน Log
     </div>
     <div class="fields-grid">
-      <div class="field-cell"><div class="field-label">เลขที่อ้างอิง</div><div class="field-value mono" id="fRef">—</div></div>
-      <div class="field-cell"><div class="field-label">วันที่ส่ง</div><div class="field-value" id="fCreated">—</div></div>
-      <div class="field-cell"><div class="field-label">โอนจาก</div><div class="field-value" id="fOrigin">—</div></div>
-      <div class="field-cell"><div class="field-label">โอนไป</div><div class="field-value" id="fDest">—</div></div>
-      <div class="field-cell"><div class="field-label">ยอดพาเลทที่ส่ง</div><div class="field-value mono" id="fQty">—</div></div>
-      <div class="field-cell"><div class="field-label">วันที่รับ (จากระบบ)</div><div class="field-value" id="fReceived">—</div></div>
+      <div class="field-cell"><div class="field-label">Ref No.</div><div class="field-value mono" id="fRef">—</div></div>
+      <div class="field-cell"><div class="field-label">Created Date</div><div class="field-value" id="fCreated">—</div></div>
+      <div class="field-cell"><div class="field-label">Origin</div><div class="field-value" id="fOrigin">—</div></div>
+      <div class="field-cell"><div class="field-label">Destination</div><div class="field-value" id="fDest">—</div></div>
+      <div class="field-cell"><div class="field-label">QTY (เดิม)</div><div class="field-value mono" id="fQty">—</div></div>
+      <div class="field-cell"><div class="field-label">Received Date</div><div class="field-value" id="fReceived">—</div></div>
     </div>
     <div class="edit-section">
       <div class="edit-title">แก้ไขข้อมูลก่อนเพิ่ม</div>
       <div class="edit-row">
         <div class="edit-group">
-          <label class="edit-label">ยอดพาเลทที่รับ</label>
+          <label class="edit-label">QTY ที่รับจริง</label>
           <input class="edit-input" id="editQty" type="number" min="0" placeholder="0">
         </div>
         <div class="edit-group">
-          <label class="edit-label">วันที่รับ (ตามเอกสาร)</label>
+          <label class="edit-label">วันที่รับ</label>
           <input class="edit-input" id="editDate" type="date">
         </div>
       </div>
@@ -232,7 +498,7 @@ var selectedSite = '';
 var selectedEmpId = '';
 var selectedEmpName = '';
 var selectedEmpEmail = '';
-var API_URL = 'https://script.google.com/macros/s/AKfycbwuaBWVpCjuWxfmvhbUOLOy6S_nREWMt2isSZZBF8zYvsKXmTnSgh9IVm_NFhFPMJhkqw/exec';
+var API_URL = 'https://script.google.com/macros/s/AKfycbxl2d5JGwlHeRQ12fMG3XGm3SZ_B3xmPMQGR3G7SBThj9-hw3KrhK0rPGAHu2__Y1AmTg/exec';
 
 window.onload = function() {
   document.getElementById('editDate').value = new Date().toISOString().split('T')[0];
@@ -265,6 +531,14 @@ function confirmSite() {
 
 function changeSite() {
   document.getElementById('siteOverlay').style.display = 'flex';
+}
+
+function openManual() {
+  document.getElementById('manualOverlay').classList.add('open');
+}
+
+function closeManual() {
+  document.getElementById('manualOverlay').classList.remove('open');
 }
 
 // ── Scanner (ZXing) ───────────────────────────────────────
