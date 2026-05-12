@@ -412,14 +412,16 @@ async function submitAll() {
 
   try {
 
-    const res = await fetch(
-
-      API_URL +
-      '?action=updateItems' +
-      '&data=' +
-      encodeURIComponent(JSON.stringify(queue))
-
-    );
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        action: 'updateItems',
+        items: queue
+      })
+    });
 
     const data = await res.json();
 
