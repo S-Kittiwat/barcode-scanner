@@ -77,7 +77,7 @@ main{max-width:680px;margin:0 auto;padding:20px 16px 100px;}
 .site-box-sub{font-size:12px;color:var(--muted);}
 .site-box-body{padding:20px;}
 .site-label{font-size:12px;color:var(--muted);margin-bottom:8px;display:block;}
-.site-select{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);color:var(--text);font-family:var(--font);font-size:14px;padding:10px 12px;outline:none;appearance:none;background-image:("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;cursor:pointer;margin-bottom:16px;}
+.site-select{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);color:var(--text);font-family:var(--font);font-size:14px;padding:10px 12px;outline:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;cursor:pointer;margin-bottom:16px;}
 .site-select:focus{border-color:var(--accent);}
 .site-select option{background:var(--surface2);}
 .site-confirm-btn{width:100%;background:var(--accent);border:none;color:#0f172a;border-radius:var(--rs);padding:12px;font-family:var(--font);font-size:15px;font-weight:600;cursor:pointer;}
@@ -220,15 +220,11 @@ var scanning = false;
 var codeReader = null;
 var videoStream = null;
 var selectedSite = '';
-const API_URL =
-  'https://script.google.com/macros/s/AKfycbxl2d5JGwlHeRQ12fMG3XGm3SZ_B3xmPMQGR3G7SBThj9-hw3KrhK0rPGAHu2__Y1AmTg/exec';
+var API_URL = 'https://script.google.com/macros/s/AKfycbxl2d5JGwlHeRQ12fMG3XGm3SZ_B3xmPMQGR3G7SBThj9-hw3KrhK0rPGAHu2__Y1AmTg/exec';
 
 window.onload = function() {
-  document.getElementById('editDate').value =
-    new Date().toISOString().split('T')[0];
-
-  document.getElementById('userEmail').textContent =
-    'GitHub Pages Mode';
+  document.getElementById('editDate').value = new Date().toISOString().split('T')[0];
+  document.getElementById('userEmail').textContent = 'GitHub Pages Mode';
 };
 
 // ── Site Selection ────────────────────────────────────────
@@ -291,42 +287,32 @@ function stopScanner() {
   b.textContent = 'เปิดกล้อง'; b.classList.remove('stop');
 }
 
-// ── Fetch ─────────────────────────
+// ── Fetch ─────────────────────────────────────────────────
 function searchBarcode() {
   var v = document.getElementById('manualInput').value.trim();
   if (v) fetchDoc(v);
 }
 
 async function fetchDoc(barcode) {
-
   document.getElementById('loadSpinner').style.display = 'block';
+  document.getElementById('resultPanel').classList.remove('visible');
 
   try {
-
     const res = await fetch(
-      API_URL +
-      '?action=getDocument&barcode=' +
-      encodeURIComponent(barcode)
+      API_URL + '?action=getDocument&barcode=' + encodeURIComponent(barcode),
+      { redirect: 'follow' }
     );
-
     const data = await res.json();
-
     document.getElementById('loadSpinner').style.display = 'none';
 
     if (data.status === 'ok') {
-
       showDoc(data.data);
-
     } else {
-
-      showToast('ไม่พบ barcode', 'error');
+      showToast('ไม่พบ barcode: ' + barcode, 'error');
     }
-
   } catch(err) {
-
     document.getElementById('loadSpinner').style.display = 'none';
-
-    showToast(err.message, 'error');
+    showToast('เกิดข้อผิดพลาด: ' + err.message, 'error');
   }
 }
 
@@ -400,89 +386,50 @@ function renderQueue() {
 
 function scrollToQueue() { document.getElementById('queueSection').scrollIntoView({ behavior: 'smooth' }); }
 
-// ── Submit ─────────────────────────
+// ── Submit ผ่าน google.script.run ─────────────────────────
 async function submitAll() {
-
   if (!queue.length) return;
 
   var btn = document.getElementById('submitBtn');
-
   btn.disabled = true;
   btn.textContent = 'กำลังส่งข้อมูล...';
 
   try {
-
     const res = await fetch(API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        action: 'updateItems',
-        items: queue
-      })
+      method   : 'POST',
+      redirect : 'follow',
+      headers  : { 'Content-Type': 'text/plain' },
+      body     : JSON.stringify({ action: 'updateItems', items: queue })
     });
 
     const data = await res.json();
 
-    btn.disabled = false;
-
     if (data.status === 'ok') {
-
       const count = queue.length;
-
       queue = [];
-
       renderQueue();
-
-      showToast(
-        'บันทึก ' + count + ' รายการเรียบร้อย',
-        'success'
-      );
-
+      showToast('บันทึก ' + count + ' รายการเรียบร้อย', 'success');
     } else {
-
-      showToast(
-        data.message || 'Error',
-        'error'
-      );
+      showToast(data.message || 'Error', 'error');
     }
 
   } catch(err) {
-
-    btn.disabled = false;
-
-    showToast(
-      'เกิดข้อผิดพลาด: ' + err.message,
-      'error'
-    );
+    showToast('เกิดข้อผิดพลาด: ' + err.message, 'error');
   }
 
-  btn.textContent =
-    'ยืนยัน ' + queue.length +
-    ' รายการ สู่ Google Sheet';
+  btn.disabled = queue.length === 0;
+  btn.textContent = 'ยืนยัน ' + queue.length + ' รายการ สู่ Google Sheet';
 }
 
 // ── Toast ─────────────────────────────────────────────────
 var toastTimer;
-
 function showToast(msg, type) {
-
   var t = document.getElementById('toast');
-
-  if (!t) return;
-
   t.textContent = msg;
-
   t.className = 'toast ' + (type || 'info') + ' show';
-
   clearTimeout(toastTimer);
-
-  toastTimer = setTimeout(function() {
-    t.classList.remove('show');
-  }, 3000);
+  toastTimer = setTimeout(function() { t.classList.remove('show'); }, 3000);
 }
 </script>
-<div id="toast" class="toast"></div>
 </body>
 </html>
