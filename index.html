@@ -450,23 +450,56 @@ main{max-width:680px;margin:0 auto;padding:20px 16px 100px;}
       ไม่พบ barcode นี้ในระบบ — จะบันทึกเป็น NOT FOUND ใน Log
     </div>
     <div class="fields-grid">
-      <div class="field-cell"><div class="field-label">Ref No.</div><div class="field-value mono" id="fRef">—</div></div>
-      <div class="field-cell"><div class="field-label">Created Date</div><div class="field-value" id="fCreated">—</div></div>
-      <div class="field-cell"><div class="field-label">Origin</div><div class="field-value" id="fOrigin">—</div></div>
-      <div class="field-cell"><div class="field-label">Destination</div><div class="field-value" id="fDest">—</div></div>
-      <div class="field-cell"><div class="field-label">QTY (เดิม)</div><div class="field-value mono" id="fQty">—</div></div>
-      <div class="field-cell"><div class="field-label">Received Date</div><div class="field-value" id="fReceived">—</div></div>
+      <div class="field-cell"><div class="field-label">เลขที่อ้างอิง (Reference)</div><div class="field-value mono" id="fRefNo">—</div></div>
+      <div class="field-cell"><div class="field-label">ประเภทอุปกรณ์ (Type)</div><div class="field-value" id="fItemName">—</div></div>
+      <div class="field-cell"><div class="field-label">โอนจาก (Transfer From)</div><div class="field-value" id="fTransferFrom">—</div></div>
+      <div class="field-cell"><div class="field-label">เลขที่บัญชีต้นทาง (Origin Acc.)</div><div class="field-value mono" id="fOriginAcc">—</div></div>
+      <div class="field-cell"><div class="field-label">โอนไป (Transfer To)</div><div class="field-value" id="fTransferTo">—</div></div>
+      <div class="field-cell"><div class="field-label">เลขที่บัญชีปลายทาง (Dest. Acc.)</div><div class="field-value mono" id="fDestAcc">—</div></div>
+      <div class="field-cell"><div class="field-label">วันที่ส่ง (Despatch Date)</div><div class="field-value" id="fDespatch">—</div></div>
+      <div class="field-cell"><div class="field-label">วันที่รับ PCS (Received Date)</div><div class="field-value" id="fReceivedPCS">—</div></div>
+      <div class="field-cell full"><div class="field-label">ยอดที่ส่ง (Sent QTY)</div><div class="field-value mono" id="fSentQty">—</div></div>
     </div>
     <div class="edit-section">
       <div class="edit-title">แก้ไขข้อมูลก่อนเพิ่ม</div>
       <div class="edit-row">
         <div class="edit-group">
-          <label class="edit-label">QTY ที่รับจริง</label>
-          <input class="edit-input" id="editQty" type="number" min="0" placeholder="0">
+          <label class="edit-label">โอนจาก (Transfer From)</label>
+          <input class="edit-input" id="editTransferFrom" type="text" placeholder="—">
         </div>
         <div class="edit-group">
-          <label class="edit-label">วันที่รับ</label>
-          <input class="edit-input" id="editDate" type="date">
+          <label class="edit-label">เลขที่บัญชีต้นทาง</label>
+          <input class="edit-input" id="editOriginAcc" type="text" placeholder="—">
+        </div>
+      </div>
+      <div class="edit-row">
+        <div class="edit-group">
+          <label class="edit-label">โอนไป (Transfer To)</label>
+          <input class="edit-input" id="editTransferTo" type="text" placeholder="—">
+        </div>
+        <div class="edit-group">
+          <label class="edit-label">เลขที่บัญชีปลายทาง</label>
+          <input class="edit-input" id="editDestAcc" type="text" placeholder="—">
+        </div>
+      </div>
+      <div class="edit-row">
+        <div class="edit-group">
+          <label class="edit-label">วันที่ส่ง (Despatch Date)</label>
+          <input class="edit-input" id="editDespatch" type="date">
+        </div>
+        <div class="edit-group">
+          <label class="edit-label">วันที่รับ (Received Date)</label>
+          <input class="edit-input" id="editReceivedDate" type="date">
+        </div>
+      </div>
+      <div class="edit-row">
+        <div class="edit-group">
+          <label class="edit-label">ยอดที่ส่ง (Sent QTY)</label>
+          <input class="edit-input" id="editSentQty" type="number" min="0" placeholder="0">
+        </div>
+        <div class="edit-group">
+          <label class="edit-label">ยอดที่รับ (Received QTY)</label>
+          <input class="edit-input" id="editReceivedQty" type="number" min="0" placeholder="0">
         </div>
       </div>
       <button class="add-btn" onclick="addToQueue()">+ เพิ่มลงรายการ</button>
@@ -493,17 +526,64 @@ var queue = [];
 var currentDoc = null;
 var scanning = false;
 var codeReader = null;
-var videoStream = null;
 var selectedSite = '';
 var selectedEmpId = '';
 var selectedEmpName = '';
 var selectedEmpEmail = '';
+var csvData = [];
+var csvLoaded = false;
+
+// Google Drive CSV File ID
+var CSV_FILE_ID = '11BQZigtXNEzDSqJLQIE0Mc50xH2u3FeJ';
+var CSV_URL = 'https://drive.google.com/uc?export=download&id=' + CSV_FILE_ID;
 var API_URL = 'https://script.google.com/macros/s/AKfycbxl2d5JGwlHeRQ12fMG3XGm3SZ_B3xmPMQGR3G7SBThj9-hw3KrhK0rPGAHu2__Y1AmTg/exec';
 
 window.onload = function() {
   document.getElementById('editDate').value = new Date().toISOString().split('T')[0];
-  document.getElementById('userEmail').textContent = 'GitHub Pages Mode';
+  document.getElementById('userEmail').textContent = 'กำลังโหลดข้อมูล...';
+  loadCSV();
 };
+
+// ── Load CSV from Google Drive ────────────────────────────
+function loadCSV() {
+  fetch(CSV_URL)
+    .then(function(r) { return r.text(); })
+    .then(function(text) {
+      csvData = parseCSV(text);
+      csvLoaded = true;
+      document.getElementById('userEmail').textContent = 'โหลดข้อมูลสำเร็จ ' + csvData.length + ' รายการ';
+      showToast('โหลดข้อมูล ' + csvData.length + ' รายการแล้ว', 'success');
+    })
+    .catch(function(err) {
+      document.getElementById('userEmail').textContent = 'โหลดข้อมูลไม่สำเร็จ';
+      showToast('โหลด CSV ไม่สำเร็จ: ' + err.message, 'error');
+    });
+}
+
+function parseCSV(text) {
+  var lines = text.replace(/\r/g, '').split('\n').filter(function(l) { return l.trim(); });
+  if (lines.length < 2) return [];
+  // Remove BOM if present
+  var headerLine = lines[0].replace(/^\uFEFF/, '');
+  var headers = headerLine.split(',');
+  var rows = [];
+  for (var i = 1; i < lines.length; i++) {
+    var vals = lines[i].split(',');
+    var obj = {};
+    headers.forEach(function(h, idx) {
+      obj[h.trim()] = (vals[idx] || '').trim();
+    });
+    rows.push(obj);
+  }
+  return rows;
+}
+
+function searchInCSV(barcode) {
+  barcode = barcode.trim().toUpperCase();
+  return csvData.find(function(row) {
+    return (row['barcode'] || '').trim().toUpperCase() === barcode;
+  }) || null;
+}
 
 // ── Site Selection ────────────────────────────────────────
 function checkSiteSelected() {
@@ -579,41 +659,29 @@ function stopScanner() {
   b.textContent = 'เปิดกล้อง'; b.classList.remove('stop');
 }
 
-// ── Fetch ─────────────────────────────────────────────────
+// ── Search from CSV ────────────────────────────────────────
 function searchBarcode() {
   var v = document.getElementById('manualInput').value.trim();
   if (v) fetchDoc(v);
 }
 
-async function fetchDoc(barcode) {
+function fetchDoc(barcode) {
   document.getElementById('loadSpinner').style.display = 'block';
   document.getElementById('resultPanel').classList.remove('visible');
 
-  try {
-    const res = await fetch(
-      API_URL + '?action=getDocument&barcode=' + encodeURIComponent(barcode),
-      { redirect: 'follow' }
-    );
-    const data = await res.json();
+  if (!csvLoaded) {
+    showToast('กำลังโหลดข้อมูล กรุณารอสักครู่...', 'info');
     document.getElementById('loadSpinner').style.display = 'none';
+    return;
+  }
 
-    if (data.status === 'ok') {
-      showDoc(data.data, false);
-    } else {
-      // ไม่พบ — แสดง panel ว่างให้ user กรอกเองได้
-      showDoc({
-        barcode       : barcode,
-        ref_no        : '',
-        qty           : '',
-        origin_name   : '',
-        destination_name : '',
-        created_date  : '',
-        received_date : ''
-      }, true);
-    }
-  } catch(err) {
-    document.getElementById('loadSpinner').style.display = 'none';
-    showToast('เกิดข้อผิดพลาด: ' + err.message, 'error');
+  var row = searchInCSV(barcode);
+  document.getElementById('loadSpinner').style.display = 'none';
+
+  if (row) {
+    showDoc(row, false);
+  } else {
+    showDoc({ barcode: barcode }, true);
   }
 }
 
@@ -630,38 +698,104 @@ function formatDate(val) {
 }
 
 function showDoc(d, notFound) {
-  currentDoc = d;
-  currentDoc.not_found = notFound ? true : false;
+  currentDoc = {
+    barcode              : d['barcode']                    || d.barcode || '',
+    ref_no               : d['ref_no']                     || '',
+    item_name            : d['item_name']                  || '',
+    transfer_from        : d['customer_start_name']        || '',
+    origin_acc           : d['customer_start_code']        || '',
+    transfer_to          : d['customer_destination_name']  || '',
+    dest_acc             : d['customer_destination_code']  || '',
+    despatch_date        : d['create_at']                  || '',
+    received_date_pcs    : d['real_recived_at']            || '',
+    sent_qty             : d['total']                      || '',
+    received_qty         : d['total']                      || '',
+    not_found            : notFound ? true : false
+  };
 
-  document.getElementById('rBarcode').textContent    = d.barcode;
-  document.getElementById('rTitle').textContent      = notFound ? 'ไม่พบในระบบ' : 'ข้อมูลเอกสาร';
-  document.getElementById('rBarcode').style.background = notFound
-    ? 'rgba(251,191,36,0.12)' : 'rgba(56,189,248,0.12)';
-  document.getElementById('rBarcode').style.borderColor = notFound
-    ? 'rgba(251,191,36,0.4)' : 'rgba(56,189,248,0.3)';
-  document.getElementById('rBarcode').style.color = notFound ? '#fbbf24' : '#38bdf8';
+  document.getElementById('rBarcode').textContent       = currentDoc.barcode;
+  document.getElementById('rTitle').textContent         = notFound ? 'ไม่พบในระบบ' : 'ข้อมูลเอกสาร';
+  document.getElementById('rBarcode').style.background  = notFound ? 'rgba(251,191,36,0.12)' : 'rgba(56,189,248,0.12)';
+  document.getElementById('rBarcode').style.borderColor = notFound ? 'rgba(251,191,36,0.4)' : 'rgba(56,189,248,0.3)';
+  document.getElementById('rBarcode').style.color       = notFound ? '#fbbf24' : '#38bdf8';
   document.getElementById('notFoundBanner').style.display = notFound ? 'block' : 'none';
 
-  document.getElementById('fRef').textContent      = d.ref_no        || '—';
-  document.getElementById('fCreated').textContent  = formatDate(d.created_date);
-  document.getElementById('fOrigin').textContent   = d.origin_name   || '—';
-  document.getElementById('fDest').textContent     = d.destination_name || '—';
-  document.getElementById('fQty').textContent      = d.qty !== undefined && d.qty !== '' ? d.qty : '—';
-  document.getElementById('fReceived').textContent = formatDate(d.received_date);
-  document.getElementById('editQty').value         = d.qty || '';
+  document.getElementById('fRefNo').textContent         = currentDoc.ref_no          || '—';
+  document.getElementById('fItemName').textContent      = currentDoc.item_name        || '—';
+  document.getElementById('fTransferFrom').textContent  = currentDoc.transfer_from    || '—';
+  document.getElementById('fOriginAcc').textContent     = currentDoc.origin_acc       || '—';
+  document.getElementById('fTransferTo').textContent    = currentDoc.transfer_to      || '—';
+  document.getElementById('fDestAcc').textContent       = currentDoc.dest_acc         || '—';
+  document.getElementById('fDespatch').textContent      = formatDate(currentDoc.despatch_date)     || '—';
+  document.getElementById('fReceivedPCS').textContent   = formatDate(currentDoc.received_date_pcs) || '—';
+  document.getElementById('fSentQty').textContent       = currentDoc.sent_qty         || '—';
+
+  // ค่าเริ่มต้น edit fields = ข้อมูลจากระบบ
+  document.getElementById('editTransferFrom').value  = currentDoc.transfer_from;
+  document.getElementById('editOriginAcc').value     = currentDoc.origin_acc;
+  document.getElementById('editTransferTo').value    = currentDoc.transfer_to;
+  document.getElementById('editDestAcc').value       = currentDoc.dest_acc;
+  document.getElementById('editDespatch').value      = toInputDate(currentDoc.despatch_date);
+  document.getElementById('editReceivedDate').value  = toInputDate(currentDoc.received_date_pcs);
+  document.getElementById('editSentQty').value       = currentDoc.sent_qty;
+  document.getElementById('editReceivedQty').value   = currentDoc.sent_qty;
+
   document.getElementById('resultPanel').classList.add('visible');
+}
+
+function toInputDate(val) {
+  if (!val) return new Date().toISOString().split('T')[0];
+  try {
+    // Handle d/m/yyyy or yyyy-mm-dd
+    if (val.includes('/')) {
+      var parts = val.split('/');
+      if (parts.length === 3) {
+        var d = parts[0].padStart(2,'0');
+        var m = parts[1].padStart(2,'0');
+        var y = parts[2].length === 2 ? '20'+parts[2] : parts[2];
+        return y + '-' + m + '-' + d;
+      }
+    }
+    return new Date(val).toISOString().split('T')[0];
+  } catch(e) { return ''; }
 }
 
 // ── Queue ─────────────────────────────────────────────────
 function addToQueue() {
   if (!currentDoc) return;
-  var qty  = document.getElementById('editQty').value;
-  var date = document.getElementById('editDate').value;
-  if (!date) { showToast('กรุณาระบุวันที่รับ', 'error'); return; }
+  var transferFrom  = document.getElementById('editTransferFrom').value.trim();
+  var originAcc     = document.getElementById('editOriginAcc').value.trim();
+  var transferTo    = document.getElementById('editTransferTo').value.trim();
+  var destAcc       = document.getElementById('editDestAcc').value.trim();
+  var despatch      = document.getElementById('editDespatch').value;
+  var receivedDate  = document.getElementById('editReceivedDate').value;
+  var sentQty       = document.getElementById('editSentQty').value;
+  var receivedQty   = document.getElementById('editReceivedQty').value;
+
+  if (!receivedDate) { showToast('กรุณาระบุวันที่รับ', 'error'); return; }
   if (queue.find(function(q) { return q.barcode === currentDoc.barcode; })) {
     showToast('barcode นี้อยู่ในรายการแล้ว', 'error'); return;
   }
-  queue.push({ barcode: currentDoc.barcode, ref_no: currentDoc.ref_no, qty: qty, received_date: date, site: selectedSite, emp_id: selectedEmpId, emp_name: selectedEmpName, emp_email: selectedEmpEmail });
+
+  queue.push({
+    barcode       : currentDoc.barcode,
+    ref_no        : currentDoc.ref_no,
+    item_name     : currentDoc.item_name,
+    transfer_from : transferFrom,
+    origin_acc    : originAcc,
+    transfer_to   : transferTo,
+    dest_acc      : destAcc,
+    despatch_date : despatch,
+    received_date : receivedDate,
+    sent_qty      : sentQty,
+    received_qty  : receivedQty,
+    not_found     : currentDoc.not_found,
+    site          : selectedSite,
+    emp_id        : selectedEmpId,
+    emp_name      : selectedEmpName,
+    emp_email     : selectedEmpEmail
+  });
+
   renderQueue();
   document.getElementById('resultPanel').classList.remove('visible');
   document.getElementById('manualInput').value = '';
