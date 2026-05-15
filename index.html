@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>DocScan</title>
+<title>รับเอกสาร</title>
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
@@ -535,12 +535,15 @@ var csvLoaded = false;
 
 // Google Drive CSV File ID
 var CSV_FILE_ID = '11BQZigtXNEzDSqJLQIE0Mc50xH2u3FeJ';
-var CSV_URL = 'https://drive.google.com/uc?export=download&id=' + CSV_FILE_ID;
-var API_URL = 'https://script.google.com/macros/s/AKfycbyngS2hKXSiFfYId7KNF19MiwNVdRtP1STWnr7YS1YW51ttBVysFLMWFpFGLDpc4xCWfQ/exec';
+var API_URL = 'https://script.google.com/macros/s/AKfycbw0Wsgla4j1WVF6AHjtEbotQW4Xkig3hDeQBEWmDRLABA5ER4-Pi1GzGaJUVd2CjnN5xw/exec';
+var CSV_URL = API_URL + '?action=getCSV';
 
 window.onload = function() {
-  document.getElementById('editDate').value = new Date().toISOString().split('T')[0];
-  document.getElementById('userEmail').textContent = 'กำลังโหลดข้อมูล...';
+  var today = new Date().toISOString().split('T')[0];
+  var despatch = document.getElementById('editDespatch');
+  var received = document.getElementById('editReceivedDate');
+  if (despatch) despatch.value = today;
+  if (received) received.value = today;
   loadCSV();
 };
 
@@ -876,5 +879,6 @@ function showToast(msg, type) {
   toastTimer = setTimeout(function() { t.classList.remove('show'); }, 3000);
 }
 </script>
+<div id="toast" class="toast"></div>
 </body>
 </html>
