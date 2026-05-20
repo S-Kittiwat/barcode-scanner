@@ -791,8 +791,12 @@ async function uploadPhoto(base64, barcode) {
       body : JSON.stringify({ action: 'uploadPhoto', barcode: barcode, image: base64, ref_no: refNo })
     });
     var data = await res.json();
+    console.log('uploadPhoto response:', JSON.stringify(data)); // ← เพิ่มบรรทัดนี้
     return data.url || '';
-  } catch(e) { return ''; }
+  } catch(e) {
+    console.log('uploadPhoto error:', e.message); // ← เพิ่มบรรทัดนี้
+    return ''; 
+  }
 }
 
 // ── Toast ─────────────────────────────────────────────────
