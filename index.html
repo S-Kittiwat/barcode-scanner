@@ -58,7 +58,7 @@ main{max-width:680px;margin:0 auto;padding:20px 16px 100px;}
 .queue-info{flex:1;min-width:0;}
 .queue-barcode{font-family:var(--mono);font-size:13px;font-weight:500;color:var(--accent);}
 .queue-details{font-size:12px;color:var(--muted);margin-top:2px;}
-.queue-remove{background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;padding:4px;line-height:1;}
+.queue-remove{background:rgba(248,113,113,0.12);border:1px solid rgba(248,113,113,0.35);color:var(--danger);font-size:13px;font-weight:600;cursor:pointer;padding:4px 8px;border-radius:6px;line-height:1;transition:background 0.15s;}
 .submit-bar{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);padding:14px 20px;}
 .submit-btn{width:100%;background:var(--success);border:none;color:#0f172a;border-radius:var(--rs);padding:13px;font-family:var(--font);font-size:15px;font-weight:600;cursor:pointer;}
 .submit-btn:disabled{opacity:0.35;cursor:not-allowed;}
@@ -825,8 +825,8 @@ function renderQueue() {
       '<div class="queue-num">' + (i+1) + '</div>' +
       '<div class="queue-info">' +
         '<div class="queue-barcode">' + item.barcode + '</div>' +
-        '<div class="queue-details">' + item.ref_no + ' &nbsp;·&nbsp; ' + item.item_name + ' &nbsp;·&nbsp; From: ' + item.transfer_from + ' → ' + item.transfer_to + ' &nbsp;·&nbsp; QTY: ' + item.received_qty + '</div>' +
-      '<button class="queue-remove" onclick="removeFromQueue(' + i + ')">x</button>' +
+        '<div class="queue-details">' + item.ref_no + ' &nbsp;·&nbsp; ' + item.item_name + ' &nbsp;·&nbsp; ' + item.transfer_from + ' → ' + item.transfer_to + ' &nbsp;·&nbsp; QTY: ' + item.received_qty + '</div>' +
+      '<button class="queue-remove" onclick="removeFromQueue(' + i + ')">✕</button>' +
     '</div>';
   }).join('');
 }
