@@ -747,7 +747,8 @@ async function submitAll() {
   try {
     // อัปโหลดรูปทีละรายการ
     for (var i = 0; i < queue.length; i++) {
-      if (queue[i].photo) {
+  console.log('item', i, 'photo:', queue[i].photo ? queue[i].photo.substring(0,50) : 'EMPTY');
+  if (queue[i].photo) {
         btn.textContent = 'อัปโหลดรูป ' + (i+1) + '/' + queue.length + '...';
         var url = await uploadPhoto(queue[i].photo, queue[i].barcode);
         queue[i].photo_url = url;
@@ -781,6 +782,7 @@ async function submitAll() {
 }
 
 async function uploadPhoto(base64, barcode) {
+  console.log('uploadPhoto called:', barcode, base64 ? base64.substring(0,50) : 'NO PHOTO');
   try {
     var res  = await fetch(API_URL, {
       method  : 'POST',
