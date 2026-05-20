@@ -750,7 +750,7 @@ async function submitAll() {
   console.log('item', i, 'photo:', queue[i].photo ? queue[i].photo.substring(0,50) : 'EMPTY');
   if (queue[i].photo) {
         btn.textContent = 'อัปโหลดรูป ' + (i+1) + '/' + queue.length + '...';
-        var url = await uploadPhoto(queue[i].photo, queue[i].barcode);
+        var url = await uploadPhoto(queue[i].photo, queue[i].barcode, queue[i].ref_no);
         queue[i].photo_url = url;
         queue[i].photo     = ''; // เอา base64 ออกก่อนส่ง
       }
@@ -788,7 +788,7 @@ async function uploadPhoto(base64, barcode) {
       method  : 'POST',
       redirect: 'follow',
       headers : { 'Content-Type': 'text/plain' },
-      body    : JSON.stringify({ action: 'uploadPhoto', barcode: barcode, image: base64 })
+      body : JSON.stringify({ action: 'uploadPhoto', barcode: barcode, image: base64, ref_no: refNo })
     });
     var data = await res.json();
     return data.url || '';
