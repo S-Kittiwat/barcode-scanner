@@ -781,7 +781,7 @@ async function submitAll() {
   btn.textContent = 'ยืนยัน ' + queue.length + ' รายการ สู่ Google Sheet';
 }
 
-async function uploadPhoto(base64, barcode) {
+async function uploadPhoto(base64, barcode, refNo) {
   console.log('uploadPhoto called:', barcode, base64 ? base64.substring(0,50) : 'NO PHOTO');
   try {
     var res  = await fetch(API_URL, {
