@@ -449,17 +449,45 @@ main{max-width:680px;margin:0 auto;padding:20px 16px 100px;}
     <div id="notFoundBanner" style="display:none;background:rgba(251,191,36,0.1);border-bottom:1px solid rgba(251,191,36,0.3);padding:10px 16px;font-size:12px;color:#fbbf24;">
       ไม่พบ barcode นี้ในระบบ — จะบันทึกเป็น NOT FOUND ใน Log
     </div>
-    <div class="fields-grid">
-      <div class="field-cell"><div class="field-label">เลขที่อ้างอิง (Reference)</div><div class="field-value mono" id="fRefNo">—</div></div>
-      <div class="field-cell"><div class="field-label">ประเภทอุปกรณ์ (Type)</div><div class="field-value" id="fItemName">—</div></div>
-      <div class="field-cell"><div class="field-label">โอนจาก (Transfer From)</div><div class="field-value" id="fTransferFrom">—</div></div>
-      <div class="field-cell"><div class="field-label">เลขที่บัญชีต้นทาง (Origin Acc.)</div><div class="field-value mono" id="fOriginAcc">—</div></div>
-      <div class="field-cell"><div class="field-label">โอนไป (Transfer To)</div><div class="field-value" id="fTransferTo">—</div></div>
-      <div class="field-cell"><div class="field-label">เลขที่บัญชีปลายทาง (Dest. Acc.)</div><div class="field-value mono" id="fDestAcc">—</div></div>
-      <div class="field-cell"><div class="field-label">วันที่ส่ง (Despatch Date)</div><div class="field-value" id="fDespatch">—</div></div>
-      <div class="field-cell"><div class="field-label">วันที่รับ PCS (Received Date)</div><div class="field-value" id="fReceivedPCS">—</div></div>
-      <div class="field-cell full"><div class="field-label">ยอดที่ส่ง (Sent QTY)</div><div class="field-value mono" id="fSentQty">—</div></div>
+    <div style="display:flex;gap:0;border-bottom:1px solid var(--border);">
+
+  <!-- ซ้าย: รูปภาพ -->
+  <div style="flex-shrink:0;width:140px;border-right:1px solid var(--border);padding:12px;background:var(--surface2);display:flex;flex-direction:column;gap:8px;align-items:center;">
+    
+    <div id="photoBox" style="width:116px;height:140px;border-radius:var(--rs);border:2px dashed var(--border);overflow:hidden;background:var(--surface);display:flex;align-items:center;justify-content:center;cursor:pointer;" onclick="document.getElementById('photoInput').click()">
+      <img id="photoPreview" src="" style="width:100%;height:100%;object-fit:cover;display:none;">
+      <div id="photoPlaceholder" style="text-align:center;padding:8px;">
+        <div style="font-size:24px;margin-bottom:4px;">📄</div>
+        <div style="font-size:10px;color:var(--muted);line-height:1.5;">แตะเพื่อ<br>เพิ่มรูป</div>
+      </div>
     </div>
+
+    <label style="width:100%;background:var(--accent);color:#fff;border:none;border-radius:var(--rs);padding:6px 4px;font-size:11px;font-weight:600;cursor:pointer;display:block;text-align:center;">
+      📷 ถ่ายรูป
+      <input type="file" accept="image/*" capture="environment" onchange="handlePhoto(event)" style="display:none;">
+    </label>
+    <label style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:var(--rs);padding:6px 4px;font-size:11px;cursor:pointer;display:block;text-align:center;">
+      📁 Upload
+      <input id="photoInput" type="file" accept="image/*" onchange="handlePhoto(event)" style="display:none;">
+    </label>
+    <button onclick="clearPhoto()" style="font-size:10px;color:var(--danger);background:none;border:none;cursor:pointer;padding:0;">ลบรูป</button>
+
+  </div>
+
+  <!-- ขวา: ข้อมูลจากระบบ -->
+  <div class="fields-grid" style="flex:1;">
+    <div class="field-cell"><div class="field-label">เลขที่อ้างอิง (Reference)</div><div class="field-value mono" id="fRefNo">—</div></div>
+    <div class="field-cell"><div class="field-label">ประเภทอุปกรณ์ (Type)</div><div class="field-value" id="fItemName">—</div></div>
+    <div class="field-cell"><div class="field-label">โอนจาก (Transfer From)</div><div class="field-value" id="fTransferFrom">—</div></div>
+    <div class="field-cell"><div class="field-label">เลขที่บัญชีต้นทาง (Origin Acc.)</div><div class="field-value mono" id="fOriginAcc">—</div></div>
+    <div class="field-cell"><div class="field-label">โอนไป (Transfer To)</div><div class="field-value" id="fTransferTo">—</div></div>
+    <div class="field-cell"><div class="field-label">เลขที่บัญชีปลายทาง (Dest. Acc.)</div><div class="field-value mono" id="fDestAcc">—</div></div>
+    <div class="field-cell"><div class="field-label">วันที่ส่ง (Despatch Date)</div><div class="field-value" id="fDespatch">—</div></div>
+    <div class="field-cell"><div class="field-label">วันที่รับ PCS (Received Date)</div><div class="field-value" id="fReceivedPCS">—</div></div>
+    <div class="field-cell full"><div class="field-label">ยอดที่ส่ง (Sent QTY)</div><div class="field-value mono" id="fSentQty">—</div></div>
+  </div>
+
+</div>
     <div class="edit-section">
       <div class="edit-title">แก้ไขข้อมูลก่อนเพิ่ม</div>
       <div class="edit-row">
