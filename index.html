@@ -41,7 +41,7 @@ main{max-width:680px;margin:0 auto;padding:20px 16px 100px;}
 .photo-placeholder .icon{font-size:24px;margin-bottom:4px;}
 .photo-placeholder .txt{font-size:10px;color:var(--muted);line-height:1.5;}
 .photo-btn-shoot{width:100%;background:var(--accent);color:#0f172a;border:none;border-radius:var(--rs);padding:6px 4px;font-size:11px;font-weight:600;cursor:pointer;text-align:center;}
-.photo-btn-upload{width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:var(--rs);padding:6px 4px;font-size:11px;cursor:pointer;text-align:center;}
+.photo-btn-upload{width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:var(--rs);padding:6px 4px;font-size:11px;cursor:pointer;display:block;text-align:center;}
 .photo-btn-clear{font-size:10px;color:var(--danger);background:none;border:none;cursor:pointer;padding:0;}
 .fields-col{flex:1;min-width:0;}
 .fields-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border);}
@@ -291,16 +291,12 @@ main{max-width:680px;margin:0 auto;padding:20px 16px 100px;}
             <div class="txt">แตะเพื่อ<br>เพิ่มรูป</div>
           </div>
         </div>
-<!-- input แยกกัน วางนอก label -->
-<input id="photoCameraInput" type="file" accept="image/*" capture="environment" onchange="handlePhoto(event)" style="position:absolute;left:-9999px;">
-<input id="photoUploadInput" type="file" accept="image/*" onchange="handlePhoto(event)" style="position:absolute;left:-9999px;">
+        <!-- hidden inputs — วางนอก label เพื่อให้ browser trigger ถูกต้อง -->
+        <input id="photoCameraInput" type="file" accept="image/*" onchange="handlePhoto(event)" style="position:absolute;left:-9999px;">
+        <input id="photoUploadInput" type="file" accept="image/*" onchange="handlePhoto(event)" style="position:absolute;left:-9999px;">
 
-<button class="photo-btn-shoot" onclick="document.getElementById('photoCameraInput').click()">
-  📷 ถ่ายรูป
-</button>
-<button class="photo-btn-upload" onclick="document.getElementById('photoUploadInput').click()">
-  📁 Upload
-</button>
+        <button class="photo-btn-shoot" onclick="triggerCamera()">📷 ถ่ายรูป</button>
+        <button class="photo-btn-upload" onclick="document.getElementById('photoUploadInput').click()">📁 Upload</button>
         <button class="photo-btn-clear" onclick="clearPhoto()">ลบรูป</button>
       </div>
 
@@ -359,6 +355,16 @@ main{max-width:680px;margin:0 auto;padding:20px 16px 100px;}
   <button class="submit-btn" id="submitBtn" onclick="submitAll()" disabled>ยืนยัน 0 รายการ สู่ Google Sheet</button>
 </div>
 <div id="toast" class="toast"></div>
+
+<!-- Camera Modal (Desktop) -->
+<div id="cameraModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:700;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:20px;">
+  <video id="cameraStream" autoplay playsinline style="width:100%;max-width:480px;border-radius:var(--r);background:#000;"></video>
+  <canvas id="cameraCanvas" style="display:none;"></canvas>
+  <div style="display:flex;gap:12px;">
+    <button onclick="captureFromCamera()" style="background:var(--accent);color:#0f172a;border:none;border-radius:var(--rs);padding:12px 28px;font-family:var(--font);font-size:15px;font-weight:700;cursor:pointer;">📸 ถ่าย</button>
+    <button onclick="closeCamera()" style="background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:var(--rs);padding:12px 20px;font-family:var(--font);font-size:15px;cursor:pointer;">ยกเลิก</button>
+  </div>
+</div>
 
 <script>
 // ── State ─────────────────────────────────────────────────
@@ -572,6 +578,65 @@ function showDoc(d, notFound) {
 }
 
 // ── Photo ─────────────────────────────────────────────────
+var isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+var cameraStream = null;
+
+// ถ้าเป็นมือถือ ใส่ capture เปิดกล้องตรงๆ / ถ้า Desktop เปิด modal getUserMedia
+if (isMobile) {
+  document.getElementById('photoCameraInput').setAttribute('capture', 'environment');
+}
+
+function triggerCamera() {
+  if (isMobile) {
+    document.getElementById('photoCameraInput').click();
+  } else {
+    openCamera();
+  }
+}
+
+function openCamera() {
+  navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+    .then(function(stream) {
+      cameraStream = stream;
+      var video = document.getElementById('cameraStream');
+      video.srcObject = stream;
+      document.getElementById('cameraModal').style.display = 'flex';
+    })
+    .catch(function(err) {
+      showToast('ไม่สามารถเปิดกล้องได้: ' + err.message, 'error');
+    });
+}
+
+function captureFromCamera() {
+  var video  = document.getElementById('cameraStream');
+  var canvas = document.getElementById('cameraCanvas');
+  canvas.width  = video.videoWidth;
+  canvas.height = video.videoHeight;
+  canvas.getContext('2d').drawImage(video, 0, 0);
+
+  var maxW  = 800;
+  var scale = Math.min(1, maxW / canvas.width);
+  var out   = document.createElement('canvas');
+  out.width  = canvas.width  * scale;
+  out.height = canvas.height * scale;
+  out.getContext('2d').drawImage(canvas, 0, 0, out.width, out.height);
+  currentPhoto = out.toDataURL('image/jpeg', 0.75);
+
+  var preview = document.getElementById('photoPreview');
+  preview.src = currentPhoto;
+  preview.style.display = 'block';
+  document.getElementById('photoPlaceholder').style.display = 'none';
+  closeCamera();
+}
+
+function closeCamera() {
+  if (cameraStream) {
+    cameraStream.getTracks().forEach(function(t) { t.stop(); });
+    cameraStream = null;
+  }
+  document.getElementById('cameraModal').style.display = 'none';
+}
+
 function handlePhoto(event) {
   var file = event.target.files[0];
   if (!file) return;
