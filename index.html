@@ -782,13 +782,13 @@ async function submitAll() {
 }
 
 async function uploadPhoto(base64, barcode, refNo) {
-  console.log('uploadPhoto called:', barcode, base64 ? base64.substring(0,50) : 'NO PHOTO');
+  console.log('uploadPhoto called:', barcode, refNo, base64 ? base64.substring(0,50) : 'NO PHOTO');
   try {
     var res  = await fetch(API_URL, {
       method  : 'POST',
       redirect: 'follow',
       headers : { 'Content-Type': 'text/plain' },
-      body : JSON.stringify({ action: 'uploadPhoto', barcode: barcode, image: base64, ref_no: refNo })
+      body : JSON.stringify({ action: 'uploadPhoto', barcode: barcode, image: base64, ref_no: refNo || barcode })
     });
     var data = await res.json();
     console.log('uploadPhoto response:', JSON.stringify(data)); // ← เพิ่มบรรทัดนี้
