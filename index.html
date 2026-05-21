@@ -286,23 +286,20 @@ main{max-width:680px;margin:0 auto;padding:20px 16px 100px;}
       <div class="photo-col">
         <div class="photo-box" id="photoBox" onclick="document.getElementById('photoUploadInput').click()">
           <img id="photoPreview" src="" alt="preview">
-          <div class="photo-placeholder" id="photoPlaceholder">
-            <div id="pdfIndicator" style="display:none;flex-direction:column;align-items:center;gap:6px;padding:8px;">
-  <div style="font-size:32px;">📄</div>
-  <div style="font-size:10px;color:var(--success);font-weight:600;">PDF พร้อมส่ง</div>
+<div class="photo-box" id="photoBox" onclick="document.getElementById('photoUploadInput').click()">
+  <img id="photoPreview" src="" alt="preview">
+  <div class="photo-placeholder" id="photoPlaceholder">
+    <div class="icon">📄</div>
+    <div class="txt">แตะเพื่อ<br>เพิ่มรูป</div>
+  </div>
+  <div id="pdfIndicator" style="display:none;flex-direction:column;align-items:center;gap:6px;padding:8px;"></div>
 </div>
-            <div class="icon">📄</div>
-            <div class="txt">แตะเพื่อ<br>เพิ่มรูป</div>
-          </div>
-        </div>
-        <!-- hidden inputs — วางนอก label เพื่อให้ browser trigger ถูกต้อง -->
-        <input id="photoCameraInput" type="file" accept="image/*" onchange="handlePhoto(event)" style="position:absolute;left:-9999px;">
-        <input id="photoUploadInput" type="file" accept="image/*,application/pdf" onchange="handlePhoto(event)" style="position:absolute;left:-9999px;">
-
-        <button class="photo-btn-shoot" onclick="triggerCamera()">📷 ถ่ายรูป</button>
-        <button class="photo-btn-upload" onclick="document.getElementById('photoUploadInput').click()">📁 Upload</button>
-        <button class="photo-btn-clear" onclick="clearPhoto()">ลบรูป</button>
-      </div>
+<!-- hidden inputs — วางนอก label เพื่อให้ browser trigger ถูกต้อง -->
+<input id="photoCameraInput" type="file" accept="image/*" onchange="handlePhoto(event)" style="position:absolute;left:-9999px;">
+<input id="photoUploadInput" type="file" accept="image/*,application/pdf" onchange="handlePhoto(event)" style="position:absolute;left:-9999px;">
+<button class="photo-btn-shoot" onclick="triggerCamera()">📷 ถ่ายรูป</button>
+<button class="photo-btn-upload" onclick="document.getElementById('photoUploadInput').click()">📁 Upload</button>
+<button class="photo-btn-clear" onclick="clearPhoto()">ลบรูป</button>
 
       <!-- ขวา: ข้อมูลจากระบบ -->
       <div class="fields-col">
