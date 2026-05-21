@@ -340,6 +340,8 @@ function parseCSV(text) {
 }
 
 function processData(csvText, received) {
+  console.log('csvText:', csvText ? csvText.substring(0, 100) : 'EMPTY/UNDEFINED');
+  console.log('received count:', received ? received.length : 'UNDEFINED');
   allCSV = parseCSV(csvText);
 
   // กรอง received เฉพาะ site ของตัวเอง
