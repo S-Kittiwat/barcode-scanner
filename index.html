@@ -592,7 +592,16 @@ function clearPhoto() {
 function addToQueue() {
   if (!currentDoc) return;
   var receivedDate = document.getElementById('editReceivedDate').value;
-  if (!receivedDate) { showToast('กรุณาระบุวันที่รับ', 'error'); return; }
+  var transferFrom = document.getElementById('editTransferFrom').value.trim();
+var transferTo   = document.getElementById('editTransferTo').value.trim();
+var sentQty      = document.getElementById('editSentQty').value.trim();
+var receivedQty  = document.getElementById('editReceivedQty').value.trim();
+
+if (!transferFrom)  { showToast('กรุณากรอก โอนจาก (Transfer From)', 'error'); document.getElementById('editTransferFrom').focus(); return; }
+if (!transferTo)    { showToast('กรุณากรอก โอนไป (Transfer To)', 'error'); document.getElementById('editTransferTo').focus(); return; }
+if (!receivedDate)  { showToast('กรุณาระบุวันที่รับ', 'error'); document.getElementById('editReceivedDate').focus(); return; }
+if (!sentQty)       { showToast('กรุณากรอก ยอดที่ส่ง (Sent QTY)', 'error'); document.getElementById('editSentQty').focus(); return; }
+if (!receivedQty)   { showToast('กรุณากรอก ยอดที่รับ (Received QTY)', 'error'); document.getElementById('editReceivedQty').focus(); return; }
   if (queue.find(function(q) { return q.barcode === currentDoc.barcode; })) { showToast('barcode นี้อยู่ในรายการแล้ว', 'error'); return; }
   queue.push({
     barcode: currentDoc.barcode, ref_no: currentDoc.ref_no, item_name: currentDoc.item_name,
