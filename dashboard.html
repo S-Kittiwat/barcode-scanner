@@ -346,41 +346,29 @@ function processData(csvText, received) {
   allCSV      = parseCSV(csvText);
   allReceived = received;
 
-// ดึง unique ต้นทาง (customer_start_name) จาก CSV
+// ดึง unique ต้นทาง (customer_start_name) จาก CSV เท่านั้น
   var destSet = {};
   allCSV.forEach(function(r) {
     var d = (r['customer_start_name'] || '').trim();
     if (d) destSet[d] = true;
   });
-
-  // ดึง unique site จาก Collectionsheet
-  var siteSet = {};
-  allReceived.forEach(function(r) {
-    var s = (r.site || '').trim();
-    if (s) siteSet[s] = true;
-  });
-
-  // รวม unique values ทั้งสองชุด
-  var allSites = {};
-  Object.keys(destSet).forEach(function(k) { allSites[k] = true; });
-  Object.keys(siteSet).forEach(function(k) { allSites[k] = true; });
-  var siteList = Object.keys(allSites).sort();
+  var siteList = Object.keys(destSet).sort();
 
   // build dropdown filter
-  var filterSite = document.getElementById('filterSite');
-  var current    = filterSite.value || selectedSite;
-  filterSite.innerHTML = '<option value="">— ทุก Site —</option>';
+  var filterSiteEl = document.getElementById('filterSite');
+  var current      = filterSiteEl.value || selectedSite;
+  filterSiteEl.innerHTML = '<option value="">— ทุก Site —</option>';
   siteList.forEach(function(s) {
-    var opt      = document.createElement('option');
-    opt.value    = s;
+    var opt = document.createElement('option');
+    opt.value = s;
     opt.textContent = s;
     if (s === current) opt.selected = true;
-    filterSite.appendChild(opt);
+    filterSiteEl.appendChild(opt);
   });
 
-  // ถ้ามี selectedSite จาก localStorage ให้ set ค่าด้วย
+  // auto-select จาก localStorage
   if (selectedSite && siteList.indexOf(selectedSite) > -1) {
-    filterSite.value = selectedSite;
+    filterSiteEl.value = selectedSite;
   }
 
   renderTables();
