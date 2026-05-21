@@ -409,6 +409,7 @@ function confirmSite() {
   selectedSite = site; selectedEmpId = empId; selectedEmpName = name; selectedEmpEmail = email;
   document.getElementById('siteBadge').textContent = name + ' · ' + site;
   document.getElementById('userEmail').textContent  = empId + ' — ' + name + ' (' + email + ')';
+  localStorage.setItem('selectedSite', site);
   document.getElementById('siteOverlay').style.display = 'none';
 }
 
