@@ -647,20 +647,20 @@ function handlePhoto(event) {
 
   // PDF — เก็บเป็น base64 ตรงๆ ไม่ต้อง resize
   if (file.type === 'application/pdf') {
-    var reader = new FileReader();
-    reader.onload = function(e) {
-      currentPhoto     = e.target.result; // base64 PDF
-      currentPhotoType = 'pdf';
-      var preview = document.getElementById('photoPreview');
-      preview.src = '';
-      preview.style.display = 'none';
-      document.getElementById('photoPlaceholder').style.display = 'none';
-      // แสดง PDF icon แทน
-      document.getElementById('pdfIndicator').style.display = 'flex';
-    };
-    reader.readAsDataURL(file);
-    return;
-  }
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    currentPhoto     = e.target.result;
+    currentPhotoType = 'pdf';
+    document.getElementById('photoPreview').style.display    = 'none';
+    document.getElementById('photoPlaceholder').style.display = 'none';
+    document.getElementById('pdfIndicator').style.display    = 'flex';
+    document.getElementById('pdfIndicator').innerHTML =
+      '<div style="font-size:28px;">📄</div>' +
+      '<div style="font-size:10px;color:var(--success);font-weight:600;text-align:center;">' + file.name + '</div>';
+  };
+  reader.readAsDataURL(file);
+  return;
+}
 
   // รูปภาพ — resize ตามเดิม
   currentPhotoType = 'image';
