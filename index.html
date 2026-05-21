@@ -41,7 +41,7 @@ main{max-width:680px;margin:0 auto;padding:20px 16px 100px;}
 .photo-placeholder .icon{font-size:24px;margin-bottom:4px;}
 .photo-placeholder .txt{font-size:10px;color:var(--muted);line-height:1.5;}
 .photo-btn-shoot{width:100%;background:var(--accent);color:#0f172a;border:none;border-radius:var(--rs);padding:6px 4px;font-size:11px;font-weight:600;cursor:pointer;text-align:center;}
-.photo-btn-upload{width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:var(--rs);padding:6px 4px;font-size:11px;cursor:pointer;display:block;text-align:center;}
+.photo-btn-upload{width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:var(--rs);padding:6px 4px;font-size:11px;cursor:pointer;text-align:center;}
 .photo-btn-clear{font-size:10px;color:var(--danger);background:none;border:none;cursor:pointer;padding:0;}
 .fields-col{flex:1;min-width:0;}
 .fields-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border);}
@@ -119,16 +119,7 @@ main{max-width:680px;margin:0 auto;padding:20px 16px 100px;}
 .manual-note b{color:var(--accent);}
 .manual-warn{background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.2);border-radius:var(--rs);padding:12px 14px;font-size:12px;color:var(--muted);line-height:1.7;}
 .manual-warn b{color:var(--warn);}
-.manual-doc-label{font-size:11px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:0.06em;margin:14px 0 6px;}
-.manual-doc-type{font-size:12px;color:var(--muted);margin-bottom:6px;font-weight:500;}
-.manual-field-map{background:var(--surface2);border-radius:var(--rs);overflow:hidden;border:1px solid var(--border);margin-bottom:4px;}
-.manual-field-row{display:grid;grid-template-columns:130px 20px 1fr;align-items:center;padding:7px 12px;border-bottom:1px solid var(--border);font-size:12px;}
-.manual-field-row:last-child{border-bottom:none;}
-.manual-field-row-edit{background:rgba(56,189,248,0.06);}
-.manual-field-app{font-family:var(--mono);font-size:11px;color:var(--accent);}
-.manual-field-arrow{color:var(--muted);text-align:center;}
-.manual-field-doc{color:var(--text);}
-@media(max-width:480px){.fields-grid{grid-template-columns:1fr;}.edit-row{grid-template-columns:1fr;}.manual-field-row{grid-template-columns:100px 16px 1fr;}.photo-col{width:110px;}.photo-box{width:90px;height:110px;}}
+@media(max-width:480px){.fields-grid{grid-template-columns:1fr;}.edit-row{grid-template-columns:1fr;}.photo-col{width:110px;}.photo-box{width:90px;height:110px;}}
 </style>
 </head>
 <body>
@@ -182,48 +173,18 @@ main{max-width:680px;margin:0 auto;padding:20px 16px 100px;}
       <button class="manual-close" onclick="closeManual()">×</button>
     </div>
     <div class="manual-body">
-      <div class="manual-step">
-        <div class="manual-step-num">1</div>
-        <div class="manual-step-content">
-          <div class="manual-step-title">กรอกข้อมูลผู้ใช้งาน</div>
-          <div class="manual-step-desc">กรอก <b>รหัสพนักงาน</b>, <b>ชื่อ-นามสกุล</b>, <b>Email</b> และ <b>Site / คลังสินค้า</b> จากนั้นกด <b>เริ่มสแกน</b></div>
-        </div>
-      </div>
+      <div class="manual-step"><div class="manual-step-num">1</div><div class="manual-step-content"><div class="manual-step-title">กรอกข้อมูลผู้ใช้งาน</div><div class="manual-step-desc">กรอก <b>รหัสพนักงาน</b>, <b>ชื่อ-นามสกุล</b>, <b>Email</b> และ <b>Site</b> จากนั้นกด <b>เริ่มสแกน</b></div></div></div>
       <hr class="manual-divider">
-      <div class="manual-step">
-        <div class="manual-step-num">2</div>
-        <div class="manual-step-content">
-          <div class="manual-step-title">สแกน Barcode</div>
-          <div class="manual-step-desc"><b>กล้องมือถือ</b> — กดปุ่ม เปิดกล้อง แล้วจับ barcode<br><b>พิมพ์เอง</b> — ใช้ช่องค้นหาแล้วกด Enter</div>
-        </div>
-      </div>
+      <div class="manual-step"><div class="manual-step-num">2</div><div class="manual-step-content"><div class="manual-step-title">สแกน Barcode</div><div class="manual-step-desc"><b>กล้องมือถือ</b> — กดปุ่ม เปิดกล้อง<br><b>พิมพ์เอง</b> — ใช้ช่องค้นหาแล้วกด Enter</div></div></div>
       <hr class="manual-divider">
-      <div class="manual-step">
-        <div class="manual-step-num">3</div>
-        <div class="manual-step-content">
-          <div class="manual-step-title">ถ่ายรูปเอกสาร</div>
-          <div class="manual-step-desc">กดปุ่ม <b>📷 ถ่ายรูป</b> หรือ <b>📁 Upload</b> เพื่อเพิ่มรูปเอกสาร แล้วเทียบข้อมูลในรูปกับข้อมูลที่แสดงทางขวา</div>
-        </div>
-      </div>
+      <div class="manual-step"><div class="manual-step-num">3</div><div class="manual-step-content"><div class="manual-step-title">ถ่ายรูป / Upload เอกสาร</div><div class="manual-step-desc">กดปุ่ม <b>📷 ถ่ายรูป</b> หรือ <b>📁 Upload</b> (รองรับรูปภาพและ PDF)</div></div></div>
       <hr class="manual-divider">
-      <div class="manual-step">
-        <div class="manual-step-num">4</div>
-        <div class="manual-step-content">
-          <div class="manual-step-title">แก้ไขและเพิ่มรายการ</div>
-          <div class="manual-step-desc">หากข้อมูลไม่ตรงให้แก้ไขในช่องด้านล่าง แล้วกด <b>+ เพิ่มลงรายการ</b></div>
-        </div>
-      </div>
+      <div class="manual-step"><div class="manual-step-num">4</div><div class="manual-step-content"><div class="manual-step-title">แก้ไขและเพิ่มรายการ</div><div class="manual-step-desc">ตรวจสอบข้อมูล แก้ไขถ้าไม่ตรง แล้วกด <b>+ เพิ่มลงรายการ</b></div></div></div>
       <hr class="manual-divider">
-      <div class="manual-step">
-        <div class="manual-step-num">5</div>
-        <div class="manual-step-content">
-          <div class="manual-step-title">ยืนยันและบันทึก</div>
-          <div class="manual-step-desc">กดปุ่ม <b>ยืนยัน X รายการ สู่ Google Sheet</b> ระบบจะอัปโหลดรูปและบันทึกข้อมูลทั้งหมดพร้อมกัน</div>
-        </div>
-      </div>
+      <div class="manual-step"><div class="manual-step-num">5</div><div class="manual-step-content"><div class="manual-step-title">ยืนยันและบันทึก</div><div class="manual-step-desc">กดปุ่ม <b>ยืนยัน X รายการ สู่ Google Sheet</b></div></div></div>
       <hr class="manual-divider">
-      <div class="manual-warn"><b>กรณีไม่พบ Barcode ในระบบ</b><br>ระบบจะแสดงสัญลักษณ์สีเหลือง สามารถกรอก QTY และวันที่รับได้ตามปกติ ข้อมูลจะถูกบันทึกเป็น <b>NOT FOUND</b></div>
-      <div class="manual-note"><b>สอบถามเพิ่มเติม</b> ติดต่อ <a href="mailto:Palletmanagement@brs-group.com" style="color:var(--accent);">Palletmanagement@brs-group.com</a></div>
+      <div class="manual-warn"><b>กรณีไม่พบ Barcode</b><br>บันทึกเป็น NOT FOUND โดยอัตโนมัติ</div>
+      <div class="manual-note"><b>สอบถามเพิ่มเติม</b> <a href="mailto:Palletmanagement@brs-group.com" style="color:var(--accent);">Palletmanagement@brs-group.com</a></div>
     </div>
   </div>
 </div>
@@ -241,16 +202,14 @@ main{max-width:680px;margin:0 auto;padding:20px 16px 100px;}
     <div><div class="logo-text">DocScan</div><div class="logo-sub" id="userEmail">กำลังโหลด...</div></div>
   </div>
   <div style="display:flex;align-items:center;gap:8px;">
-    <div class="site-badge" id="siteBadge" onclick="changeSite()" title="คลิกเพื่อเปลี่ยน Site">—</div>
+    <div class="site-badge" id="siteBadge" onclick="changeSite()">—</div>
     <button class="help-btn" onclick="openManual()">?</button>
-    <button class="cart-btn" onclick="scrollToQueue()">
-      รายการ <span class="cart-count" id="cartCount">0</span>
-    </button>
+    <button class="cart-btn" onclick="scrollToQueue()">รายการ <span class="cart-count" id="cartCount">0</span></button>
   </div>
 </header>
 
 <main>
-  <!-- ── Scanner Card ── -->
+  <!-- Scanner -->
   <div class="card">
     <div class="card-header">
       <span>สแกน Barcode</span>
@@ -258,14 +217,12 @@ main{max-width:680px;margin:0 auto;padding:20px 16px 100px;}
     </div>
     <div id="reader" style="display:none;width:100%;"></div>
     <div class="manual-row">
-      <input class="manual-input" id="manualInput" type="text"
-        placeholder="พิมพ์ barcode หรือสแกนด้วยเครื่องอ่าน..."
-        onkeydown="if(event.key==='Enter') searchBarcode()">
+      <input class="manual-input" id="manualInput" type="text" placeholder="พิมพ์ barcode หรือสแกนด้วยเครื่องอ่าน..." onkeydown="if(event.key==='Enter') searchBarcode()">
       <button class="search-btn" onclick="searchBarcode()">ค้นหา</button>
     </div>
   </div>
 
-  <!-- ── Result Panel ── -->
+  <!-- Result Panel -->
   <div class="result-panel" id="resultPanel">
     <div class="result-header">
       <div style="display:flex;align-items:center;gap:10px">
@@ -274,7 +231,6 @@ main{max-width:680px;margin:0 auto;padding:20px 16px 100px;}
       </div>
       <div class="spinner" id="loadSpinner" style="display:none"></div>
     </div>
-
     <div id="notFoundBanner" style="display:none;background:rgba(251,191,36,0.1);border-bottom:1px solid rgba(251,191,36,0.3);padding:10px 16px;font-size:12px;color:#fbbf24;">
       ไม่พบ barcode นี้ในระบบ — จะบันทึกเป็น NOT FOUND ใน Log
     </div>
@@ -284,22 +240,20 @@ main{max-width:680px;margin:0 auto;padding:20px 16px 100px;}
 
       <!-- ซ้าย: รูปภาพ -->
       <div class="photo-col">
-        <div class="photo-box" id="photoBox" onclick="document.getElementById('photoUploadInput').click()">
+        <div class="photo-box" id="photoBox">
           <img id="photoPreview" src="" alt="preview">
-<div class="photo-box" id="photoBox" onclick="document.getElementById('photoUploadInput').click()">
-  <img id="photoPreview" src="" alt="preview">
-  <div class="photo-placeholder" id="photoPlaceholder">
-    <div class="icon">📄</div>
-    <div class="txt">แตะเพื่อ<br>เพิ่มรูป</div>
-  </div>
-  <div id="pdfIndicator" style="display:none;flex-direction:column;align-items:center;gap:6px;padding:8px;"></div>
-</div>
-<!-- hidden inputs — วางนอก label เพื่อให้ browser trigger ถูกต้อง -->
-<input id="photoCameraInput" type="file" accept="image/*" onchange="handlePhoto(event)" style="position:absolute;left:-9999px;">
-<input id="photoUploadInput" type="file" accept="image/*,application/pdf" onchange="handlePhoto(event)" style="position:absolute;left:-9999px;">
-<button class="photo-btn-shoot" onclick="triggerCamera()">📷 ถ่ายรูป</button>
-<button class="photo-btn-upload" onclick="document.getElementById('photoUploadInput').click()">📁 Upload</button>
-<button class="photo-btn-clear" onclick="clearPhoto()">ลบรูป</button>
+          <div class="photo-placeholder" id="photoPlaceholder">
+            <div class="icon">📄</div>
+            <div class="txt">แตะเพื่อ<br>เพิ่มรูป</div>
+          </div>
+          <div id="pdfIndicator" style="display:none;flex-direction:column;align-items:center;gap:6px;padding:8px;"></div>
+        </div>
+        <input id="photoCameraInput" type="file" accept="image/*" onchange="handlePhoto(event)" style="position:absolute;left:-9999px;">
+        <input id="photoUploadInput" type="file" accept="image/*,application/pdf" onchange="handlePhoto(event)" style="position:absolute;left:-9999px;">
+        <button class="photo-btn-shoot" onclick="triggerCamera()">📷 ถ่ายรูป</button>
+        <button class="photo-btn-upload" onclick="document.getElementById('photoUploadInput').click()">📁 Upload</button>
+        <button class="photo-btn-clear" onclick="clearPhoto()">ลบรูป</button>
+      </div>
 
       <!-- ขวา: ข้อมูลจากระบบ -->
       <div class="fields-col">
@@ -315,7 +269,8 @@ main{max-width:680px;margin:0 auto;padding:20px 16px 100px;}
           <div class="field-cell full"><div class="field-label">ยอดที่ส่ง (Sent QTY)</div><div class="field-value mono" id="fSentQty">—</div></div>
         </div>
       </div>
-    </div>
+
+    </div><!-- end doc-photo-row -->
 
     <!-- แก้ไขข้อมูล -->
     <div class="edit-section">
@@ -338,9 +293,9 @@ main{max-width:680px;margin:0 auto;padding:20px 16px 100px;}
       </div>
       <button class="add-btn" onclick="addToQueue()">+ เพิ่มลงรายการ</button>
     </div>
-  </div>
+  </div><!-- end result-panel -->
 
-  <!-- ── Queue ── -->
+  <!-- Queue -->
   <div id="queueSection">
     <div class="queue-header">
       <span class="queue-title">รายการรอ Submit <span class="queue-count" id="queueCount">0</span></span>
@@ -368,10 +323,10 @@ main{max-width:680px;margin:0 auto;padding:20px 16px 100px;}
 </div>
 
 <script>
-// ── State ─────────────────────────────────────────────────
 var queue          = [];
 var currentDoc     = null;
 var currentPhoto   = null;
+var currentPhotoType = '';
 var scanning       = false;
 var codeReader     = null;
 var selectedSite   = '';
@@ -380,19 +335,20 @@ var selectedEmpName  = '';
 var selectedEmpEmail = '';
 var csvData        = [];
 var csvLoaded      = false;
+var cameraStream   = null;
+var isMobile       = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
 var API_URL = 'https://script.google.com/macros/s/AKfycbyu-SwBnXOMIvX34geN6dvsXaWNTynxR6ZIneI6ck3hoI-HlVIpmsecqOV5KBH2twbknQ/exec';
 var CSV_URL = API_URL + '?action=getCSV';
 
-// ── Init ──────────────────────────────────────────────────
 window.onload = function() {
   var today = new Date().toISOString().split('T')[0];
-  document.getElementById('editDespatch').value    = today;
+  document.getElementById('editDespatch').value     = today;
   document.getElementById('editReceivedDate').value = today;
+  if (isMobile) document.getElementById('photoCameraInput').setAttribute('capture', 'environment');
   loadCSV();
 };
 
-// ── CSV ───────────────────────────────────────────────────
 function loadCSV() {
   fetch(CSV_URL)
     .then(function(r) { return r.text(); })
@@ -411,8 +367,7 @@ function loadCSV() {
 function parseCSV(text) {
   var lines = text.replace(/\r/g, '').split('\n').filter(function(l) { return l.trim(); });
   if (lines.length < 2) return [];
-  var headerLine = lines[0].replace(/^\uFEFF/, '');
-  var headers = headerLine.split(',');
+  var headers = lines[0].replace(/^\uFEFF/, '').split(',');
   var rows = [];
   for (var i = 1; i < lines.length; i++) {
     var vals = lines[i].split(',');
@@ -425,18 +380,15 @@ function parseCSV(text) {
 
 function searchInCSV(barcode) {
   barcode = barcode.trim().toUpperCase();
-  return csvData.find(function(row) {
-    return (row['barcode'] || '').trim().toUpperCase() === barcode;
-  }) || null;
+  return csvData.find(function(row) { return (row['barcode'] || '').trim().toUpperCase() === barcode; }) || null;
 }
 
-// ── Site ──────────────────────────────────────────────────
 function checkSiteSelected() {
-  var site  = document.getElementById('siteSelect').value;
-  var empId = document.getElementById('empId').value.trim();
-  var name  = document.getElementById('empName').value.trim();
-  var email = document.getElementById('empEmail').value.trim();
-  document.getElementById('siteConfirmBtn').disabled = !(site && empId && name && email);
+  var ok = document.getElementById('siteSelect').value &&
+           document.getElementById('empId').value.trim() &&
+           document.getElementById('empName').value.trim() &&
+           document.getElementById('empEmail').value.trim();
+  document.getElementById('siteConfirmBtn').disabled = !ok;
 }
 
 function confirmSite() {
@@ -445,10 +397,7 @@ function confirmSite() {
   var name  = document.getElementById('empName').value.trim();
   var email = document.getElementById('empEmail').value.trim();
   if (!site || !empId || !name || !email) return;
-  selectedSite     = site;
-  selectedEmpId    = empId;
-  selectedEmpName  = name;
-  selectedEmpEmail = email;
+  selectedSite = site; selectedEmpId = empId; selectedEmpName = name; selectedEmpEmail = email;
   document.getElementById('siteBadge').textContent = name + ' · ' + site;
   document.getElementById('userEmail').textContent  = empId + ' — ' + name + ' (' + email + ')';
   document.getElementById('siteOverlay').style.display = 'none';
@@ -458,20 +407,13 @@ function changeSite() { document.getElementById('siteOverlay').style.display = '
 function openManual()  { document.getElementById('manualOverlay').classList.add('open'); }
 function closeManual() { document.getElementById('manualOverlay').classList.remove('open'); }
 
-// ── Scanner ───────────────────────────────────────────────
 function toggleScanner() { scanning ? stopScanner() : startScanner(); }
 
 function startScanner() {
   document.getElementById('reader').style.display = 'block';
   codeReader = new Html5Qrcode('reader');
-  codeReader.start(
-    { facingMode: 'environment' },
-    { fps: 10, qrbox: { width: 250, height: 150 } },
-    function(decoded) {
-      stopScanner();
-      document.getElementById('manualInput').value = decoded;
-      fetchDoc(decoded);
-    },
+  codeReader.start({ facingMode: 'environment' }, { fps: 10, qrbox: { width: 250, height: 150 } },
+    function(decoded) { stopScanner(); document.getElementById('manualInput').value = decoded; fetchDoc(decoded); },
     function() {}
   ).then(function() {
     scanning = true;
@@ -484,30 +426,19 @@ function startScanner() {
 }
 
 function stopScanner() {
-  if (codeReader) {
-    codeReader.stop().then(function() { codeReader.clear(); codeReader = null; })
-               .catch(function() { codeReader = null; });
-  }
+  if (codeReader) { codeReader.stop().then(function() { codeReader.clear(); codeReader = null; }).catch(function() { codeReader = null; }); }
   document.getElementById('reader').style.display = 'none';
   scanning = false;
   var b = document.getElementById('scanBtn');
   b.textContent = 'เปิดกล้อง'; b.classList.remove('stop');
 }
 
-// ── Search ────────────────────────────────────────────────
-function searchBarcode() {
-  var v = document.getElementById('manualInput').value.trim();
-  if (v) fetchDoc(v);
-}
+function searchBarcode() { var v = document.getElementById('manualInput').value.trim(); if (v) fetchDoc(v); }
 
 function fetchDoc(barcode) {
   document.getElementById('loadSpinner').style.display = 'block';
   document.getElementById('resultPanel').classList.remove('visible');
-  if (!csvLoaded) {
-    showToast('กำลังโหลดข้อมูล กรุณารอสักครู่...', 'info');
-    document.getElementById('loadSpinner').style.display = 'none';
-    return;
-  }
+  if (!csvLoaded) { showToast('กำลังโหลดข้อมูล กรุณารอสักครู่...', 'info'); document.getElementById('loadSpinner').style.display = 'none'; return; }
   var row = searchInCSV(barcode);
   document.getElementById('loadSpinner').style.display = 'none';
   showDoc(row || { barcode: barcode }, !row);
@@ -515,56 +446,41 @@ function fetchDoc(barcode) {
 
 function formatDate(val) {
   if (!val) return '—';
-  try {
-    var d = new Date(val);
-    if (isNaN(d.getTime())) return val;
-    return String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0') + '/' + d.getFullYear();
-  } catch(e) { return val; }
+  try { var d = new Date(val); if (isNaN(d.getTime())) return val; return String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0') + '/' + d.getFullYear(); }
+  catch(e) { return val; }
 }
 
 function toInputDate(val) {
   if (!val) return new Date().toISOString().split('T')[0];
   try {
-    if (val.includes('/')) {
-      var p = val.split('/');
-      if (p.length === 3) return (p[2].length===2?'20'+p[2]:p[2]) + '-' + p[1].padStart(2,'0') + '-' + p[0].padStart(2,'0');
-    }
+    if (val.includes('/')) { var p = val.split('/'); if (p.length === 3) return (p[2].length===2?'20'+p[2]:p[2]) + '-' + p[1].padStart(2,'0') + '-' + p[0].padStart(2,'0'); }
     return new Date(val).toISOString().split('T')[0];
   } catch(e) { return ''; }
 }
 
 function showDoc(d, notFound) {
   currentDoc = {
-    barcode           : d['barcode']                   || d.barcode || '',
-    ref_no            : d['ref_no']                    || '',
-    item_name         : d['item_name']                 || '',
-    transfer_from     : d['customer_start_name']       || '',
-    origin_acc        : d['customer_start_code']       || '',
-    transfer_to       : d['customer_destination_name'] || '',
-    dest_acc          : d['customer_destination_code'] || '',
-    despatch_date     : d['create_at']                 || '',
-    received_date_pcs : d['real_recived_at']           || '',
-    sent_qty          : d['total']                     || '',
-    not_found         : !!notFound
+    barcode: d['barcode'] || d.barcode || '', ref_no: d['ref_no'] || '',
+    item_name: d['item_name'] || '', transfer_from: d['customer_start_name'] || '',
+    origin_acc: d['customer_start_code'] || '', transfer_to: d['customer_destination_name'] || '',
+    dest_acc: d['customer_destination_code'] || '', despatch_date: d['create_at'] || '',
+    received_date_pcs: d['real_recived_at'] || '', sent_qty: d['total'] || '', not_found: !!notFound
   };
-
   document.getElementById('rBarcode').textContent       = currentDoc.barcode;
   document.getElementById('rTitle').textContent         = notFound ? 'ไม่พบในระบบ' : 'ข้อมูลเอกสาร';
   document.getElementById('rBarcode').style.background  = notFound ? 'rgba(251,191,36,0.12)' : 'rgba(56,189,248,0.12)';
-  document.getElementById('rBarcode').style.borderColor = notFound ? 'rgba(251,191,36,0.4)'  : 'rgba(56,189,248,0.3)';
+  document.getElementById('rBarcode').style.borderColor = notFound ? 'rgba(251,191,36,0.4)' : 'rgba(56,189,248,0.3)';
   document.getElementById('rBarcode').style.color       = notFound ? '#fbbf24' : '#38bdf8';
   document.getElementById('notFoundBanner').style.display = notFound ? 'block' : 'none';
-
-  document.getElementById('fRefNo').textContent        = currentDoc.ref_no          || '—';
-  document.getElementById('fItemName').textContent     = currentDoc.item_name        || '—';
-  document.getElementById('fTransferFrom').textContent = currentDoc.transfer_from    || '—';
-  document.getElementById('fOriginAcc').textContent    = currentDoc.origin_acc       || '—';
-  document.getElementById('fTransferTo').textContent   = currentDoc.transfer_to      || '—';
-  document.getElementById('fDestAcc').textContent      = currentDoc.dest_acc         || '—';
+  document.getElementById('fRefNo').textContent        = currentDoc.ref_no       || '—';
+  document.getElementById('fItemName').textContent     = currentDoc.item_name     || '—';
+  document.getElementById('fTransferFrom').textContent = currentDoc.transfer_from || '—';
+  document.getElementById('fOriginAcc').textContent    = currentDoc.origin_acc    || '—';
+  document.getElementById('fTransferTo').textContent   = currentDoc.transfer_to   || '—';
+  document.getElementById('fDestAcc').textContent      = currentDoc.dest_acc      || '—';
   document.getElementById('fDespatch').textContent     = formatDate(currentDoc.despatch_date)     || '—';
   document.getElementById('fReceivedPCS').textContent  = formatDate(currentDoc.received_date_pcs) || '—';
-  document.getElementById('fSentQty').textContent      = currentDoc.sent_qty         || '—';
-
+  document.getElementById('fSentQty').textContent      = currentDoc.sent_qty      || '—';
   document.getElementById('editTransferFrom').value  = currentDoc.transfer_from;
   document.getElementById('editOriginAcc').value     = currentDoc.origin_acc;
   document.getElementById('editTransferTo').value    = currentDoc.transfer_to;
@@ -573,68 +489,46 @@ function showDoc(d, notFound) {
   document.getElementById('editReceivedDate').value  = toInputDate(currentDoc.received_date_pcs);
   document.getElementById('editSentQty').value       = currentDoc.sent_qty;
   document.getElementById('editReceivedQty').value   = currentDoc.sent_qty;
-
   clearPhoto();
   document.getElementById('resultPanel').classList.add('visible');
 }
 
 // ── Photo ─────────────────────────────────────────────────
-var isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-var cameraStream = null;
-
-// ถ้าเป็นมือถือ ใส่ capture เปิดกล้องตรงๆ / ถ้า Desktop เปิด modal getUserMedia
-if (isMobile) {
-  document.getElementById('photoCameraInput').setAttribute('capture', 'environment');
-}
-
 function triggerCamera() {
-  if (isMobile) {
-    document.getElementById('photoCameraInput').click();
-  } else {
-    openCamera();
-  }
+  if (isMobile) { document.getElementById('photoCameraInput').click(); }
+  else { openCamera(); }
 }
 
 function openCamera() {
   navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
     .then(function(stream) {
       cameraStream = stream;
-      var video = document.getElementById('cameraStream');
-      video.srcObject = stream;
+      document.getElementById('cameraStream').srcObject = stream;
       document.getElementById('cameraModal').style.display = 'flex';
     })
-    .catch(function(err) {
-      showToast('ไม่สามารถเปิดกล้องได้: ' + err.message, 'error');
-    });
+    .catch(function(err) { showToast('ไม่สามารถเปิดกล้องได้: ' + err.message, 'error'); });
 }
 
 function captureFromCamera() {
-  var video  = document.getElementById('cameraStream');
+  var video = document.getElementById('cameraStream');
   var canvas = document.getElementById('cameraCanvas');
-  canvas.width  = video.videoWidth;
-  canvas.height = video.videoHeight;
+  canvas.width = video.videoWidth; canvas.height = video.videoHeight;
   canvas.getContext('2d').drawImage(video, 0, 0);
-
-  var maxW  = 800;
-  var scale = Math.min(1, maxW / canvas.width);
-  var out   = document.createElement('canvas');
-  out.width  = canvas.width  * scale;
-  out.height = canvas.height * scale;
+  var maxW = 800; var scale = Math.min(1, maxW / canvas.width);
+  var out = document.createElement('canvas');
+  out.width = canvas.width * scale; out.height = canvas.height * scale;
   out.getContext('2d').drawImage(canvas, 0, 0, out.width, out.height);
   currentPhoto = out.toDataURL('image/jpeg', 0.75);
-
+  currentPhotoType = 'image';
   var preview = document.getElementById('photoPreview');
-  preview.src = currentPhoto;
-  preview.style.display = 'block';
+  preview.src = currentPhoto; preview.style.display = 'block';
   document.getElementById('photoPlaceholder').style.display = 'none';
+  document.getElementById('pdfIndicator').style.display = 'none';
   closeCamera();
 }
 
 function closeCamera() {
-  if (cameraStream) {
-    cameraStream.getTracks().forEach(function(t) { t.stop(); });
-    cameraStream = null;
-  }
+  if (cameraStream) { cameraStream.getTracks().forEach(function(t) { t.stop(); }); cameraStream = null; }
   document.getElementById('cameraModal').style.display = 'none';
 }
 
@@ -642,24 +536,22 @@ function handlePhoto(event) {
   var file = event.target.files[0];
   if (!file) return;
 
-  // PDF — เก็บเป็น base64 ตรงๆ ไม่ต้อง resize
   if (file.type === 'application/pdf') {
-  var reader = new FileReader();
-  reader.onload = function(e) {
-    currentPhoto     = e.target.result;
-    currentPhotoType = 'pdf';
-    document.getElementById('photoPreview').style.display    = 'none';
-    document.getElementById('photoPlaceholder').style.display = 'none';
-    document.getElementById('pdfIndicator').style.display    = 'flex';
-    document.getElementById('pdfIndicator').innerHTML =
-      '<div style="font-size:28px;">📄</div>' +
-      '<div style="font-size:10px;color:var(--success);font-weight:600;text-align:center;">' + file.name + '</div>';
-  };
-  reader.readAsDataURL(file);
-  return;
-}
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      currentPhoto = e.target.result;
+      currentPhotoType = 'pdf';
+      document.getElementById('photoPreview').style.display    = 'none';
+      document.getElementById('photoPlaceholder').style.display = 'none';
+      document.getElementById('pdfIndicator').style.display    = 'flex';
+      document.getElementById('pdfIndicator').innerHTML =
+        '<div style="font-size:28px;">📄</div>' +
+        '<div style="font-size:10px;color:var(--success);font-weight:600;text-align:center;word-break:break-all;">' + file.name + '</div>';
+    };
+    reader.readAsDataURL(file);
+    return;
+  }
 
-  // รูปภาพ — resize ตามเดิม
   currentPhotoType = 'image';
   document.getElementById('pdfIndicator').style.display = 'none';
   var reader = new FileReader();
@@ -667,15 +559,12 @@ function handlePhoto(event) {
     var img = new Image();
     img.onload = function() {
       var canvas = document.createElement('canvas');
-      var maxW = 800;
-      var scale = Math.min(1, maxW / img.width);
-      canvas.width  = img.width  * scale;
-      canvas.height = img.height * scale;
+      var maxW = 800; var scale = Math.min(1, maxW / img.width);
+      canvas.width = img.width * scale; canvas.height = img.height * scale;
       canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
       currentPhoto = canvas.toDataURL('image/jpeg', 0.75);
       var preview = document.getElementById('photoPreview');
-      preview.src = currentPhoto;
-      preview.style.display = 'block';
+      preview.src = currentPhoto; preview.style.display = 'block';
       document.getElementById('photoPlaceholder').style.display = 'none';
     };
     img.src = e.target.result;
@@ -684,11 +573,9 @@ function handlePhoto(event) {
 }
 
 function clearPhoto() {
-  currentPhoto     = null;
-  currentPhotoType = '';
-  var preview = document.getElementById('photoPreview');
-  preview.src = '';
-  preview.style.display = 'none';
+  currentPhoto = null; currentPhotoType = '';
+  document.getElementById('photoPreview').src = '';
+  document.getElementById('photoPreview').style.display = 'none';
   document.getElementById('pdfIndicator').style.display = 'none';
   document.getElementById('photoPlaceholder').style.display = 'block';
 }
@@ -698,28 +585,20 @@ function addToQueue() {
   if (!currentDoc) return;
   var receivedDate = document.getElementById('editReceivedDate').value;
   if (!receivedDate) { showToast('กรุณาระบุวันที่รับ', 'error'); return; }
-  if (queue.find(function(q) { return q.barcode === currentDoc.barcode; })) {
-    showToast('barcode นี้อยู่ในรายการแล้ว', 'error'); return;
-  }
+  if (queue.find(function(q) { return q.barcode === currentDoc.barcode; })) { showToast('barcode นี้อยู่ในรายการแล้ว', 'error'); return; }
   queue.push({
-    barcode       : currentDoc.barcode,
-    ref_no        : currentDoc.ref_no,
-    item_name     : currentDoc.item_name,
-    transfer_from : document.getElementById('editTransferFrom').value.trim(),
-    origin_acc    : document.getElementById('editOriginAcc').value.trim(),
-    transfer_to   : document.getElementById('editTransferTo').value.trim(),
-    dest_acc      : document.getElementById('editDestAcc').value.trim(),
-    despatch_date : document.getElementById('editDespatch').value,
-    received_date : receivedDate,
-    sent_qty      : document.getElementById('editSentQty').value,
-    received_qty  : document.getElementById('editReceivedQty').value,
-    not_found     : currentDoc.not_found,
-    site          : selectedSite,
-    emp_id        : selectedEmpId,
-    emp_name      : selectedEmpName,
-    emp_email     : selectedEmpEmail,
-    photo         : currentPhoto || '',
-    photo_url     : ''
+    barcode: currentDoc.barcode, ref_no: currentDoc.ref_no, item_name: currentDoc.item_name,
+    transfer_from: document.getElementById('editTransferFrom').value.trim(),
+    origin_acc:    document.getElementById('editOriginAcc').value.trim(),
+    transfer_to:   document.getElementById('editTransferTo').value.trim(),
+    dest_acc:      document.getElementById('editDestAcc').value.trim(),
+    despatch_date: document.getElementById('editDespatch').value,
+    received_date: receivedDate,
+    sent_qty:      document.getElementById('editSentQty').value,
+    received_qty:  document.getElementById('editReceivedQty').value,
+    not_found: currentDoc.not_found, site: selectedSite,
+    emp_id: selectedEmpId, emp_name: selectedEmpName, emp_email: selectedEmpEmail,
+    photo: currentPhoto || '', photo_url: ''
   });
   renderQueue();
   document.getElementById('resultPanel').classList.remove('visible');
@@ -729,9 +608,7 @@ function addToQueue() {
 }
 
 function removeFromQueue(i) { queue.splice(i, 1); renderQueue(); }
-function clearQueue() {
-  if (queue.length && confirm('ล้างรายการทั้งหมด?')) { queue = []; renderQueue(); }
-}
+function clearQueue() { if (queue.length && confirm('ล้างรายการทั้งหมด?')) { queue = []; renderQueue(); } }
 
 function renderQueue() {
   var n = queue.length;
@@ -739,96 +616,58 @@ function renderQueue() {
   document.getElementById('cartCount').textContent  = n;
   document.getElementById('cartCount').style.display = n ? 'flex' : 'none';
   document.getElementById('submitBtn').disabled = n === 0;
-  document.getElementById('submitBtn').textContent = n
-    ? 'ยืนยัน ' + n + ' รายการ สู่ Google Sheet'
-    : 'ยืนยัน 0 รายการ สู่ Google Sheet';
+  document.getElementById('submitBtn').textContent = n ? 'ยืนยัน ' + n + ' รายการ สู่ Google Sheet' : 'ยืนยัน 0 รายการ สู่ Google Sheet';
   var list = document.getElementById('queueList');
   if (!n) { list.innerHTML = '<div class="empty">ยังไม่มีรายการ — สแกน barcode เพื่อเริ่มต้น</div>'; return; }
   list.innerHTML = queue.map(function(item, i) {
-    var thumbHtml = item.photo
+    var thumb = item.photo && item.photo.indexOf('data:image') === 0
       ? '<img class="queue-thumb" src="' + item.photo + '" style="display:block;">'
-      : '<img class="queue-thumb">';
+      : (item.photo ? '<div style="width:36px;height:36px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">📄</div>' : '');
     return '<div class="queue-item">' +
-      '<div class="queue-num">' + (i+1) + '</div>' +
-      thumbHtml +
-      '<div class="queue-info">' +
-        '<div class="queue-barcode">' + item.barcode + '</div>' +
-        '<div class="queue-details">' + item.ref_no + ' · ' + item.item_name + ' · ' + item.transfer_from + ' → ' + item.transfer_to + ' · QTY: ' + item.received_qty + '</div>' +
-      '</div>' +
-      '<button class="queue-remove" onclick="removeFromQueue(' + i + ')">✕</button>' +
-    '</div>';
+      '<div class="queue-num">' + (i+1) + '</div>' + thumb +
+      '<div class="queue-info"><div class="queue-barcode">' + item.barcode + '</div>' +
+      '<div class="queue-details">' + item.ref_no + ' · ' + item.item_name + ' · ' + item.transfer_from + ' → ' + item.transfer_to + ' · QTY: ' + item.received_qty + '</div></div>' +
+      '<button class="queue-remove" onclick="removeFromQueue(' + i + ')">✕</button></div>';
   }).join('');
 }
 
 function scrollToQueue() { document.getElementById('queueSection').scrollIntoView({ behavior: 'smooth' }); }
 
-// ── Submit ────────────────────────────────────────────────
 async function submitAll() {
   if (!queue.length) return;
   var btn = document.getElementById('submitBtn');
   btn.disabled = true;
-
   try {
-    // อัปโหลดรูปทีละรายการ
     for (var i = 0; i < queue.length; i++) {
-  console.log('item', i, 'photo:', queue[i].photo ? queue[i].photo.substring(0,50) : 'EMPTY');
-  if (queue[i].photo) {
-        btn.textContent = 'อัปโหลดรูป ' + (i+1) + '/' + queue.length + '...';
+      if (queue[i].photo) {
+        btn.textContent = 'อัปโหลดไฟล์ ' + (i+1) + '/' + queue.length + '...';
         var url = await uploadPhoto(queue[i].photo, queue[i].barcode, queue[i].ref_no);
         queue[i].photo_url = url;
-        queue[i].photo     = ''; // เอา base64 ออกก่อนส่ง
+        queue[i].photo = '';
       }
     }
-
     btn.textContent = 'กำลังบันทึกข้อมูล...';
-    var res  = await fetch(API_URL, {
-      method  : 'POST',
-      redirect: 'follow',
-      headers : { 'Content-Type': 'text/plain' },
-      body    : JSON.stringify({ action: 'updateItems', items: queue })
-    });
+    var res  = await fetch(API_URL, { method: 'POST', redirect: 'follow', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ action: 'updateItems', items: queue }) });
     var data = await res.json();
-
-    if (data.status === 'ok') {
-      var count = queue.length;
-      queue = [];
-      renderQueue();
-      showToast('บันทึก ' + count + ' รายการเรียบร้อย', 'success');
-    } else {
-      showToast(data.message || 'Error', 'error');
-    }
-  } catch(err) {
-    showToast('เกิดข้อผิดพลาด: ' + err.message, 'error');
-  }
-
+    if (data.status === 'ok') { var count = queue.length; queue = []; renderQueue(); showToast('บันทึก ' + count + ' รายการเรียบร้อย', 'success'); }
+    else { showToast(data.message || 'Error', 'error'); }
+  } catch(err) { showToast('เกิดข้อผิดพลาด: ' + err.message, 'error'); }
   btn.disabled = queue.length === 0;
   btn.textContent = 'ยืนยัน ' + queue.length + ' รายการ สู่ Google Sheet';
 }
 
 async function uploadPhoto(base64, barcode, refNo) {
-  console.log('uploadPhoto called:', barcode, refNo, base64 ? base64.substring(0,50) : 'NO PHOTO');
   try {
-    var res  = await fetch(API_URL, {
-      method  : 'POST',
-      redirect: 'follow',
-      headers : { 'Content-Type': 'text/plain' },
-      body : JSON.stringify({ action: 'uploadPhoto', barcode: barcode, image: base64, ref_no: refNo || barcode })
-    });
+    var res  = await fetch(API_URL, { method: 'POST', redirect: 'follow', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ action: 'uploadPhoto', barcode: barcode, image: base64, ref_no: refNo || barcode }) });
     var data = await res.json();
-    console.log('uploadPhoto response:', JSON.stringify(data)); // ← เพิ่มบรรทัดนี้
     return data.url || '';
-  } catch(e) {
-    console.log('uploadPhoto error:', e.message); // ← เพิ่มบรรทัดนี้
-    return ''; 
-  }
+  } catch(e) { return ''; }
 }
 
-// ── Toast ─────────────────────────────────────────────────
 var toastTimer;
 function showToast(msg, type) {
   var t = document.getElementById('toast');
-  t.textContent = msg;
-  t.className = 'toast ' + (type || 'info') + ' show';
+  t.textContent = msg; t.className = 'toast ' + (type || 'info') + ' show';
   clearTimeout(toastTimer);
   toastTimer = setTimeout(function() { t.classList.remove('show'); }, 3000);
 }
