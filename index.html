@@ -593,12 +593,19 @@ function addToQueue() {
   if (!currentDoc) return;
   var receivedDate = document.getElementById('editReceivedDate').value;
   var transferFrom = document.getElementById('editTransferFrom').value.trim();
-var transferTo   = document.getElementById('editTransferTo').value.trim();
-var sentQty      = document.getElementById('editSentQty').value.trim();
-var receivedQty  = document.getElementById('editReceivedQty').value.trim();
+  var originAcc    = document.getElementById('editOriginAcc').value.trim();
+  var transferTo   = document.getElementById('editTransferTo').value.trim();
+  var destAcc      = document.getElementById('editDestAcc').value.trim();
+  var sentQty      = document.getElementById('editSentQty').value.trim();
+  var receivedQty  = document.getElementById('editReceivedQty').value.trim();
+  var despatch = document.getElementById('editDespatch').value.trim();
+  
 
 if (!transferFrom)  { showToast('กรุณากรอก โอนจาก (Transfer From)', 'error'); document.getElementById('editTransferFrom').focus(); return; }
+if (!originAcc)     { showToast('กรุณากรอก เลขที่บัญชีต้นทาง', 'error'); document.getElementById('editOriginAcc').focus(); return; }
 if (!transferTo)    { showToast('กรุณากรอก โอนไป (Transfer To)', 'error'); document.getElementById('editTransferTo').focus(); return; }
+if (!destAcc)       { showToast('กรุณากรอก เลขที่บัญชีปลายทาง', 'error'); document.getElementById('editDestAcc').focus(); return; }
+if (!despatch)      { showToast('กรุณาระบุวันที่ส่ง (Despatch Date)', 'error'); document.getElementById('editDespatch').focus(); return; }
 if (!receivedDate)  { showToast('กรุณาระบุวันที่รับ', 'error'); document.getElementById('editReceivedDate').focus(); return; }
 if (!sentQty)       { showToast('กรุณากรอก ยอดที่ส่ง (Sent QTY)', 'error'); document.getElementById('editSentQty').focus(); return; }
 if (!receivedQty)   { showToast('กรุณากรอก ยอดที่รับ (Received QTY)', 'error'); document.getElementById('editReceivedQty').focus(); return; }
