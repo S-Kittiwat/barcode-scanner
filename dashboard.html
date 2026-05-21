@@ -200,6 +200,9 @@ main{max-width:800px;margin:0 auto;padding:20px 16px 40px;}
 
     <!-- Filter -->
     <div class="filter-row">
+      <select class="filter-select" id="filterSite" onchange="renderTables()">
+        <option value="">— ทุก Site —</option>
+        </select>
       <select class="filter-select" id="filterStatus" onchange="renderTables()">
         <option value="all">ทุกสถานะ</option>
         <option value="done">รับแล้ว</option>
@@ -340,36 +343,46 @@ function parseCSV(text) {
 }
 
 function processData(csvText, received) {
-  console.log('csvText:', csvText ? csvText.substring(0, 100) : 'EMPTY/UNDEFINED');
-  console.log('received count:', received ? received.length : 'UNDEFINED');
-  allCSV = parseCSV(csvText);
+  allCSV      = parseCSV(csvText);
+  allReceived = received;
 
-  // กรอง received เฉพาะ site ของตัวเอง
-  allReceived = received.filter(function(r) { return r.site === selectedSite; });
-
-  // สร้าง set ของ barcode ที่รับแล้ว
-  var receivedBarcodes = {};
-  allReceived.forEach(function(r) { receivedBarcodes[r.barcode.toUpperCase()] = r; });
-
-  // แยก CSV เป็น done / pending โดยเทียบกับ destination ของ site
-  doneItems    = [];
-  pendingItems = [];
-
-  allCSV.forEach(function(row) {
-    var barcode = (row['barcode'] || '').trim().toUpperCase();
-    var dest    = (row['customer_destination_name'] || '').trim();
-
-    // กรองเฉพาะเอกสารที่ปลายทางคือ site ของตัวเอง
-    if (dest !== selectedSite) return;
-
-    if (receivedBarcodes[barcode]) {
-      doneItems.push({ csv: row, received: receivedBarcodes[barcode] });
-    } else {
-      pendingItems.push({ csv: row });
-    }
+// ดึง unique ต้นทาง (customer_start_name) จาก CSV
+  var destSet = {};
+  allCSV.forEach(function(r) {
+    var d = (r['customer_start_name'] || '').trim();
+    if (d) destSet[d] = true;
   });
 
-  updateSummary();
+  // ดึง unique site จาก Collectionsheet
+  var siteSet = {};
+  allReceived.forEach(function(r) {
+    var s = (r.site || '').trim();
+    if (s) siteSet[s] = true;
+  });
+
+  // รวม unique values ทั้งสองชุด
+  var allSites = {};
+  Object.keys(destSet).forEach(function(k) { allSites[k] = true; });
+  Object.keys(siteSet).forEach(function(k) { allSites[k] = true; });
+  var siteList = Object.keys(allSites).sort();
+
+  // build dropdown filter
+  var filterSite = document.getElementById('filterSite');
+  var current    = filterSite.value || selectedSite;
+  filterSite.innerHTML = '<option value="">— ทุก Site —</option>';
+  siteList.forEach(function(s) {
+    var opt      = document.createElement('option');
+    opt.value    = s;
+    opt.textContent = s;
+    if (s === current) opt.selected = true;
+    filterSite.appendChild(opt);
+  });
+
+  // ถ้ามี selectedSite จาก localStorage ให้ set ค่าด้วย
+  if (selectedSite && siteList.indexOf(selectedSite) > -1) {
+    filterSite.value = selectedSite;
+  }
+
   renderTables();
 }
 
@@ -390,9 +403,37 @@ function updateSummary() {
 
 // ── Render Tables ─────────────────────────────────────────
 function renderTables() {
+  var filterSite   = document.getElementById('filterSite').value;
   var filterStatus = document.getElementById('filterStatus').value;
   var filterDate   = document.getElementById('filterDate').value;
 
+  // กรอง received ตาม site ที่เลือก
+  var filteredReceived = filterSite
+    ? allReceived.filter(function(r) { return r.site === filterSite; })
+    : allReceived;
+
+  // สร้าง set barcode ที่รับแล้ว
+  var receivedBarcodes = {};
+  filteredReceived.forEach(function(r) { receivedBarcodes[r.barcode.toUpperCase()] = r; });
+
+// กรอง CSV ตาม customer_start_name (ต้นทาง)
+  var csvFiltered = filterSite
+    ? allCSV.filter(function(r) { return (r['customer_start_name'] || '').trim() === filterSite; })
+    : allCSV;
+
+  doneItems    = [];
+  pendingItems = [];
+  csvFiltered.forEach(function(row) {
+    var barcode = (row['barcode'] || '').trim().toUpperCase();
+    if (receivedBarcodes[barcode]) {
+      doneItems.push({ csv: row, received: receivedBarcodes[barcode] });
+    } else {
+      pendingItems.push({ csv: row });
+    }
+  });
+
+  updateSummary();
+  
   // Done
   var filteredDone = doneItems.filter(function(item) {
     if (filterDate && item.received.received_date !== filterDate) return false;
