@@ -18,18 +18,36 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
 main{max-width:800px;margin:0 auto;padding:20px 16px 40px;}
 
 /* Login overlay */
-.login-overlay{position:fixed;inset:0;background:var(--bg);z-index:500;display:flex;align-items:center;justify-content:center;padding:24px;}
-.login-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);width:100%;max-width:400px;overflow:hidden;}
-.login-head{padding:20px;border-bottom:1px solid var(--border);}
-.login-title{font-size:16px;font-weight:600;margin-bottom:4px;}
-.login-sub{font-size:12px;color:var(--muted);}
-.login-body{padding:20px;}
-.login-label{font-size:12px;color:var(--muted);margin-bottom:6px;display:block;}
-.login-input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);color:var(--text);font-family:var(--font);font-size:14px;padding:10px 12px;outline:none;margin-bottom:14px;transition:border-color 0.15s;}
-.login-input:focus{border-color:var(--accent);}
-.login-select{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);color:var(--text);font-family:var(--font);font-size:14px;padding:10px 12px;outline:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;cursor:pointer;margin-bottom:14px;}
-.login-btn{width:100%;background:var(--accent);border:none;color:#0f172a;border-radius:var(--rs);padding:12px;font-family:var(--font);font-size:15px;font-weight:600;cursor:pointer;}
-.login-btn:disabled{opacity:0.35;cursor:not-allowed;}
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-box">
+    <div class="login-head">
+      <div class="login-title">📊 DocScan Dashboard</div>
+      <div class="login-sub">เลือก Site ที่ต้องการดูข้อมูล</div>
+    </div>
+    <div class="login-body">
+      <label class="login-label">Site / คลังสินค้า</label>
+      <select class="login-select" id="loginSite" onchange="checkLogin()">
+        <option value="">— กรุณาเลือก —</option>
+        <optgroup label="โรงงาน">
+          <option>โรงงานเชียงใหม่</option><option>โรงงานบางเลน</option>
+          <option>โรงงานปทุมธานี</option><option>โรงงานมหาสารคาม</option>
+          <option>โรงงานวังน้อย</option><option>โรงงานสิงห์บุรี</option>
+          <option>โรงงานสุราษฎร์ธานี</option><option>โรงงานขอนแก่น</option>
+        </optgroup>
+        <optgroup label="คลังสินค้า">
+          <option>RDC-ขอนแก่น</option><option>RDC-ลำพูน</option>
+          <option>RDC-สุราษฎร์ธานี</option><option>คลังชลบุรี</option>
+          <option>คลังทวีวัฒนา</option><option>คลังบางบัวทอง</option>
+          <option>คลังบางบัวทอง 2</option><option>คลังพิษณุโลก</option>
+          <option>คลังมีนบุรี</option><option>NDC-วังน้อย</option>
+          <option>คลังหาดใหญ่</option><option>คลังอุบลราชธานี</option>
+          <option>คลังลาดหลุมแก้ว</option><option>คลังลำไทร (Over Flow)</option>
+        </optgroup>
+      </select>
+      <button class="login-btn" id="loginBtn" onclick="confirmLogin()" disabled>ดู Dashboard</button>
+    </div>
+  </div>
+</div>
 
 /* Summary cards */
 .summary-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;}
@@ -251,6 +269,19 @@ main{max-width:800px;margin:0 auto;padding:20px 16px 40px;}
 <div id="toast" class="toast"></div>
 
 <script>
+  
+window.onload = function() {
+  var saved = localStorage.getItem('selectedSite');
+  if (saved) {
+    // มี site จาก index.html — ข้าม login ได้เลย
+    selectedSite = saved;
+    document.getElementById('loginSite').value = saved;
+    document.getElementById('loginOverlay').style.display = 'none';
+    document.getElementById('headerSub').textContent = saved;
+    loadData();
+  }
+};
+  
 var API_URL = 'https://script.google.com/macros/s/AKfycbyu-SwBnXOMIvX34geN6dvsXaWNTynxR6ZIneI6ck3hoI-HlVIpmsecqOV5KBH2twbknQ/exec';
 
 var selectedEmpId = '';
@@ -262,17 +293,15 @@ var pendingItems  = [];   // barcode ที่ยังไม่รับ
 
 // ── Login ─────────────────────────────────────────────────
 function checkLogin() {
-  var empId = document.getElementById('loginEmpId').value.trim();
-  var site  = document.getElementById('loginSite').value;
-  document.getElementById('loginBtn').disabled = !(empId && site);
+  document.getElementById('loginBtn').disabled = !document.getElementById('loginSite').value;
 }
 
 function confirmLogin() {
-  selectedEmpId = document.getElementById('loginEmpId').value.trim();
-  selectedSite  = document.getElementById('loginSite').value;
-  if (!selectedEmpId || !selectedSite) return;
+  selectedSite = document.getElementById('loginSite').value;
+  if (!selectedSite) return;
+  localStorage.setItem('selectedSite', selectedSite);
   document.getElementById('loginOverlay').style.display = 'none';
-  document.getElementById('headerSub').textContent = selectedEmpId + ' · ' + selectedSite;
+  document.getElementById('headerSub').textContent = selectedSite;
   loadData();
 }
 
