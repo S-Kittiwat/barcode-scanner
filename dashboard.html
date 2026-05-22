@@ -188,10 +188,10 @@ main{max-width:900px;margin:0 auto;padding:20px 16px 40px;}
           <thead>
             <tr>
               <th>#</th><th>Barcode</th><th>Reference</th><th>ประเภท</th>
-              <th>โอนจาก → โอนไป</th><th>QTY รับ</th><th>วันที่รับ</th><th>ไฟล์</th><th>Created Date</th>
+              <th>โอนจาก → โอนไป</th><th>QTY รับ</th><th>วันที่รับ</th><th>ไฟล์</th><th>Created Date</th><th>ระยะเวลา</th>
             </tr>
           </thead>
-          <tbody id="bodyDone"><tr class="empty-row"><td colspan="9">กำลังโหลด...</td></tr></tbody>
+          <tbody id="bodyDone"><tr class="empty-row"><td colspan="10">กำลังโหลด...</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -206,10 +206,10 @@ main{max-width:900px;margin:0 auto;padding:20px 16px 40px;}
           <thead>
             <tr>
               <th>#</th><th>Barcode</th><th>Reference</th><th>ประเภท</th>
-              <th>โอนจาก → โอนไป</th><th>QTY ส่ง</th><th>Created Date</th>
+              <th>โอนจาก → โอนไป</th><th>QTY ส่ง</th><th>Created Date</th><th>ค้างมา</th>
             </tr>
           </thead>
-          <tbody id="bodyPending"><tr class="empty-row"><td colspan="7">กำลังโหลด...</td></tr></tbody>
+          <tbody id="bodyPending"><tr class="empty-row"><td colspan="8">กำลังโหลด...</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -364,9 +364,10 @@ function renderTables(filteredDone, filteredPending, filterStatus, filterDate) {
           '<td>' + (item.item_name || '—') + '</td>' +
           '<td style="font-size:11px;">' + (item.transfer_from || '—') + ' → ' + (item.transfer_to || '—') + '</td>' +
           '<td class="mono" style="text-align:right;">' + (item.received_qty || '—') + '</td>' +
-          '<td class="mono">' + (item.received_date || '—') + '</td>' +
           '<td>' + photoHtml + '</td>' +
           '<td class="mono" style="color:var(--muted);">' + (item.doc_date || '—') + '</td>' +
+          '<td class="mono">' + (item.received_date || '—') + '</td>' +
+          '<td class="mono" style="text-align:center;">' + (item.days_to_receive !== '' && item.days_to_receive !== undefined ? item.days_to_receive + ' วัน' : '—') + '</td>' +
         '</tr>';
       }).join('');
 
@@ -386,6 +387,7 @@ function renderTables(filteredDone, filteredPending, filterStatus, filterDate) {
           '<td style="font-size:11px;">' + (item.transfer_from || '—') + ' → ' + (item.transfer_to || '—') + '</td>' +
           '<td class="mono" style="text-align:right;">' + (item.sent_qty || '—') + '</td>' +
           '<td class="mono" style="color:var(--muted);">' + (item.doc_date || '—') + '</td>' +
+          '<td class="mono" style="text-align:center;color:' + (item.days_pending > 30 ? 'var(--danger)' : item.days_pending > 14 ? 'var(--warn)' : 'var(--text)') + ';">' + (item.days_pending !== '' && item.days_pending !== undefined ? item.days_pending + ' วัน' : '—') + '</td>' +
         '</tr>';
       }).join('');
 }
