@@ -397,6 +397,10 @@ function renderTables() {
   var filterStatus = document.getElementById('filterStatus').value;
   var filterDate   = document.getElementById('filterDate').value;
 
+  function renderTables(done, pending) {
+  console.log('renderTables done:', done ? done.length : 'UNDEFINED');
+  console.log('renderTables pending:', pending ? pending.length : 'UNDEFINED');
+
   // กรอง received ตาม site ที่เลือก
   var filteredReceived = filterSite
     ? allReceived.filter(function(r) { return r.site === filterSite; })
