@@ -16,40 +16,17 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
 .logo-sub{font-size:11px;color:var(--muted);}
 .back-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:var(--rs);padding:7px 14px;font-family:var(--font);font-size:13px;cursor:pointer;text-decoration:none;display:flex;align-items:center;gap:6px;}
 main{max-width:800px;margin:0 auto;padding:20px 16px 40px;}
-
-/* Login overlay */
-<div class="login-overlay" id="loginOverlay">
-  <div class="login-box">
-    <div class="login-head">
-      <div class="login-title">📊 DocScan Dashboard</div>
-      <div class="login-sub">เลือก Site ที่ต้องการดูข้อมูล</div>
-    </div>
-    <div class="login-body">
-      <label class="login-label">Site / คลังสินค้า</label>
-      <select class="login-select" id="loginSite" onchange="checkLogin()">
-        <option value="">— กรุณาเลือก —</option>
-        <optgroup label="โรงงาน">
-          <option>โรงงานเชียงใหม่</option><option>โรงงานบางเลน</option>
-          <option>โรงงานปทุมธานี</option><option>โรงงานมหาสารคาม</option>
-          <option>โรงงานวังน้อย</option><option>โรงงานสิงห์บุรี</option>
-          <option>โรงงานสุราษฎร์ธานี</option><option>โรงงานขอนแก่น</option>
-        </optgroup>
-        <optgroup label="คลังสินค้า">
-          <option>RDC-ขอนแก่น</option><option>RDC-ลำพูน</option>
-          <option>RDC-สุราษฎร์ธานี</option><option>คลังชลบุรี</option>
-          <option>คลังทวีวัฒนา</option><option>คลังบางบัวทอง</option>
-          <option>คลังบางบัวทอง 2</option><option>คลังพิษณุโลก</option>
-          <option>คลังมีนบุรี</option><option>NDC-วังน้อย</option>
-          <option>คลังหาดใหญ่</option><option>คลังอุบลราชธานี</option>
-          <option>คลังลาดหลุมแก้ว</option><option>คลังลำไทร (Over Flow)</option>
-        </optgroup>
-      </select>
-      <button class="login-btn" id="loginBtn" onclick="confirmLogin()" disabled>ดู Dashboard</button>
-    </div>
-  </div>
-</div>
-
-/* Summary cards */
+.login-overlay{position:fixed;inset:0;background:var(--bg);z-index:500;display:flex;align-items:center;justify-content:center;padding:24px;}
+.login-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);width:100%;max-width:400px;overflow:hidden;}
+.login-head{padding:20px;border-bottom:1px solid var(--border);}
+.login-title{font-size:16px;font-weight:600;margin-bottom:4px;}
+.login-sub{font-size:12px;color:var(--muted);}
+.login-body{padding:20px;}
+.login-label{font-size:12px;color:var(--muted);margin-bottom:6px;display:block;}
+.login-select{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);color:var(--text);font-family:var(--font);font-size:14px;padding:10px 12px;outline:none;appearance:none;cursor:pointer;margin-bottom:14px;}
+.login-select:focus{border-color:var(--accent);}
+.login-btn{width:100%;background:var(--accent);border:none;color:#0f172a;border-radius:var(--rs);padding:12px;font-family:var(--font);font-size:15px;font-weight:600;cursor:pointer;}
+.login-btn:disabled{opacity:0.35;cursor:not-allowed;}
 .summary-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;}
 .summary-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px;}
 .summary-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;}
@@ -58,28 +35,20 @@ main{max-width:800px;margin:0 auto;padding:20px 16px 40px;}
 .summary-value.done{color:var(--success);}
 .summary-value.pending{color:var(--warn);}
 .summary-sub{font-size:11px;color:var(--muted);margin-top:4px;}
-
-/* Progress bar */
 .progress-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:20px;}
 .progress-label{display:flex;justify-content:space-between;font-size:13px;margin-bottom:10px;}
 .progress-bar{height:10px;background:var(--surface2);border-radius:20px;overflow:hidden;}
 .progress-fill{height:100%;background:var(--success);border-radius:20px;transition:width 0.5s ease;}
-
-/* Filter */
 .filter-row{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
 .filter-select{background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);color:var(--text);font-family:var(--font);font-size:13px;padding:7px 12px;outline:none;cursor:pointer;}
 .filter-select:focus{border-color:var(--accent);}
 .refresh-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:var(--rs);padding:7px 14px;font-family:var(--font);font-size:13px;cursor:pointer;margin-left:auto;}
-
-/* Section */
 .section{margin-bottom:24px;}
 .section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
 .section-title{font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px;}
 .section-count{background:var(--surface2);border:1px solid var(--border);font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;font-family:var(--mono);}
 .section-count.done{background:rgba(52,211,153,0.12);border-color:rgba(52,211,153,0.3);color:var(--success);}
 .section-count.pending{background:rgba(251,191,36,0.12);border-color:rgba(251,191,36,0.3);color:var(--warn);}
-
-/* Table */
 .table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;}
 .table-wrap table{width:100%;border-collapse:collapse;}
 .table-wrap th{background:var(--surface2);padding:9px 12px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;}
@@ -87,24 +56,16 @@ main{max-width:800px;margin:0 auto;padding:20px 16px 40px;}
 .table-wrap tr:last-child td{border-bottom:none;}
 .table-wrap tr:hover td{background:var(--surface2);}
 .mono{font-family:var(--mono);}
-.badge-done{background:rgba(52,211,153,0.12);color:var(--success);border:1px solid rgba(52,211,153,0.3);font-size:10px;padding:2px 7px;border-radius:20px;}
-.badge-pending{background:rgba(251,191,36,0.12);color:var(--warn);border:1px solid rgba(251,191,36,0.3);font-size:10px;padding:2px 7px;border-radius:20px;}
-.badge-notfound{background:rgba(248,113,113,0.12);color:var(--danger);border:1px solid rgba(248,113,113,0.3);font-size:10px;padding:2px 7px;border-radius:20px;}
 .photo-link{color:var(--accent);text-decoration:none;font-size:11px;}
 .photo-link:hover{text-decoration:underline;}
-
-/* Loading / empty */
 .loading{text-align:center;padding:40px;color:var(--muted);font-size:13px;}
 .spinner{width:20px;height:20px;border:2px solid rgba(56,189,248,0.3);border-top-color:var(--accent);border-radius:50%;animation:spin 0.7s linear infinite;display:inline-block;margin-right:8px;vertical-align:middle;}
 @keyframes spin{to{transform:rotate(360deg);}}
 .empty-row td{text-align:center;color:var(--muted);padding:24px;}
-
-/* Toast */
 .toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-80px);background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);padding:12px 20px;font-size:13px;transition:transform 0.3s;z-index:200;white-space:nowrap;box-shadow:0 8px 24px rgba(0,0,0,0.4);}
 .toast.show{transform:translateX(-50%) translateY(0);}
 .toast.error{border-color:rgba(248,113,113,0.4);color:var(--danger);}
 .toast.success{border-color:rgba(52,211,153,0.4);color:var(--success);}
-
 @media(max-width:480px){
   .summary-grid{grid-template-columns:1fr 1fr;}
   .summary-grid .summary-card:first-child{grid-column:1/-1;}
@@ -120,11 +81,9 @@ main{max-width:800px;margin:0 auto;padding:20px 16px 40px;}
   <div class="login-box">
     <div class="login-head">
       <div class="login-title">📊 DocScan Dashboard</div>
-      <div class="login-sub">กรอกข้อมูลเพื่อดูสรุปของ Site คุณ</div>
+      <div class="login-sub">เลือก Site ที่ต้องการดูข้อมูล</div>
     </div>
     <div class="login-body">
-      <label class="login-label">รหัสพนักงาน</label>
-      <input class="login-input" id="loginEmpId" type="text" placeholder="กรอกรหัสพนักงาน" oninput="checkLogin()">
       <label class="login-label">Site / คลังสินค้า</label>
       <select class="login-select" id="loginSite" onchange="checkLogin()">
         <option value="">— กรุณาเลือก —</option>
@@ -200,15 +159,15 @@ main{max-width:800px;margin:0 auto;padding:20px 16px 40px;}
 
     <!-- Filter -->
     <div class="filter-row">
-      <select class="filter-select" id="filterSite" onchange="renderTables()">
+      <select class="filter-select" id="filterSite" onchange="loadData()">
         <option value="">— ทุก Site —</option>
-        </select>
-      <select class="filter-select" id="filterStatus" onchange="renderTables()">
+      </select>
+      <select class="filter-select" id="filterStatus" onchange="renderTables(_cachedDone, _cachedPending)">
         <option value="all">ทุกสถานะ</option>
         <option value="done">รับแล้ว</option>
         <option value="pending">ยังไม่ได้รับ</option>
       </select>
-      <input type="date" class="filter-select" id="filterDate" onchange="renderTables()" placeholder="กรองวันที่รับ" title="กรองวันที่รับ">
+      <input type="date" class="filter-select" id="filterDate" onchange="renderTables(_cachedDone, _cachedPending)" title="กรองวันที่รับ">
       <button class="refresh-btn" onclick="loadData()">↻ รีเฟรช</button>
     </div>
 
@@ -221,19 +180,11 @@ main{max-width:800px;margin:0 auto;padding:20px 16px 40px;}
         <table>
           <thead>
             <tr>
-              <th>#</th>
-              <th>Barcode</th>
-              <th>Reference</th>
-              <th>ประเภท</th>
-              <th>โอนจาก → โอนไป</th>
-              <th>QTY รับ</th>
-              <th>วันที่รับ</th>
-              <th>ไฟล์</th>
+              <th>#</th><th>Barcode</th><th>Reference</th><th>ประเภท</th>
+              <th>โอนจาก → โอนไป</th><th>QTY รับ</th><th>วันที่รับ</th><th>ไฟล์</th>
             </tr>
           </thead>
-          <tbody id="bodyDone">
-            <tr class="empty-row"><td colspan="8">กำลังโหลด...</td></tr>
-          </tbody>
+          <tbody id="bodyDone"><tr class="empty-row"><td colspan="8">กำลังโหลด...</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -247,22 +198,16 @@ main{max-width:800px;margin:0 auto;padding:20px 16px 40px;}
         <table>
           <thead>
             <tr>
-              <th>#</th>
-              <th>Barcode</th>
-              <th>Reference</th>
-              <th>ประเภท</th>
-              <th>โอนจาก → โอนไป</th>
-              <th>QTY ส่ง</th>
+              <th>#</th><th>Barcode</th><th>Reference</th><th>ประเภท</th>
+              <th>โอนจาก → โอนไป</th><th>QTY ส่ง</th>
             </tr>
           </thead>
-          <tbody id="bodyPending">
-            <tr class="empty-row"><td colspan="6">กำลังโหลด...</td></tr>
-          </tbody>
+          <tbody id="bodyPending"><tr class="empty-row"><td colspan="6">กำลังโหลด...</td></tr></tbody>
         </table>
       </div>
     </div>
 
-  </div><!-- end mainContent -->
+  </div>
 
   <div id="loadingBlock" class="loading" style="display:none;">
     <span class="spinner"></span> กำลังโหลดข้อมูล...
@@ -272,28 +217,22 @@ main{max-width:800px;margin:0 auto;padding:20px 16px 40px;}
 <div id="toast" class="toast"></div>
 
 <script>
-  
+var API_URL      = 'https://script.google.com/macros/s/AKfycbyLS6xgDbkvSyQe55-2fydyKVISNswtq5fpj88P4u_ycxP3keMa83dVeptBRHH7jbVUYg/exec';
+var selectedSite = '';
+var _cachedDone    = [];
+var _cachedPending = [];
+
+// ── Init ──────────────────────────────────────────────────
 window.onload = function() {
   var saved = localStorage.getItem('selectedSite');
   if (saved) {
     selectedSite = saved;
-    document.getElementById('headerSub').textContent = saved;
+    document.getElementById('loginSite').value = saved;
     document.getElementById('loginOverlay').style.display = 'none';
+    document.getElementById('headerSub').textContent = saved;
     loadData();
-  } else {
-    // ไม่มีข้อมูลจาก DocScan — แสดง login
-    document.getElementById('loginOverlay').style.display = 'flex';
   }
 };
-  
-var API_URL = 'https://script.google.com/macros/s/AKfycbyLS6xgDbkvSyQe55-2fydyKVISNswtq5fpj88P4u_ycxP3keMa83dVeptBRHH7jbVUYg/exec';
-
-var selectedEmpId = '';
-var selectedSite  = '';
-var allCSV        = [];   // ข้อมูลทั้งหมดจาก CSV
-var allReceived   = [];   // ข้อมูลที่รับแล้วจาก Collectionsheet (กรอง site แล้ว)
-var doneItems     = [];   // barcode ที่รับแล้ว (เทียบกับ CSV)
-var pendingItems  = [];   // barcode ที่ยังไม่รับ
 
 // ── Login ─────────────────────────────────────────────────
 function checkLogin() {
@@ -314,7 +253,7 @@ function loadData() {
   document.getElementById('mainContent').style.display  = 'none';
   document.getElementById('loadingBlock').style.display = 'block';
 
-  var site = document.getElementById('filterSite').value || '';
+  var site = document.getElementById('filterSite').value || selectedSite || '';
   fetch(API_URL + '?action=getDashboard&site=' + encodeURIComponent(site))
     .then(function(r) { return r.json(); })
     .then(function(data) {
@@ -330,25 +269,7 @@ function loadData() {
 }
 
 // ── Process ───────────────────────────────────────────────
-function parseCSV(text) {
-  var lines = text.replace(/\r/g, '').split('\n').filter(function(l) { return l.trim(); });
-  if (lines.length < 2) return [];
-  var headers = lines[0].replace(/^\uFEFF/, '').split(',');
-  var rows = [];
-  for (var i = 1; i < lines.length; i++) {
-    var vals = lines[i].split(',');
-    var obj  = {};
-    headers.forEach(function(h, idx) { obj[h.trim()] = (vals[idx] || '').trim(); });
-    rows.push(obj);
-  }
-  return rows;
-}
-
 function processData(data) {
-  console.log('summary:', JSON.stringify(data.summary));
-  console.log('done count:', data.done ? data.done.length : 'UNDEFINED');
-  console.log('pending count:', data.pending ? data.pending.length : 'UNDEFINED');
-  console.log('siteList:', data.siteList);
   // Summary
   var s = data.summary;
   document.getElementById('sumTotal').textContent      = s.total;
@@ -359,131 +280,77 @@ function processData(data) {
   document.getElementById('progressPct').textContent   = s.pct + '%';
   document.getElementById('progressFill').style.width  = s.pct + '%';
 
-  // build site dropdown จาก GAS
+  // Build site dropdown
   var filterSiteEl = document.getElementById('filterSite');
   var current      = filterSiteEl.value || selectedSite;
   filterSiteEl.innerHTML = '<option value="">— ทุก Site —</option>';
-  data.siteList.forEach(function(s) {
+  data.siteList.forEach(function(sl) {
     var opt = document.createElement('option');
-    opt.value = s; opt.textContent = s;
-    if (s === current) opt.selected = true;
+    opt.value = sl; opt.textContent = sl;
+    if (sl === current) opt.selected = true;
     filterSiteEl.appendChild(opt);
   });
   if (selectedSite && data.siteList.indexOf(selectedSite) > -1) {
     filterSiteEl.value = selectedSite;
   }
 
-  // render tables
-  renderTables(data.done, data.pending);
-}
-
-function updateSummary() {
-  var total   = doneItems.length + pendingItems.length;
-  var done    = doneItems.length;
-  var pending = pendingItems.length;
-  var pct     = total > 0 ? Math.round(done / total * 100) : 0;
-
-  document.getElementById('sumTotal').textContent   = total;
-  document.getElementById('sumDone').textContent    = done;
-  document.getElementById('sumPending').textContent = pending;
-  document.getElementById('sumDonePct').textContent    = pct + '% ของทั้งหมด';
-  document.getElementById('sumPendingPct').textContent = (100 - pct) + '% ของทั้งหมด';
-  document.getElementById('progressPct').textContent   = pct + '%';
-  document.getElementById('progressFill').style.width  = pct + '%';
+  // Cache และ render
+  _cachedDone    = data.done    || [];
+  _cachedPending = data.pending || [];
+  renderTables(_cachedDone, _cachedPending);
 }
 
 // ── Render Tables ─────────────────────────────────────────
-function renderTables() {
-  var filterSite   = document.getElementById('filterSite').value;
+function renderTables(done, pending) {
   var filterStatus = document.getElementById('filterStatus').value;
   var filterDate   = document.getElementById('filterDate').value;
 
-  function renderTables(done, pending) {
-  console.log('renderTables done:', done ? done.length : 'UNDEFINED');
-  console.log('renderTables pending:', pending ? pending.length : 'UNDEFINED');
-
-  // กรอง received ตาม site ที่เลือก
-  var filteredReceived = filterSite
-    ? allReceived.filter(function(r) { return r.site === filterSite; })
-    : allReceived;
-
-  // สร้าง set barcode ที่รับแล้ว
-  var receivedBarcodes = {};
-  filteredReceived.forEach(function(r) { receivedBarcodes[r.barcode.toUpperCase()] = r; });
-
-// กรอง CSV ตาม customer_start_name (ต้นทาง)
-  var csvFiltered = filterSite
-    ? allCSV.filter(function(r) { return (r['customer_start_name'] || '').trim() === filterSite; })
-    : allCSV;
-
-  doneItems    = [];
-  pendingItems = [];
-  csvFiltered.forEach(function(row) {
-    var barcode = (row['barcode'] || '').trim().toUpperCase();
-    if (receivedBarcodes[barcode]) {
-      doneItems.push({ csv: row, received: receivedBarcodes[barcode] });
-    } else {
-      pendingItems.push({ csv: row });
-    }
-  });
-
-  updateSummary();
-  
   // Done
-  var filteredDone = doneItems.filter(function(item) {
-    if (filterDate && item.received.received_date !== filterDate) return false;
+  var filteredDone = done.filter(function(item) {
+    if (filterDate && item.received_date !== filterDate) return false;
     return true;
   });
 
   document.getElementById('countDone').textContent = filteredDone.length;
-  document.getElementById('sectionDone').style.display = (filterStatus === 'pending') ? 'none' : 'block';
+  document.getElementById('sectionDone').style.display = filterStatus === 'pending' ? 'none' : 'block';
 
   var bodyDone = document.getElementById('bodyDone');
-  if (filteredDone.length === 0) {
-    bodyDone.innerHTML = '<tr class="empty-row"><td colspan="8">ไม่มีรายการ</td></tr>';
-  } else {
-    bodyDone.innerHTML = filteredDone.map(function(item, i) {
-      var r = item.received;
-      var photoHtml = r.photo_url
-        ? '<a class="photo-link" href="' + r.photo_url + '" target="_blank">📎 ดูไฟล์</a>'
-        : '<span style="color:var(--muted);font-size:11px;">—</span>';
-      var statusBadge = r.status === 'NOT FOUND'
-        ? '<span class="badge-notfound">NOT FOUND</span>'
-        : '<span class="badge-done">รับแล้ว</span>';
-      return '<tr>' +
-        '<td class="mono" style="color:var(--muted);">' + (i+1) + '</td>' +
-        '<td class="mono" style="color:var(--accent);">' + (r.barcode || '—') + '</td>' +
-        '<td class="mono">' + (r.ref_no || '—') + '</td>' +
-        '<td>' + (r.item_name || '—') + '</td>' +
-        '<td style="font-size:11px;">' + (r.transfer_from || '—') + ' → ' + (r.transfer_to || '—') + '</td>' +
-        '<td class="mono" style="text-align:right;">' + (r.received_qty || '—') + '</td>' +
-        '<td class="mono">' + (r.received_date || '—') + '</td>' +
-        '<td>' + photoHtml + '</td>' +
-      '</tr>';
-    }).join('');
-  }
+  bodyDone.innerHTML = filteredDone.length === 0
+    ? '<tr class="empty-row"><td colspan="8">ไม่มีรายการ</td></tr>'
+    : filteredDone.map(function(item, i) {
+        var photoHtml = item.photo_url
+          ? '<a class="photo-link" href="' + item.photo_url + '" target="_blank">📎 ดูไฟล์</a>'
+          : '<span style="color:var(--muted);">—</span>';
+        return '<tr>' +
+          '<td class="mono" style="color:var(--muted);">' + (i+1) + '</td>' +
+          '<td class="mono" style="color:var(--accent);">' + (item.barcode || '—') + '</td>' +
+          '<td class="mono">' + (item.ref_no || '—') + '</td>' +
+          '<td>' + (item.item_name || '—') + '</td>' +
+          '<td style="font-size:11px;">' + (item.transfer_from || '—') + ' → ' + (item.transfer_to || '—') + '</td>' +
+          '<td class="mono" style="text-align:right;">' + (item.received_qty || '—') + '</td>' +
+          '<td class="mono">' + (item.received_date || '—') + '</td>' +
+          '<td>' + photoHtml + '</td>' +
+        '</tr>';
+      }).join('');
 
   // Pending
-  var filteredPending = filterDate ? [] : pendingItems;
+  var filteredPending = filterDate ? [] : pending;
   document.getElementById('countPending').textContent = filteredPending.length;
-  document.getElementById('sectionPending').style.display = (filterStatus === 'done') ? 'none' : 'block';
+  document.getElementById('sectionPending').style.display = filterStatus === 'done' ? 'none' : 'block';
 
   var bodyPending = document.getElementById('bodyPending');
-  if (filteredPending.length === 0) {
-    bodyPending.innerHTML = '<tr class="empty-row"><td colspan="6">' + (filterDate ? 'ซ่อนรายการค้างเมื่อกรองวันที่' : 'ไม่มีรายการค้าง 🎉') + '</td></tr>';
-  } else {
-    bodyPending.innerHTML = filteredPending.map(function(item, i) {
-      var c = item.csv;
-      return '<tr>' +
-        '<td class="mono" style="color:var(--muted);">' + (i+1) + '</td>' +
-        '<td class="mono" style="color:var(--warn);">' + (c['barcode'] || '—') + '</td>' +
-        '<td class="mono">' + (c['ref_no'] || '—') + '</td>' +
-        '<td>' + (c['item_name'] || '—') + '</td>' +
-        '<td style="font-size:11px;">' + (c['customer_start_name'] || '—') + ' → ' + (c['customer_destination_name'] || '—') + '</td>' +
-        '<td class="mono" style="text-align:right;">' + (c['total'] || '—') + '</td>' +
-      '</tr>';
-    }).join('');
-  }
+  bodyPending.innerHTML = filteredPending.length === 0
+    ? '<tr class="empty-row"><td colspan="6">' + (filterDate ? 'ซ่อนรายการค้างเมื่อกรองวันที่' : 'ไม่มีรายการค้าง 🎉') + '</td></tr>'
+    : filteredPending.map(function(item, i) {
+        return '<tr>' +
+          '<td class="mono" style="color:var(--muted);">' + (i+1) + '</td>' +
+          '<td class="mono" style="color:var(--warn);">' + (item.barcode || '—') + '</td>' +
+          '<td class="mono">' + (item.ref_no || '—') + '</td>' +
+          '<td>' + (item.item_name || '—') + '</td>' +
+          '<td style="font-size:11px;">' + (item.transfer_from || '—') + ' → ' + (item.transfer_to || '—') + '</td>' +
+          '<td class="mono" style="text-align:right;">' + (item.sent_qty || '—') + '</td>' +
+        '</tr>';
+      }).join('');
 }
 
 // ── Toast ─────────────────────────────────────────────────
