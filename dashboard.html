@@ -313,11 +313,12 @@ function loadData() {
   document.getElementById('mainContent').style.display  = 'none';
   document.getElementById('loadingBlock').style.display = 'block';
 
-  fetch(API_URL + '?action=getDashboard')
+  var site = document.getElementById('filterSite').value || '';
+  fetch(API_URL + '?action=getDashboard&site=' + encodeURIComponent(site))
     .then(function(r) { return r.json(); })
     .then(function(data) {
       if (data.status !== 'ok') throw new Error(data.message);
-      processData(data.csv, data.received);
+      processData(data);
       document.getElementById('loadingBlock').style.display = 'none';
       document.getElementById('mainContent').style.display  = 'block';
     })
@@ -342,36 +343,33 @@ function parseCSV(text) {
   return rows;
 }
 
-function processData(csvText, received) {
-  allCSV      = parseCSV(csvText);
-  allReceived = received;
+function processData(data) {
+  // Summary
+  var s = data.summary;
+  document.getElementById('sumTotal').textContent      = s.total;
+  document.getElementById('sumDone').textContent       = s.done;
+  document.getElementById('sumPending').textContent    = s.pending;
+  document.getElementById('sumDonePct').textContent    = s.pct + '% ของทั้งหมด';
+  document.getElementById('sumPendingPct').textContent = (100 - s.pct) + '% ของทั้งหมด';
+  document.getElementById('progressPct').textContent   = s.pct + '%';
+  document.getElementById('progressFill').style.width  = s.pct + '%';
 
-// ดึง unique ต้นทาง (customer_start_name) จาก CSV เท่านั้น
-  var destSet = {};
-  allCSV.forEach(function(r) {
-    var d = (r['customer_start_name'] || '').trim();
-    if (d) destSet[d] = true;
-  });
-  var siteList = Object.keys(destSet).sort();
-
-  // build dropdown filter
+  // build site dropdown จาก GAS
   var filterSiteEl = document.getElementById('filterSite');
   var current      = filterSiteEl.value || selectedSite;
   filterSiteEl.innerHTML = '<option value="">— ทุก Site —</option>';
-  siteList.forEach(function(s) {
+  data.siteList.forEach(function(s) {
     var opt = document.createElement('option');
-    opt.value = s;
-    opt.textContent = s;
+    opt.value = s; opt.textContent = s;
     if (s === current) opt.selected = true;
     filterSiteEl.appendChild(opt);
   });
-
-  // auto-select จาก localStorage
-  if (selectedSite && siteList.indexOf(selectedSite) > -1) {
+  if (selectedSite && data.siteList.indexOf(selectedSite) > -1) {
     filterSiteEl.value = selectedSite;
   }
 
-  renderTables();
+  // render tables
+  renderTables(data.done, data.pending);
 }
 
 function updateSummary() {
