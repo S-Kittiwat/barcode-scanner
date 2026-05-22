@@ -359,7 +359,7 @@ window.onload = function() {
 };
 
 function loadCSV() {
-  fetch(CSV_URL)
+  fetch(CSV_URL, { method: 'GET', redirect: 'follow' })
     .then(function(r) { return r.text(); })
     .then(function(text) {
       csvData = parseCSV(text);
