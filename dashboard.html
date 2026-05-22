@@ -167,6 +167,8 @@ main{max-width:800px;margin:0 auto;padding:20px 16px 40px;}
         <option value="done">รับแล้ว</option>
         <option value="pending">ยังไม่ได้รับ</option>
       </select>
+      <input type="text" class="filter-select" id="filterRef" placeholder="Reference..." oninput="renderTables(_cachedDone, _cachedPending)" style="width:140px;">
+      <input type="month" class="filter-select" id="filterMonth" onchange="renderTables(_cachedDone, _cachedPending)" title="กรองเดือน/ปี">
       <input type="date" class="filter-select" id="filterDate" onchange="renderTables(_cachedDone, _cachedPending)" title="กรองวันที่รับ">
       <button class="refresh-btn" onclick="loadData()">↻ รีเฟรช</button>
     </div>
@@ -181,7 +183,7 @@ main{max-width:800px;margin:0 auto;padding:20px 16px 40px;}
           <thead>
             <tr>
               <th>#</th><th>Barcode</th><th>Reference</th><th>ประเภท</th>
-              <th>โอนจาก → โอนไป</th><th>QTY รับ</th><th>วันที่รับ</th><th>ไฟล์</th>
+              <th>โอนจาก → โอนไป</th><th>Date</th><th>QTY รับ</th><th>วันที่รับ</th><th>ไฟล์</th>
             </tr>
           </thead>
           <tbody id="bodyDone"><tr class="empty-row"><td colspan="8">กำลังโหลด...</td></tr></tbody>
@@ -199,7 +201,7 @@ main{max-width:800px;margin:0 auto;padding:20px 16px 40px;}
           <thead>
             <tr>
               <th>#</th><th>Barcode</th><th>Reference</th><th>ประเภท</th>
-              <th>โอนจาก → โอนไป</th><th>QTY ส่ง</th>
+              <th>โอนจาก → โอนไป</th><th>Date</th><th>QTY ส่ง</th>
             </tr>
           </thead>
           <tbody id="bodyPending"><tr class="empty-row"><td colspan="6">กำลังโหลด...</td></tr></tbody>
@@ -304,10 +306,14 @@ function processData(data) {
 function renderTables(done, pending) {
   var filterStatus = document.getElementById('filterStatus').value;
   var filterDate   = document.getElementById('filterDate').value;
+  var filterRef    = document.getElementById('filterRef').value.trim().toLowerCase();
+  var filterMonth  = document.getElementById('filterMonth').value; // format: YYYY-MM
 
   // Done
   var filteredDone = done.filter(function(item) {
-    if (filterDate && item.received_date !== filterDate) return false;
+    if (filterDate  && item.received_date !== filterDate) return false;
+    if (filterRef   && (item.ref_no || '').toLowerCase().indexOf(filterRef) === -1) return false;
+    if (filterMonth && (item.doc_date || '').substring(0,7).split('/').reverse().join('-').substring(0,7) !== filterMonth) return false;
     return true;
   });
 
@@ -327,6 +333,8 @@ function renderTables(done, pending) {
           '<td class="mono">' + (item.ref_no || '—') + '</td>' +
           '<td>' + (item.item_name || '—') + '</td>' +
           '<td style="font-size:11px;">' + (item.transfer_from || '—') + ' → ' + (item.transfer_to || '—') + '</td>' +
+          '<td class="mono">' + (item.doc_date || '—') + '</td>' +
+          '<td class="mono">' + (item.doc_date || '—') + '</td>' +
           '<td class="mono" style="text-align:right;">' + (item.received_qty || '—') + '</td>' +
           '<td class="mono">' + (item.received_date || '—') + '</td>' +
           '<td>' + photoHtml + '</td>' +
@@ -334,7 +342,12 @@ function renderTables(done, pending) {
       }).join('');
 
   // Pending
-  var filteredPending = filterDate ? [] : pending;
+  var filteredPending = pending.filter(function(item) {
+  if (filterDate) return false; // ซ่อน pending เมื่อกรองวันที่รับ
+  if (filterRef  && (item.ref_no || '').toLowerCase().indexOf(filterRef) === -1) return false;
+  if (filterMonth && (item.doc_date || '').substring(0,7).split('/').reverse().join('-').substring(0,7) !== filterMonth) return false;
+  return true;
+});
   document.getElementById('countPending').textContent = filteredPending.length;
   document.getElementById('sectionPending').style.display = filterStatus === 'done' ? 'none' : 'block';
 
@@ -348,6 +361,7 @@ function renderTables(done, pending) {
           '<td class="mono">' + (item.ref_no || '—') + '</td>' +
           '<td>' + (item.item_name || '—') + '</td>' +
           '<td style="font-size:11px;">' + (item.transfer_from || '—') + ' → ' + (item.transfer_to || '—') + '</td>' +
+          '<td class="mono">' + (item.doc_date || '—') + '</td>' +
           '<td class="mono" style="text-align:right;">' + (item.sent_qty || '—') + '</td>' +
         '</tr>';
       }).join('');
