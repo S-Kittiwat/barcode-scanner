@@ -344,6 +344,10 @@ function parseCSV(text) {
 }
 
 function processData(data) {
+  console.log('summary:', JSON.stringify(data.summary));
+  console.log('done count:', data.done ? data.done.length : 'UNDEFINED');
+  console.log('pending count:', data.pending ? data.pending.length : 'UNDEFINED');
+  console.log('siteList:', data.siteList);
   // Summary
   var s = data.summary;
   document.getElementById('sumTotal').textContent      = s.total;
