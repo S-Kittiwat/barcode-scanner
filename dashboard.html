@@ -15,7 +15,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
 .logo-text{font-size:15px;font-weight:600;}
 .logo-sub{font-size:11px;color:var(--muted);}
 .back-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:var(--rs);padding:7px 14px;font-family:var(--font);font-size:13px;cursor:pointer;text-decoration:none;display:flex;align-items:center;gap:6px;}
-main{max-width:800px;margin:0 auto;padding:20px 16px 40px;}
+main{max-width:900px;margin:0 auto;padding:20px 16px 40px;}
 .login-overlay{position:fixed;inset:0;background:var(--bg);z-index:500;display:flex;align-items:center;justify-content:center;padding:24px;}
 .login-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);width:100%;max-width:400px;overflow:hidden;}
 .login-head{padding:20px;border-bottom:1px solid var(--border);}
@@ -39,10 +39,14 @@ main{max-width:800px;margin:0 auto;padding:20px 16px 40px;}
 .progress-label{display:flex;justify-content:space-between;font-size:13px;margin-bottom:10px;}
 .progress-bar{height:10px;background:var(--surface2);border-radius:20px;overflow:hidden;}
 .progress-fill{height:100%;background:var(--success);border-radius:20px;transition:width 0.5s ease;}
-.filter-row{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
+.filter-row{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center;}
 .filter-select{background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);color:var(--text);font-family:var(--font);font-size:13px;padding:7px 12px;outline:none;cursor:pointer;}
 .filter-select:focus{border-color:var(--accent);}
-.refresh-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:var(--rs);padding:7px 14px;font-family:var(--font);font-size:13px;cursor:pointer;margin-left:auto;}
+.filter-input{background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);color:var(--text);font-family:var(--font);font-size:13px;padding:7px 12px;outline:none;width:140px;}
+.filter-input:focus{border-color:var(--accent);}
+.filter-input::placeholder{color:var(--muted);}
+.refresh-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:var(--rs);padding:7px 14px;font-family:var(--font);font-size:13px;cursor:pointer;}
+.export-btn{background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.3);color:var(--success);border-radius:var(--rs);padding:7px 14px;font-family:var(--font);font-size:13px;cursor:pointer;margin-left:auto;}
 .section{margin-bottom:24px;}
 .section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
 .section-title{font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px;}
@@ -70,7 +74,7 @@ main{max-width:800px;margin:0 auto;padding:20px 16px 40px;}
   .summary-grid{grid-template-columns:1fr 1fr;}
   .summary-grid .summary-card:first-child{grid-column:1/-1;}
   .table-wrap{overflow-x:auto;}
-  .table-wrap table{min-width:500px;}
+  .table-wrap table{min-width:600px;}
 }
 </style>
 </head>
@@ -162,15 +166,16 @@ main{max-width:800px;margin:0 auto;padding:20px 16px 40px;}
       <select class="filter-select" id="filterSite" onchange="loadData()">
         <option value="">— ทุก Site —</option>
       </select>
-      <select class="filter-select" id="filterStatus" onchange="renderTables(_cachedDone, _cachedPending)">
+      <select class="filter-select" id="filterStatus" onchange="applyFilters()">
         <option value="all">ทุกสถานะ</option>
         <option value="done">รับแล้ว</option>
         <option value="pending">ยังไม่ได้รับ</option>
       </select>
-      <input type="text" class="filter-select" id="filterRef" placeholder="Reference..." oninput="renderTables(_cachedDone, _cachedPending)" style="width:140px;">
-      <input type="month" class="filter-select" id="filterMonth" onchange="renderTables(_cachedDone, _cachedPending)" title="กรองเดือน/ปี">
-      <input type="date" class="filter-select" id="filterDate" onchange="renderTables(_cachedDone, _cachedPending)" title="กรองวันที่รับ">
+      <input class="filter-input" type="text" id="filterRef" placeholder="Reference..." oninput="applyFilters()">
+      <input class="filter-select" type="month" id="filterMonth" onchange="applyFilters()" title="กรองเดือน/ปี (Created Date)">
+      <input class="filter-select" type="date" id="filterDate" onchange="applyFilters()" title="กรองวันที่รับ">
       <button class="refresh-btn" onclick="loadData()">↻ รีเฟรช</button>
+      <button class="export-btn" onclick="exportCSV()">⬇ Export CSV</button>
     </div>
 
     <!-- รับแล้ว -->
@@ -183,7 +188,7 @@ main{max-width:800px;margin:0 auto;padding:20px 16px 40px;}
           <thead>
             <tr>
               <th>#</th><th>Barcode</th><th>Reference</th><th>ประเภท</th>
-              <th>โอนจาก → โอนไป</th><th>Date</th><th>QTY รับ</th><th>วันที่รับ</th><th>ไฟล์</th>
+              <th>โอนจาก → โอนไป</th><th>QTY รับ</th><th>วันที่รับ</th><th>ไฟล์</th><th>Created Date</th>
             </tr>
           </thead>
           <tbody id="bodyDone"><tr class="empty-row"><td colspan="9">กำลังโหลด...</td></tr></tbody>
@@ -201,7 +206,7 @@ main{max-width:800px;margin:0 auto;padding:20px 16px 40px;}
           <thead>
             <tr>
               <th>#</th><th>Barcode</th><th>Reference</th><th>ประเภท</th>
-              <th>โอนจาก → โอนไป</th><th>Date</th><th>QTY ส่ง</th>
+              <th>โอนจาก → โอนไป</th><th>QTY ส่ง</th><th>Created Date</th>
             </tr>
           </thead>
           <tbody id="bodyPending"><tr class="empty-row"><td colspan="7">กำลังโหลด...</td></tr></tbody>
@@ -219,8 +224,8 @@ main{max-width:800px;margin:0 auto;padding:20px 16px 40px;}
 <div id="toast" class="toast"></div>
 
 <script>
-var API_URL      = 'https://script.google.com/macros/s/AKfycbzmjGP5UInIhzLFgwK3lXJs-ysA4HIdtVcG4FI-EUE0JhbqDajHqmfbvTH0hTPQmTRMwQ/exec';
-var selectedSite = '';
+var API_URL        = 'https://script.google.com/macros/s/AKfycbzmjGP5UInIhzLFgwK3lXJs-ysA4HIdtVcG4FI-EUE0JhbqDajHqmfbvTH0hTPQmTRMwQ/exec';
+var selectedSite   = '';
 var _cachedDone    = [];
 var _cachedPending = [];
 
@@ -229,10 +234,11 @@ window.onload = function() {
   var saved = localStorage.getItem('selectedSite');
   if (saved) {
     selectedSite = saved;
-    document.getElementById('loginSite').value = saved;
     document.getElementById('loginOverlay').style.display = 'none';
     document.getElementById('headerSub').textContent = saved;
     loadData();
+  } else {
+    document.getElementById('loginOverlay').style.display = 'flex';
   }
 };
 
@@ -250,12 +256,13 @@ function confirmLogin() {
   loadData();
 }
 
-// ── Load Data ─────────────────────────────────────────────
+// ── Load Data (เรียก GAS) ─────────────────────────────────
 function loadData() {
   document.getElementById('mainContent').style.display  = 'none';
   document.getElementById('loadingBlock').style.display = 'block';
 
-  var site = document.getElementById('filterSite').value || selectedSite || '';
+  // filterSite = ทุก site → ส่งค่าว่าง / เลือก site → ส่งชื่อ site
+  var site = document.getElementById('filterSite').value || '';
   fetch(API_URL + '?action=getDashboard&site=' + encodeURIComponent(site))
     .then(function(r) { return r.json(); })
     .then(function(data) {
@@ -270,9 +277,8 @@ function loadData() {
     });
 }
 
-// ── Process ───────────────────────────────────────────────
+// ── Process (รับ data จาก GAS) ────────────────────────────
 function processData(data) {
-  // Summary
   var s = data.summary;
   document.getElementById('sumTotal').textContent      = s.total;
   document.getElementById('sumDone').textContent       = s.done;
@@ -282,41 +288,65 @@ function processData(data) {
   document.getElementById('progressPct').textContent   = s.pct + '%';
   document.getElementById('progressFill').style.width  = s.pct + '%';
 
-  // Build site dropdown
-  var filterSiteEl = document.getElementById('filterSite');
-  var current      = filterSiteEl.value || selectedSite;
-  filterSiteEl.innerHTML = '<option value="">— ทุก Site —</option>';
-  data.siteList.forEach(function(sl) {
+  // Build site dropdown จาก siteList ของ GAS
+  var el      = document.getElementById('filterSite');
+  var current = el.value;
+  el.innerHTML = '<option value="">— ทุก Site —</option>';
+  (data.siteList || []).forEach(function(sl) {
     var opt = document.createElement('option');
     opt.value = sl; opt.textContent = sl;
     if (sl === current) opt.selected = true;
-    filterSiteEl.appendChild(opt);
+    el.appendChild(opt);
   });
-  if (selectedSite && data.siteList.indexOf(selectedSite) > -1) {
-    filterSiteEl.value = selectedSite;
-  }
 
-  // Cache และ render
   _cachedDone    = data.done    || [];
   _cachedPending = data.pending || [];
-  renderTables(_cachedDone, _cachedPending);
+  applyFilters();
 }
 
-// ── Render Tables ─────────────────────────────────────────
-function renderTables(done, pending) {
+// ── Apply Filters (ไม่ reload GAS) ────────────────────────
+function applyFilters() {
   var filterStatus = document.getElementById('filterStatus').value;
-  var filterDate   = document.getElementById('filterDate').value;
   var filterRef    = document.getElementById('filterRef').value.trim().toLowerCase();
-  var filterMonth  = document.getElementById('filterMonth').value; // format: YYYY-MM
+  var filterMonth  = document.getElementById('filterMonth').value;  // YYYY-MM
+  var filterDate   = document.getElementById('filterDate').value;   // YYYY-MM-DD
 
-  // Done
-  var filteredDone = done.filter(function(item) {
-    if (filterDate  && item.received_date !== filterDate) return false;
+  // helper: แปลง d/m/yyyy → YYYY-MM
+  function toYearMonth(dateStr) {
+    if (!dateStr) return '';
+    if (dateStr.indexOf('/') > -1) {
+      var p = dateStr.split('/');
+      if (p.length === 3) {
+        var y = p[2].length === 2 ? '20' + p[2] : p[2];
+        var m = p[1].padStart(2, '0');
+        return y + '-' + m;
+      }
+    }
+    return dateStr.substring(0, 7);
+  }
+
+  // Filter done
+  var filteredDone = _cachedDone.filter(function(item) {
     if (filterRef   && (item.ref_no || '').toLowerCase().indexOf(filterRef) === -1) return false;
-    if (filterMonth && (item.doc_date || '').substring(0,7).split('/').reverse().join('-').substring(0,7) !== filterMonth) return false;
+    if (filterMonth && toYearMonth(item.doc_date) !== filterMonth) return false;
+    if (filterDate  && (item.received_date || '') !== filterDate) return false;
     return true;
   });
 
+  // Filter pending
+  var filteredPending = _cachedPending.filter(function(item) {
+    if (filterDate) return false; // ซ่อน pending เมื่อกรองวันที่รับ
+    if (filterRef   && (item.ref_no || '').toLowerCase().indexOf(filterRef) === -1) return false;
+    if (filterMonth && toYearMonth(item.doc_date) !== filterMonth) return false;
+    return true;
+  });
+
+  renderTables(filteredDone, filteredPending, filterStatus, filterDate);
+}
+
+// ── Render Tables ─────────────────────────────────────────
+function renderTables(filteredDone, filteredPending, filterStatus, filterDate) {
+  // Done
   document.getElementById('countDone').textContent = filteredDone.length;
   document.getElementById('sectionDone').style.display = filterStatus === 'pending' ? 'none' : 'block';
 
@@ -333,21 +363,14 @@ function renderTables(done, pending) {
           '<td class="mono">' + (item.ref_no || '—') + '</td>' +
           '<td>' + (item.item_name || '—') + '</td>' +
           '<td style="font-size:11px;">' + (item.transfer_from || '—') + ' → ' + (item.transfer_to || '—') + '</td>' +
-          '<td class="mono">' + (item.doc_date || '—') + '</td>' +
-          '<td class="mono">' + (item.doc_date || '—') + '</td>' +
           '<td class="mono" style="text-align:right;">' + (item.received_qty || '—') + '</td>' +
           '<td class="mono">' + (item.received_date || '—') + '</td>' +
           '<td>' + photoHtml + '</td>' +
+          '<td class="mono" style="color:var(--muted);">' + (item.doc_date || '—') + '</td>' +
         '</tr>';
       }).join('');
 
   // Pending
-  var filteredPending = pending.filter(function(item) {
-  if (filterDate) return false; // ซ่อน pending เมื่อกรองวันที่รับ
-  if (filterRef  && (item.ref_no || '').toLowerCase().indexOf(filterRef) === -1) return false;
-  if (filterMonth && (item.doc_date || '').substring(0,7).split('/').reverse().join('-').substring(0,7) !== filterMonth) return false;
-  return true;
-});
   document.getElementById('countPending').textContent = filteredPending.length;
   document.getElementById('sectionPending').style.display = filterStatus === 'done' ? 'none' : 'block';
 
@@ -361,10 +384,61 @@ function renderTables(done, pending) {
           '<td class="mono">' + (item.ref_no || '—') + '</td>' +
           '<td>' + (item.item_name || '—') + '</td>' +
           '<td style="font-size:11px;">' + (item.transfer_from || '—') + ' → ' + (item.transfer_to || '—') + '</td>' +
-          '<td class="mono">' + (item.doc_date || '—') + '</td>' +
           '<td class="mono" style="text-align:right;">' + (item.sent_qty || '—') + '</td>' +
+          '<td class="mono" style="color:var(--muted);">' + (item.doc_date || '—') + '</td>' +
         '</tr>';
       }).join('');
+}
+
+// ── Export CSV ────────────────────────────────────────────
+function exportCSV() {
+  var filterStatus = document.getElementById('filterStatus').value;
+  var rows = [];
+
+  // Header
+  rows.push(['สถานะ','Barcode','Reference','ประเภท','โอนจาก','โอนไป','QTY ส่ง','QTY รับ','วันที่รับ','Created Date'].join(','));
+
+  if (filterStatus !== 'pending') {
+    _cachedDone.forEach(function(item) {
+      rows.push([
+        'รับแล้ว',
+        item.barcode || '',
+        item.ref_no || '',
+        item.item_name || '',
+        item.transfer_from || '',
+        item.transfer_to || '',
+        item.sent_qty || '',
+        item.received_qty || '',
+        item.received_date || '',
+        item.doc_date || ''
+      ].map(function(v) { return '"' + String(v).replace(/"/g,'""') + '"'; }).join(','));
+    });
+  }
+
+  if (filterStatus !== 'done') {
+    _cachedPending.forEach(function(item) {
+      rows.push([
+        'ยังไม่รับ',
+        item.barcode || '',
+        item.ref_no || '',
+        item.item_name || '',
+        item.transfer_from || '',
+        item.transfer_to || '',
+        item.sent_qty || '',
+        '', '', 
+        item.doc_date || ''
+      ].map(function(v) { return '"' + String(v).replace(/"/g,'""') + '"'; }).join(','));
+    });
+  }
+
+  var blob = new Blob(['\uFEFF' + rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  var url  = URL.createObjectURL(blob);
+  var a    = document.createElement('a');
+  a.href     = url;
+  a.download = 'DocScan_' + (document.getElementById('filterSite').value || 'all') + '_' + new Date().toISOString().split('T')[0] + '.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('Export เรียบร้อย', 'success');
 }
 
 // ── Toast ─────────────────────────────────────────────────
