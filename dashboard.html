@@ -186,7 +186,7 @@ main{max-width:800px;margin:0 auto;padding:20px 16px 40px;}
               <th>โอนจาก → โอนไป</th><th>Date</th><th>QTY รับ</th><th>วันที่รับ</th><th>ไฟล์</th>
             </tr>
           </thead>
-          <tbody id="bodyDone"><tr class="empty-row"><td colspan="8">กำลังโหลด...</td></tr></tbody>
+          <tbody id="bodyDone"><tr class="empty-row"><td colspan="9">กำลังโหลด...</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -204,7 +204,7 @@ main{max-width:800px;margin:0 auto;padding:20px 16px 40px;}
               <th>โอนจาก → โอนไป</th><th>Date</th><th>QTY ส่ง</th>
             </tr>
           </thead>
-          <tbody id="bodyPending"><tr class="empty-row"><td colspan="6">กำลังโหลด...</td></tr></tbody>
+          <tbody id="bodyPending"><tr class="empty-row"><td colspan="7">กำลังโหลด...</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -322,7 +322,7 @@ function renderTables(done, pending) {
 
   var bodyDone = document.getElementById('bodyDone');
   bodyDone.innerHTML = filteredDone.length === 0
-    ? '<tr class="empty-row"><td colspan="8">ไม่มีรายการ</td></tr>'
+    ? '<tr class="empty-row"><td colspan="9">ไม่มีรายการ</td></tr>'
     : filteredDone.map(function(item, i) {
         var photoHtml = item.photo_url
           ? '<a class="photo-link" href="' + item.photo_url + '" target="_blank">📎 ดูไฟล์</a>'
@@ -353,7 +353,7 @@ function renderTables(done, pending) {
 
   var bodyPending = document.getElementById('bodyPending');
   bodyPending.innerHTML = filteredPending.length === 0
-    ? '<tr class="empty-row"><td colspan="6">' + (filterDate ? 'ซ่อนรายการค้างเมื่อกรองวันที่' : 'ไม่มีรายการค้าง 🎉') + '</td></tr>'
+    ? '<tr class="empty-row"><td colspan="7">' + (filterDate ? 'ซ่อนรายการค้างเมื่อกรองวันที่' : 'ไม่มีรายการค้าง 🎉') + '</td></tr>'
     : filteredPending.map(function(item, i) {
         return '<tr>' +
           '<td class="mono" style="color:var(--muted);">' + (i+1) + '</td>' +
