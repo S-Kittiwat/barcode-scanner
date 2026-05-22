@@ -276,12 +276,13 @@ main{max-width:800px;margin:0 auto;padding:20px 16px 40px;}
 window.onload = function() {
   var saved = localStorage.getItem('selectedSite');
   if (saved) {
-    // มี site จาก index.html — ข้าม login ได้เลย
     selectedSite = saved;
-    document.getElementById('loginSite').value = saved;
-    document.getElementById('loginOverlay').style.display = 'none';
     document.getElementById('headerSub').textContent = saved;
+    document.getElementById('loginOverlay').style.display = 'none';
     loadData();
+  } else {
+    // ไม่มีข้อมูลจาก DocScan — แสดง login
+    document.getElementById('loginOverlay').style.display = 'flex';
   }
 };
   
