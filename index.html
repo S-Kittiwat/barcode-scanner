@@ -579,7 +579,7 @@ function showDoc(d, notFound) {
   document.getElementById('editTransferTo').value   = currentDoc.transfer_to;
   document.getElementById('editDestAcc').value      = currentDoc.dest_acc;
   document.getElementById('editDespatch').value     = toInputDate(currentDoc.despatch_date);
-  document.getElementById('editReceivedDate').value = new Date().toISOString().split('T')[0];
+  document.getElementById('editReceivedDate').value = currentDoc.received_date_pcs ? toInputDate(currentDoc.received_date_pcs) : new Date().toISOString().split('T')[0];
   document.getElementById('editSentQty').value      = currentDoc.sent_qty;
   document.getElementById('editReceivedQty').value  = currentDoc.received_qty;
   document.getElementById('resultPanel').classList.add('visible');
