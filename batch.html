@@ -49,6 +49,10 @@ main{width:100%;max-width:100%;padding:20px 24px 100px;}
 .row-input{background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--text);font-family:var(--font);font-size:12px;padding:5px 7px;outline:none;width:100%;transition:border-color 0.15s;}
 .row-input:focus{border-color:var(--accent);}
 .row-input.mono{font-family:var(--mono);}
+.date-smart{letter-spacing:0.05em;}
+.date-smart.ok{border-color:var(--success);color:var(--success);}
+.date-smart.err{border-color:var(--danger);color:var(--danger);animation:shake 0.35s ease;}
+@keyframes shake{0%,100%{transform:translateX(0);}25%{transform:translateX(-4px);}75%{transform:translateX(4px);}}
 /* 2-line cell: name + acc */
 .cell-two{display:flex;flex-direction:column;gap:3px;}
 .cell-two .row-input:first-child{font-size:12px;}
@@ -402,6 +406,86 @@ function processFiles(files) {
   setTimeout(function(){ renderTable(); updateBatchCounter(); }, 200);
 }
 
+// ── Smart Date Input ──────────────────────────────────────
+// แปลง YYYY-MM-DD → DD/MM/YYYY สำหรับแสดงผลใน input
+function toDisplayDate(isoVal) {
+  if (!isoVal) return '';
+  try {
+    var p = isoVal.split('-');
+    if (p.length === 3) return p[2] + '/' + p[1] + '/' + p[0];
+  } catch(e) {}
+  return isoVal;
+}
+
+// parse input หลากหลาย format → YYYY-MM-DD
+// รับ: ddmmyy, ddmmyyyy, dd/mm/yy, dd/mm/yyyy, ddmmyy (6 ตัว), ฯลฯ
+function parseDateInput(raw) {
+  var s = raw.trim().replace(/[-\s]/g, '/');
+  // มี / แล้ว
+  if (s.indexOf('/') > -1) {
+    var p = s.split('/');
+    if (p.length === 3) {
+      var d = p[0].padStart(2,'0');
+      var m = p[1].padStart(2,'0');
+      var y = p[2].length === 2 ? '20' + p[2] : p[2];
+      return validate(d, m, y);
+    }
+    return null;
+  }
+  // ตัวเลขล้วน
+  var digits = s.replace(/\D/g, '');
+  if (digits.length === 6) { // ddmmyy
+    return validate(digits.slice(0,2), digits.slice(2,4), '20'+digits.slice(4,6));
+  }
+  if (digits.length === 8) { // ddmmyyyy
+    return validate(digits.slice(0,2), digits.slice(2,4), digits.slice(4,8));
+  }
+  return null;
+
+  function validate(d, m, y) {
+    var dd = parseInt(d,10), mm = parseInt(m,10), yy = parseInt(y,10);
+    if (dd < 1 || dd > 31 || mm < 1 || mm > 12 || yy < 2000 || yy > 2099) return null;
+    return y + '-' + m.padStart(2,'0') + '-' + d.padStart(2,'0');
+  }
+}
+
+function commitDate(el, rid) {
+  var raw = el.value.trim();
+  if (!raw) {
+    el.classList.remove('ok','err');
+    updateEdit(rid, 'receivedDate', '');
+    return;
+  }
+  var iso = parseDateInput(raw);
+  if (iso) {
+    el.value = toDisplayDate(iso); // แสดง dd/mm/yyyy
+    el.classList.add('ok'); el.classList.remove('err');
+    updateEdit(rid, 'receivedDate', iso);
+  } else {
+    el.classList.add('err'); el.classList.remove('ok');
+    showToast('รูปแบบวันที่ไม่ถูกต้อง — ลองใหม่ เช่น 010126 หรือ 01/01/26', 'error');
+  }
+}
+
+function handleDateKey(e, rid) {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    commitDate(e.target, rid);
+    // กระโดดไปแถวถัดไป
+    var row = rows.find(function(r){ return String(r.id) === String(rid); });
+    var idx = rows.indexOf(row);
+    var nextRow = rows[idx + 1];
+    if (nextRow) {
+      setTimeout(function() {
+        var next = document.querySelector('#row-' + nextRow.id + ' .date-smart');
+        if (next) { next.focus(); next.select(); }
+      }, 50);
+    } else {
+      showToast('วันที่รับครบทุกแถวแล้ว ✅', 'success');
+    }
+  }
+}
+
 // ── Render Table ──────────────────────────────────────────
 function renderTable() {
   var wrap=document.getElementById('batchTableWrap'); var empty=document.getElementById('emptyState');
@@ -430,7 +514,7 @@ function renderTable() {
         '<input class="row-input mono" value="'+esc(ev.destAcc)+'" oninput="updateEdit(\''+rid+'\',\'destAcc\',this.value)" placeholder="Dest. Acc.">'+
       '</div></td>'+
       '<td><input class="row-input" type="date" value="'+esc(ev.despatch)+'" onchange="updateEdit(\''+rid+'\',\'despatch\',this.value)"></td>'+
-      '<td><input class="row-input" type="date" value="'+esc(ev.receivedDate)+'" onchange="updateEdit(\''+rid+'\',\'receivedDate\',this.value)" required></td>'+
+      '<td><input class="row-input date-smart" data-rid="'+rid+'" value="'+esc(toDisplayDate(ev.receivedDate))+'" placeholder="ddmmyy" maxlength="10" style="font-family:var(--mono);text-align:center;" onkeydown="handleDateKey(event,\''+rid+'\')" onblur="commitDate(this,\''+rid+'\')"></td>'+
       '<td><input class="row-input" type="number" min="0" value="'+esc(ev.sentQty)+'" oninput="updateEdit(\''+rid+'\',\'sentQty\',this.value)" placeholder="0" required style="text-align:right;"></td>'+
       '<td><input class="row-input" type="number" min="0" value="'+esc(ev.receivedQty)+'" oninput="updateEdit(\''+rid+'\',\'receivedQty\',this.value)" placeholder="0" required style="text-align:right;"></td>'+
       '<td><button class="remove-row-btn" onclick="removeRow(\''+rid+'\')">✕</button></td>'+
