@@ -69,7 +69,36 @@ main{max-width:900px;margin:0 auto;padding:20px 16px 100px;}
 .queue-info{flex:1;min-width:0;}
 .queue-barcode{font-family:var(--mono);font-size:13px;font-weight:500;color:var(--accent);}
 .queue-details{font-size:12px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.queue-remove{flex-shrink:0;background:rgba(248,113,113,0.12);border:1px solid rgba(248,113,113,0.35);color:var(--danger);font-size:13px;font-weight:600;cursor:pointer;padding:4px 8px;border-radius:6px;line-height:1;transition:background 0.15s;}
+.queue-actions{display:flex;gap:6px;flex-shrink:0;}
+.queue-detail{background:rgba(56,189,248,0.1);border:1px solid rgba(56,189,248,0.3);color:var(--accent);font-size:12px;font-weight:600;cursor:pointer;padding:5px 10px;border-radius:6px;line-height:1;transition:background 0.15s;}
+.queue-detail:hover{background:rgba(56,189,248,0.2);}
+.queue-remove{background:rgba(248,113,113,0.12);border:1px solid rgba(248,113,113,0.35);color:var(--danger);font-size:13px;font-weight:600;cursor:pointer;padding:5px 9px;border-radius:6px;line-height:1;transition:background 0.15s;}
+.queue-remove:hover{background:rgba(248,113,113,0.25);}
+/* ── Detail Modal ── */
+.detail-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:600;display:none;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;}
+.detail-overlay.open{display:flex;}
+.detail-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);width:100%;max-width:680px;overflow:hidden;margin:auto;}
+.detail-head{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.detail-badge{background:rgba(56,189,248,0.12);border:1px solid rgba(56,189,248,0.3);color:var(--accent);font-family:var(--mono);font-size:12px;padding:3px 10px;border-radius:6px;}
+.detail-close{background:none;border:none;color:var(--muted);font-size:24px;cursor:pointer;line-height:1;padding:0 4px;}
+.detail-close:hover{color:var(--danger);}
+.detail-body{display:flex;gap:0;}
+.detail-photo{flex-shrink:0;width:200px;border-right:1px solid var(--border);padding:16px;background:var(--surface2);display:flex;flex-direction:column;gap:10px;align-items:center;}
+.detail-photo-box{width:168px;height:220px;border-radius:var(--rs);border:1px solid var(--border);overflow:hidden;background:var(--surface);display:flex;align-items:center;justify-content:center;}
+.detail-photo-box img{width:100%;height:100%;object-fit:contain;}
+.detail-no-photo{font-size:48px;color:var(--border);}
+.detail-fields{flex:1;padding:16px;display:flex;flex-direction:column;gap:0;}
+.detail-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+.detail-group{display:flex;flex-direction:column;gap:4px;}
+.detail-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;font-weight:500;}
+.detail-input{background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);color:var(--text);font-family:var(--font);font-size:13px;padding:7px 10px;outline:none;width:100%;transition:border-color 0.15s;}
+.detail-input:focus{border-color:var(--accent);}
+.detail-input.mono{font-family:var(--mono);}
+.detail-foot{padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end;}
+.detail-save{background:var(--success);border:none;color:#0f172a;border-radius:var(--rs);padding:10px 24px;font-family:var(--font);font-size:14px;font-weight:700;cursor:pointer;}
+.detail-save:hover{opacity:0.9;}
+.detail-del{background:rgba(248,113,113,0.12);border:1px solid rgba(248,113,113,0.35);color:var(--danger);border-radius:var(--rs);padding:10px 18px;font-family:var(--font);font-size:14px;cursor:pointer;}
+@media(max-width:520px){.detail-body{flex-direction:column;}.detail-photo{width:100%;border-right:none;border-bottom:1px solid var(--border);}.detail-row{grid-template-columns:1fr;}}
 .submit-bar{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);padding:14px 20px;}
 .submit-btn{width:100%;background:var(--success);border:none;color:#0f172a;border-radius:var(--rs);padding:13px;font-family:var(--font);font-size:15px;font-weight:600;cursor:pointer;}
 .submit-btn:disabled{opacity:0.35;cursor:not-allowed;}
@@ -276,6 +305,86 @@ main{max-width:900px;margin:0 auto;padding:20px 16px 100px;}
     </div>
   </div>
 </main>
+
+<!-- ── Detail Modal ── -->
+<div class="detail-overlay" id="detailOverlay">
+  <div class="detail-box">
+    <div class="detail-head">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span class="detail-badge" id="detailBarcode">—</span>
+        <span style="font-size:14px;font-weight:600;">รายละเอียด / แก้ไข</span>
+      </div>
+      <button class="detail-close" onclick="closeDetail()">×</button>
+    </div>
+    <div class="detail-body">
+      <!-- รูป -->
+      <div class="detail-photo">
+        <div class="detail-photo-box" id="detailPhotoBox">
+          <img id="detailPhotoImg" src="" alt="" style="display:none;">
+          <div class="detail-no-photo" id="detailNoPhoto">📄</div>
+        </div>
+        <div style="font-size:11px;color:var(--muted);text-align:center;line-height:1.6;" id="detailPhotoNote">ไม่มีรูปแนบ</div>
+      </div>
+      <!-- ฟอร์มแก้ไข -->
+      <div class="detail-fields">
+        <div class="detail-row">
+          <div class="detail-group">
+            <label class="detail-label">Reference No.</label>
+            <input class="detail-input mono" id="dRefNo" type="text" placeholder="—">
+          </div>
+          <div class="detail-group">
+            <label class="detail-label">ประเภทอุปกรณ์ (Type)</label>
+            <input class="detail-input" id="dItemName" type="text" placeholder="—">
+          </div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-group">
+            <label class="detail-label">โอนจาก (Transfer From)</label>
+            <input class="detail-input" id="dTransferFrom" type="text" placeholder="—">
+          </div>
+          <div class="detail-group">
+            <label class="detail-label">เลขที่บัญชีต้นทาง (Origin Acc.)</label>
+            <input class="detail-input mono" id="dOriginAcc" type="text" placeholder="—">
+          </div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-group">
+            <label class="detail-label">โอนไป (Transfer To)</label>
+            <input class="detail-input" id="dTransferTo" type="text" placeholder="—">
+          </div>
+          <div class="detail-group">
+            <label class="detail-label">เลขที่บัญชีปลายทาง (Dest. Acc.)</label>
+            <input class="detail-input mono" id="dDestAcc" type="text" placeholder="—">
+          </div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-group">
+            <label class="detail-label">วันที่ส่ง (Despatch Date)</label>
+            <input class="detail-input" id="dDespatch" type="date">
+          </div>
+          <div class="detail-group">
+            <label class="detail-label">วันที่รับ (Received Date)</label>
+            <input class="detail-input" id="dReceivedDate" type="date">
+          </div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-group">
+            <label class="detail-label">ยอดที่ส่ง (Sent QTY)</label>
+            <input class="detail-input mono" id="dSentQty" type="number" min="0" placeholder="0">
+          </div>
+          <div class="detail-group">
+            <label class="detail-label">ยอดที่รับ (Received QTY)</label>
+            <input class="detail-input mono" id="dReceivedQty" type="number" min="0" placeholder="0">
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="detail-foot">
+      <button class="detail-del" onclick="deleteFromDetail()">🗑 ลบรายการนี้</button>
+      <button class="detail-save" onclick="saveDetail()">💾 บันทึกการแก้ไข</button>
+    </div>
+  </div>
+</div>
 
 <div class="submit-bar">
   <button class="submit-btn" id="submitBtn" onclick="submitAll()" disabled>ยืนยัน 0 รายการ สู่ Google Sheet</button>
@@ -558,14 +667,92 @@ function renderQueue() {
   if (!n) { list.innerHTML = '<div class="empty">ยังไม่มีรายการ — สแกน barcode เพื่อเริ่มต้น</div>'; return; }
   list.innerHTML = queue.map(function(item,i) {
     var thumb = item.photo&&item.photo.indexOf('data:image')===0
-      ? '<img class="queue-thumb" src="'+item.photo+'" style="display:block;">'
-      : (item.photo ? '<div style="width:36px;height:36px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">📄</div>' : '');
-    return '<div class="queue-item"><div class="queue-num">'+(i+1)+'</div>'+thumb+
-      '<div class="queue-info"><div class="queue-barcode">'+item.barcode+'</div>'+
-      '<div class="queue-details">'+item.ref_no+' · '+item.transfer_from+' → '+item.transfer_to+' · QTY: '+item.received_qty+'</div></div>'+
-      '<button class="queue-remove" onclick="removeFromQueue('+i+')">✕</button></div>';
+      ? '<img class="queue-thumb" src="'+item.photo+'" style="display:block;width:40px;height:40px;border-radius:6px;object-fit:cover;border:1px solid var(--border);flex-shrink:0;">'
+      : (item.photo ? '<div style="width:40px;height:40px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">📄</div>' : '');
+    return '<div class="queue-item">'+
+      '<div class="queue-num">'+(i+1)+'</div>'+thumb+
+      '<div class="queue-info">'+
+        '<div class="queue-barcode">'+item.barcode+'</div>'+
+        '<div class="queue-details">'+(item.ref_no||'—')+' · '+(item.transfer_from||'—')+' → '+(item.transfer_to||'—')+' · QTY: '+(item.received_qty||'—')+'</div>'+
+      '</div>'+
+      '<div class="queue-actions">'+
+        '<button class="queue-detail" onclick="openDetail('+i+')">🔍 ดู</button>'+
+        '<button class="queue-remove" onclick="removeFromQueue('+i+')">✕</button>'+
+      '</div>'+
+    '</div>';
   }).join('');
 }
+
+// ── Detail Modal ──────────────────────────────────────────
+var _detailIdx = -1;
+
+function openDetail(i) {
+  _detailIdx = i;
+  var item = queue[i];
+  document.getElementById('detailBarcode').textContent = item.barcode;
+  document.getElementById('dRefNo').value        = item.ref_no        || '';
+  document.getElementById('dItemName').value     = item.item_name     || '';
+  document.getElementById('dTransferFrom').value = item.transfer_from || '';
+  document.getElementById('dOriginAcc').value    = item.origin_acc    || '';
+  document.getElementById('dTransferTo').value   = item.transfer_to   || '';
+  document.getElementById('dDestAcc').value      = item.dest_acc      || '';
+  document.getElementById('dDespatch').value     = item.despatch_date || '';
+  document.getElementById('dReceivedDate').value = item.received_date || '';
+  document.getElementById('dSentQty').value      = item.sent_qty      || '';
+  document.getElementById('dReceivedQty').value  = item.received_qty  || '';
+  // รูป
+  var img   = document.getElementById('detailPhotoImg');
+  var noImg = document.getElementById('detailNoPhoto');
+  var note  = document.getElementById('detailPhotoNote');
+  if (item.photo && item.photo.indexOf('data:image')===0) {
+    img.src = item.photo; img.style.display='block'; noImg.style.display='none';
+    note.textContent = 'รูปแนบ';
+  } else if (item.photo) {
+    img.style.display='none'; noImg.style.display='block'; noImg.textContent='📄';
+    note.textContent = 'PDF แนบอยู่';
+  } else {
+    img.style.display='none'; noImg.style.display='block'; noImg.textContent='📄';
+    note.textContent = 'ไม่มีรูปแนบ';
+  }
+  document.getElementById('detailOverlay').classList.add('open');
+}
+
+function closeDetail() {
+  document.getElementById('detailOverlay').classList.remove('open');
+  _detailIdx = -1;
+}
+
+function saveDetail() {
+  if (_detailIdx < 0) return;
+  var item = queue[_detailIdx];
+  item.ref_no        = document.getElementById('dRefNo').value.trim();
+  item.item_name     = document.getElementById('dItemName').value.trim();
+  item.transfer_from = document.getElementById('dTransferFrom').value.trim();
+  item.origin_acc    = document.getElementById('dOriginAcc').value.trim();
+  item.transfer_to   = document.getElementById('dTransferTo').value.trim();
+  item.dest_acc      = document.getElementById('dDestAcc').value.trim();
+  item.despatch_date = document.getElementById('dDespatch').value;
+  item.received_date = document.getElementById('dReceivedDate').value;
+  item.sent_qty      = document.getElementById('dSentQty').value;
+  item.received_qty  = document.getElementById('dReceivedQty').value;
+  renderQueue();
+  closeDetail();
+  showToast('บันทึกการแก้ไขแล้ว','success');
+}
+
+function deleteFromDetail() {
+  if (_detailIdx < 0) return;
+  if (!confirm('ลบรายการ '+queue[_detailIdx].barcode+' ออกจากรายการ?')) return;
+  queue.splice(_detailIdx, 1);
+  renderQueue();
+  closeDetail();
+  showToast('ลบรายการแล้ว','info');
+}
+
+// ปิด modal เมื่อกด backdrop
+document.addEventListener('click', function(e) {
+  if (e.target.id==='detailOverlay') closeDetail();
+});
 
 function scrollToQueue() { document.getElementById('queueSection').scrollIntoView({behavior:'smooth'}); }
 
