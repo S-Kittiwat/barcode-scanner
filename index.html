@@ -37,7 +37,9 @@ main{max-width:900px;margin:0 auto;padding:20px 16px 100px;}
 .doc-body{display:flex;gap:0;}
 /* Left: photo */
 .photo-col{flex-shrink:0;width:280px;border-right:1px solid var(--border);padding:16px;background:var(--surface2);display:flex;flex-direction:column;gap:10px;align-items:center;}
-.photo-box{width:248px;height:320px;border-radius:var(--rs);border:2px dashed var(--border);overflow:hidden;background:var(--surface);display:flex;align-items:center;justify-content:center;cursor:pointer;}
+.photo-box{width:248px;height:320px;border-radius:var(--rs);border:2px dashed var(--border);overflow:hidden;background:var(--surface);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:border-color 0.2s,box-shadow 0.2s;}
+.photo-box.photo-required{border-color:var(--danger);box-shadow:0 0 0 3px rgba(248,113,113,0.25);animation:shake 0.4s ease;}
+@keyframes shake{0%,100%{transform:translateX(0);}25%{transform:translateX(-6px);}75%{transform:translateX(6px);}}
 .photo-box img{width:100%;height:100%;object-fit:contain;display:none;}
 .photo-placeholder{text-align:center;padding:16px;}
 .photo-placeholder .icon{font-size:48px;margin-bottom:10px;}
@@ -227,7 +229,7 @@ main{max-width:900px;margin:0 auto;padding:20px 16px 100px;}
           <img id="photoPreview" src="" alt="preview">
           <div class="photo-placeholder" id="photoPlaceholder">
             <div class="icon">📄</div>
-            <div class="txt">แตะเพื่อ<br>เพิ่มรูป</div>
+            <div class="txt">แตะเพื่อ<br>เพิ่มรูป<br><span style="color:var(--danger);font-weight:600;">* จำเป็น</span></div>
           </div>
           <div id="pdfIndicator" style="display:none;flex-direction:column;align-items:center;gap:6px;padding:8px;text-align:center;"></div>
         </div>
@@ -638,6 +640,12 @@ function addToQueue() {
   if (!transferFrom) { showToast('กรุณากรอก โอนจาก','error'); return; }
   if (!transferTo)   { showToast('กรุณากรอก โอนไป','error'); return; }
   if (!receivedDate) { showToast('กรุณาระบุวันที่รับ','error'); return; }
+  if (!currentPhoto && currentPhotoType !== 'pdf') {
+    showToast('กรุณาถ่ายรูป หรือ Upload ไฟล์ก่อน','error');
+    document.getElementById('photoBox').classList.add('photo-required');
+    setTimeout(function(){ document.getElementById('photoBox').classList.remove('photo-required'); }, 2000);
+    return;
+  }
   if (queue.find(function(q){return q.barcode===currentDoc.barcode;})) { showToast('barcode นี้อยู่ในรายการแล้ว','error'); return; }
   queue.push({
     barcode:currentDoc.barcode, ref_no:refNo, item_name:itemName,
