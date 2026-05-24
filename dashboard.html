@@ -15,18 +15,9 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
 .logo-text{font-size:15px;font-weight:600;}
 .logo-sub{font-size:11px;color:var(--muted);}
 .back-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:var(--rs);padding:7px 14px;font-family:var(--font);font-size:13px;cursor:pointer;text-decoration:none;display:flex;align-items:center;gap:6px;}
+.logout-btn{background:none;border:1px solid var(--border);color:var(--muted);border-radius:var(--rs);padding:7px 12px;font-family:var(--font);font-size:12px;cursor:pointer;}
+.logout-btn:hover{border-color:var(--danger);color:var(--danger);}
 main{max-width:900px;margin:0 auto;padding:20px 16px 40px;}
-.login-overlay{position:fixed;inset:0;background:var(--bg);z-index:500;display:flex;align-items:center;justify-content:center;padding:24px;}
-.login-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);width:100%;max-width:400px;overflow:hidden;}
-.login-head{padding:20px;border-bottom:1px solid var(--border);}
-.login-title{font-size:16px;font-weight:600;margin-bottom:4px;}
-.login-sub{font-size:12px;color:var(--muted);}
-.login-body{padding:20px;}
-.login-label{font-size:12px;color:var(--muted);margin-bottom:6px;display:block;}
-.login-select{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);color:var(--text);font-family:var(--font);font-size:14px;padding:10px 12px;outline:none;appearance:none;cursor:pointer;margin-bottom:14px;}
-.login-select:focus{border-color:var(--accent);}
-.login-btn{width:100%;background:var(--accent);border:none;color:#0f172a;border-radius:var(--rs);padding:12px;font-family:var(--font);font-size:15px;font-weight:600;cursor:pointer;}
-.login-btn:disabled{opacity:0.35;cursor:not-allowed;}
 .summary-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;}
 .summary-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px;}
 .summary-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;}
@@ -70,47 +61,10 @@ main{max-width:900px;margin:0 auto;padding:20px 16px 40px;}
 .toast.show{transform:translateX(-50%) translateY(0);}
 .toast.error{border-color:rgba(248,113,113,0.4);color:var(--danger);}
 .toast.success{border-color:rgba(52,211,153,0.4);color:var(--success);}
-@media(max-width:480px){
-  .summary-grid{grid-template-columns:1fr 1fr;}
-  .summary-grid .summary-card:first-child{grid-column:1/-1;}
-  .table-wrap{overflow-x:auto;}
-  .table-wrap table{min-width:600px;}
-}
+@media(max-width:480px){.summary-grid{grid-template-columns:1fr 1fr;}.summary-grid .summary-card:first-child{grid-column:1/-1;}.table-wrap{overflow-x:auto;}.table-wrap table{min-width:600px;}}
 </style>
 </head>
 <body>
-
-<!-- Login -->
-<div class="login-overlay" id="loginOverlay">
-  <div class="login-box">
-    <div class="login-head">
-      <div class="login-title">📊 DocScan Dashboard</div>
-      <div class="login-sub">เลือก Site ที่ต้องการดูข้อมูล</div>
-    </div>
-    <div class="login-body">
-      <label class="login-label">Site / คลังสินค้า</label>
-      <select class="login-select" id="loginSite" onchange="checkLogin()">
-        <option value="">— กรุณาเลือก —</option>
-        <optgroup label="โรงงาน">
-          <option>โรงงานเชียงใหม่</option><option>โรงงานบางเลน</option>
-          <option>โรงงานปทุมธานี</option><option>โรงงานมหาสารคาม</option>
-          <option>โรงงานวังน้อย</option><option>โรงงานสิงห์บุรี</option>
-          <option>โรงงานสุราษฎร์ธานี</option><option>โรงงานขอนแก่น</option>
-        </optgroup>
-        <optgroup label="คลังสินค้า">
-          <option>RDC-ขอนแก่น</option><option>RDC-ลำพูน</option>
-          <option>RDC-สุราษฎร์ธานี</option><option>คลังชลบุรี</option>
-          <option>คลังทวีวัฒนา</option><option>คลังบางบัวทอง</option>
-          <option>คลังบางบัวทอง 2</option><option>คลังพิษณุโลก</option>
-          <option>คลังมีนบุรี</option><option>NDC-วังน้อย</option>
-          <option>คลังหาดใหญ่</option><option>คลังอุบลราชธานี</option>
-          <option>คลังลาดหลุมแก้ว</option><option>คลังลำไทร (Over Flow)</option>
-        </optgroup>
-      </select>
-      <button class="login-btn" id="loginBtn" onclick="confirmLogin()" disabled>ดู Dashboard</button>
-    </div>
-  </div>
-</div>
 
 <!-- Header -->
 <header>
@@ -127,13 +81,14 @@ main{max-width:900px;margin:0 auto;padding:20px 16px 40px;}
       <div class="logo-sub" id="headerSub">—</div>
     </div>
   </div>
-  <a href="index.html" class="back-btn">← กลับสแกน</a>
+  <div style="display:flex;align-items:center;gap:8px;">
+    <a href="index.html" class="back-btn">← กลับสแกน</a>
+    <button class="logout-btn" onclick="DocScanAuth.clear();window.location.href='index.html';" title="ออกจากระบบ">↩ ออก</button>
+  </div>
 </header>
 
 <main>
   <div id="mainContent" style="display:none;">
-
-    <!-- Summary -->
     <div class="summary-grid">
       <div class="summary-card">
         <div class="summary-label">ทั้งหมดในระบบ</div>
@@ -151,8 +106,6 @@ main{max-width:900px;margin:0 auto;padding:20px 16px 40px;}
         <div class="summary-sub" id="sumPendingPct">—</div>
       </div>
     </div>
-
-    <!-- Progress -->
     <div class="progress-wrap">
       <div class="progress-label">
         <span style="color:var(--success);font-weight:600;">ความคืบหน้า</span>
@@ -160,298 +113,187 @@ main{max-width:900px;margin:0 auto;padding:20px 16px 40px;}
       </div>
       <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
     </div>
-
-    <!-- Filter -->
     <div class="filter-row">
-      <select class="filter-select" id="filterSite" onchange="loadData()">
-        <option value="">— ทุก Site —</option>
-      </select>
+      <select class="filter-select" id="filterSite" onchange="loadData()"><option value="">— ทุก Site —</option></select>
       <select class="filter-select" id="filterStatus" onchange="applyFilters()">
         <option value="all">ทุกสถานะ</option>
         <option value="done">รับแล้ว</option>
         <option value="pending">ยังไม่ได้รับ</option>
       </select>
       <input class="filter-input" type="text" id="filterRef" placeholder="Reference..." oninput="applyFilters()">
-      <input class="filter-select" type="month" id="filterMonth" onchange="applyFilters()" title="กรองเดือน/ปี (Created Date)">
+      <input class="filter-select" type="month" id="filterMonth" onchange="applyFilters()" title="กรองเดือน/ปี">
       <input class="filter-select" type="date" id="filterDate" onchange="applyFilters()" title="กรองวันที่รับ">
       <button class="refresh-btn" onclick="loadData()">↻ รีเฟรช</button>
       <button class="export-btn" onclick="exportCSV()">⬇ Export CSV</button>
     </div>
-
-    <!-- รับแล้ว -->
     <div class="section" id="sectionDone">
       <div class="section-head">
         <div class="section-title">✅ รับแล้ว <span class="section-count done" id="countDone">0</span></div>
       </div>
       <div class="table-wrap">
         <table>
-          <thead>
-            <tr>
-              <th>#</th><th>Barcode</th><th>Reference</th><th>ประเภท</th>
-              <th>โอนจาก → โอนไป</th><th>QTY รับ</th><th>วันที่รับ</th><th>ไฟล์</th><th>Created Date</th><th>ระยะเวลา</th>
-            </tr>
-          </thead>
+          <thead><tr><th>#</th><th>Barcode</th><th>Reference</th><th>ประเภท</th><th>โอนจาก → โอนไป</th><th>QTY รับ</th><th>วันที่รับ</th><th>ไฟล์</th><th>Created Date</th><th>ระยะเวลา</th></tr></thead>
           <tbody id="bodyDone"><tr class="empty-row"><td colspan="10">กำลังโหลด...</td></tr></tbody>
         </table>
       </div>
     </div>
-
-    <!-- ยังไม่ได้รับ -->
     <div class="section" id="sectionPending">
       <div class="section-head">
         <div class="section-title">⏳ ยังไม่ได้รับ <span class="section-count pending" id="countPending">0</span></div>
       </div>
       <div class="table-wrap">
         <table>
-          <thead>
-            <tr>
-              <th>#</th><th>Barcode</th><th>Reference</th><th>ประเภท</th>
-              <th>โอนจาก → โอนไป</th><th>QTY ส่ง</th><th>Created Date</th><th>ค้างมา</th>
-            </tr>
-          </thead>
+          <thead><tr><th>#</th><th>Barcode</th><th>Reference</th><th>ประเภท</th><th>โอนจาก → โอนไป</th><th>QTY ส่ง</th><th>Created Date</th><th>ค้างมา</th></tr></thead>
           <tbody id="bodyPending"><tr class="empty-row"><td colspan="8">กำลังโหลด...</td></tr></tbody>
         </table>
       </div>
     </div>
-
   </div>
-
-  <div id="loadingBlock" class="loading" style="display:none;">
-    <span class="spinner"></span> กำลังโหลดข้อมูล...
-  </div>
+  <div id="loadingBlock" class="loading" style="display:none;"><span class="spinner"></span> กำลังโหลดข้อมูล...</div>
 </main>
 
 <div id="toast" class="toast"></div>
 
 <script>
-var API_URL        = 'https://script.google.com/macros/s/AKfycbwlMQRPrx8I6S9aTnCWHDJ-os0xe5dAZ-xPaMw_fmY1ICZHMwTia_RthEg6JseFrmPc8w/exec';
-var selectedSite   = '';
-var _cachedDone    = [];
-var _cachedPending = [];
+// ── DocScan Shared Auth (inline) ──────────────────────────
+var DocScanAuth = (function () {
+  var KEY = 'docScanSession';
+  function save(empId, empName, empEmail, site) {
+    localStorage.setItem(KEY, JSON.stringify({ empId:empId, empName:empName, empEmail:empEmail, site:site }));
+  }
+  function load() {
+    try {
+      var raw = localStorage.getItem(KEY);
+      if (!raw) return null;
+      var s = JSON.parse(raw);
+      return (s.empId && s.empName && s.empEmail && s.site) ? s : null;
+    } catch(e) { return null; }
+  }
+  function clear() { localStorage.removeItem(KEY); }
+  function requireAuth() { var s=load(); if(!s){window.location.href='index.html';return null;} return s; }
+  return { save:save, load:load, clear:clear, requireAuth:requireAuth };
+})();
+
+var API_URL = 'https://script.google.com/macros/s/AKfycbwlMQRPrx8I6S9aTnCWHDJ-os0xe5dAZ-xPaMw_fmY1ICZHMwTia_RthEg6JseFrmPc8w/exec';
+var selectedSite = '';
+var _cachedDone = []; var _cachedPending = [];
 
 // ── Init ──────────────────────────────────────────────────
-window.onload = function() {
-  var saved = localStorage.getItem('selectedSite');
-  if (saved) {
-    selectedSite = saved;
-    document.getElementById('loginOverlay').style.display = 'none';
-    document.getElementById('headerSub').textContent = saved;
-    loadData();
-  } else {
-    document.getElementById('loginOverlay').style.display = 'flex';
-  }
+window.onload = function () {
+  var s = DocScanAuth.requireAuth();
+  if (!s) return;
+  selectedSite = s.site;
+  document.getElementById('headerSub').textContent = s.empName + ' · ' + s.site;
+  loadData();
 };
 
-// ── Login ─────────────────────────────────────────────────
-function checkLogin() {
-  document.getElementById('loginBtn').disabled = !document.getElementById('loginSite').value;
-}
-
-function confirmLogin() {
-  selectedSite = document.getElementById('loginSite').value;
-  if (!selectedSite) return;
-  localStorage.setItem('selectedSite', selectedSite);
-  document.getElementById('loginOverlay').style.display = 'none';
-  document.getElementById('headerSub').textContent = selectedSite;
-  loadData();
-}
-
-// ── Load Data (เรียก GAS) ─────────────────────────────────
+// ── Load Data ─────────────────────────────────────────────
 function loadData() {
-  document.getElementById('mainContent').style.display  = 'none';
+  document.getElementById('mainContent').style.display = 'none';
   document.getElementById('loadingBlock').style.display = 'block';
-
-  // filterSite = ทุก site → ส่งค่าว่าง / เลือก site → ส่งชื่อ site
   var site = document.getElementById('filterSite').value || '';
   fetch(API_URL + '?action=getDashboard&site=' + encodeURIComponent(site))
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-      if (data.status !== 'ok') throw new Error(data.message);
+    .then(function(r){return r.json();})
+    .then(function(data){
+      if (data.status!=='ok') throw new Error(data.message);
       processData(data);
       document.getElementById('loadingBlock').style.display = 'none';
-      document.getElementById('mainContent').style.display  = 'block';
+      document.getElementById('mainContent').style.display = 'block';
     })
-    .catch(function(err) {
+    .catch(function(err){
       document.getElementById('loadingBlock').style.display = 'none';
-      showToast('โหลดข้อมูลไม่สำเร็จ: ' + err.message, 'error');
+      showToast('โหลดข้อมูลไม่สำเร็จ: '+err.message,'error');
     });
 }
 
-// ── Process (รับ data จาก GAS) ────────────────────────────
 function processData(data) {
   var s = data.summary;
-  document.getElementById('sumTotal').textContent      = s.total;
-  document.getElementById('sumDone').textContent       = s.done;
-  document.getElementById('sumPending').textContent    = s.pending;
-  document.getElementById('sumDonePct').textContent    = s.pct + '% ของทั้งหมด';
-  document.getElementById('sumPendingPct').textContent = (100 - s.pct) + '% ของทั้งหมด';
-  document.getElementById('progressPct').textContent   = s.pct + '%';
-  document.getElementById('progressFill').style.width  = s.pct + '%';
-
-  // Build site dropdown จาก siteList ของ GAS
-  var el      = document.getElementById('filterSite');
-  var current = el.value;
+  document.getElementById('sumTotal').textContent = s.total;
+  document.getElementById('sumDone').textContent = s.done;
+  document.getElementById('sumPending').textContent = s.pending;
+  document.getElementById('sumDonePct').textContent = s.pct + '% ของทั้งหมด';
+  document.getElementById('sumPendingPct').textContent = (100-s.pct) + '% ของทั้งหมด';
+  document.getElementById('progressPct').textContent = s.pct + '%';
+  document.getElementById('progressFill').style.width = s.pct + '%';
+  var el = document.getElementById('filterSite'); var current = el.value;
   el.innerHTML = '<option value="">— ทุก Site —</option>';
-  (data.siteList || []).forEach(function(sl) {
-    var opt = document.createElement('option');
-    opt.value = sl; opt.textContent = sl;
-    if (sl === current) opt.selected = true;
-    el.appendChild(opt);
-  });
-
-  _cachedDone    = data.done    || [];
-  _cachedPending = data.pending || [];
+  (data.siteList||[]).forEach(function(sl){var opt=document.createElement('option');opt.value=sl;opt.textContent=sl;if(sl===current)opt.selected=true;el.appendChild(opt);});
+  _cachedDone = data.done||[]; _cachedPending = data.pending||[];
   applyFilters();
 }
 
-// ── Apply Filters (ไม่ reload GAS) ────────────────────────
 function applyFilters() {
   var filterStatus = document.getElementById('filterStatus').value;
-  var filterRef    = document.getElementById('filterRef').value.trim().toLowerCase();
-  var filterMonth  = document.getElementById('filterMonth').value;  // YYYY-MM
-  var filterDate   = document.getElementById('filterDate').value;   // YYYY-MM-DD
-
-  // helper: แปลง d/m/yyyy → YYYY-MM
+  var filterRef = document.getElementById('filterRef').value.trim().toLowerCase();
+  var filterMonth = document.getElementById('filterMonth').value;
+  var filterDate = document.getElementById('filterDate').value;
   function toYearMonth(dateStr) {
     if (!dateStr) return '';
-    if (dateStr.indexOf('/') > -1) {
-      var p = dateStr.split('/');
-      if (p.length === 3) {
-        var y = p[2].length === 2 ? '20' + p[2] : p[2];
-        var m = p[1].padStart(2, '0');
-        return y + '-' + m;
-      }
-    }
-    return dateStr.substring(0, 7);
+    if (dateStr.indexOf('/')>-1){var p=dateStr.split('/');if(p.length===3){var y=p[2].length===2?'20'+p[2]:p[2];return y+'-'+p[1].padStart(2,'0');}}
+    return dateStr.substring(0,7);
   }
-
-  // Filter done
-  var filteredDone = _cachedDone.filter(function(item) {
-    if (filterRef   && (item.ref_no || '').toLowerCase().indexOf(filterRef) === -1) return false;
-    if (filterMonth && toYearMonth(item.doc_date) !== filterMonth) return false;
-    if (filterDate  && (item.received_date || '') !== filterDate) return false;
+  var filteredDone = _cachedDone.filter(function(item){
+    if(filterRef&&(item.ref_no||'').toLowerCase().indexOf(filterRef)===-1)return false;
+    if(filterMonth&&toYearMonth(item.doc_date)!==filterMonth)return false;
+    if(filterDate&&(item.received_date||'')!==filterDate)return false;
     return true;
   });
-
-  // Filter pending
-  var filteredPending = _cachedPending.filter(function(item) {
-    if (filterDate) return false; // ซ่อน pending เมื่อกรองวันที่รับ
-    if (filterRef   && (item.ref_no || '').toLowerCase().indexOf(filterRef) === -1) return false;
-    if (filterMonth && toYearMonth(item.doc_date) !== filterMonth) return false;
+  var filteredPending = _cachedPending.filter(function(item){
+    if(filterDate)return false;
+    if(filterRef&&(item.ref_no||'').toLowerCase().indexOf(filterRef)===-1)return false;
+    if(filterMonth&&toYearMonth(item.doc_date)!==filterMonth)return false;
     return true;
   });
-
   renderTables(filteredDone, filteredPending, filterStatus, filterDate);
 }
 
-// ── Render Tables ─────────────────────────────────────────
 function renderTables(filteredDone, filteredPending, filterStatus, filterDate) {
-  // Done
   document.getElementById('countDone').textContent = filteredDone.length;
-  document.getElementById('sectionDone').style.display = filterStatus === 'pending' ? 'none' : 'block';
-
+  document.getElementById('sectionDone').style.display = filterStatus==='pending' ? 'none' : 'block';
   var bodyDone = document.getElementById('bodyDone');
-  bodyDone.innerHTML = filteredDone.length === 0
-    ? '<tr class="empty-row"><td colspan="9">ไม่มีรายการ</td></tr>'
-    : filteredDone.map(function(item, i) {
-        var photoHtml = item.photo_url
-          ? '<a class="photo-link" href="' + item.photo_url + '" target="_blank">📎 ดูไฟล์</a>'
-          : '<span style="color:var(--muted);">—</span>';
-        return '<tr>' +
-          '<td class="mono" style="color:var(--muted);">' + (i+1) + '</td>' +
-          '<td class="mono" style="color:var(--accent);">' + (item.barcode || '—') + '</td>' +
-          '<td class="mono">' + (item.ref_no || '—') + '</td>' +
-          '<td>' + (item.item_name || '—') + '</td>' +
-          '<td style="font-size:11px;">' + (item.transfer_from || '—') + ' → ' + (item.transfer_to || '—') + '</td>' +
-          '<td class="mono" style="text-align:right;">' + (item.received_qty || '—') + '</td>' +
-          '<td>' + photoHtml + '</td>' +
-          '<td class="mono" style="color:var(--muted);">' + (item.doc_date || '—') + '</td>' +
-          '<td class="mono">' + (item.received_date || '—') + '</td>' +
-          '<td class="mono" style="text-align:center;">' + (item.days_to_receive !== '' && item.days_to_receive !== undefined ? item.days_to_receive + ' วัน' : '—') + '</td>' +
-        '</tr>';
+  bodyDone.innerHTML = filteredDone.length===0 ? '<tr class="empty-row"><td colspan="10">ไม่มีรายการ</td></tr>'
+    : filteredDone.map(function(item,i){
+        var photoHtml=item.photo_url?'<a class="photo-link" href="'+item.photo_url+'" target="_blank">📎 ดูไฟล์</a>':'<span style="color:var(--muted);">—</span>';
+        return '<tr><td class="mono" style="color:var(--muted);">'+(i+1)+'</td>'+
+          '<td class="mono" style="color:var(--accent);">'+(item.barcode||'—')+'</td>'+
+          '<td class="mono">'+(item.ref_no||'—')+'</td>'+
+          '<td>'+(item.item_name||'—')+'</td>'+
+          '<td style="font-size:11px;">'+(item.transfer_from||'—')+' → '+(item.transfer_to||'—')+'</td>'+
+          '<td class="mono" style="text-align:right;">'+(item.received_qty||'—')+'</td>'+
+          '<td>'+photoHtml+'</td>'+
+          '<td class="mono" style="color:var(--muted);">'+(item.doc_date||'—')+'</td>'+
+          '<td class="mono">'+(item.received_date||'—')+'</td>'+
+          '<td class="mono" style="text-align:center;">'+(item.days_to_receive!==''&&item.days_to_receive!==undefined?item.days_to_receive+' วัน':'—')+'</td></tr>';
       }).join('');
-
-  // Pending
   document.getElementById('countPending').textContent = filteredPending.length;
-  document.getElementById('sectionPending').style.display = filterStatus === 'done' ? 'none' : 'block';
-
+  document.getElementById('sectionPending').style.display = filterStatus==='done' ? 'none' : 'block';
   var bodyPending = document.getElementById('bodyPending');
-  bodyPending.innerHTML = filteredPending.length === 0
-    ? '<tr class="empty-row"><td colspan="7">' + (filterDate ? 'ซ่อนรายการค้างเมื่อกรองวันที่' : 'ไม่มีรายการค้าง 🎉') + '</td></tr>'
-    : filteredPending.map(function(item, i) {
-        return '<tr>' +
-          '<td class="mono" style="color:var(--muted);">' + (i+1) + '</td>' +
-          '<td class="mono" style="color:var(--warn);">' + (item.barcode || '—') + '</td>' +
-          '<td class="mono">' + (item.ref_no || '—') + '</td>' +
-          '<td>' + (item.item_name || '—') + '</td>' +
-          '<td style="font-size:11px;">' + (item.transfer_from || '—') + ' → ' + (item.transfer_to || '—') + '</td>' +
-          '<td class="mono" style="text-align:right;">' + (item.sent_qty || '—') + '</td>' +
-          '<td class="mono" style="color:var(--muted);">' + (item.doc_date || '—') + '</td>' +
-          '<td class="mono" style="text-align:center;color:' + (item.days_pending > 30 ? 'var(--danger)' : item.days_pending > 14 ? 'var(--warn)' : 'var(--text)') + ';">' + (item.days_pending !== '' && item.days_pending !== undefined ? item.days_pending + ' วัน' : '—') + '</td>' +
-        '</tr>';
+  bodyPending.innerHTML = filteredPending.length===0 ? '<tr class="empty-row"><td colspan="8">'+(filterDate?'ซ่อนรายการค้างเมื่อกรองวันที่':'ไม่มีรายการค้าง 🎉')+'</td></tr>'
+    : filteredPending.map(function(item,i){
+        return '<tr><td class="mono" style="color:var(--muted);">'+(i+1)+'</td>'+
+          '<td class="mono" style="color:var(--warn);">'+(item.barcode||'—')+'</td>'+
+          '<td class="mono">'+(item.ref_no||'—')+'</td>'+
+          '<td>'+(item.item_name||'—')+'</td>'+
+          '<td style="font-size:11px;">'+(item.transfer_from||'—')+' → '+(item.transfer_to||'—')+'</td>'+
+          '<td class="mono" style="text-align:right;">'+(item.sent_qty||'—')+'</td>'+
+          '<td class="mono" style="color:var(--muted);">'+(item.doc_date||'—')+'</td>'+
+          '<td class="mono" style="text-align:center;color:'+(item.days_pending>30?'var(--danger)':item.days_pending>14?'var(--warn)':'var(--text)')+';">'+(item.days_pending!==''&&item.days_pending!==undefined?item.days_pending+' วัน':'—')+'</td></tr>';
       }).join('');
 }
 
-// ── Export CSV ────────────────────────────────────────────
 function exportCSV() {
   var filterStatus = document.getElementById('filterStatus').value;
-  var rows = [];
-
-  // Header
-  rows.push(['สถานะ','Barcode','Reference','ประเภท','โอนจาก','โอนไป','QTY ส่ง','QTY รับ','วันที่รับ','Created Date'].join(','));
-
-  if (filterStatus !== 'pending') {
-    _cachedDone.forEach(function(item) {
-      rows.push([
-        'รับแล้ว',
-        item.barcode || '',
-        item.ref_no || '',
-        item.item_name || '',
-        item.transfer_from || '',
-        item.transfer_to || '',
-        item.sent_qty || '',
-        item.received_qty || '',
-        item.received_date || '',
-        item.doc_date || ''
-      ].map(function(v) { return '"' + String(v).replace(/"/g,'""') + '"'; }).join(','));
-    });
-  }
-
-  if (filterStatus !== 'done') {
-    _cachedPending.forEach(function(item) {
-      rows.push([
-        'ยังไม่รับ',
-        item.barcode || '',
-        item.ref_no || '',
-        item.item_name || '',
-        item.transfer_from || '',
-        item.transfer_to || '',
-        item.sent_qty || '',
-        '', '', 
-        item.doc_date || ''
-      ].map(function(v) { return '"' + String(v).replace(/"/g,'""') + '"'; }).join(','));
-    });
-  }
-
-  var blob = new Blob(['\uFEFF' + rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
-  var url  = URL.createObjectURL(blob);
-  var a    = document.createElement('a');
-  a.href     = url;
-  a.download = 'DocScan_' + (document.getElementById('filterSite').value || 'all') + '_' + new Date().toISOString().split('T')[0] + '.csv';
-  a.click();
-  URL.revokeObjectURL(url);
-  showToast('Export เรียบร้อย', 'success');
+  var rows = [['สถานะ','Barcode','Reference','ประเภท','โอนจาก','โอนไป','QTY ส่ง','QTY รับ','วันที่รับ','Created Date'].join(',')];
+  if(filterStatus!=='pending'){_cachedDone.forEach(function(item){rows.push(['รับแล้ว',item.barcode||'',item.ref_no||'',item.item_name||'',item.transfer_from||'',item.transfer_to||'',item.sent_qty||'',item.received_qty||'',item.received_date||'',item.doc_date||''].map(function(v){return '"'+String(v).replace(/"/g,'""')+'"';}).join(','));});}
+  if(filterStatus!=='done'){_cachedPending.forEach(function(item){rows.push(['ยังไม่รับ',item.barcode||'',item.ref_no||'',item.item_name||'',item.transfer_from||'',item.transfer_to||'',item.sent_qty||'','','',item.doc_date||''].map(function(v){return '"'+String(v).replace(/"/g,'""')+'"';}).join(','));});}
+  var blob=new Blob(['\uFEFF'+rows.join('\n')],{type:'text/csv;charset=utf-8;'});
+  var url=URL.createObjectURL(blob);var a=document.createElement('a');
+  a.href=url;a.download='DocScan_'+(document.getElementById('filterSite').value||'all')+'_'+new Date().toISOString().split('T')[0]+'.csv';
+  a.click();URL.revokeObjectURL(url);showToast('Export เรียบร้อย','success');
 }
 
-// ── Toast ─────────────────────────────────────────────────
 var toastTimer;
-function showToast(msg, type) {
-  var t = document.getElementById('toast');
-  t.textContent = msg;
-  t.className = 'toast ' + (type || 'info') + ' show';
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(function() { t.classList.remove('show'); }, 3000);
-}
+function showToast(msg,type){var t=document.getElementById('toast');t.textContent=msg;t.className='toast '+(type||'info')+' show';clearTimeout(toastTimer);toastTimer=setTimeout(function(){t.classList.remove('show');},3000);}
 </script>
 </body>
 </html>
