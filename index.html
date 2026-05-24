@@ -33,32 +33,31 @@ main{max-width:680px;margin:0 auto;padding:20px 16px 100px;}
 .result-panel.visible{display:block;}
 .result-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
 .doc-badge{background:rgba(56,189,248,0.12);border:1px solid rgba(56,189,248,0.3);color:var(--accent);font-family:var(--mono);font-size:12px;font-weight:500;padding:4px 10px;border-radius:6px;}
-.doc-photo-row{display:flex;gap:0;border-bottom:1px solid var(--border);}
-.photo-col{flex-shrink:0;width:140px;border-right:1px solid var(--border);padding:12px;background:var(--surface2);display:flex;flex-direction:column;gap:8px;align-items:center;}
-.photo-box{width:116px;height:130px;border-radius:var(--rs);border:2px dashed var(--border);overflow:hidden;background:var(--surface);display:flex;align-items:center;justify-content:center;cursor:pointer;}
+/* ── New 2-col layout ── */
+.doc-body{display:flex;gap:0;}
+/* Left: photo */
+.photo-col{flex-shrink:0;width:180px;border-right:1px solid var(--border);padding:16px;background:var(--surface2);display:flex;flex-direction:column;gap:10px;align-items:center;}
+.photo-box{width:148px;height:180px;border-radius:var(--rs);border:2px dashed var(--border);overflow:hidden;background:var(--surface);display:flex;align-items:center;justify-content:center;cursor:pointer;}
 .photo-box img{width:100%;height:100%;object-fit:cover;display:none;}
 .photo-placeholder{text-align:center;padding:8px;}
-.photo-placeholder .icon{font-size:24px;margin-bottom:4px;}
-.photo-placeholder .txt{font-size:10px;color:var(--muted);line-height:1.5;}
-.photo-btn-shoot{width:100%;background:var(--accent);color:#0f172a;border:none;border-radius:var(--rs);padding:6px 4px;font-size:11px;font-weight:600;cursor:pointer;text-align:center;}
-.photo-btn-upload{width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:var(--rs);padding:6px 4px;font-size:11px;cursor:pointer;text-align:center;}
-.photo-btn-clear{font-size:10px;color:var(--danger);background:none;border:none;cursor:pointer;padding:0;}
-.fields-col{flex:1;min-width:0;}
-.fields-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border);}
-.field-cell{background:var(--surface);padding:12px 16px;}
-.field-cell.full{grid-column:1/-1;}
-.field-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;}
-.field-value{font-size:14px;color:var(--text);}
-.field-value.mono{font-family:var(--mono);font-size:13px;}
-.edit-section{padding:16px;background:var(--surface2);border-top:2px solid var(--warn);}
-.edit-title{font-size:12px;font-weight:500;color:var(--warn);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:12px;display:flex;align-items:center;gap:6px;}
-.edit-title::before{content:"";display:inline-block;width:6px;height:6px;background:var(--warn);border-radius:50%;}
-.edit-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
-.edit-group{display:flex;flex-direction:column;gap:6px;}
-.edit-label{font-size:12px;color:var(--muted);}
-.edit-input{background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);color:var(--text);font-family:var(--font);font-size:14px;padding:9px 12px;outline:none;width:100%;transition:border-color 0.15s;}
-.edit-input:focus{border-color:var(--accent);}
-.add-btn{width:100%;background:rgba(56,189,248,0.1);border:1px solid rgba(56,189,248,0.3);color:var(--accent);border-radius:var(--rs);padding:10px;font-family:var(--font);font-size:14px;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;}
+.photo-placeholder .icon{font-size:32px;margin-bottom:6px;}
+.photo-placeholder .txt{font-size:11px;color:var(--muted);line-height:1.6;}
+.photo-btn-shoot{width:100%;background:var(--accent);color:#0f172a;border:none;border-radius:var(--rs);padding:8px 4px;font-size:12px;font-weight:600;cursor:pointer;text-align:center;}
+.photo-btn-upload{width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:var(--rs);padding:8px 4px;font-size:12px;cursor:pointer;text-align:center;}
+.photo-btn-clear{font-size:11px;color:var(--danger);background:none;border:none;cursor:pointer;padding:0;}
+/* Right: editable fields */
+.fields-col{flex:1;min-width:0;padding:16px;display:flex;flex-direction:column;gap:0;}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
+.field-row.single{grid-template-columns:1fr;}
+.field-group{display:flex;flex-direction:column;gap:5px;}
+.field-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;font-weight:500;}
+.field-input{background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);color:var(--text);font-family:var(--font);font-size:13px;padding:8px 10px;outline:none;width:100%;transition:border-color 0.15s;}
+.field-input:focus{border-color:var(--accent);}
+.field-input.mono{font-family:var(--mono);}
+.field-input[readonly]{opacity:0.6;cursor:default;background:var(--surface);}
+.add-btn{width:100%;background:var(--accent);border:none;color:#0f172a;border-radius:var(--rs);padding:11px;font-family:var(--font);font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;margin-top:4px;}
+.add-btn:hover{opacity:0.9;}
+@media(max-width:520px){.doc-body{flex-direction:column;}.photo-col{width:100%;flex-direction:row;flex-wrap:wrap;justify-content:center;}.photo-box{width:120px;height:140px;}}
 .queue-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
 .queue-title{font-size:13px;font-weight:500;color:var(--muted);display:flex;align-items:center;gap:8px;}
 .queue-count{background:var(--accent);color:#0f172a;font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;}
@@ -189,9 +188,11 @@ main{max-width:680px;margin:0 auto;padding:20px 16px 100px;}
       <div class="spinner" id="loadSpinner" style="display:none"></div>
     </div>
     <div id="notFoundBanner" style="display:none;background:rgba(251,191,36,0.1);border-bottom:1px solid rgba(251,191,36,0.3);padding:10px 16px;font-size:12px;color:#fbbf24;">
-      ไม่พบ barcode นี้ในระบบ — จะบันทึกเป็น NOT FOUND ใน Log
+      ⚠️ ไม่พบ barcode นี้ในระบบ — กรอกข้อมูลด้วยตนเอง แล้วกดเพิ่มลงรายการ
     </div>
-    <div class="doc-photo-row">
+
+    <div class="doc-body">
+      <!-- ซ้าย: รูปภาพ -->
       <div class="photo-col">
         <div class="photo-box" id="photoBox" onclick="triggerCamera()">
           <img id="photoPreview" src="" alt="preview">
@@ -199,7 +200,7 @@ main{max-width:680px;margin:0 auto;padding:20px 16px 100px;}
             <div class="icon">📄</div>
             <div class="txt">แตะเพื่อ<br>เพิ่มรูป</div>
           </div>
-          <div id="pdfIndicator" style="display:none;flex-direction:column;align-items:center;gap:6px;padding:8px;"></div>
+          <div id="pdfIndicator" style="display:none;flex-direction:column;align-items:center;gap:6px;padding:8px;text-align:center;"></div>
         </div>
         <input id="photoCameraInput" type="file" accept="image/*" onchange="handlePhoto(event)" style="position:absolute;left:-9999px;">
         <input id="photoUploadInput" type="file" accept="image/*,application/pdf" onchange="handlePhoto(event)" style="position:absolute;left:-9999px;">
@@ -207,39 +208,61 @@ main{max-width:680px;margin:0 auto;padding:20px 16px 100px;}
         <button class="photo-btn-upload" onclick="document.getElementById('photoUploadInput').click()">📁 Upload</button>
         <button class="photo-btn-clear" onclick="clearPhoto()">ลบรูป</button>
       </div>
+
+      <!-- ขวา: ฟอร์มแก้ไขได้ทุกช่อง (default จาก DB) -->
       <div class="fields-col">
-        <div class="fields-grid">
-          <div class="field-cell"><div class="field-label">เลขที่อ้างอิง (Reference)</div><div class="field-value mono" id="fRefNo">—</div></div>
-          <div class="field-cell"><div class="field-label">ประเภทอุปกรณ์ (Type)</div><div class="field-value" id="fItemName">—</div></div>
-          <div class="field-cell"><div class="field-label">โอนจาก (Transfer From)</div><div class="field-value" id="fTransferFrom">—</div></div>
-          <div class="field-cell"><div class="field-label">เลขที่บัญชีต้นทาง (Origin Acc.)</div><div class="field-value mono" id="fOriginAcc">—</div></div>
-          <div class="field-cell"><div class="field-label">โอนไป (Transfer To)</div><div class="field-value" id="fTransferTo">—</div></div>
-          <div class="field-cell"><div class="field-label">เลขที่บัญชีปลายทาง (Dest. Acc.)</div><div class="field-value mono" id="fDestAcc">—</div></div>
-          <div class="field-cell"><div class="field-label">วันที่ส่ง (Despatch Date)</div><div class="field-value" id="fDespatch">—</div></div>
-          <div class="field-cell"><div class="field-label">วันที่รับ PCS (Received Date)</div><div class="field-value" id="fReceivedPCS">—</div></div>
-          <div class="field-cell full"><div class="field-label">ยอดที่ส่ง (Sent QTY)</div><div class="field-value mono" id="fSentQty">—</div></div>
+        <div class="field-row">
+          <div class="field-group">
+            <label class="field-label">Reference No.</label>
+            <input class="field-input mono" id="editRefNo" type="text" placeholder="—">
+          </div>
+          <div class="field-group">
+            <label class="field-label">ประเภทอุปกรณ์ (Type)</label>
+            <input class="field-input" id="editItemName" type="text" placeholder="—">
+          </div>
         </div>
+        <div class="field-row">
+          <div class="field-group">
+            <label class="field-label">โอนจาก (Transfer From)</label>
+            <input class="field-input" id="editTransferFrom" type="text" placeholder="—">
+          </div>
+          <div class="field-group">
+            <label class="field-label">เลขที่บัญชีต้นทาง (Origin Acc.)</label>
+            <input class="field-input mono" id="editOriginAcc" type="text" placeholder="—">
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field-group">
+            <label class="field-label">โอนไป (Transfer To)</label>
+            <input class="field-input" id="editTransferTo" type="text" placeholder="—">
+          </div>
+          <div class="field-group">
+            <label class="field-label">เลขที่บัญชีปลายทาง (Dest. Acc.)</label>
+            <input class="field-input mono" id="editDestAcc" type="text" placeholder="—">
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field-group">
+            <label class="field-label">วันที่ส่ง (Despatch Date)</label>
+            <input class="field-input" id="editDespatch" type="date">
+          </div>
+          <div class="field-group">
+            <label class="field-label">วันที่รับ (Received Date) *</label>
+            <input class="field-input" id="editReceivedDate" type="date">
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field-group">
+            <label class="field-label">ยอดที่ส่ง (Sent QTY)</label>
+            <input class="field-input mono" id="editSentQty" type="number" min="0" placeholder="0">
+          </div>
+          <div class="field-group">
+            <label class="field-label">ยอดที่รับ (Received QTY) *</label>
+            <input class="field-input mono" id="editReceivedQty" type="number" min="0" placeholder="0">
+          </div>
+        </div>
+        <button class="add-btn" onclick="addToQueue()">+ เพิ่มลงรายการ</button>
       </div>
-    </div>
-    <div class="edit-section">
-      <div class="edit-title">แก้ไขข้อมูลก่อนเพิ่ม</div>
-      <div class="edit-row">
-        <div class="edit-group"><label class="edit-label">โอนจาก (Transfer From)</label><input class="edit-input" id="editTransferFrom" type="text" placeholder="—"></div>
-        <div class="edit-group"><label class="edit-label">เลขที่บัญชีต้นทาง</label><input class="edit-input" id="editOriginAcc" type="text" placeholder="—"></div>
-      </div>
-      <div class="edit-row">
-        <div class="edit-group"><label class="edit-label">โอนไป (Transfer To)</label><input class="edit-input" id="editTransferTo" type="text" placeholder="—"></div>
-        <div class="edit-group"><label class="edit-label">เลขที่บัญชีปลายทาง</label><input class="edit-input" id="editDestAcc" type="text" placeholder="—"></div>
-      </div>
-      <div class="edit-row">
-        <div class="edit-group"><label class="edit-label">วันที่ส่ง (Despatch Date)</label><input class="edit-input" id="editDespatch" type="date"></div>
-        <div class="edit-group"><label class="edit-label">วันที่รับ (Received Date)</label><input class="edit-input" id="editReceivedDate" type="date"></div>
-      </div>
-      <div class="edit-row">
-        <div class="edit-group"><label class="edit-label">ยอดที่ส่ง (Sent QTY)</label><input class="edit-input" id="editSentQty" type="number" min="0" placeholder="0"></div>
-        <div class="edit-group"><label class="edit-label">ยอดที่รับ (Received QTY)</label><input class="edit-input" id="editReceivedQty" type="number" min="0" placeholder="0"></div>
-      </div>
-      <button class="add-btn" onclick="addToQueue()">+ เพิ่มลงรายการ</button>
     </div>
   </div>
 
@@ -437,22 +460,17 @@ function showDoc(d, notFound) {
   document.getElementById('rBarcode').textContent = currentDoc.barcode;
   document.getElementById('rTitle').textContent = notFound ? 'ไม่พบในระบบ' : 'ข้อมูลเอกสาร';
   document.getElementById('notFoundBanner').style.display = notFound ? 'block' : 'none';
-  document.getElementById('fRefNo').textContent = currentDoc.ref_no || '—';
-  document.getElementById('fItemName').textContent = currentDoc.item_name || '—';
-  document.getElementById('fTransferFrom').textContent = currentDoc.transfer_from || '—';
-  document.getElementById('fOriginAcc').textContent = currentDoc.origin_acc || '—';
-  document.getElementById('fTransferTo').textContent = currentDoc.transfer_to || '—';
-  document.getElementById('fDestAcc').textContent = currentDoc.dest_acc || '—';
-  document.getElementById('fDespatch').textContent = formatDate(currentDoc.despatch_date);
-  document.getElementById('fReceivedPCS').textContent = formatDate(currentDoc.received_date_pcs);
-  document.getElementById('fSentQty').textContent = currentDoc.sent_qty || '—';
+  // ── ใส่ค่า default จาก DB ลง input ทุกช่อง (แก้ไขได้ทันที) ──
+  document.getElementById('editRefNo').value        = currentDoc.ref_no;
+  document.getElementById('editItemName').value     = currentDoc.item_name;
   document.getElementById('editTransferFrom').value = currentDoc.transfer_from;
-  document.getElementById('editOriginAcc').value = currentDoc.origin_acc;
-  document.getElementById('editTransferTo').value = currentDoc.transfer_to;
-  document.getElementById('editDestAcc').value = currentDoc.dest_acc;
-  document.getElementById('editDespatch').value = toInputDate(currentDoc.despatch_date);
-  document.getElementById('editSentQty').value = currentDoc.sent_qty;
-  document.getElementById('editReceivedQty').value = currentDoc.received_qty;
+  document.getElementById('editOriginAcc').value    = currentDoc.origin_acc;
+  document.getElementById('editTransferTo').value   = currentDoc.transfer_to;
+  document.getElementById('editDestAcc').value      = currentDoc.dest_acc;
+  document.getElementById('editDespatch').value     = toInputDate(currentDoc.despatch_date);
+  document.getElementById('editReceivedDate').value = new Date().toISOString().split('T')[0];
+  document.getElementById('editSentQty').value      = currentDoc.sent_qty;
+  document.getElementById('editReceivedQty').value  = currentDoc.received_qty;
   document.getElementById('resultPanel').classList.add('visible');
 }
 
@@ -498,20 +516,22 @@ function clearPhoto() {
 // ── Queue ─────────────────────────────────────────────────
 function addToQueue() {
   if (!currentDoc) return;
+  var refNo        = document.getElementById('editRefNo').value.trim();
+  var itemName     = document.getElementById('editItemName').value.trim();
   var transferFrom = document.getElementById('editTransferFrom').value.trim();
-  var originAcc = document.getElementById('editOriginAcc').value.trim();
-  var transferTo = document.getElementById('editTransferTo').value.trim();
-  var destAcc = document.getElementById('editDestAcc').value.trim();
-  var sentQty = document.getElementById('editSentQty').value.trim();
-  var receivedQty = document.getElementById('editReceivedQty').value.trim();
-  var despatch = document.getElementById('editDespatch').value.trim();
+  var originAcc    = document.getElementById('editOriginAcc').value.trim();
+  var transferTo   = document.getElementById('editTransferTo').value.trim();
+  var destAcc      = document.getElementById('editDestAcc').value.trim();
+  var sentQty      = document.getElementById('editSentQty').value.trim();
+  var receivedQty  = document.getElementById('editReceivedQty').value.trim();
+  var despatch     = document.getElementById('editDespatch').value.trim();
   var receivedDate = document.getElementById('editReceivedDate').value;
   if (!transferFrom) { showToast('กรุณากรอก โอนจาก','error'); return; }
   if (!transferTo)   { showToast('กรุณากรอก โอนไป','error'); return; }
   if (!receivedDate) { showToast('กรุณาระบุวันที่รับ','error'); return; }
   if (queue.find(function(q){return q.barcode===currentDoc.barcode;})) { showToast('barcode นี้อยู่ในรายการแล้ว','error'); return; }
   queue.push({
-    barcode:currentDoc.barcode, ref_no:currentDoc.ref_no, item_name:currentDoc.item_name,
+    barcode:currentDoc.barcode, ref_no:refNo, item_name:itemName,
     transfer_from:transferFrom, origin_acc:originAcc, transfer_to:transferTo, dest_acc:destAcc,
     despatch_date:despatch, received_date:receivedDate, sent_qty:sentQty, received_qty:receivedQty,
     not_found:currentDoc.not_found, site:selectedSite, emp_id:selectedEmpId,
