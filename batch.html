@@ -575,29 +575,106 @@ function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;'
 var _bcTimer={};
 function handleBarcodeInput(id,el){clearTimeout(_bcTimer[id]);_bcTimer[id]=setTimeout(function(){if(el.value.trim())onBarcodeChange(id,el.value);},800);}
 
-function onBarcodeChange(id,value){
+function onBarcodeChange(id, value) {
   clearTimeout(_bcTimer[id]);
-  var row=rows.find(function(r){return String(r.id)===String(id);});if(!row)return;
-  row.barcode=value.trim();
-  if(!row.barcode){row.status='idle';row.doc=null;renderTable();return;}
-  var doc=csvLoaded?searchCSV(row.barcode):null;
-  row.doc=doc;row.status=doc?'found':'notfound';
-  if(doc){
-    row.editVals.refNo        = doc['ref_no']                     || '';
-    row.editVals.itemName     = doc['item_name']                  || '';
-    row.editVals.transferFrom = doc['customer_start_name']        || '';
-    row.editVals.originAcc    = doc['customer_start_code']        || '';
-    row.editVals.transferTo   = doc['customer_destination_name']  || '';
-    row.editVals.destAcc      = doc['customer_destination_code']  || '';
-    row.editVals.despatch     = toInputDate(doc['create_at']      || '');
-    row.editVals.receivedDate = doc['real_recived_at'] ? toInputDate(doc['real_recived_at']) : new Date().toISOString().split('T')[0];
-    row.editVals.sentQty      = doc['total']                      || '';
-    row.editVals.receivedQty  = doc['total']                      || '';
+  var row = rows.find(function(r){ return String(r.id) === String(id); });
+  if (!row) return;
+
+  row.barcode = value.trim();
+
+  if (!row.barcode) {
+    row.status = 'idle'; row.doc = null;
+    _updateRowDOM(row);
+    updateSubmitBtn();
+    return;
   }
-  renderTable();
-  var idx=rows.indexOf(row);var nextRow=rows[idx+1];
-  if(nextRow){setTimeout(function(){var el=document.querySelector('#row-'+nextRow.id+' .bc-input');if(el){el.focus();el.select();}},100);}
-  else{showToast('สแกนครบทุกรายการแล้ว ✅','success');}
+
+  var doc = csvLoaded ? searchCSV(row.barcode) : null;
+  row.doc = doc;
+  row.status = doc ? 'found' : 'notfound';
+
+  if (doc) {
+    row.editVals.refNo        = doc['ref_no']                    || '';
+    row.editVals.itemName     = doc['item_name']                 || '';
+    row.editVals.transferFrom = doc['customer_start_name']       || '';
+    row.editVals.originAcc    = doc['customer_start_code']       || '';
+    row.editVals.transferTo   = doc['customer_destination_name'] || '';
+    row.editVals.destAcc      = doc['customer_destination_code'] || '';
+    row.editVals.despatch     = toInputDate(doc['create_at']     || '');
+    row.editVals.receivedDate = doc['real_recived_at']
+      ? toInputDate(doc['real_recived_at'])
+      : new Date().toISOString().split('T')[0];
+    row.editVals.sentQty      = doc['total'] || '';
+    row.editVals.receivedQty  = doc['total'] || '';
+  }
+
+  // อัป DOM ตรงๆ — ไม่ re-render ทั้งตาราง
+  _updateRowDOM(row);
+  updateSubmitBtn();
+
+  // focus แถวถัดไป
+  var idx = rows.indexOf(row);
+  var nextRow = rows[idx + 1];
+  if (nextRow) {
+    var nextEl = document.querySelector('#row-' + nextRow.id + ' .bc-input');
+    if (nextEl) { nextEl.focus(); nextEl.select(); }
+  } else {
+    showToast('สแกนครบทุกรายการแล้ว ✅', 'success');
+  }
+}
+
+// อัป DOM ของแถวเดียวโดยไม่แตะแถวอื่น
+function _updateRowDOM(row) {
+  var tr = document.getElementById('row-' + row.id);
+  if (!tr) return;
+
+  var ev = row.editVals;
+  var st = row.status;
+
+  // row class
+  tr.className = 'row-' + st;
+
+  // barcode input class
+  var bcEl = tr.querySelector('.bc-input');
+  if (bcEl) {
+    bcEl.className = 'bc-input' +
+      (st === 'found' || st === 'ready' ? ' found' : st === 'notfound' ? ' notfound' : '');
+  }
+
+  // status badge
+  var badge = tr.querySelector('.status-badge');
+  if (badge) {
+    var labels = {idle:'รอ Barcode', found:'พบข้อมูล', notfound:'ไม่พบ', ready:'พร้อมส่ง'};
+    var cls    = {idle:'status-idle', found:'status-found', notfound:'status-notfound', ready:'status-ready'};
+    badge.className  = 'status-badge ' + (cls[st] || '');
+    badge.textContent = labels[st] || '';
+  }
+
+  // fill inputs จาก editVals (เฉพาะถ้าพบข้อมูลจาก DB)
+  if (row.doc) {
+    _setInputInRow(tr, 'refNo',        ev.refNo,        0);
+    _setInputInRow(tr, 'itemName',     ev.itemName,     1);
+    _setInputInRow(tr, 'transferFrom', ev.transferFrom, 2);
+    _setInputInRow(tr, 'originAcc',    ev.originAcc,    3);
+    _setInputInRow(tr, 'transferTo',   ev.transferTo,   4);
+    _setInputInRow(tr, 'destAcc',      ev.destAcc,      5);
+    _setInputInRow(tr, 'despatch',     ev.despatch,     6);
+    _setInputInRow(tr, 'sentQty',      ev.sentQty,      7);
+    _setInputInRow(tr, 'receivedQty',  ev.receivedQty,  8);
+    // วันที่รับ (date-smart)
+    var dateEl = tr.querySelector('.date-smart');
+    if (dateEl) {
+      dateEl.value = toDisplayDate(ev.receivedDate);
+      dateEl.classList.remove('err');
+      dateEl.classList.toggle('ok', !!ev.receivedDate);
+    }
+  }
+}
+
+function _setInputInRow(tr, field, val, nth) {
+  // หา input ลำดับที่ nth ใน row (ข้าม bc-input และ date-smart)
+  var inputs = tr.querySelectorAll('input.row-input:not(.date-smart)');
+  if (inputs[nth]) inputs[nth].value = val || '';
 }
 
 function toInputDate(val){
