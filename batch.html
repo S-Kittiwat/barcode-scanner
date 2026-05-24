@@ -17,7 +17,50 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
 .back-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:var(--rs);padding:7px 14px;font-family:var(--font);font-size:13px;cursor:pointer;text-decoration:none;display:flex;align-items:center;gap:6px;}
 .logout-btn{background:none;border:1px solid var(--border);color:var(--muted);border-radius:var(--rs);padding:7px 12px;font-family:var(--font);font-size:12px;cursor:pointer;}
 .logout-btn:hover{border-color:var(--danger);color:var(--danger);}
-main{max-width:1100px;margin:0 auto;padding:20px 16px 120px;}
+main{width:100%;max-width:100%;padding:20px 24px 100px;}
+.upload-zone{border:2px dashed var(--border);border-radius:var(--r);padding:24px 32px;text-align:center;cursor:pointer;transition:border-color 0.2s,background 0.2s;margin-bottom:16px;display:flex;align-items:center;justify-content:center;gap:20px;}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--accent);background:rgba(56,189,248,0.04);}
+.upload-zone .icon{font-size:28px;}
+.upload-zone .label{font-size:13px;font-weight:500;}
+.upload-zone .sub{font-size:11px;color:var(--muted);margin-top:2px;}
+.upload-zone input{display:none;}
+/* ── Table ── */
+.batch-table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow-x:auto;margin-bottom:16px;}
+.batch-table-wrap table{width:100%;border-collapse:collapse;table-layout:fixed;}
+.batch-table-wrap th{background:var(--surface2);padding:9px 8px;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;overflow:hidden;}
+.batch-table-wrap td{padding:6px 8px;border-bottom:1px solid var(--border);vertical-align:middle;}
+.batch-table-wrap tr:last-child td{border-bottom:none;}
+.batch-table-wrap tr:hover td{background:rgba(255,255,255,0.02);}
+.row-idle td{background:var(--surface);}
+.row-found td{background:rgba(52,211,153,0.04);}
+.row-notfound td{background:rgba(251,191,36,0.04);}
+.row-ready td{background:rgba(56,189,248,0.04);}
+.row-error td{background:rgba(248,113,113,0.04);}
+/* thumb */
+.file-thumb{width:40px;height:40px;object-fit:cover;border-radius:5px;border:1px solid var(--border);display:block;}
+.pdf-thumb{width:40px;height:40px;border-radius:5px;border:1px solid var(--border);background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:18px;}
+.file-name{font-size:10px;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+/* barcode input */
+.bc-input{background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:12px;padding:5px 8px;outline:none;width:100%;transition:border-color 0.15s;}
+.bc-input:focus{border-color:var(--accent);}
+.bc-input.found{border-color:var(--success);}
+.bc-input.notfound{border-color:var(--warn);}
+/* row inputs */
+.row-input{background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--text);font-family:var(--font);font-size:12px;padding:5px 7px;outline:none;width:100%;transition:border-color 0.15s;}
+.row-input:focus{border-color:var(--accent);}
+.row-input.mono{font-family:var(--mono);}
+/* 2-line cell: name + acc */
+.cell-two{display:flex;flex-direction:column;gap:3px;}
+.cell-two .row-input:first-child{font-size:12px;}
+.cell-two .row-input:last-child{font-size:11px;font-family:var(--mono);color:var(--muted);}
+/* status badge */
+.status-badge{font-size:10px;padding:2px 7px;border-radius:20px;white-space:nowrap;display:inline-block;}
+.status-idle{background:var(--surface2);color:var(--muted);border:1px solid var(--border);}
+.status-found{background:rgba(52,211,153,0.12);color:var(--success);border:1px solid rgba(52,211,153,0.3);}
+.status-notfound{background:rgba(251,191,36,0.12);color:var(--warn);border:1px solid rgba(251,191,36,0.3);}
+.status-ready{background:rgba(56,189,248,0.12);color:var(--accent);border:1px solid rgba(56,189,248,0.3);}
+.remove-row-btn{background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:3px 5px;border-radius:5px;transition:color 0.15s,background 0.15s;display:block;margin:auto;}
+.remove-row-btn:hover{color:var(--danger);background:rgba(248,113,113,0.1);}
 .site-overlay{position:fixed;inset:0;background:var(--bg);z-index:500;display:flex;align-items:center;justify-content:center;padding:24px;}
 .site-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);width:100%;max-width:420px;overflow:hidden;}
 .site-box-header{padding:20px;border-bottom:1px solid var(--border);}
@@ -34,44 +77,11 @@ main{max-width:1100px;margin:0 auto;padding:20px 16px 120px;}
 .site-confirm-btn{width:100%;background:var(--accent);border:none;color:#0f172a;border-radius:var(--rs);padding:12px;font-family:var(--font);font-size:15px;font-weight:600;cursor:pointer;}
 .site-confirm-btn:disabled{opacity:0.35;cursor:not-allowed;}
 .site-badge{background:rgba(56,189,248,0.12);border:1px solid rgba(56,189,248,0.3);color:var(--accent);font-size:12px;padding:3px 10px;border-radius:6px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px;}
-.upload-zone{background:var(--surface);border:2px dashed var(--border);border-radius:var(--r);padding:32px;text-align:center;cursor:pointer;transition:border-color 0.2s,background 0.2s;margin-bottom:20px;}
-.upload-zone:hover,.upload-zone.drag{border-color:var(--accent);background:rgba(56,189,248,0.05);}
-.upload-zone .icon{font-size:36px;margin-bottom:8px;}
-.upload-zone .label{font-size:14px;font-weight:500;margin-bottom:4px;}
-.upload-zone .sub{font-size:12px;color:var(--muted);}
-.upload-zone input{display:none;}
-.batch-table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:20px;}
-.batch-table-wrap table{width:100%;border-collapse:collapse;}
-.batch-table-wrap th{background:var(--surface2);padding:10px 12px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;}
-.batch-table-wrap td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:middle;font-size:13px;}
-.batch-table-wrap tr:last-child td{border-bottom:none;}
-.batch-table-wrap{overflow-x:auto;}
-.batch-table-wrap table{min-width:1200px;}
-.row-idle td{background:var(--surface);}
-.row-found td{background:rgba(52,211,153,0.05);}
-.row-notfound td{background:rgba(251,191,36,0.05);}
-.row-error td{background:rgba(248,113,113,0.05);}
-.file-thumb{width:48px;height:48px;object-fit:cover;border-radius:6px;border:1px solid var(--border);}
-.pdf-thumb{width:48px;height:48px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
-.file-name{font-size:11px;color:var(--muted);margin-top:3px;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.bc-input{background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);color:var(--text);font-family:var(--mono);font-size:13px;padding:6px 10px;outline:none;width:140px;transition:border-color 0.15s;}
-.bc-input:focus{border-color:var(--accent);}
-.bc-input.found{border-color:var(--success);}
-.bc-input.notfound{border-color:var(--warn);}
-.row-input{background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--font);font-size:12px;padding:5px 8px;outline:none;width:100%;transition:border-color 0.15s;}
-.row-input:focus{border-color:var(--accent);}
-.status-badge{font-size:10px;padding:2px 8px;border-radius:20px;white-space:nowrap;}
-.status-idle{background:var(--surface2);color:var(--muted);border:1px solid var(--border);}
-.status-found{background:rgba(52,211,153,0.12);color:var(--success);border:1px solid rgba(52,211,153,0.3);}
-.status-notfound{background:rgba(251,191,36,0.12);color:var(--warn);border:1px solid rgba(251,191,36,0.3);}
-.status-ready{background:rgba(56,189,248,0.12);color:var(--accent);border:1px solid rgba(56,189,248,0.3);}
-.remove-row-btn{background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;padding:4px 6px;border-radius:6px;transition:color 0.15s,background 0.15s;}
-.remove-row-btn:hover{color:var(--danger);background:rgba(248,113,113,0.1);}
-.submit-bar{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);padding:14px 20px;display:flex;gap:12px;align-items:center;}
-.submit-btn{flex:1;background:var(--success);border:none;color:#0f172a;border-radius:var(--rs);padding:13px;font-family:var(--font);font-size:15px;font-weight:600;cursor:pointer;}
+.submit-bar{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);padding:12px 24px;display:flex;gap:12px;align-items:center;}
+.submit-btn{flex:1;background:var(--success);border:none;color:#0f172a;border-radius:var(--rs);padding:11px;font-family:var(--font);font-size:14px;font-weight:600;cursor:pointer;max-width:480px;}
 .submit-btn:disabled{opacity:0.35;cursor:not-allowed;}
-.clear-all-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:var(--rs);padding:13px 20px;font-family:var(--font);font-size:14px;cursor:pointer;}
-.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-80px);background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);padding:12px 20px;font-size:13px;transition:transform 0.3s;z-index:200;white-space:nowrap;box-shadow:0 8px 24px rgba(0,0,0,0.4);}
+.clear-all-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:var(--rs);padding:11px 20px;font-family:var(--font);font-size:13px;cursor:pointer;}
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-80px);background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);padding:12px 20px;font-size:13px;transition:transform 0.3s;z-index:300;white-space:nowrap;box-shadow:0 8px 24px rgba(0,0,0,0.4);}
 .toast.show{transform:translateX(-50%) translateY(0);}
 .toast.success{border-color:rgba(52,211,153,0.4);color:var(--success);}
 .toast.error{border-color:rgba(248,113,113,0.4);color:var(--danger);}
@@ -80,7 +90,22 @@ main{max-width:1100px;margin:0 auto;padding:20px 16px 120px;}
 @keyframes spin{to{transform:rotate(360deg);}}
 .empty-state{text-align:center;padding:48px 16px;color:var(--muted);font-size:13px;}
 .empty-state .icon{font-size:40px;margin-bottom:12px;}
-@media(max-width:600px){.batch-table-wrap{overflow-x:auto;}.batch-table-wrap table{min-width:700px;}}
+/* ── Batch limit counter ── */
+.batch-counter{display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0;padding:8px 16px;background:var(--surface2);border-radius:var(--rs);border:1px solid var(--border);min-width:80px;}
+.batch-counter span{font-family:var(--mono);font-size:16px;font-weight:600;color:var(--text);}
+.batch-counter-bar{width:60px;height:4px;background:var(--border);border-radius:4px;overflow:hidden;}
+.batch-counter-fill{height:100%;width:0%;background:var(--success);border-radius:4px;transition:width 0.3s,background 0.3s;}
+/* warn = >30, danger = 50 */
+.batch-counter.warn span{color:var(--warn);}
+.batch-counter.warn .batch-counter-fill{background:var(--warn);}
+.batch-counter.full span{color:var(--danger);}
+.batch-counter.full .batch-counter-fill{background:var(--danger);}
+.upload-zone.blocked{border-color:var(--danger);background:rgba(248,113,113,0.04);cursor:not-allowed;}
+.upload-zone.blocked .label{color:var(--danger);}
+/* warn banner */
+.limit-banner{display:none;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.3);border-radius:var(--rs);padding:8px 16px;font-size:12px;color:var(--warn);margin-bottom:12px;align-items:center;gap:8px;}
+.limit-banner.show{display:flex;}
+.limit-banner.danger{background:rgba(248,113,113,0.08);border-color:rgba(248,113,113,0.3);color:var(--danger);}
 </style>
 </head>
 <body>
@@ -151,11 +176,21 @@ main{max-width:1100px;margin:0 auto;padding:20px 16px 120px;}
     ondragleave="this.classList.remove('drag')"
     ondrop="handleDrop(event)">
     <div class="icon">📂</div>
-    <div class="label">ลากไฟล์มาวางที่นี่ หรือคลิกเพื่อเลือกไฟล์</div>
-    <div class="sub">รองรับรูปภาพ (JPG, PNG) และ PDF — เลือกได้หลายไฟล์พร้อมกัน</div>
+    <div>
+      <div class="label">ลากไฟล์มาวางที่นี่ หรือคลิกเพื่อเลือกไฟล์</div>
+      <div class="sub">รองรับรูปภาพ (JPG, PNG) และ PDF — เลือกได้หลายไฟล์พร้อมกัน</div>
+    </div>
+    <div class="batch-counter" id="batchCounter">
+      <span id="batchCountNum">0</span> / 50
+      <div class="batch-counter-bar"><div class="batch-counter-fill" id="batchCountFill"></div></div>
+    </div>
     <input type="file" id="fileInput" accept="image/*,application/pdf" multiple onchange="handleFiles(event)">
   </div>
-  <script>document.getElementById('uploadZone').addEventListener('click',function(e){if(e.target!==document.getElementById('fileInput'))document.getElementById('fileInput').click();});</script>
+  <script>document.getElementById('uploadZone').addEventListener('click',function(e){if(e.target!==document.getElementById('fileInput')&&!document.getElementById('uploadZone').classList.contains('blocked'))document.getElementById('fileInput').click();});</script>
+
+  <div class="limit-banner" id="limitBanner">
+    <span id="limitBannerText">⚠️ ไฟล์เกิน 30 รายการ — ระบบอาจทำงานช้า แนะนำให้แบ่ง batch</span>
+  </div>
 
   <div id="batchWrap">
     <div class="empty-state" id="emptyState">
@@ -166,21 +201,19 @@ main{max-width:1100px;margin:0 auto;padding:20px 16px 120px;}
       <table>
         <thead>
           <tr>
-            <th style="width:44px;">#</th>
-            <th style="width:80px;">ไฟล์</th>
-            <th style="width:150px;">Barcode</th>
-            <th style="width:72px;">สถานะ</th>
-            <th style="width:110px;">Reference</th>
-            <th style="width:110px;">ประเภท</th>
-            <th style="width:140px;">โอนจาก</th>
-            <th style="width:110px;">Origin Acc.</th>
-            <th style="width:140px;">โอนไป</th>
-            <th style="width:110px;">Dest. Acc.</th>
-            <th style="width:120px;">วันที่ส่ง</th>
-            <th style="width:120px;">วันที่รับ</th>
-            <th style="width:80px;">QTY ส่ง</th>
-            <th style="width:80px;">QTY รับ</th>
-            <th style="width:36px;"></th>
+            <th style="width:3%;">#</th>
+            <th style="width:6%;">ไฟล์</th>
+            <th style="width:13%;">Barcode</th>
+            <th style="width:6%;">สถานะ</th>
+            <th style="width:9%;">Reference</th>
+            <th style="width:9%;">ประเภท</th>
+            <th style="width:14%;">โอนจาก / Origin Acc.</th>
+            <th style="width:14%;">โอนไป / Dest. Acc.</th>
+            <th style="width:9%;">วันที่ส่ง</th>
+            <th style="width:9%;">วันที่รับ</th>
+            <th style="width:5%;">ส่ง</th>
+            <th style="width:5%;">รับ</th>
+            <th style="width:3%;"></th>
           </tr>
         </thead>
         <tbody id="batchBody"></tbody>
@@ -272,6 +305,40 @@ function confirmSite() {
   document.getElementById('siteOverlay').style.display = 'none';
 }
 
+// ── Batch Limits ──────────────────────────────────────────
+var BATCH_WARN  = 30;
+var BATCH_LIMIT = 50;
+
+function updateBatchCounter() {
+  var n    = rows.length;
+  var pct  = Math.min(100, (n / BATCH_LIMIT) * 100);
+  var numEl  = document.getElementById('batchCountNum');
+  var fillEl = document.getElementById('batchCountFill');
+  var cntEl  = document.getElementById('batchCounter');
+  var zoneEl = document.getElementById('uploadZone');
+  var banner = document.getElementById('limitBanner');
+  var bannerText = document.getElementById('limitBannerText');
+
+  numEl.textContent = n;
+  fillEl.style.width = pct + '%';
+
+  // reset
+  cntEl.classList.remove('warn','full');
+  zoneEl.classList.remove('blocked');
+  banner.classList.remove('show','danger');
+
+  if (n >= BATCH_LIMIT) {
+    cntEl.classList.add('full');
+    zoneEl.classList.add('blocked');
+    banner.classList.add('show','danger');
+    bannerText.textContent = '🚫 ครบ ' + BATCH_LIMIT + ' รายการแล้ว — กรุณา Submit ก่อนเพิ่มไฟล์ใหม่';
+  } else if (n >= BATCH_WARN) {
+    cntEl.classList.add('warn');
+    banner.classList.add('show');
+    bannerText.textContent = '⚠️ ' + n + ' รายการ (เกิน ' + BATCH_WARN + ') — ระบบอาจทำงานช้า แนะนำให้แบ่ง batch';
+  }
+}
+
 // ── File Handling ─────────────────────────────────────────
 function handleDrop(e) {
   e.preventDefault();
@@ -281,9 +348,21 @@ function handleDrop(e) {
 function handleFiles(e) { processFiles(Array.from(e.target.files)); e.target.value=''; }
 
 function processFiles(files) {
-  files.sort(function(a,b){return a.name.localeCompare(b.name,undefined,{numeric:true});});
-  files.forEach(function(file) {
-    if (!file.type.startsWith('image/') && file.type!=='application/pdf') return;
+  var validFiles = files.filter(function(f){ return f.type.startsWith('image/') || f.type==='application/pdf'; });
+
+  // Hard limit check
+  var remaining = BATCH_LIMIT - rows.length;
+  if (remaining <= 0) {
+    showToast('ครบ '+BATCH_LIMIT+' รายการแล้ว กรุณา Submit ก่อน','error');
+    return;
+  }
+  if (validFiles.length > remaining) {
+    showToast('รับได้อีก '+remaining+' ไฟล์ (ตัดออก '+(validFiles.length-remaining)+' ไฟล์)','error');
+    validFiles = validFiles.slice(0, remaining);
+  }
+
+  validFiles.sort(function(a,b){return a.name.localeCompare(b.name,undefined,{numeric:true});});
+  validFiles.forEach(function(file) {
     var row = {
       id:Date.now()+Math.random(), file:file, photoData:null,
       photoType:file.type==='application/pdf'?'pdf':'image',
@@ -314,7 +393,13 @@ function processFiles(files) {
     reader.readAsDataURL(file);
     rows.push(row);
   });
-  setTimeout(renderTable,200);
+
+  // Soft warning
+  if (rows.length > BATCH_WARN && rows.length < BATCH_LIMIT) {
+    showToast('⚠️ '+rows.length+' รายการ — แนะนำแบ่ง batch ไม่เกิน '+BATCH_WARN,'info');
+  }
+
+  setTimeout(function(){ renderTable(); updateBatchCounter(); }, 200);
 }
 
 // ── Render Table ──────────────────────────────────────────
@@ -330,20 +415,24 @@ function renderTable() {
     var ev=row.editVals;
     var rid=row.id;
     return '<tr class="row-'+row.status+'" id="row-'+rid+'">'+
-      '<td class="mono" style="color:var(--muted);text-align:center;">'+(i+1)+'</td>'+
-      '<td><div style="display:flex;flex-direction:column;align-items:center;gap:3px;">'+thumbHtml+'<div class="file-name">'+esc(row.file.name)+'</div></div></td>'+
+      '<td style="text-align:center;color:var(--muted);font-family:var(--mono);font-size:11px;">'+(i+1)+'</td>'+
+      '<td><div style="display:flex;flex-direction:column;align-items:center;gap:2px;">'+thumbHtml+'<div class="file-name">'+esc(row.file.name)+'</div></div></td>'+
       '<td><input class="'+bcClass+'" value="'+esc(row.barcode)+'" placeholder="สแกน / พิมพ์ barcode" oninput="handleBarcodeInput(\''+rid+'\',this)" onkeydown="if(event.key===\'Enter\'){event.preventDefault();onBarcodeChange(\''+rid+'\',this.value);}"></td>'+
       '<td>'+statusHtml+'</td>'+
       '<td><input class="row-input mono" value="'+esc(ev.refNo)+'" oninput="updateEdit(\''+rid+'\',\'refNo\',this.value)" placeholder="Ref No."></td>'+
       '<td><input class="row-input" value="'+esc(ev.itemName)+'" oninput="updateEdit(\''+rid+'\',\'itemName\',this.value)" placeholder="ประเภท"></td>'+
-      '<td><input class="row-input" value="'+esc(ev.transferFrom)+'" oninput="updateEdit(\''+rid+'\',\'transferFrom\',this.value)" placeholder="โอนจาก" required></td>'+
-      '<td><input class="row-input mono" value="'+esc(ev.originAcc)+'" oninput="updateEdit(\''+rid+'\',\'originAcc\',this.value)" placeholder="Origin Acc."></td>'+
-      '<td><input class="row-input" value="'+esc(ev.transferTo)+'" oninput="updateEdit(\''+rid+'\',\'transferTo\',this.value)" placeholder="โอนไป" required></td>'+
-      '<td><input class="row-input mono" value="'+esc(ev.destAcc)+'" oninput="updateEdit(\''+rid+'\',\'destAcc\',this.value)" placeholder="Dest. Acc."></td>'+
+      '<td><div class="cell-two">'+
+        '<input class="row-input" value="'+esc(ev.transferFrom)+'" oninput="updateEdit(\''+rid+'\',\'transferFrom\',this.value)" placeholder="โอนจาก" required>'+
+        '<input class="row-input mono" value="'+esc(ev.originAcc)+'" oninput="updateEdit(\''+rid+'\',\'originAcc\',this.value)" placeholder="Origin Acc.">'+
+      '</div></td>'+
+      '<td><div class="cell-two">'+
+        '<input class="row-input" value="'+esc(ev.transferTo)+'" oninput="updateEdit(\''+rid+'\',\'transferTo\',this.value)" placeholder="โอนไป" required>'+
+        '<input class="row-input mono" value="'+esc(ev.destAcc)+'" oninput="updateEdit(\''+rid+'\',\'destAcc\',this.value)" placeholder="Dest. Acc.">'+
+      '</div></td>'+
       '<td><input class="row-input" type="date" value="'+esc(ev.despatch)+'" onchange="updateEdit(\''+rid+'\',\'despatch\',this.value)"></td>'+
       '<td><input class="row-input" type="date" value="'+esc(ev.receivedDate)+'" onchange="updateEdit(\''+rid+'\',\'receivedDate\',this.value)" required></td>'+
-      '<td><input class="row-input" type="number" min="0" value="'+esc(ev.sentQty)+'" oninput="updateEdit(\''+rid+'\',\'sentQty\',this.value)" placeholder="0" required></td>'+
-      '<td><input class="row-input" type="number" min="0" value="'+esc(ev.receivedQty)+'" oninput="updateEdit(\''+rid+'\',\'receivedQty\',this.value)" placeholder="0" required></td>'+
+      '<td><input class="row-input" type="number" min="0" value="'+esc(ev.sentQty)+'" oninput="updateEdit(\''+rid+'\',\'sentQty\',this.value)" placeholder="0" required style="text-align:right;"></td>'+
+      '<td><input class="row-input" type="number" min="0" value="'+esc(ev.receivedQty)+'" oninput="updateEdit(\''+rid+'\',\'receivedQty\',this.value)" placeholder="0" required style="text-align:right;"></td>'+
       '<td><button class="remove-row-btn" onclick="removeRow(\''+rid+'\')">✕</button></td>'+
     '</tr>';
   }).join('');
@@ -394,8 +483,8 @@ function updateEdit(id,field,value){
   updateSubmitBtn();
 }
 
-function removeRow(id){rows=rows.filter(function(r){return String(r.id)!==String(id);});renderTable();}
-function clearAll(){if(rows.length&&confirm('ล้างทั้งหมด?')){rows=[];renderTable();}}
+function removeRow(id){rows=rows.filter(function(r){return String(r.id)!==String(id);});renderTable();updateBatchCounter();}
+function clearAll(){if(rows.length&&confirm('ล้างทั้งหมด?')){rows=[];renderTable();updateBatchCounter();}}
 
 function updateSubmitBtn(){
   var ready=rows.filter(function(r){return r.barcode&&r.editVals.transferFrom&&r.editVals.transferTo&&r.editVals.receivedDate&&r.editVals.sentQty&&r.editVals.receivedQty;});
