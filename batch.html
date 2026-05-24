@@ -45,6 +45,8 @@ main{max-width:1100px;margin:0 auto;padding:20px 16px 120px;}
 .batch-table-wrap th{background:var(--surface2);padding:10px 12px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;}
 .batch-table-wrap td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:middle;font-size:13px;}
 .batch-table-wrap tr:last-child td{border-bottom:none;}
+.batch-table-wrap{overflow-x:auto;}
+.batch-table-wrap table{min-width:1200px;}
 .row-idle td{background:var(--surface);}
 .row-found td{background:rgba(52,211,153,0.05);}
 .row-notfound td{background:rgba(251,191,36,0.05);}
@@ -164,18 +166,21 @@ main{max-width:1100px;margin:0 auto;padding:20px 16px 120px;}
       <table>
         <thead>
           <tr>
-            <th style="width:60px;">#</th>
-            <th style="width:90px;">ไฟล์</th>
-            <th style="width:160px;">Barcode</th>
-            <th style="width:80px;">สถานะ</th>
-            <th>Reference</th>
-            <th>ประเภท</th>
-            <th>โอนจาก</th>
-            <th>โอนไป</th>
+            <th style="width:44px;">#</th>
+            <th style="width:80px;">ไฟล์</th>
+            <th style="width:150px;">Barcode</th>
+            <th style="width:72px;">สถานะ</th>
+            <th style="width:110px;">Reference</th>
+            <th style="width:110px;">ประเภท</th>
+            <th style="width:140px;">โอนจาก</th>
+            <th style="width:110px;">Origin Acc.</th>
+            <th style="width:140px;">โอนไป</th>
+            <th style="width:110px;">Dest. Acc.</th>
+            <th style="width:120px;">วันที่ส่ง</th>
             <th style="width:120px;">วันที่รับ</th>
             <th style="width:80px;">QTY ส่ง</th>
             <th style="width:80px;">QTY รับ</th>
-            <th style="width:40px;"></th>
+            <th style="width:36px;"></th>
           </tr>
         </thead>
         <tbody id="batchBody"></tbody>
@@ -283,9 +288,13 @@ function processFiles(files) {
       id:Date.now()+Math.random(), file:file, photoData:null,
       photoType:file.type==='application/pdf'?'pdf':'image',
       barcode:'', doc:null, status:'idle',
-      editVals:{transferFrom:'',originAcc:'',transferTo:'',destAcc:'',
-        despatch:new Date().toISOString().split('T')[0],
-        receivedDate:new Date().toISOString().split('T')[0],sentQty:'',receivedQty:''}
+      editVals:{
+        refNo:'', itemName:'',
+        transferFrom:'', originAcc:'',
+        transferTo:'', destAcc:'',
+        despatch:'', receivedDate:'',
+        sentQty:'', receivedQty:''
+      }
     };
     var reader = new FileReader();
     reader.onload = function(e) {
@@ -319,19 +328,23 @@ function renderTable() {
     var statusHtml={idle:'<span class="status-badge status-idle">รอ Barcode</span>',found:'<span class="status-badge status-found">พบข้อมูล</span>',notfound:'<span class="status-badge status-notfound">ไม่พบ</span>',ready:'<span class="status-badge status-ready">พร้อมส่ง</span>'}[row.status]||'';
     var bcClass=row.status==='found'||row.status==='ready'?'bc-input found':row.status==='notfound'?'bc-input notfound':'bc-input';
     var ev=row.editVals;
-    return '<tr class="row-'+row.status+'" id="row-'+row.id+'">'+
+    var rid=row.id;
+    return '<tr class="row-'+row.status+'" id="row-'+rid+'">'+
       '<td class="mono" style="color:var(--muted);text-align:center;">'+(i+1)+'</td>'+
       '<td><div style="display:flex;flex-direction:column;align-items:center;gap:3px;">'+thumbHtml+'<div class="file-name">'+esc(row.file.name)+'</div></div></td>'+
-      '<td><input class="'+bcClass+'" value="'+esc(row.barcode)+'" placeholder="สแกน / พิมพ์ barcode" oninput="handleBarcodeInput(\''+row.id+'\',this)" onkeydown="if(event.key===\'Enter\'){event.preventDefault();onBarcodeChange(\''+row.id+'\',this.value);}"></td>'+
+      '<td><input class="'+bcClass+'" value="'+esc(row.barcode)+'" placeholder="สแกน / พิมพ์ barcode" oninput="handleBarcodeInput(\''+rid+'\',this)" onkeydown="if(event.key===\'Enter\'){event.preventDefault();onBarcodeChange(\''+rid+'\',this.value);}"></td>'+
       '<td>'+statusHtml+'</td>'+
-      '<td class="mono" style="font-size:11px;">'+(row.doc?esc(row.doc.ref_no||'—'):'—')+'</td>'+
-      '<td style="font-size:11px;">'+(row.doc?esc(row.doc.item_name||'—'):'—')+'</td>'+
-      '<td><input class="row-input" value="'+esc(ev.transferFrom)+'" oninput="updateEdit(\''+row.id+'\',\'transferFrom\',this.value)" placeholder="โอนจาก" required></td>'+
-      '<td><input class="row-input" value="'+esc(ev.transferTo)+'" oninput="updateEdit(\''+row.id+'\',\'transferTo\',this.value)" placeholder="โอนไป" required></td>'+
-      '<td><input class="row-input" type="date" value="'+ev.receivedDate+'" onchange="updateEdit(\''+row.id+'\',\'receivedDate\',this.value)" required></td>'+
-      '<td><input class="row-input" type="number" min="0" value="'+esc(ev.sentQty)+'" oninput="updateEdit(\''+row.id+'\',\'sentQty\',this.value)" placeholder="0" required></td>'+
-      '<td><input class="row-input" type="number" min="0" value="'+esc(ev.receivedQty)+'" oninput="updateEdit(\''+row.id+'\',\'receivedQty\',this.value)" placeholder="0" required></td>'+
-      '<td><button class="remove-row-btn" onclick="removeRow(\''+row.id+'\')">✕</button></td>'+
+      '<td><input class="row-input mono" value="'+esc(ev.refNo)+'" oninput="updateEdit(\''+rid+'\',\'refNo\',this.value)" placeholder="Ref No."></td>'+
+      '<td><input class="row-input" value="'+esc(ev.itemName)+'" oninput="updateEdit(\''+rid+'\',\'itemName\',this.value)" placeholder="ประเภท"></td>'+
+      '<td><input class="row-input" value="'+esc(ev.transferFrom)+'" oninput="updateEdit(\''+rid+'\',\'transferFrom\',this.value)" placeholder="โอนจาก" required></td>'+
+      '<td><input class="row-input mono" value="'+esc(ev.originAcc)+'" oninput="updateEdit(\''+rid+'\',\'originAcc\',this.value)" placeholder="Origin Acc."></td>'+
+      '<td><input class="row-input" value="'+esc(ev.transferTo)+'" oninput="updateEdit(\''+rid+'\',\'transferTo\',this.value)" placeholder="โอนไป" required></td>'+
+      '<td><input class="row-input mono" value="'+esc(ev.destAcc)+'" oninput="updateEdit(\''+rid+'\',\'destAcc\',this.value)" placeholder="Dest. Acc."></td>'+
+      '<td><input class="row-input" type="date" value="'+esc(ev.despatch)+'" onchange="updateEdit(\''+rid+'\',\'despatch\',this.value)"></td>'+
+      '<td><input class="row-input" type="date" value="'+esc(ev.receivedDate)+'" onchange="updateEdit(\''+rid+'\',\'receivedDate\',this.value)" required></td>'+
+      '<td><input class="row-input" type="number" min="0" value="'+esc(ev.sentQty)+'" oninput="updateEdit(\''+rid+'\',\'sentQty\',this.value)" placeholder="0" required></td>'+
+      '<td><input class="row-input" type="number" min="0" value="'+esc(ev.receivedQty)+'" oninput="updateEdit(\''+rid+'\',\'receivedQty\',this.value)" placeholder="0" required></td>'+
+      '<td><button class="remove-row-btn" onclick="removeRow(\''+rid+'\')">✕</button></td>'+
     '</tr>';
   }).join('');
   updateSubmitBtn();
@@ -349,7 +362,18 @@ function onBarcodeChange(id,value){
   if(!row.barcode){row.status='idle';row.doc=null;renderTable();return;}
   var doc=csvLoaded?searchCSV(row.barcode):null;
   row.doc=doc;row.status=doc?'found':'notfound';
-  if(doc){row.editVals.transferFrom=doc['customer_start_name']||'';row.editVals.transferTo=doc['customer_destination_name']||'';row.editVals.sentQty=doc['total']||'';row.editVals.receivedQty=doc['total']||'';row.editVals.despatch=toInputDate(doc['create_at']||'');}
+  if(doc){
+    row.editVals.refNo        = doc['ref_no']                     || '';
+    row.editVals.itemName     = doc['item_name']                  || '';
+    row.editVals.transferFrom = doc['customer_start_name']        || '';
+    row.editVals.originAcc    = doc['customer_start_code']        || '';
+    row.editVals.transferTo   = doc['customer_destination_name']  || '';
+    row.editVals.destAcc      = doc['customer_destination_code']  || '';
+    row.editVals.despatch     = toInputDate(doc['create_at']      || '');
+    row.editVals.receivedDate = doc['real_recived_at'] ? toInputDate(doc['real_recived_at']) : new Date().toISOString().split('T')[0];
+    row.editVals.sentQty      = doc['total']                      || '';
+    row.editVals.receivedQty  = doc['total']                      || '';
+  }
   renderTable();
   var idx=rows.indexOf(row);var nextRow=rows[idx+1];
   if(nextRow){setTimeout(function(){var el=document.querySelector('#row-'+nextRow.id+' .bc-input');if(el){el.focus();el.select();}},100);}
@@ -364,7 +388,8 @@ function toInputDate(val){
 function updateEdit(id,field,value){
   var row=rows.find(function(r){return String(r.id)===String(id);});if(!row)return;
   row.editVals[field]=value;
-  var ev=row.editVals;var complete=row.barcode&&ev.transferFrom&&ev.transferTo&&ev.receivedDate&&ev.sentQty&&ev.receivedQty;
+  var ev=row.editVals;
+  var complete=row.barcode&&ev.transferFrom&&ev.transferTo&&ev.receivedDate&&ev.sentQty&&ev.receivedQty;
   row.status=complete?'ready':(row.doc?'found':(row.barcode?'notfound':'idle'));
   updateSubmitBtn();
 }
@@ -383,9 +408,37 @@ async function submitBatch(){
   if(!ready.length)return;
   var btn=document.getElementById('submitBtn');btn.disabled=true;
   try{
-    for(var i=0;i<ready.length;i++){var row=ready[i];if(row.photoData){btn.textContent='อัปโหลดไฟล์ '+(i+1)+'/'+ready.length+'...';var refNo=row.doc?row.doc['ref_no']:row.barcode;row.photoUrl=await uploadPhoto(row.photoData,row.barcode,refNo);}}
+    for(var i=0;i<ready.length;i++){
+      var row=ready[i];
+      if(row.photoData){
+        btn.textContent='อัปโหลดไฟล์ '+(i+1)+'/'+ready.length+'...';
+        var refNo=row.editVals.refNo||row.barcode;
+        row.photoUrl=await uploadPhoto(row.photoData,row.barcode,refNo);
+      }
+    }
     btn.textContent='กำลังบันทึกข้อมูล...';
-    var items=ready.map(function(row){var ev=row.editVals;return{barcode:row.barcode,ref_no:row.doc?row.doc['ref_no']:'',item_name:row.doc?row.doc['item_name']:'',transfer_from:ev.transferFrom,origin_acc:ev.originAcc||'',transfer_to:ev.transferTo,dest_acc:ev.destAcc||'',despatch_date:ev.despatch,received_date:ev.receivedDate,sent_qty:ev.sentQty,received_qty:ev.receivedQty,not_found:!row.doc,site:selectedSite,emp_id:selectedEmpId,emp_name:selectedEmpName,emp_email:selectedEmpEmail,photo_url:row.photoUrl||''};});
+    var items=ready.map(function(row){
+      var ev=row.editVals;
+      return{
+        barcode      : row.barcode,
+        ref_no       : ev.refNo        || '',
+        item_name    : ev.itemName     || '',
+        transfer_from: ev.transferFrom || '',
+        origin_acc   : ev.originAcc    || '',
+        transfer_to  : ev.transferTo   || '',
+        dest_acc     : ev.destAcc      || '',
+        despatch_date: ev.despatch     || '',
+        received_date: ev.receivedDate || '',
+        sent_qty     : ev.sentQty      || '',
+        received_qty : ev.receivedQty  || '',
+        not_found    : !row.doc,
+        site         : selectedSite,
+        emp_id       : selectedEmpId,
+        emp_name     : selectedEmpName,
+        emp_email    : selectedEmpEmail,
+        photo_url    : row.photoUrl    || ''
+      };
+    });
     var res=await fetch(API_URL,{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action:'updateItems',items:items})});
     var data=await res.json();
     if(data.status==='ok'){var submittedIds=ready.map(function(r){return r.id;});rows=rows.filter(function(r){return submittedIds.indexOf(r.id)===-1;});renderTable();showToast('บันทึก '+ready.length+' รายการเรียบร้อย','success');}
