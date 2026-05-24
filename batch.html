@@ -561,7 +561,7 @@ function renderTable() {
         '<input class="row-input mono" value="'+esc(ev.destAcc)+'" oninput="updateEdit(\''+rid+'\',\'destAcc\',this.value)" placeholder="Dest. Acc.">'+
       '</div></td>'+
       '<td><input class="row-input" type="date" value="'+esc(ev.despatch)+'" onchange="updateEdit(\''+rid+'\',\'despatch\',this.value)"></td>'+
-      '<td><input class="row-input date-smart" data-rid="'+rid+'" value="'+esc(toDisplayDate(ev.receivedDate))+'" placeholder="ddmmyy" maxlength="10" style="font-family:var(--mono);text-align:center;" onkeydown="handleDateKey(event,\''+rid+'\')" onblur="commitDate(this,\''+rid+'\')"></td>'+
+      '<td><input class="row-input date-smart" data-rid="'+rid+'" value="'+esc(toDisplayDate(ev.receivedDate))+'" placeholder="ddmmyy" maxlength="10" style="font-family:var(--mono);text-align:center;" onkeydown="handleDateKey(event,\''+rid+'\')"></td>'+
       '<td><input class="row-input" type="number" min="0" value="'+esc(ev.sentQty)+'" oninput="updateEdit(\''+rid+'\',\'sentQty\',this.value)" placeholder="0" required style="text-align:right;"></td>'+
       '<td><input class="row-input" type="number" min="0" value="'+esc(ev.receivedQty)+'" oninput="updateEdit(\''+rid+'\',\'receivedQty\',this.value)" placeholder="0" required style="text-align:right;"></td>'+
       '<td><button class="remove-row-btn" onclick="removeRow(\''+rid+'\')">✕</button></td>'+
@@ -689,6 +689,14 @@ async function submitBatch(){
 async function uploadPhoto(base64,barcode,refNo){
   try{var res=await fetch(API_URL,{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action:'uploadPhoto',barcode:barcode,image:base64,ref_no:refNo||barcode})});var data=await res.json();return data.url||'';}catch(e){return '';}
 }
+
+// ── Date-smart blur delegation (bind ครั้งเดียว ไม่ถูกทำลายตอน re-render) ──
+document.addEventListener('blur', function(e) {
+  if (!e.target.classList.contains('date-smart')) return;
+  if (_dateEntering) return;
+  var rid = e.target.getAttribute('data-rid');
+  if (rid) _applyDate(e.target, rid);
+}, true); // useCapture=true เพื่อรับ blur ที่ไม่ bubble
 
 var toastTimer;
 function showToast(msg,type){var t=document.getElementById('toast');t.textContent=msg;t.className='toast '+(type||'info')+' show';clearTimeout(toastTimer);toastTimer=setTimeout(function(){t.classList.remove('show');},3000);}
