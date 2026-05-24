@@ -62,7 +62,9 @@ main{width:100%;max-width:100%;padding:20px 24px 100px;}
 .status-idle{background:var(--surface2);color:var(--muted);border:1px solid var(--border);}
 .status-found{background:rgba(52,211,153,0.12);color:var(--success);border:1px solid rgba(52,211,153,0.3);}
 .status-notfound{background:rgba(251,191,36,0.12);color:var(--warn);border:1px solid rgba(251,191,36,0.3);}
-.status-ready{background:rgba(56,189,248,0.12);color:var(--accent);border:1px solid rgba(56,189,248,0.3);}
+.row-dup td{background:rgba(248,113,113,0.07);}
+.status-dup{background:rgba(248,113,113,0.12);color:var(--danger);border:1px solid rgba(248,113,113,0.3);}
+.bc-input.dup{border-color:var(--danger);}
 .remove-row-btn{background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:3px 5px;border-radius:5px;transition:color 0.15s,background 0.15s;display:block;margin:auto;}
 .remove-row-btn:hover{color:var(--danger);background:rgba(248,113,113,0.1);}
 .site-overlay{position:fixed;inset:0;background:var(--bg);z-index:500;display:flex;align-items:center;justify-content:center;padding:24px;}
@@ -368,7 +370,17 @@ function processFiles(files) {
   }
 
   validFiles.sort(function(a,b){return a.name.localeCompare(b.name,undefined,{numeric:true});});
+
+  var existingNames = rows.map(function(r){ return r.file.name.toLowerCase(); });
+  var skippedFiles  = [];
+
   validFiles.forEach(function(file) {
+    // ── ตรวจชื่อไฟล์ซ้ำ ──────────────────────────────────
+    if (existingNames.indexOf(file.name.toLowerCase()) !== -1) {
+      skippedFiles.push(file.name);
+      return;
+    }
+    existingNames.push(file.name.toLowerCase());
     var row = {
       id:++_rowIdCounter, file:file, photoData:null,
       photoType:file.type==='application/pdf'?'pdf':'image',
@@ -399,6 +411,10 @@ function processFiles(files) {
     reader.readAsDataURL(file);
     rows.push(row);
   });
+
+  if (skippedFiles.length > 0) {
+    showToast('ไฟล์ซ้ำ '+skippedFiles.length+' ไฟล์ (ข้ามไป): '+skippedFiles.slice(0,2).join(', ')+(skippedFiles.length>2?' ...':''), 'error');
+  }
 
   // Soft warning
   if (rows.length > BATCH_WARN && rows.length < BATCH_LIMIT) {
@@ -468,8 +484,8 @@ function _setDate(rid, iso) {
     tr.className = 'row-' + newStatus;
     var badge = tr.querySelector('.status-badge');
     if (badge) {
-      var labels = {idle:'รอ Barcode',found:'พบข้อมูล',notfound:'ไม่พบ',ready:'พร้อมส่ง'};
-      var cls    = {idle:'status-idle',found:'status-found',notfound:'status-notfound',ready:'status-ready'};
+      var labels = {idle:'รอ Barcode',found:'พบข้อมูล',notfound:'ไม่พบ',ready:'พร้อมส่ง',dup:'Barcode ซ้ำ'};
+      var cls    = {idle:'status-idle',found:'status-found',notfound:'status-notfound',ready:'status-ready',dup:'status-dup'};
       badge.className  = 'status-badge ' + (cls[newStatus]||'');
       badge.textContent = labels[newStatus]||'';
     }
@@ -529,8 +545,14 @@ function renderTable() {
   var tbody=document.getElementById('batchBody');
   tbody.innerHTML=rows.map(function(row,i){
     var thumbHtml=row.photoType==='pdf'?'<div class="pdf-thumb">📄</div>':(row.photoData?'<img class="file-thumb" src="'+row.photoData+'">':'<div class="pdf-thumb">🖼</div>');
-    var statusHtml={idle:'<span class="status-badge status-idle">รอ Barcode</span>',found:'<span class="status-badge status-found">พบข้อมูล</span>',notfound:'<span class="status-badge status-notfound">ไม่พบ</span>',ready:'<span class="status-badge status-ready">พร้อมส่ง</span>'}[row.status]||'';
-    var bcClass=row.status==='found'||row.status==='ready'?'bc-input found':row.status==='notfound'?'bc-input notfound':'bc-input';
+    var statusHtml={
+      idle    :'<span class="status-badge status-idle">รอ Barcode</span>',
+      found   :'<span class="status-badge status-found">พบข้อมูล</span>',
+      notfound:'<span class="status-badge status-notfound">ไม่พบ</span>',
+      ready   :'<span class="status-badge status-ready">พร้อมส่ง</span>',
+      dup     :'<span class="status-badge status-dup">Barcode ซ้ำ</span>'
+    }[row.status]||'';
+    var bcClass='bc-input'+(row.status==='found'||row.status==='ready'?' found':row.status==='notfound'?' notfound':row.status==='dup'?' dup':'');
     var ev=row.editVals;
     var rid=row.id;
     return '<tr class="row-'+row.status+'" id="row-'+rid+'">'+
@@ -574,6 +596,16 @@ function onBarcodeChange(id, value) {
   if (!row.barcode) {
     row.status = 'idle'; row.doc = null;
     _updateRowDOM(row);
+    updateSubmitBtn();
+    return;
+  }
+
+  // ── ตรวจ barcode ซ้ำกับแถวอื่น ───────────────────────────
+  var dupRow = rows.find(function(r){ return r.id !== idNum && r.barcode === row.barcode; });
+  if (dupRow) {
+    row.status = 'dup';
+    _updateRowDOM(row);
+    showToast('⚠️ Barcode "'+row.barcode+'" ซ้ำกับแถวที่ '+(rows.indexOf(dupRow)+1), 'error');
     updateSubmitBtn();
     return;
   }
@@ -627,14 +659,14 @@ function _updateRowDOM(row) {
   var bcEl = tr.querySelector('.bc-input');
   if (bcEl) {
     bcEl.className = 'bc-input' +
-      (st === 'found' || st === 'ready' ? ' found' : st === 'notfound' ? ' notfound' : '');
+      (st === 'found' || st === 'ready' ? ' found' : st === 'notfound' ? ' notfound' : st === 'dup' ? ' dup' : '');
   }
 
   // status badge
   var badge = tr.querySelector('.status-badge');
   if (badge) {
     var labels = {idle:'รอ Barcode', found:'พบข้อมูล', notfound:'ไม่พบ', ready:'พร้อมส่ง'};
-    var cls    = {idle:'status-idle', found:'status-found', notfound:'status-notfound', ready:'status-ready'};
+    var cls    = {idle:'status-idle', found:'status-found', notfound:'status-notfound', ready:'status-ready', dup:'status-dup'};
     badge.className  = 'status-badge ' + (cls[st] || '');
     badge.textContent = labels[st] || '';
   }
@@ -688,8 +720,8 @@ function updateEdit(id, field, value) {
       // อัป status badge
       var badge = tr.querySelector('.status-badge');
       if (badge) {
-        var labels = {idle:'รอ Barcode',found:'พบข้อมูล',notfound:'ไม่พบ',ready:'พร้อมส่ง'};
-        var cls    = {idle:'status-idle',found:'status-found',notfound:'status-notfound',ready:'status-ready'};
+        var labels = {idle:'รอ Barcode',found:'พบข้อมูล',notfound:'ไม่พบ',ready:'พร้อมส่ง',dup:'Barcode ซ้ำ'};
+        var cls    = {idle:'status-idle',found:'status-found',notfound:'status-notfound',ready:'status-ready',dup:'status-dup'};
         badge.className = 'status-badge ' + (cls[newStatus]||'');
         badge.textContent = labels[newStatus] || '';
       }
@@ -704,13 +736,14 @@ function removeRow(id){var idNum=Number(id);rows=rows.filter(function(r){return 
 function clearAll(){if(rows.length&&confirm('ล้างทั้งหมด?')){rows=[];renderTable();updateBatchCounter();}}
 
 function updateSubmitBtn(){
-  var ready=rows.filter(function(r){return r.barcode&&r.editVals.transferFrom&&r.editVals.transferTo&&r.editVals.receivedDate&&r.editVals.sentQty&&r.editVals.receivedQty;});
+  var ready=rows.filter(function(r){return r.status!=='dup'&&r.barcode&&r.editVals.transferFrom&&r.editVals.transferTo&&r.editVals.receivedDate&&r.editVals.sentQty&&r.editVals.receivedQty;});
+  var dupCount=rows.filter(function(r){return r.status==='dup';}).length;
   var btn=document.getElementById('submitBtn');btn.disabled=ready.length===0;
-  btn.textContent=ready.length>0?'ยืนยัน '+ready.length+' รายการ สู่ Google Sheet':'ยืนยัน 0 รายการ สู่ Google Sheet';
+  btn.textContent=ready.length>0?'ยืนยัน '+ready.length+' รายการ สู่ Google Sheet'+(dupCount?' (ซ้ำ '+dupCount+' ข้าม)':''):'ยืนยัน 0 รายการ สู่ Google Sheet';
 }
 
 async function submitBatch(){
-  var ready=rows.filter(function(r){return r.barcode&&r.editVals.transferFrom&&r.editVals.transferTo&&r.editVals.receivedDate&&r.editVals.sentQty&&r.editVals.receivedQty;});
+  var ready=rows.filter(function(r){return r.status!=='dup'&&r.barcode&&r.editVals.transferFrom&&r.editVals.transferTo&&r.editVals.receivedDate&&r.editVals.sentQty&&r.editVals.receivedQty;});
   if(!ready.length)return;
   var btn=document.getElementById('submitBtn');btn.disabled=true;
   try{
