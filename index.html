@@ -100,31 +100,13 @@ main{max-width:680px;margin:0 auto;padding:20px 16px 100px;}
 .site-badge{background:rgba(56,189,248,0.12);border:1px solid rgba(56,189,248,0.3);color:var(--accent);font-size:12px;padding:3px 10px;border-radius:6px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px;}
 .help-btn{width:30px;height:30px;border-radius:50%;background:var(--surface2);border:1px solid var(--border);color:var(--muted);font-family:var(--font);font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background 0.15s,color 0.15s;}
 .help-btn:hover{background:var(--accent);color:#0f172a;border-color:var(--accent);}
-.manual-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:600;display:none;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;}
-.manual-overlay.open{display:flex;}
-.manual-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);width:100%;max-width:520px;overflow:hidden;margin:auto;}
-.manual-head{padding:18px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
-.manual-head-title{font-size:16px;font-weight:600;}
-.manual-close{background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;line-height:1;padding:2px 6px;}
-.manual-close:hover{color:var(--danger);}
-.manual-body{padding:20px;display:flex;flex-direction:column;gap:20px;}
-.manual-step{display:flex;gap:14px;align-items:flex-start;}
-.manual-step-num{width:28px;height:28px;border-radius:50%;background:var(--accent);color:#0f172a;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;}
-.manual-step-content{flex:1;}
-.manual-step-title{font-size:14px;font-weight:600;margin-bottom:4px;}
-.manual-step-desc{font-size:13px;color:var(--muted);line-height:1.7;}
-.manual-step-desc b{color:var(--text);}
-.manual-divider{border:none;border-top:1px solid var(--border);}
-.manual-note{background:rgba(56,189,248,0.08);border:1px solid rgba(56,189,248,0.2);border-radius:var(--rs);padding:12px 14px;font-size:12px;color:var(--muted);line-height:1.7;}
-.manual-note b{color:var(--accent);}
-.manual-warn{background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.2);border-radius:var(--rs);padding:12px 14px;font-size:12px;color:var(--muted);line-height:1.7;}
-.manual-warn b{color:var(--warn);}
-@media(max-width:480px){.fields-grid{grid-template-columns:1fr;}.edit-row{grid-template-columns:1fr;}.photo-col{width:110px;}.photo-box{width:90px;height:110px;}}
+.logout-btn{background:none;border:1px solid var(--border);color:var(--muted);border-radius:var(--rs);padding:7px 12px;font-family:var(--font);font-size:12px;cursor:pointer;}
+.logout-btn:hover{border-color:var(--danger);color:var(--danger);}
 </style>
 </head>
 <body>
 
-<!-- ── Site Overlay ── -->
+<!-- Site Overlay -->
 <div class="site-overlay" id="siteOverlay">
   <div class="site-box">
     <div class="site-box-header">
@@ -132,7 +114,6 @@ main{max-width:680px;margin:0 auto;padding:20px 16px 100px;}
         <div class="site-box-title">เลือก Site งาน</div>
         <div class="site-box-sub">กรุณากรอกข้อมูลก่อนเริ่มสแกน barcode</div>
       </div>
-      <button class="help-btn" onclick="openManual()">?</button>
     </div>
     <div class="site-box-body">
       <label class="site-label">รหัสพนักงาน</label>
@@ -165,39 +146,7 @@ main{max-width:680px;margin:0 auto;padding:20px 16px 100px;}
   </div>
 </div>
 
-<!-- ── Manual Modal ── -->
-<div class="manual-overlay" id="manualOverlay">
-  <div class="manual-box">
-    <div class="manual-head">
-      <div class="manual-head-title">คู่มือการใช้งาน DocScan</div>
-      <button class="manual-close" onclick="closeManual()">×</button>
-    </div>
-    <div class="manual-body">
-      <div class="manual-step"><div class="manual-step-num">1</div><div class="manual-step-content"><div class="manual-step-title">กรอกข้อมูลผู้ใช้งาน</div><div class="manual-step-desc">กรอก <b>รหัสพนักงาน</b>, <b>ชื่อ-นามสกุล</b>, <b>Email</b> และ <b>Site</b> จากนั้นกด <b>เริ่มสแกน</b></div></div></div>
-      <hr class="manual-divider">
-      <div class="manual-step"><div class="manual-step-num">2</div><div class="manual-step-content"><div class="manual-step-title">สแกน Barcode</div><div class="manual-step-desc"><b>กล้องมือถือ</b> — กดปุ่ม เปิดกล้อง<br><b>พิมพ์เอง</b> — ใช้ช่องค้นหาแล้วกด Enter</div></div></div>
-      <hr class="manual-divider">
-      <div class="manual-step"><div class="manual-step-num">3</div><div class="manual-step-content"><div class="manual-step-title">ถ่ายรูป / Upload เอกสาร</div><div class="manual-step-desc">กดปุ่ม <b>📷 ถ่ายรูป</b> หรือ <b>📁 Upload</b> (รองรับรูปภาพและ PDF)</div></div></div>
-      <hr class="manual-divider">
-      <div class="manual-step"><div class="manual-step-num">4</div><div class="manual-step-content"><div class="manual-step-title">แก้ไขและเพิ่มรายการ</div><div class="manual-step-desc">ตรวจสอบข้อมูล แก้ไขถ้าไม่ตรง แล้วกด <b>+ เพิ่มลงรายการ</b></div></div></div>
-      <hr class="manual-divider">
-      <div class="manual-step"><div class="manual-step-num">5</div><div class="manual-step-content"><div class="manual-step-title">ยืนยันและบันทึก</div><div class="manual-step-desc">กดปุ่ม <b>ยืนยัน X รายการ สู่ Google Sheet</b></div></div></div>
-      <hr class="manual-divider">
-      <div class="manual-warn">
-  <b>กรณีไม่พบ Barcode ในระบบ</b><br>
-  ระบบจะแสดงสัญลักษณ์สีเหลือง และบันทึกเป็น <b>NOT FOUND</b> โดยอัตโนมัติ<br><br>
-  กรุณากรอกข้อมูลจากเอกสารจริงให้ครบถ้วนในส่วน <b>แก้ไขข้อมูลก่อนเพิ่ม</b> ได้แก่<br>
-  • โอนจาก / เลขที่บัญชีต้นทาง<br>
-  • โอนไป / เลขที่บัญชีปลายทาง<br>
-  • วันที่ส่ง / วันที่รับ<br>
-  • ยอดที่ส่ง / ยอดที่รับจริง
-</div>
-      <div class="manual-note"><b>สอบถามเพิ่มเติม</b> <a href="mailto:Palletmanagement@brs-group.com" style="color:var(--accent);">Palletmanagement@brs-group.com</a></div>
-    </div>
-  </div>
-</div>
-
-<!-- ── Header ── -->
+<!-- Header -->
 <header>
   <div class="logo">
     <div class="logo-icon">
@@ -211,17 +160,14 @@ main{max-width:680px;margin:0 auto;padding:20px 16px 100px;}
   </div>
   <div style="display:flex;align-items:center;gap:8px;">
     <div class="site-badge" id="siteBadge" onclick="changeSite()">—</div>
-    <button class="help-btn" onclick="openManual()">?</button>
     <a href="dashboard.html" class="cart-btn" style="text-decoration:none;">📊 Dashboard</a>
     <a href="batch.html" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:10px;padding:8px 14px;font-family:var(--font);font-size:13px;cursor:pointer;display:flex;align-items:center;gap:6px;text-decoration:none;">📦 Batch</a>
-<button class="cart-btn" onclick="scrollToQueue()">
-  รายการ <span class="cart-count" id="cartCount">0</span>
-</button>
+    <button class="cart-btn" onclick="scrollToQueue()">รายการ <span class="cart-count" id="cartCount">0</span></button>
+    <button class="logout-btn" onclick="DocScanAuth.clear();location.reload();" title="ออกจากระบบ">↩ ออก</button>
   </div>
 </header>
 
 <main>
-  <!-- Scanner -->
   <div class="card">
     <div class="card-header">
       <span>สแกน Barcode</span>
@@ -234,7 +180,6 @@ main{max-width:680px;margin:0 auto;padding:20px 16px 100px;}
     </div>
   </div>
 
-  <!-- Result Panel -->
   <div class="result-panel" id="resultPanel">
     <div class="result-header">
       <div style="display:flex;align-items:center;gap:10px">
@@ -246,13 +191,9 @@ main{max-width:680px;margin:0 auto;padding:20px 16px 100px;}
     <div id="notFoundBanner" style="display:none;background:rgba(251,191,36,0.1);border-bottom:1px solid rgba(251,191,36,0.3);padding:10px 16px;font-size:12px;color:#fbbf24;">
       ไม่พบ barcode นี้ในระบบ — จะบันทึกเป็น NOT FOUND ใน Log
     </div>
-
-    <!-- รูป (ซ้าย) + ข้อมูล (ขวา) -->
     <div class="doc-photo-row">
-
-      <!-- ซ้าย: รูปภาพ -->
       <div class="photo-col">
-        <div class="photo-box" id="photoBox">
+        <div class="photo-box" id="photoBox" onclick="triggerCamera()">
           <img id="photoPreview" src="" alt="preview">
           <div class="photo-placeholder" id="photoPlaceholder">
             <div class="icon">📄</div>
@@ -266,8 +207,6 @@ main{max-width:680px;margin:0 auto;padding:20px 16px 100px;}
         <button class="photo-btn-upload" onclick="document.getElementById('photoUploadInput').click()">📁 Upload</button>
         <button class="photo-btn-clear" onclick="clearPhoto()">ลบรูป</button>
       </div>
-
-      <!-- ขวา: ข้อมูลจากระบบ -->
       <div class="fields-col">
         <div class="fields-grid">
           <div class="field-cell"><div class="field-label">เลขที่อ้างอิง (Reference)</div><div class="field-value mono" id="fRefNo">—</div></div>
@@ -281,10 +220,7 @@ main{max-width:680px;margin:0 auto;padding:20px 16px 100px;}
           <div class="field-cell full"><div class="field-label">ยอดที่ส่ง (Sent QTY)</div><div class="field-value mono" id="fSentQty">—</div></div>
         </div>
       </div>
-
-    </div><!-- end doc-photo-row -->
-
-    <!-- แก้ไขข้อมูล -->
+    </div>
     <div class="edit-section">
       <div class="edit-title">แก้ไขข้อมูลก่อนเพิ่ม</div>
       <div class="edit-row">
@@ -305,9 +241,8 @@ main{max-width:680px;margin:0 auto;padding:20px 16px 100px;}
       </div>
       <button class="add-btn" onclick="addToQueue()">+ เพิ่มลงรายการ</button>
     </div>
-  </div><!-- end result-panel -->
+  </div>
 
-  <!-- Queue -->
   <div id="queueSection">
     <div class="queue-header">
       <span class="queue-title">รายการรอ Submit <span class="queue-count" id="queueCount">0</span></span>
@@ -324,67 +259,87 @@ main{max-width:680px;margin:0 auto;padding:20px 16px 100px;}
 </div>
 <div id="toast" class="toast"></div>
 
-<!-- Camera Modal (Desktop) -->
-<div id="cameraModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:700;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:20px;">
-  <video id="cameraStream" autoplay playsinline style="width:100%;max-width:480px;border-radius:var(--r);background:#000;"></video>
-  <canvas id="cameraCanvas" style="display:none;"></canvas>
-  <div style="display:flex;gap:12px;">
-    <button onclick="captureFromCamera()" style="background:var(--accent);color:#0f172a;border:none;border-radius:var(--rs);padding:12px 28px;font-family:var(--font);font-size:15px;font-weight:700;cursor:pointer;">📸 ถ่าย</button>
-    <button onclick="closeCamera()" style="background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:var(--rs);padding:12px 20px;font-family:var(--font);font-size:15px;cursor:pointer;">ยกเลิก</button>
-  </div>
-</div>
-
 <script>
-var queue          = [];
-var currentDoc     = null;
-var currentPhoto   = null;
+// ── DocScan Shared Auth (inline) ──────────────────────────
+var DocScanAuth = (function () {
+  var KEY = 'docScanSession';
+  function save(empId, empName, empEmail, site) {
+    localStorage.setItem(KEY, JSON.stringify({ empId:empId, empName:empName, empEmail:empEmail, site:site }));
+  }
+  function load() {
+    try {
+      var raw = localStorage.getItem(KEY);
+      if (!raw) return null;
+      var s = JSON.parse(raw);
+      return (s.empId && s.empName && s.empEmail && s.site) ? s : null;
+    } catch(e) { return null; }
+  }
+  function clear() { localStorage.removeItem(KEY); }
+  function requireAuth() { var s=load(); if(!s){window.location.href='index.html';return null;} return s; }
+  return { save:save, load:load, clear:clear, requireAuth:requireAuth };
+})();
+
+// ── App Variables ─────────────────────────────────────────
+var queue = [];
+var currentDoc = null;
+var currentPhoto = null;
 var currentPhotoType = '';
-var scanning       = false;
-var codeReader     = null;
-var selectedSite   = '';
-var selectedEmpId  = '';
-var selectedEmpName  = '';
+var scanning = false;
+var codeReader = null;
+var selectedSite = '';
+var selectedEmpId = '';
+var selectedEmpName = '';
 var selectedEmpEmail = '';
-var csvData        = [];
-var csvLoaded      = false;
-var cameraStream   = null;
-var isMobile       = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+var csvData = [];
+var csvLoaded = false;
+var cameraStream = null;
+var isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
 var API_URL = 'https://script.google.com/macros/s/AKfycbwlMQRPrx8I6S9aTnCWHDJ-os0xe5dAZ-xPaMw_fmY1ICZHMwTia_RthEg6JseFrmPc8w/exec';
 var CSV_URL = API_URL + '?action=getCSV';
 
-window.onload = function() {
+// ── Init ──────────────────────────────────────────────────
+window.onload = function () {
   var today = new Date().toISOString().split('T')[0];
-  document.getElementById('editDespatch').value     = today;
+  document.getElementById('editDespatch').value = today;
   document.getElementById('editReceivedDate').value = today;
   if (isMobile) document.getElementById('photoCameraInput').setAttribute('capture', 'environment');
+
+  var s = DocScanAuth.load();
+  if (s) {
+    selectedSite = s.site; selectedEmpId = s.empId;
+    selectedEmpName = s.empName; selectedEmpEmail = s.empEmail;
+    document.getElementById('siteOverlay').style.display = 'none';
+    document.getElementById('siteBadge').textContent = s.empName + ' · ' + s.site;
+    document.getElementById('userEmail').textContent = s.empId + ' — ' + s.empName + ' (' + s.empEmail + ')';
+    document.getElementById('empId').value = s.empId;
+    document.getElementById('empName').value = s.empName;
+    document.getElementById('empEmail').value = s.empEmail;
+    document.getElementById('siteSelect').value = s.site;
+  }
   loadCSV();
 };
 
+// ── CSV ───────────────────────────────────────────────────
 function loadCSV() {
   fetch(CSV_URL, { method: 'GET', redirect: 'follow' })
     .then(function(r) { return r.text(); })
     .then(function(text) {
-      csvData = parseCSV(text);
-      csvLoaded = true;
-      document.getElementById('userEmail').textContent = 'โหลดข้อมูลสำเร็จ ' + csvData.length + ' รายการ';
+      csvData = parseCSV(text); csvLoaded = true;
+      document.getElementById('userEmail').textContent = (selectedEmpId ? selectedEmpId + ' — ' + selectedEmpName + ' | ' : '') + 'โหลดข้อมูลสำเร็จ ' + csvData.length + ' รายการ';
       showToast('โหลดข้อมูล ' + csvData.length + ' รายการแล้ว', 'success');
     })
-    .catch(function(err) {
-      document.getElementById('userEmail').textContent = 'โหลดข้อมูลไม่สำเร็จ';
-      showToast('โหลด CSV ไม่สำเร็จ: ' + err.message, 'error');
-    });
+    .catch(function(err) { showToast('โหลด CSV ไม่สำเร็จ: ' + err.message, 'error'); });
 }
 
 function parseCSV(text) {
-  var lines = text.replace(/\r/g, '').split('\n').filter(function(l) { return l.trim(); });
+  var lines = text.replace(/\r/g,'').split('\n').filter(function(l){return l.trim();});
   if (lines.length < 2) return [];
-  var headers = lines[0].replace(/^\uFEFF/, '').split(',');
+  var headers = lines[0].replace(/^\uFEFF/,'').split(',');
   var rows = [];
   for (var i = 1; i < lines.length; i++) {
-    var vals = lines[i].split(',');
-    var obj = {};
-    headers.forEach(function(h, idx) { obj[h.trim()] = (vals[idx] || '').trim(); });
+    var vals = lines[i].split(','); var obj = {};
+    headers.forEach(function(h,idx){obj[h.trim()]=(vals[idx]||'').trim();});
     rows.push(obj);
   }
   return rows;
@@ -392,9 +347,10 @@ function parseCSV(text) {
 
 function searchInCSV(barcode) {
   barcode = barcode.trim().toUpperCase();
-  return csvData.find(function(row) { return (row['barcode'] || '').trim().toUpperCase() === barcode; }) || null;
+  return csvData.find(function(row){return (row['barcode']||'').trim().toUpperCase()===barcode;}) || null;
 }
 
+// ── Site Selection ────────────────────────────────────────
 function checkSiteSelected() {
   var ok = document.getElementById('siteSelect').value &&
            document.getElementById('empId').value.trim() &&
@@ -404,28 +360,27 @@ function checkSiteSelected() {
 }
 
 function confirmSite() {
-  var site  = document.getElementById('siteSelect').value;
+  var site = document.getElementById('siteSelect').value;
   var empId = document.getElementById('empId').value.trim();
-  var name  = document.getElementById('empName').value.trim();
+  var name = document.getElementById('empName').value.trim();
   var email = document.getElementById('empEmail').value.trim();
   if (!site || !empId || !name || !email) return;
   selectedSite = site; selectedEmpId = empId; selectedEmpName = name; selectedEmpEmail = email;
+  DocScanAuth.save(empId, name, email, site);
   document.getElementById('siteBadge').textContent = name + ' · ' + site;
-  document.getElementById('userEmail').textContent  = empId + ' — ' + name + ' (' + email + ')';
-  localStorage.setItem('selectedSite', site);
+  document.getElementById('userEmail').textContent = empId + ' — ' + name + ' (' + email + ')';
   document.getElementById('siteOverlay').style.display = 'none';
 }
 
 function changeSite() { document.getElementById('siteOverlay').style.display = 'flex'; }
-function openManual()  { document.getElementById('manualOverlay').classList.add('open'); }
-function closeManual() { document.getElementById('manualOverlay').classList.remove('open'); }
 
+// ── Scanner ───────────────────────────────────────────────
 function toggleScanner() { scanning ? stopScanner() : startScanner(); }
 
 function startScanner() {
   document.getElementById('reader').style.display = 'block';
   codeReader = new Html5Qrcode('reader');
-  codeReader.start({ facingMode: 'environment' }, { fps: 10, qrbox: { width: 250, height: 150 } },
+  codeReader.start({ facingMode:'environment' }, { fps:10, qrbox:{width:250,height:150} },
     function(decoded) { stopScanner(); document.getElementById('manualInput').value = decoded; fetchDoc(decoded); },
     function() {}
   ).then(function() {
@@ -439,7 +394,7 @@ function startScanner() {
 }
 
 function stopScanner() {
-  if (codeReader) { codeReader.stop().then(function() { codeReader.clear(); codeReader = null; }).catch(function() { codeReader = null; }); }
+  if (codeReader) { codeReader.stop().then(function(){codeReader.clear();codeReader=null;}).catch(function(){codeReader=null;}); }
   document.getElementById('reader').style.display = 'none';
   scanning = false;
   var b = document.getElementById('scanBtn');
@@ -451,7 +406,7 @@ function searchBarcode() { var v = document.getElementById('manualInput').value.
 function fetchDoc(barcode) {
   document.getElementById('loadSpinner').style.display = 'block';
   document.getElementById('resultPanel').classList.remove('visible');
-  if (!csvLoaded) { showToast('กำลังโหลดข้อมูล กรุณารอสักครู่...', 'info'); document.getElementById('loadSpinner').style.display = 'none'; return; }
+  if (!csvLoaded) { showToast('กำลังโหลดข้อมูล กรุณารอสักครู่...','info'); document.getElementById('loadSpinner').style.display='none'; return; }
   var row = searchInCSV(barcode);
   document.getElementById('loadSpinner').style.display = 'none';
   showDoc(row || { barcode: barcode }, !row);
@@ -459,128 +414,75 @@ function fetchDoc(barcode) {
 
 function formatDate(val) {
   if (!val) return '—';
-  try { var d = new Date(val); if (isNaN(d.getTime())) return val; return String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0') + '/' + d.getFullYear(); }
+  try { var d=new Date(val); if(isNaN(d.getTime())) return val; return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear(); }
   catch(e) { return val; }
 }
 
 function toInputDate(val) {
   if (!val) return new Date().toISOString().split('T')[0];
   try {
-    if (val.includes('/')) { var p = val.split('/'); if (p.length === 3) return (p[2].length===2?'20'+p[2]:p[2]) + '-' + p[1].padStart(2,'0') + '-' + p[0].padStart(2,'0'); }
+    if (val.indexOf('/')>-1) { var p=val.split('/'); if(p.length===3){var y=p[2].length===2?'20'+p[2]:p[2];return y+'-'+p[1].padStart(2,'0')+'-'+p[0].padStart(2,'0');} }
     return new Date(val).toISOString().split('T')[0];
   } catch(e) { return ''; }
 }
 
 function showDoc(d, notFound) {
   currentDoc = {
-    barcode: d['barcode'] || d.barcode || '', ref_no: d['ref_no'] || '',
-    item_name: d['item_name'] || '', transfer_from: d['customer_start_name'] || '',
-    origin_acc: d['customer_start_code'] || '', transfer_to: d['customer_destination_name'] || '',
-    dest_acc: d['customer_destination_code'] || '', despatch_date: d['create_at'] || '',
-    received_date_pcs: d['real_recived_at'] || '', sent_qty: d['total'] || '', not_found: !!notFound
+    barcode:d['barcode']||d.barcode||'', ref_no:d['ref_no']||'', item_name:d['item_name']||'',
+    transfer_from:d['customer_start_name']||'', origin_acc:d['customer_start_code']||'',
+    transfer_to:d['customer_destination_name']||'', dest_acc:d['customer_destination_code']||'',
+    despatch_date:d['create_at']||'', received_date_pcs:d['real_recived_at']||'',
+    sent_qty:d['total']||'', received_qty:d['total']||'', not_found:!!notFound
   };
-  document.getElementById('rBarcode').textContent       = currentDoc.barcode;
-  document.getElementById('rTitle').textContent         = notFound ? 'ไม่พบในระบบ' : 'ข้อมูลเอกสาร';
-  document.getElementById('rBarcode').style.background  = notFound ? 'rgba(251,191,36,0.12)' : 'rgba(56,189,248,0.12)';
-  document.getElementById('rBarcode').style.borderColor = notFound ? 'rgba(251,191,36,0.4)' : 'rgba(56,189,248,0.3)';
-  document.getElementById('rBarcode').style.color       = notFound ? '#fbbf24' : '#38bdf8';
+  document.getElementById('rBarcode').textContent = currentDoc.barcode;
+  document.getElementById('rTitle').textContent = notFound ? 'ไม่พบในระบบ' : 'ข้อมูลเอกสาร';
   document.getElementById('notFoundBanner').style.display = notFound ? 'block' : 'none';
-  document.getElementById('fRefNo').textContent        = currentDoc.ref_no       || '—';
-  document.getElementById('fItemName').textContent     = currentDoc.item_name     || '—';
+  document.getElementById('fRefNo').textContent = currentDoc.ref_no || '—';
+  document.getElementById('fItemName').textContent = currentDoc.item_name || '—';
   document.getElementById('fTransferFrom').textContent = currentDoc.transfer_from || '—';
-  document.getElementById('fOriginAcc').textContent    = currentDoc.origin_acc    || '—';
-  document.getElementById('fTransferTo').textContent   = currentDoc.transfer_to   || '—';
-  document.getElementById('fDestAcc').textContent      = currentDoc.dest_acc      || '—';
-  document.getElementById('fDespatch').textContent     = formatDate(currentDoc.despatch_date)     || '—';
-  document.getElementById('fReceivedPCS').textContent  = formatDate(currentDoc.received_date_pcs) || '—';
-  document.getElementById('fSentQty').textContent      = currentDoc.sent_qty      || '—';
-  document.getElementById('editTransferFrom').value  = currentDoc.transfer_from;
-  document.getElementById('editOriginAcc').value     = currentDoc.origin_acc;
-  document.getElementById('editTransferTo').value    = currentDoc.transfer_to;
-  document.getElementById('editDestAcc').value       = currentDoc.dest_acc;
-  document.getElementById('editDespatch').value      = toInputDate(currentDoc.despatch_date);
-  document.getElementById('editReceivedDate').value  = toInputDate(currentDoc.received_date_pcs);
-  document.getElementById('editSentQty').value       = currentDoc.sent_qty;
-  document.getElementById('editReceivedQty').value   = currentDoc.sent_qty;
-  clearPhoto();
+  document.getElementById('fOriginAcc').textContent = currentDoc.origin_acc || '—';
+  document.getElementById('fTransferTo').textContent = currentDoc.transfer_to || '—';
+  document.getElementById('fDestAcc').textContent = currentDoc.dest_acc || '—';
+  document.getElementById('fDespatch').textContent = formatDate(currentDoc.despatch_date);
+  document.getElementById('fReceivedPCS').textContent = formatDate(currentDoc.received_date_pcs);
+  document.getElementById('fSentQty').textContent = currentDoc.sent_qty || '—';
+  document.getElementById('editTransferFrom').value = currentDoc.transfer_from;
+  document.getElementById('editOriginAcc').value = currentDoc.origin_acc;
+  document.getElementById('editTransferTo').value = currentDoc.transfer_to;
+  document.getElementById('editDestAcc').value = currentDoc.dest_acc;
+  document.getElementById('editDespatch').value = toInputDate(currentDoc.despatch_date);
+  document.getElementById('editSentQty').value = currentDoc.sent_qty;
+  document.getElementById('editReceivedQty').value = currentDoc.received_qty;
   document.getElementById('resultPanel').classList.add('visible');
 }
 
 // ── Photo ─────────────────────────────────────────────────
-function triggerCamera() {
-  if (isMobile) { document.getElementById('photoCameraInput').click(); }
-  else { openCamera(); }
-}
+function triggerCamera() { document.getElementById(isMobile ? 'photoCameraInput' : 'photoUploadInput').click(); }
 
-function openCamera() {
-  navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
-    .then(function(stream) {
-      cameraStream = stream;
-      document.getElementById('cameraStream').srcObject = stream;
-      document.getElementById('cameraModal').style.display = 'flex';
-    })
-    .catch(function(err) { showToast('ไม่สามารถเปิดกล้องได้: ' + err.message, 'error'); });
-}
-
-function captureFromCamera() {
-  var video = document.getElementById('cameraStream');
-  var canvas = document.getElementById('cameraCanvas');
-  canvas.width = video.videoWidth; canvas.height = video.videoHeight;
-  canvas.getContext('2d').drawImage(video, 0, 0);
-  var maxW = 800; var scale = Math.min(1, maxW / canvas.width);
-  var out = document.createElement('canvas');
-  out.width = canvas.width * scale; out.height = canvas.height * scale;
-  out.getContext('2d').drawImage(canvas, 0, 0, out.width, out.height);
-  currentPhoto = out.toDataURL('image/jpeg', 0.75);
-  currentPhotoType = 'image';
-  var preview = document.getElementById('photoPreview');
-  preview.src = currentPhoto; preview.style.display = 'block';
-  document.getElementById('photoPlaceholder').style.display = 'none';
-  document.getElementById('pdfIndicator').style.display = 'none';
-  closeCamera();
-}
-
-function closeCamera() {
-  if (cameraStream) { cameraStream.getTracks().forEach(function(t) { t.stop(); }); cameraStream = null; }
-  document.getElementById('cameraModal').style.display = 'none';
-}
-
-function handlePhoto(event) {
-  var file = event.target.files[0];
-  if (!file) return;
-
+function handlePhoto(e) {
+  var file = e.target.files[0]; if (!file) return;
+  currentPhotoType = file.type === 'application/pdf' ? 'pdf' : 'image';
   if (file.type === 'application/pdf') {
-    var reader = new FileReader();
-    reader.onload = function(e) {
-      currentPhoto = e.target.result;
-      currentPhotoType = 'pdf';
-      document.getElementById('photoPreview').style.display    = 'none';
-      document.getElementById('photoPlaceholder').style.display = 'none';
-      document.getElementById('pdfIndicator').style.display    = 'flex';
-      document.getElementById('pdfIndicator').innerHTML =
-        '<div style="font-size:28px;">📄</div>' +
-        '<div style="font-size:10px;color:var(--success);font-weight:600;text-align:center;word-break:break-all;">' + file.name + '</div>';
-    };
-    reader.readAsDataURL(file);
+    currentPhoto = null;
+    document.getElementById('photoPlaceholder').style.display = 'none';
+    document.getElementById('pdfIndicator').style.display = 'flex';
+    document.getElementById('pdfIndicator').innerHTML = '<div style="font-size:32px;">📄</div><div style="font-size:11px;color:var(--accent);">'+file.name+'</div>';
     return;
   }
-
-  currentPhotoType = 'image';
-  document.getElementById('pdfIndicator').style.display = 'none';
   var reader = new FileReader();
-  reader.onload = function(e) {
+  reader.onload = function(ev) {
     var img = new Image();
     img.onload = function() {
       var canvas = document.createElement('canvas');
-      var maxW = 800; var scale = Math.min(1, maxW / img.width);
-      canvas.width = img.width * scale; canvas.height = img.height * scale;
+      var maxW = 800; var scale = Math.min(1, maxW/img.width);
+      canvas.width = img.width*scale; canvas.height = img.height*scale;
       canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
       currentPhoto = canvas.toDataURL('image/jpeg', 0.75);
       var preview = document.getElementById('photoPreview');
       preview.src = currentPhoto; preview.style.display = 'block';
       document.getElementById('photoPlaceholder').style.display = 'none';
     };
-    img.src = e.target.result;
+    img.src = ev.target.result;
   };
   reader.readAsDataURL(file);
 }
@@ -596,109 +498,93 @@ function clearPhoto() {
 // ── Queue ─────────────────────────────────────────────────
 function addToQueue() {
   if (!currentDoc) return;
-  var receivedDate = document.getElementById('editReceivedDate').value;
   var transferFrom = document.getElementById('editTransferFrom').value.trim();
-  var originAcc    = document.getElementById('editOriginAcc').value.trim();
-  var transferTo   = document.getElementById('editTransferTo').value.trim();
-  var destAcc      = document.getElementById('editDestAcc').value.trim();
-  var sentQty      = document.getElementById('editSentQty').value.trim();
-  var receivedQty  = document.getElementById('editReceivedQty').value.trim();
+  var originAcc = document.getElementById('editOriginAcc').value.trim();
+  var transferTo = document.getElementById('editTransferTo').value.trim();
+  var destAcc = document.getElementById('editDestAcc').value.trim();
+  var sentQty = document.getElementById('editSentQty').value.trim();
+  var receivedQty = document.getElementById('editReceivedQty').value.trim();
   var despatch = document.getElementById('editDespatch').value.trim();
-  
-
-if (!transferFrom)  { showToast('กรุณากรอก โอนจาก (Transfer From)', 'error'); document.getElementById('editTransferFrom').focus(); return; }
-if (!originAcc)     { showToast('กรุณากรอก เลขที่บัญชีต้นทาง', 'error'); document.getElementById('editOriginAcc').focus(); return; }
-if (!transferTo)    { showToast('กรุณากรอก โอนไป (Transfer To)', 'error'); document.getElementById('editTransferTo').focus(); return; }
-if (!destAcc)       { showToast('กรุณากรอก เลขที่บัญชีปลายทาง', 'error'); document.getElementById('editDestAcc').focus(); return; }
-if (!despatch)      { showToast('กรุณาระบุวันที่ส่ง (Despatch Date)', 'error'); document.getElementById('editDespatch').focus(); return; }
-if (!receivedDate)  { showToast('กรุณาระบุวันที่รับ', 'error'); document.getElementById('editReceivedDate').focus(); return; }
-if (!sentQty)       { showToast('กรุณากรอก ยอดที่ส่ง (Sent QTY)', 'error'); document.getElementById('editSentQty').focus(); return; }
-if (!receivedQty)   { showToast('กรุณากรอก ยอดที่รับ (Received QTY)', 'error'); document.getElementById('editReceivedQty').focus(); return; }
-  if (queue.find(function(q) { return q.barcode === currentDoc.barcode; })) { showToast('barcode นี้อยู่ในรายการแล้ว', 'error'); return; }
+  var receivedDate = document.getElementById('editReceivedDate').value;
+  if (!transferFrom) { showToast('กรุณากรอก โอนจาก','error'); return; }
+  if (!transferTo)   { showToast('กรุณากรอก โอนไป','error'); return; }
+  if (!receivedDate) { showToast('กรุณาระบุวันที่รับ','error'); return; }
+  if (queue.find(function(q){return q.barcode===currentDoc.barcode;})) { showToast('barcode นี้อยู่ในรายการแล้ว','error'); return; }
   queue.push({
-    barcode: currentDoc.barcode, ref_no: currentDoc.ref_no, item_name: currentDoc.item_name,
-    transfer_from: document.getElementById('editTransferFrom').value.trim(),
-    origin_acc:    document.getElementById('editOriginAcc').value.trim(),
-    transfer_to:   document.getElementById('editTransferTo').value.trim(),
-    dest_acc:      document.getElementById('editDestAcc').value.trim(),
-    despatch_date: document.getElementById('editDespatch').value,
-    received_date: receivedDate,
-    sent_qty:      document.getElementById('editSentQty').value,
-    received_qty:  document.getElementById('editReceivedQty').value,
-    not_found: currentDoc.not_found, site: selectedSite,
-    emp_id: selectedEmpId, emp_name: selectedEmpName, emp_email: selectedEmpEmail,
-    photo: currentPhoto || '', photo_url: ''
+    barcode:currentDoc.barcode, ref_no:currentDoc.ref_no, item_name:currentDoc.item_name,
+    transfer_from:transferFrom, origin_acc:originAcc, transfer_to:transferTo, dest_acc:destAcc,
+    despatch_date:despatch, received_date:receivedDate, sent_qty:sentQty, received_qty:receivedQty,
+    not_found:currentDoc.not_found, site:selectedSite, emp_id:selectedEmpId,
+    emp_name:selectedEmpName, emp_email:selectedEmpEmail, photo:currentPhoto||'', photo_url:''
   });
   renderQueue();
   document.getElementById('resultPanel').classList.remove('visible');
   document.getElementById('manualInput').value = '';
-  showToast('เพิ่ม ' + currentDoc.barcode + ' แล้ว', 'success');
-  currentDoc = null;
+  showToast('เพิ่ม '+currentDoc.barcode+' แล้ว','success');
+  currentDoc = null; clearPhoto();
 }
 
-function removeFromQueue(i) { queue.splice(i, 1); renderQueue(); }
-function clearQueue() { if (queue.length && confirm('ล้างรายการทั้งหมด?')) { queue = []; renderQueue(); } }
+function removeFromQueue(i) { queue.splice(i,1); renderQueue(); }
+function clearQueue() { if(queue.length&&confirm('ล้างรายการทั้งหมด?')){queue=[];renderQueue();} }
 
 function renderQueue() {
   var n = queue.length;
   document.getElementById('queueCount').textContent = n;
-  document.getElementById('cartCount').textContent  = n;
+  document.getElementById('cartCount').textContent = n;
   document.getElementById('cartCount').style.display = n ? 'flex' : 'none';
-  document.getElementById('submitBtn').disabled = n === 0;
-  document.getElementById('submitBtn').textContent = n ? 'ยืนยัน ' + n + ' รายการ สู่ Google Sheet' : 'ยืนยัน 0 รายการ สู่ Google Sheet';
+  document.getElementById('submitBtn').disabled = n===0;
+  document.getElementById('submitBtn').textContent = n ? 'ยืนยัน '+n+' รายการ สู่ Google Sheet' : 'ยืนยัน 0 รายการ สู่ Google Sheet';
   var list = document.getElementById('queueList');
   if (!n) { list.innerHTML = '<div class="empty">ยังไม่มีรายการ — สแกน barcode เพื่อเริ่มต้น</div>'; return; }
-  list.innerHTML = queue.map(function(item, i) {
-    var thumb = item.photo && item.photo.indexOf('data:image') === 0
-      ? '<img class="queue-thumb" src="' + item.photo + '" style="display:block;">'
+  list.innerHTML = queue.map(function(item,i) {
+    var thumb = item.photo&&item.photo.indexOf('data:image')===0
+      ? '<img class="queue-thumb" src="'+item.photo+'" style="display:block;">'
       : (item.photo ? '<div style="width:36px;height:36px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">📄</div>' : '');
-    return '<div class="queue-item">' +
-      '<div class="queue-num">' + (i+1) + '</div>' + thumb +
-      '<div class="queue-info"><div class="queue-barcode">' + item.barcode + '</div>' +
-      '<div class="queue-details">' + item.ref_no + ' · ' + item.item_name + ' · ' + item.transfer_from + ' → ' + item.transfer_to + ' · QTY: ' + item.received_qty + '</div></div>' +
-      '<button class="queue-remove" onclick="removeFromQueue(' + i + ')">✕</button></div>';
+    return '<div class="queue-item"><div class="queue-num">'+(i+1)+'</div>'+thumb+
+      '<div class="queue-info"><div class="queue-barcode">'+item.barcode+'</div>'+
+      '<div class="queue-details">'+item.ref_no+' · '+item.transfer_from+' → '+item.transfer_to+' · QTY: '+item.received_qty+'</div></div>'+
+      '<button class="queue-remove" onclick="removeFromQueue('+i+')">✕</button></div>';
   }).join('');
 }
 
-function scrollToQueue() { document.getElementById('queueSection').scrollIntoView({ behavior: 'smooth' }); }
+function scrollToQueue() { document.getElementById('queueSection').scrollIntoView({behavior:'smooth'}); }
 
+// ── Submit ────────────────────────────────────────────────
 async function submitAll() {
   if (!queue.length) return;
   var btn = document.getElementById('submitBtn');
   btn.disabled = true;
   try {
-    for (var i = 0; i < queue.length; i++) {
+    for (var i=0;i<queue.length;i++) {
       if (queue[i].photo) {
-        btn.textContent = 'อัปโหลดไฟล์ ' + (i+1) + '/' + queue.length + '...';
+        btn.textContent = 'อัปโหลดไฟล์ '+(i+1)+'/'+queue.length+'...';
         var url = await uploadPhoto(queue[i].photo, queue[i].barcode, queue[i].ref_no);
-        queue[i].photo_url = url;
-        queue[i].photo = '';
+        queue[i].photo_url = url; queue[i].photo = '';
       }
     }
     btn.textContent = 'กำลังบันทึกข้อมูล...';
-    var res  = await fetch(API_URL, { method: 'POST', redirect: 'follow', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ action: 'updateItems', items: queue }) });
+    var res = await fetch(API_URL, {method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action:'updateItems',items:queue})});
     var data = await res.json();
-    if (data.status === 'ok') { var count = queue.length; queue = []; renderQueue(); showToast('บันทึก ' + count + ' รายการเรียบร้อย', 'success'); }
-    else { showToast(data.message || 'Error', 'error'); }
-  } catch(err) { showToast('เกิดข้อผิดพลาด: ' + err.message, 'error'); }
-  btn.disabled = queue.length === 0;
-  btn.textContent = 'ยืนยัน ' + queue.length + ' รายการ สู่ Google Sheet';
+    if (data.status==='ok') { var count=queue.length; queue=[]; renderQueue(); showToast('บันทึก '+count+' รายการเรียบร้อย','success'); }
+    else { showToast(data.message||'Error','error'); }
+  } catch(err) { showToast('เกิดข้อผิดพลาด: '+err.message,'error'); }
+  btn.disabled = queue.length===0;
+  btn.textContent = 'ยืนยัน '+queue.length+' รายการ สู่ Google Sheet';
 }
 
 async function uploadPhoto(base64, barcode, refNo) {
   try {
-    var res  = await fetch(API_URL, { method: 'POST', redirect: 'follow', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ action: 'uploadPhoto', barcode: barcode, image: base64, ref_no: refNo || barcode }) });
-    var data = await res.json();
-    return data.url || '';
+    var res = await fetch(API_URL,{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action:'uploadPhoto',barcode:barcode,image:base64,ref_no:refNo||barcode})});
+    var data = await res.json(); return data.url||'';
   } catch(e) { return ''; }
 }
 
 var toastTimer;
 function showToast(msg, type) {
   var t = document.getElementById('toast');
-  t.textContent = msg; t.className = 'toast ' + (type || 'info') + ' show';
+  t.textContent = msg; t.className = 'toast '+(type||'info')+' show';
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(function() { t.classList.remove('show'); }, 3000);
+  toastTimer = setTimeout(function(){t.classList.remove('show');},3000);
 }
 </script>
 </body>
