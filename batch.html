@@ -468,21 +468,41 @@ function commitDate(el, rid) {
 }
 
 function handleDateKey(e, rid) {
-  if (e.key === 'Enter') {
-    e.preventDefault();
-    commitDate(e.target, rid);
-    // กระโดดไปแถวถัดไป
+  if (e.key !== 'Enter') return;
+  e.preventDefault();
+
+  // 1. commit วันที่ก่อน (ไม่ re-render)
+  var raw = e.target.value.trim();
+  var iso = raw ? parseDateInput(raw) : null;
+  if (raw && !iso) {
+    e.target.classList.add('err'); e.target.classList.remove('ok');
+    showToast('รูปแบบวันที่ไม่ถูกต้อง เช่น 010126 หรือ 01/01/26','error');
+    return; // ไม่กระโดดถ้า format ผิด
+  }
+  if (iso) {
+    e.target.value = toDisplayDate(iso);
+    e.target.classList.add('ok'); e.target.classList.remove('err');
+    // update ค่าโดยตรง ไม่ผ่าน updateEdit (เพื่อไม่ให้ re-render)
     var row = rows.find(function(r){ return String(r.id) === String(rid); });
-    var idx = rows.indexOf(row);
-    var nextRow = rows[idx + 1];
-    if (nextRow) {
-      setTimeout(function() {
-        var next = document.querySelector('#row-' + nextRow.id + ' .date-smart');
-        if (next) { next.focus(); next.select(); }
-      }, 50);
-    } else {
-      showToast('วันที่รับครบทุกแถวแล้ว ✅', 'success');
+    if (row) {
+      row.editVals.receivedDate = iso;
+      var ev = row.editVals;
+      var complete = row.barcode && ev.transferFrom && ev.transferTo && ev.receivedDate && ev.sentQty && ev.receivedQty;
+      row.status = complete ? 'ready' : (row.doc ? 'found' : (row.barcode ? 'notfound' : 'idle'));
+      updateSubmitBtn();
     }
+  }
+
+  // 2. หา next row แล้ว focus — DOM ยังอยู่ครบ ไม่มี re-render
+  var curRow = rows.find(function(r){ return String(r.id) === String(rid); });
+  var idx = rows.indexOf(curRow);
+  var nextRow = rows[idx + 1];
+  if (nextRow) {
+    var next = document.querySelector('#row-' + nextRow.id + ' .date-smart');
+    if (next) { next.focus(); next.select(); }
+  } else {
+    showToast('วันที่รับครบทุกแถวแล้ว ✅','success');
+    e.target.blur();
   }
 }
 
@@ -558,12 +578,31 @@ function toInputDate(val){
   try{if(val.indexOf('/')>-1){var p=val.split('/');if(p.length===3){var y=p[2].length===2?'20'+p[2]:p[2];return y+'-'+p[1].padStart(2,'0')+'-'+p[0].padStart(2,'0');}}return new Date(val).toISOString().split('T')[0];}catch(e){return '';}
 }
 
-function updateEdit(id,field,value){
-  var row=rows.find(function(r){return String(r.id)===String(id);});if(!row)return;
-  row.editVals[field]=value;
-  var ev=row.editVals;
-  var complete=row.barcode&&ev.transferFrom&&ev.transferTo&&ev.receivedDate&&ev.sentQty&&ev.receivedQty;
-  row.status=complete?'ready':(row.doc?'found':(row.barcode?'notfound':'idle'));
+function updateEdit(id, field, value) {
+  var row = rows.find(function(r){ return String(r.id) === String(id); });
+  if (!row) return;
+  row.editVals[field] = value;
+  var ev = row.editVals;
+  var complete = row.barcode && ev.transferFrom && ev.transferTo && ev.receivedDate && ev.sentQty && ev.receivedQty;
+  var newStatus = complete ? 'ready' : (row.doc ? 'found' : (row.barcode ? 'notfound' : 'idle'));
+  // อัป row class ตรงๆ ไม่ re-render ทั้งตาราง
+  if (row.status !== newStatus) {
+    row.status = newStatus;
+    var tr = document.getElementById('row-' + id);
+    if (tr) {
+      tr.className = 'row-' + newStatus;
+      // อัป status badge
+      var badge = tr.querySelector('.status-badge');
+      if (badge) {
+        var labels = {idle:'รอ Barcode',found:'พบข้อมูล',notfound:'ไม่พบ',ready:'พร้อมส่ง'};
+        var cls    = {idle:'status-idle',found:'status-found',notfound:'status-notfound',ready:'status-ready'};
+        badge.className = 'status-badge ' + (cls[newStatus]||'');
+        badge.textContent = labels[newStatus] || '';
+      }
+    }
+  } else {
+    row.status = newStatus;
+  }
   updateSubmitBtn();
 }
 
