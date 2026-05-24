@@ -309,7 +309,9 @@ function confirmSite() {
   document.getElementById('siteOverlay').style.display = 'none';
 }
 
-// ── Batch Limits ──────────────────────────────────────────
+var _rowIdCounter = 0;
+
+// ── File Handling ─────────────────────────────────────────
 var BATCH_WARN  = 30;
 var BATCH_LIMIT = 50;
 
@@ -368,7 +370,7 @@ function processFiles(files) {
   validFiles.sort(function(a,b){return a.name.localeCompare(b.name,undefined,{numeric:true});});
   validFiles.forEach(function(file) {
     var row = {
-      id:Date.now()+Math.random(), file:file, photoData:null,
+      id:++_rowIdCounter, file:file, photoData:null,
       photoType:file.type==='application/pdf'?'pdf':'image',
       barcode:'', doc:null, status:'idle',
       editVals:{
@@ -450,42 +452,17 @@ function parseDateInput(raw) {
 }
 
 // flag ป้องกัน blur ทำงานหลัง Enter
-var _dateEntering = false;
-
-function commitDate(el, rid) {
-  if (_dateEntering) return; // Enter จัดการแล้ว blur ไม่ต้องทำซ้ำ
-  _applyDate(el, rid);
-}
-
-function _applyDate(el, rid) {
-  var raw = el.value.trim();
-  if (!raw) {
-    el.classList.remove('ok','err');
-    _setDate(rid, '');
-    return true;
-  }
-  var iso = parseDateInput(raw);
-  if (iso) {
-    el.value = toDisplayDate(iso);
-    el.classList.add('ok'); el.classList.remove('err');
-    _setDate(rid, iso);
-    return true;
-  } else {
-    el.classList.add('err'); el.classList.remove('ok');
-    showToast('รูปแบบวันที่ไม่ถูกต้อง เช่น 010126 หรือ 01/01/26','error');
-    return false;
-  }
-}
+var _skipBlur = false;
 
 function _setDate(rid, iso) {
-  var row = rows.find(function(r){ return String(r.id) === String(rid); });
+  var ridNum = Number(rid);
+  var row = rows.find(function(r){ return r.id === ridNum; });
   if (!row) return;
   row.editVals.receivedDate = iso;
   var ev = row.editVals;
   var complete = row.barcode && ev.transferFrom && ev.transferTo && ev.receivedDate && ev.sentQty && ev.receivedQty;
   var newStatus = complete ? 'ready' : (row.doc ? 'found' : (row.barcode ? 'notfound' : 'idle'));
   row.status = newStatus;
-  // อัป DOM ตรงๆ ไม่ re-render
   var tr = document.getElementById('row-' + rid);
   if (tr) {
     tr.className = 'row-' + newStatus;
@@ -493,45 +470,56 @@ function _setDate(rid, iso) {
     if (badge) {
       var labels = {idle:'รอ Barcode',found:'พบข้อมูล',notfound:'ไม่พบ',ready:'พร้อมส่ง'};
       var cls    = {idle:'status-idle',found:'status-found',notfound:'status-notfound',ready:'status-ready'};
-      badge.className = 'status-badge ' + (cls[newStatus]||'');
+      badge.className  = 'status-badge ' + (cls[newStatus]||'');
       badge.textContent = labels[newStatus]||'';
     }
   }
   updateSubmitBtn();
 }
 
-function handleDateKey(e, rid) {
+function _applyDateEl(el) {
+  var raw = el.value.trim();
+  var rid = el.getAttribute('data-rid');
+  if (!raw) { el.classList.remove('ok','err'); _setDate(rid, ''); return true; }
+  var iso = parseDateInput(raw);
+  if (iso) {
+    el.value = toDisplayDate(iso);
+    el.classList.add('ok'); el.classList.remove('err');
+    _setDate(rid, iso);
+    return true;
+  }
+  el.classList.add('err'); el.classList.remove('ok');
+  showToast('รูปแบบวันที่ไม่ถูกต้อง เช่น 010126 หรือ 01/01/26','error');
+  return false;
+}
+
+// ── Date delegation (keydown + blur) ──────────────────────
+document.addEventListener('keydown', function(e) {
+  if (!e.target.classList.contains('date-smart')) return;
   if (e.key !== 'Enter') return;
   e.preventDefault();
 
-  _dateEntering = true;
+  var ok = _applyDateEl(e.target);
+  if (!ok) return;
 
-  var ok = _applyDate(e.target, rid);
+  // กระโดดไป date-smart แถวถัดไปโดยใช้ลำดับใน DOM
+  var all  = Array.from(document.querySelectorAll('input.date-smart'));
+  var idx  = all.indexOf(e.target);
+  var next = all[idx + 1];
 
-  if (!ok) {
-    _dateEntering = false;
-    return; // format ผิด ไม่กระโดด
-  }
+  _skipBlur = true;
+  setTimeout(function(){ _skipBlur = false; }, 150);
 
-  // หา next date-smart แถวถัดไป
-  var curRow = rows.find(function(r){ return String(r.id) === String(rid); });
-  var idx = rows.indexOf(curRow);
-  var nextRow = rows[idx + 1];
+  if (next) { next.focus(); next.select(); }
+  else { showToast('วันที่รับครบทุกแถวแล้ว ✅','success'); }
 
-  if (nextRow) {
-    var next = document.querySelector('#row-' + nextRow.id + ' .date-smart');
-    if (next) {
-      next.focus();
-      next.select();
-    }
-  } else {
-    showToast('วันที่รับครบทุกแถวแล้ว ✅','success');
-    e.target.blur();
-  }
+}, true);
 
-  // reset flag หลัง event loop จบ
-  setTimeout(function(){ _dateEntering = false; }, 0);
-}
+document.addEventListener('blur', function(e) {
+  if (!e.target.classList.contains('date-smart')) return;
+  if (_skipBlur) return;
+  _applyDateEl(e.target);
+}, true);
 
 // ── Render Table ──────────────────────────────────────────
 function renderTable() {
@@ -561,7 +549,7 @@ function renderTable() {
         '<input class="row-input mono" value="'+esc(ev.destAcc)+'" oninput="updateEdit(\''+rid+'\',\'destAcc\',this.value)" placeholder="Dest. Acc.">'+
       '</div></td>'+
       '<td><input class="row-input" type="date" value="'+esc(ev.despatch)+'" onchange="updateEdit(\''+rid+'\',\'despatch\',this.value)"></td>'+
-      '<td><input class="row-input date-smart" data-rid="'+rid+'" value="'+esc(toDisplayDate(ev.receivedDate))+'" placeholder="ddmmyy" maxlength="10" style="font-family:var(--mono);text-align:center;" onkeydown="handleDateKey(event,\''+rid+'\')"></td>'+
+      '<td><input class="row-input date-smart" data-rid="'+rid+'" value="'+esc(toDisplayDate(ev.receivedDate))+'" placeholder="ddmmyy" maxlength="10" style="font-family:var(--mono);text-align:center;"></td>'+
       '<td><input class="row-input" type="number" min="0" value="'+esc(ev.sentQty)+'" oninput="updateEdit(\''+rid+'\',\'sentQty\',this.value)" placeholder="0" required style="text-align:right;"></td>'+
       '<td><input class="row-input" type="number" min="0" value="'+esc(ev.receivedQty)+'" oninput="updateEdit(\''+rid+'\',\'receivedQty\',this.value)" placeholder="0" required style="text-align:right;"></td>'+
       '<td><button class="remove-row-btn" onclick="removeRow(\''+rid+'\')">✕</button></td>'+
@@ -577,7 +565,8 @@ function handleBarcodeInput(id,el){clearTimeout(_bcTimer[id]);_bcTimer[id]=setTi
 
 function onBarcodeChange(id, value) {
   clearTimeout(_bcTimer[id]);
-  var row = rows.find(function(r){ return String(r.id) === String(id); });
+  var idNum = Number(id);
+  var row = rows.find(function(r){ return r.id === idNum; });
   if (!row) return;
 
   row.barcode = value.trim();
@@ -683,7 +672,8 @@ function toInputDate(val){
 }
 
 function updateEdit(id, field, value) {
-  var row = rows.find(function(r){ return String(r.id) === String(id); });
+  var idNum = Number(id);
+  var row = rows.find(function(r){ return r.id === idNum; });
   if (!row) return;
   row.editVals[field] = value;
   var ev = row.editVals;
@@ -710,7 +700,7 @@ function updateEdit(id, field, value) {
   updateSubmitBtn();
 }
 
-function removeRow(id){rows=rows.filter(function(r){return String(r.id)!==String(id);});renderTable();updateBatchCounter();}
+function removeRow(id){var idNum=Number(id);rows=rows.filter(function(r){return r.id!==idNum;});renderTable();updateBatchCounter();}
 function clearAll(){if(rows.length&&confirm('ล้างทั้งหมด?')){rows=[];renderTable();updateBatchCounter();}}
 
 function updateSubmitBtn(){
@@ -766,14 +756,6 @@ async function submitBatch(){
 async function uploadPhoto(base64,barcode,refNo){
   try{var res=await fetch(API_URL,{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action:'uploadPhoto',barcode:barcode,image:base64,ref_no:refNo||barcode})});var data=await res.json();return data.url||'';}catch(e){return '';}
 }
-
-// ── Date-smart blur delegation (bind ครั้งเดียว ไม่ถูกทำลายตอน re-render) ──
-document.addEventListener('blur', function(e) {
-  if (!e.target.classList.contains('date-smart')) return;
-  if (_dateEntering) return;
-  var rid = e.target.getAttribute('data-rid');
-  if (rid) _applyDate(e.target, rid);
-}, true); // useCapture=true เพื่อรับ blur ที่ไม่ bubble
 
 var toastTimer;
 function showToast(msg,type){var t=document.getElementById('toast');t.textContent=msg;t.className='toast '+(type||'info')+' show';clearTimeout(toastTimer);toastTimer=setTimeout(function(){t.classList.remove('show');},3000);}
