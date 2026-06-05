@@ -211,11 +211,15 @@ window.onload = function(){
 // ── Load batches ──────────────────────────────────────────
 function loadBatches(){
   document.getElementById('batchList').innerHTML='<div class="loading"><span class="spinner"></span>กำลังโหลด...</div>';
-  fetch(API_URL+'?action=getBatches&site='+encodeURIComponent(session.site))
+  // ไม่กรอง site เพื่อดู batch ทั้งหมดก่อน แล้วค่อย filter ฝั่ง client
+  fetch(API_URL+'?action=getBatches')
     .then(function(r){return r.json();})
     .then(function(data){
-      if(data.status!=='ok') throw new Error(data.message);
-      batches = data.batches||[];
+      if(data.status!=='ok') throw new Error(data.message||JSON.stringify(data));
+      // filter ฝั่ง client ตาม site ของ session
+      batches = (data.batches||[]).filter(function(b){
+        return !session.site || b.site === session.site;
+      });
       renderBatches();
       // highlight batch ที่เพิ่งสร้าง (จาก query string)
       var hl = new URLSearchParams(window.location.search).get('highlight');
@@ -227,7 +231,9 @@ function loadBatches(){
       }
     })
     .catch(function(err){
-      document.getElementById('batchList').innerHTML='<div class="empty">โหลดไม่สำเร็จ: '+err.message+'</div>';
+      document.getElementById('batchList').innerHTML=
+        '<div class="empty" style="color:var(--danger);">โหลดไม่สำเร็จ: '+err.message+'<br>'+
+        '<small style="color:var(--muted);">ตรวจสอบว่า GAS deploy ใหม่แล้วและมี Sheet doc_log</small></div>';
     });
 }
 
