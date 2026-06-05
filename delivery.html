@@ -416,7 +416,6 @@ function renderTable(){
   var n=queue.length;
   document.getElementById('queueBadge').textContent=n;
   document.getElementById('submitBtn').disabled=n===0;
-  document.getElementById('sendBtn').disabled=n===0;
   document.getElementById('submitInfo').textContent=n+' รายการ';
 
   var empty=document.getElementById('emptyState');
