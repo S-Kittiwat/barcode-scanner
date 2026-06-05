@@ -143,6 +143,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
   <nav class="sidebar-nav">
     <div class="nav-label">เมนู</div>
     <a class="nav-item active" href="delivery.html"><span class="nav-icon">📥</span> รับเอกสาร</a>
+    <a class="nav-item" href="delivery_batches.html"><span class="nav-icon">📦</span> รอส่งให้คลัง</a>
   </nav>
   <div class="sidebar-footer">
     <button class="logout-btn" onclick="DocScanAuth.clear();location.href='login.html';">↩ ออกจากระบบ</button>
@@ -241,9 +242,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
   <span class="submit-info" id="submitInfo">0 รายการ</span>
   <button class="submit-btn" id="submitBtn" onclick="submitReceive()" disabled>
     ✅ ยืนยันรับจากขนส่ง
-  </button>
-  <button class="send-btn" id="sendBtn" onclick="sendToWarehouse()" disabled>
-    📦 ส่งให้คลังพาเลท
   </button>
 </div>
 
@@ -446,47 +444,42 @@ function removeItem(i){queue.splice(i,1);renderTable();}
 function clearQueue(){if(queue.length&&confirm('ล้างรายการทั้งหมด?')){queue=[];renderTable();document.getElementById('lastScan').style.display='none';}}
 
 // ── Submit: with_delivery ────────────────────────────────
+// ── สร้าง batch_id รูปแบบ DEL-YYYYMMDD-XXX ─────────────────
+function generateBatchId() {
+  var now  = new Date();
+  var yyyy = now.getFullYear();
+  var mm   = String(now.getMonth()+1).padStart(2,'0');
+  var dd   = String(now.getDate()).padStart(2,'0');
+  var rand = String(Math.floor(Math.random()*900)+100); // 3 หลัก
+  return 'DEL-'+yyyy+mm+dd+'-'+rand;
+}
+
+// ── Submit: with_delivery ────────────────────────────────
 async function submitReceive(){
   if(!queue.length)return;
   var btn=document.getElementById('submitBtn');btn.disabled=true;
   btn.textContent='กำลังบันทึก...';
   try{
+    var batchId = generateBatchId();
     var items=queue.map(function(item){
-      return{barcode:item.barcode,status:'with_delivery',emp_id:session.empId,emp_name:session.empName,site:session.site,note:'รับจากขนส่ง'};
+      return{
+        barcode  :item.barcode,   status:'with_delivery',
+        emp_id   :session.empId,  emp_name:session.empName,
+        site     :session.site,   note:'รับจากขนส่ง',
+        batch_id :batchId
+      };
     });
-    var res=await fetch(API_URL,{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action:'updateStatus',items:items})});
+    var res=await fetch(API_URL,{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain'},
+      body:JSON.stringify({action:'updateStatus',items:items})});
     var data=await res.json();
     if(data.status==='ok'){
-      showToast('✅ บันทึกรับ '+queue.length+' รายการแล้ว','success');
-      queue=[];renderTable();
-      document.getElementById('lastScan').style.display='none';
-      loadPipeline();
-    } else { showToast(data.message||'Error','error'); }
-  }catch(err){showToast('เกิดข้อผิดพลาด: '+err.message,'error');}
-  btn.disabled=false;
-  btn.textContent='✅ ยืนยันรับจากขนส่ง';
-}
-
-// ── Send: with_warehouse ─────────────────────────────────
-async function sendToWarehouse(){
-  if(!queue.length)return;
-  if(!confirm('ส่ง '+queue.length+' รายการให้ทีมคลังพาเลท?'))return;
-  var btn=document.getElementById('sendBtn');btn.disabled=true;
-  btn.textContent='กำลังส่ง...';
-  try{
-    var items=queue.map(function(item){
-      return{barcode:item.barcode,status:'with_warehouse',emp_id:session.empId,emp_name:session.empName,site:session.site,note:'ส่งให้คลังพาเลท'};
-    });
-    var res=await fetch(API_URL,{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action:'updateStatus',items:items})});
-    var data=await res.json();
-    if(data.status==='ok'){
-      showToast('📦 ส่งให้คลัง '+queue.length+' รายการแล้ว','success');
-      queue=[];renderTable();
-      document.getElementById('lastScan').style.display='none';
-      loadPipeline();
-    } else { showToast(data.message||'Error','error'); }
-  }catch(err){showToast('เกิดข้อผิดพลาด: '+err.message,'error');}
-  btn.disabled=false;btn.textContent='📦 ส่งให้คลังพาเลท';
+      // redirect ไปหน้า batches พร้อมไฮไลท์ batch ที่เพิ่งสร้าง
+      window.location.href='delivery_batches.html?highlight='+encodeURIComponent(batchId);
+    } else { showToast(data.message||'Error','error'); btn.disabled=false; btn.textContent='✅ ยืนยันรับจากขนส่ง'; }
+  }catch(err){
+    showToast('เกิดข้อผิดพลาด: '+err.message,'error');
+    btn.disabled=false; btn.textContent='✅ ยืนยันรับจากขนส่ง';
+  }
 }
 
 var toastTimer;
