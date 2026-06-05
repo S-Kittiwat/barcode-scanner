@@ -10,11 +10,12 @@ body{font-family:sans-serif;background:#0f172a;color:#f1f5f9;display:flex;align-
 </head>
 <body>
 <script>
-// ถ้ามี session อยู่แล้ว → dashboard, ไม่งั้น → login
 try {
   var s = JSON.parse(localStorage.getItem('docScanSession'));
-  if (s && s.empId && s.site) { window.location.replace('dashboard.html'); }
-  else { window.location.replace('login.html'); }
+  if (s && s.empId && s.site) {
+    if (s.role === 'delivery') window.location.replace('delivery.html');
+    else window.location.replace('dashboard.html');
+  } else { window.location.replace('login.html'); }
 } catch(e) { window.location.replace('login.html'); }
 </script>
 <p>กำลังโหลด... <a href="login.html" style="color:#38bdf8;">คลิกที่นี่ถ้าไม่ redirect อัตโนมัติ</a></p>
