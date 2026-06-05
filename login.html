@@ -65,6 +65,15 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
       <input class="input" id="empEmail" type="email" placeholder="กรอก Email" oninput="check()">
     </div>
 
+    <div class="field">
+      <label class="label">ทีม / Role</label>
+      <select class="select" id="roleSelect" onchange="check()">
+        <option value="">— กรุณาเลือกทีม —</option>
+        <option value="warehouse">🏭 ทีมคลังพาเลท</option>
+        <option value="delivery">🚚 ทีมจัดส่ง</option>
+      </select>
+    </div>
+
     <div class="divider"></div>
 
     <div class="field" style="margin-bottom:0;">
@@ -113,7 +122,8 @@ function check() {
   var ok = document.getElementById('empId').value.trim() &&
            document.getElementById('empName').value.trim() &&
            document.getElementById('empEmail').value.trim() &&
-           document.getElementById('siteSelect').value;
+           document.getElementById('siteSelect').value &&
+           document.getElementById('roleSelect').value;
   document.getElementById('submitBtn').disabled = !ok;
 }
 
@@ -122,9 +132,14 @@ function login() {
   var name   = document.getElementById('empName').value.trim();
   var email  = document.getElementById('empEmail').value.trim();
   var site   = document.getElementById('siteSelect').value;
-  if (!empId||!name||!email||!site) return;
-  DocScanAuth.save(empId, name, email, site);
-  window.location.href = 'dashboard.html';
+  var role   = document.getElementById('roleSelect').value;
+  if (!empId||!name||!email||!site||!role) return;
+  localStorage.setItem('docScanSession', JSON.stringify({
+    empId:empId, empName:name, empEmail:email, site:site, role:role
+  }));
+  // redirect ตาม role
+  if (role === 'delivery') { window.location.href = 'delivery.html'; }
+  else { window.location.href = 'dashboard.html'; }
 }
 </script>
 </body>
