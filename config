@@ -1,0 +1,9 @@
+// ============================================================
+//  DocScan Global Config
+//  แก้ไขที่นี่ที่เดียว มีผลทุกหน้า
+// ============================================================
+var DOCSCAN_CONFIG = {
+  API_URL: 'https://script.google.com/macros/s/AKfycbwKH3eAhJ3fIQTS_wDGBaQRVuHtUJKiKoohXNVb4JoOGurisnt-jIsL0v5qZJcOdBrP3g/exec',
+  APP_NAME: 'DocScan',
+  VERSION: '1.0.0'
+};
