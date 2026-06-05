@@ -7,98 +7,124 @@
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
-:root{--bg:#0f172a;--surface:#1e293b;--surface2:#263348;--border:#334155;--accent:#38bdf8;--success:#34d399;--warn:#fbbf24;--danger:#f87171;--text:#f1f5f9;--muted:#94a3b8;--font:'IBM Plex Sans Thai',sans-serif;--mono:'IBM Plex Mono',monospace;--r:12px;--rs:8px;--sidebar:240px;}
+:root{
+  --bg:#0f172a;--surface:#1e293b;--surface2:#263348;--border:#334155;
+  --accent:#38bdf8;--success:#34d399;--warn:#fbbf24;--danger:#f87171;
+  --text:#f1f5f9;--muted:#94a3b8;
+  --font:'IBM Plex Sans Thai',sans-serif;--mono:'IBM Plex Mono',monospace;
+  --r:12px;--rs:8px;--sidebar:240px;
+}
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;display:flex;font-size:15px;}
+
+/* ── Sidebar ── */
 .sidebar{width:var(--sidebar);flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:200;}
 .sidebar-brand{padding:20px 20px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
 .brand-icon{width:36px;height:36px;background:var(--warn);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-.brand-name{font-size:14px;font-weight:600;}
-.brand-sub{font-size:10px;color:var(--muted);}
+.brand-name{font-size:14px;font-weight:600;}.brand-sub{font-size:10px;color:var(--muted);}
 .sidebar-user{padding:14px 16px;border-bottom:1px solid var(--border);background:var(--surface2);}
 .user-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .user-role{font-size:11px;color:var(--warn);margin-top:2px;}
 .sidebar-nav{flex:1;padding:12px 8px;display:flex;flex-direction:column;gap:4px;}
 .nav-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;padding:8px 8px 4px;font-weight:500;}
-.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--rs);cursor:pointer;text-decoration:none;color:var(--muted);font-size:13px;font-weight:500;transition:background 0.15s,color 0.15s;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--rs);text-decoration:none;color:var(--muted);font-size:13px;font-weight:500;transition:background .15s,color .15s;}
 .nav-item:hover{background:var(--surface2);color:var(--text);}
-.nav-item.active{background:rgba(251,191,36,0.1);color:var(--warn);border:1px solid rgba(251,191,36,0.2);}
+.nav-item.active{background:rgba(251,191,36,.1);color:var(--warn);border:1px solid rgba(251,191,36,.2);}
 .nav-icon{font-size:16px;flex-shrink:0;}
 .sidebar-footer{padding:12px 8px;border-top:1px solid var(--border);}
-.logout-btn{display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:var(--rs);cursor:pointer;color:var(--muted);font-size:13px;background:none;border:none;width:100%;font-family:var(--font);transition:color 0.15s,background 0.15s;}
-.logout-btn:hover{color:var(--danger);background:rgba(248,113,113,0.08);}
+.logout-btn{display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:var(--rs);cursor:pointer;color:var(--muted);font-size:13px;background:none;border:none;width:100%;font-family:var(--font);transition:color .15s,background .15s;}
+.logout-btn:hover{color:var(--danger);background:rgba(248,113,113,.08);}
+
+/* ── Page layout ── */
 .page-wrap{margin-left:var(--sidebar);flex:1;display:flex;flex-direction:column;min-height:100vh;}
 .topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
-.topbar-title{font-size:15px;font-weight:600;}
-.topbar-sub{font-size:11px;color:var(--muted);margin-top:2px;}
-.content{padding:24px;flex:1;}
-/* pipeline summary */
-.pipeline-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px;}
-.pipe-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px 20px;position:relative;overflow:hidden;}
-.pipe-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;}
-.pipe-card.p1::before{background:var(--muted);}
-.pipe-card.p2::before{background:var(--warn);}
-.pipe-card.p3::before{background:var(--accent);}
-.pipe-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;}
-.pipe-value{font-size:28px;font-weight:700;font-family:var(--mono);}
-.pipe-card.p1 .pipe-value{color:var(--muted);}
-.pipe-card.p2 .pipe-value{color:var(--warn);}
-.pipe-card.p3 .pipe-value{color:var(--accent);}
-/* scan section */
-.scan-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:20px;}
-.scan-card-head{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
-.scan-card-head span{font-size:13px;font-weight:500;color:var(--muted);}
-.scan-btn{background:var(--warn);color:#0f172a;border:none;border-radius:var(--rs);padding:7px 16px;font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer;}
-.scan-btn.stop{background:var(--danger);color:#fff;}
+.topbar-title{font-size:15px;font-weight:600;}.topbar-sub{font-size:11px;color:var(--muted);margin-top:2px;}
+
+/* ── 2-column layout ── */
+.content{padding:20px 24px 100px;flex:1;display:grid;grid-template-columns:340px 1fr;gap:20px;align-items:start;}
+
+/* ── Left panel: scan box ── */
+.left-panel{display:flex;flex-direction:column;gap:16px;position:sticky;top:80px;}
+
+/* Pipeline mini */
+.pipeline-mini{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.pm-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);padding:10px 12px;text-align:center;}
+.pm-val{font-size:20px;font-weight:700;font-family:var(--mono);}
+.pm-card.p1 .pm-val{color:var(--muted);}
+.pm-card.p2 .pm-val{color:var(--warn);}
+.pm-card.p3 .pm-val{color:var(--accent);}
+.pm-lbl{font-size:10px;color:var(--muted);margin-top:2px;}
+
+/* Scan input box */
+.scan-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;}
+.scan-box-head{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.scan-box-title{font-size:13px;font-weight:500;}
+.scan-mode-badge{font-size:10px;background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.3);color:var(--success);padding:2px 8px;border-radius:20px;font-weight:500;}
 #reader video{width:100% !important;height:auto !important;}
-.manual-row{display:flex;gap:8px;padding:12px 16px;}
-.manual-input{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);color:var(--text);font-family:var(--mono);font-size:14px;padding:9px 12px;outline:none;transition:border-color 0.15s;}
-.manual-input:focus{border-color:var(--warn);}
-.manual-input::placeholder{color:var(--muted);font-family:var(--font);}
-.search-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:var(--rs);padding:9px 16px;font-family:var(--font);font-size:13px;cursor:pointer;}
-/* result */
-.result-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);margin-bottom:20px;display:none;}
-.result-panel.visible{display:block;}
-.result-head{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
-.doc-badge{background:rgba(251,191,36,0.12);border:1px solid rgba(251,191,36,0.3);color:var(--warn);font-family:var(--mono);font-size:12px;font-weight:500;padding:4px 10px;border-radius:6px;}
-.fields-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border);}
-.field-cell{background:var(--surface);padding:12px 16px;}
-.field-cell.full{grid-column:1/-1;}
-.field-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;}
-.field-value{font-size:13px;color:var(--text);}
-.field-value.mono{font-family:var(--mono);}
-.add-btn{width:100%;background:var(--warn);border:none;color:#0f172a;border-radius:var(--rs);padding:11px;font-family:var(--font);font-size:14px;font-weight:700;cursor:pointer;margin:16px 0 0;}
-/* queue */
-.queue-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
-.queue-title{font-size:13px;font-weight:500;color:var(--muted);display:flex;align-items:center;gap:8px;}
-.queue-count{background:var(--warn);color:#0f172a;font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;}
-.clear-btn{font-size:12px;color:var(--danger);background:none;border:none;font-family:var(--font);cursor:pointer;padding:4px 8px;}
-.queue-list{display:flex;flex-direction:column;gap:8px;}
-.queue-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);padding:10px 14px;display:flex;align-items:center;gap:12px;}
-.queue-num{width:24px;height:24px;background:var(--surface2);border-radius:6px;font-size:11px;font-weight:600;color:var(--muted);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-.queue-info{flex:1;min-width:0;}
-.queue-barcode{font-family:var(--mono);font-size:13px;font-weight:500;color:var(--warn);}
-.queue-details{font-size:12px;color:var(--muted);margin-top:2px;}
-.queue-remove{background:rgba(248,113,113,0.12);border:1px solid rgba(248,113,113,0.35);color:var(--danger);font-size:13px;cursor:pointer;padding:4px 8px;border-radius:6px;}
-/* submit */
-.submit-bar{position:fixed;bottom:0;left:var(--sidebar);right:0;background:var(--surface);border-top:1px solid var(--border);padding:14px 24px;display:flex;gap:12px;}
-.submit-btn{flex:1;background:var(--warn);border:none;color:#0f172a;border-radius:var(--rs);padding:13px;font-family:var(--font);font-size:15px;font-weight:700;cursor:pointer;}
-.submit-btn:disabled{opacity:0.35;cursor:not-allowed;}
-.send-btn{background:var(--accent);border:none;color:#0f172a;border-radius:var(--rs);padding:13px 20px;font-family:var(--font);font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap;}
-.send-btn:disabled{opacity:0.35;cursor:not-allowed;}
-.empty{text-align:center;padding:32px;color:var(--muted);font-size:13px;}
-.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-80px);background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);padding:12px 20px;font-size:13px;transition:transform 0.3s;z-index:300;white-space:nowrap;box-shadow:0 8px 24px rgba(0,0,0,0.4);}
+.input-area{padding:14px 16px;}
+.bc-input-wrap{position:relative;margin-bottom:10px;}
+.bc-input{width:100%;background:var(--surface2);border:2px solid var(--border);border-radius:var(--rs);color:var(--text);font-family:var(--mono);font-size:16px;padding:11px 14px;outline:none;transition:border-color .15s,box-shadow .15s;}
+.bc-input:focus{border-color:var(--warn);box-shadow:0 0 0 3px rgba(251,191,36,.15);}
+.bc-input.flash-ok{animation:flashOk .4s ease;}
+.bc-input.flash-err{animation:flashErr .4s ease;}
+@keyframes flashOk{0%,100%{border-color:var(--warn);}50%{border-color:var(--success);background:rgba(52,211,153,.08);}}
+@keyframes flashErr{0%,100%{border-color:var(--warn);}50%{border-color:var(--danger);background:rgba(248,113,113,.08);}}
+.bc-hint{font-size:11px;color:var(--muted);text-align:center;}
+.cam-btn{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:var(--rs);padding:9px;font-family:var(--font);font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;}
+.cam-btn.active{background:rgba(248,113,113,.1);border-color:rgba(248,113,113,.35);color:var(--danger);}
+
+/* Last scanned feedback */
+.last-scan{background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);padding:12px 14px;}
+.last-scan-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;}
+.last-scan-barcode{font-family:var(--mono);font-size:14px;font-weight:600;color:var(--warn);}
+.last-scan-info{font-size:11px;color:var(--muted);margin-top:3px;line-height:1.5;}
+.last-scan.ok .last-scan-barcode{color:var(--success);}
+.last-scan.dup .last-scan-barcode{color:var(--danger);}
+
+/* ── Right panel: queue table ── */
+.right-panel{}
+.queue-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.queue-title{font-size:13px;font-weight:500;display:flex;align-items:center;gap:8px;}
+.queue-badge{background:var(--warn);color:#0f172a;font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px;font-family:var(--mono);}
+.clear-btn{font-size:12px;color:var(--danger);background:none;border:none;font-family:var(--font);cursor:pointer;padding:4px 10px;border-radius:var(--rs);}
+.clear-btn:hover{background:rgba(248,113,113,.1);}
+
+/* queue table */
+.q-table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;}
+.q-table-wrap table{width:100%;border-collapse:collapse;}
+.q-table-wrap th{background:var(--surface2);padding:9px 14px;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;text-align:left;border-bottom:1px solid var(--border);}
+.q-table-wrap td{padding:9px 14px;font-size:12px;border-bottom:1px solid var(--border);vertical-align:middle;}
+.q-table-wrap tr:last-child td{border-bottom:none;}
+.q-table-wrap tr.new-row td{animation:rowIn .3s ease;}
+@keyframes rowIn{from{background:rgba(251,191,36,.12);}to{background:transparent;}}
+.q-table-wrap tr:hover td{background:rgba(255,255,255,.02);}
+.mono{font-family:var(--mono);}
+.dup-badge{background:rgba(248,113,113,.12);border:1px solid rgba(248,113,113,.35);color:var(--danger);font-size:10px;padding:1px 7px;border-radius:20px;}
+.remove-btn{background:none;border:none;color:var(--muted);font-size:14px;cursor:pointer;padding:3px 6px;border-radius:5px;}
+.remove-btn:hover{color:var(--danger);background:rgba(248,113,113,.1);}
+.empty-state{text-align:center;padding:48px 20px;color:var(--muted);font-size:13px;}
+.empty-state .icon{font-size:36px;margin-bottom:8px;}
+
+/* ── Submit bar ── */
+.submit-bar{position:fixed;bottom:0;left:var(--sidebar);right:0;background:var(--surface);border-top:1px solid var(--border);padding:12px 24px;display:flex;gap:12px;align-items:center;}
+.submit-btn{flex:1;background:var(--warn);border:none;color:#0f172a;border-radius:var(--rs);padding:12px;font-family:var(--font);font-size:14px;font-weight:700;cursor:pointer;}
+.submit-btn:disabled{opacity:.35;cursor:not-allowed;}
+.send-btn{background:var(--accent);border:none;color:#0f172a;border-radius:var(--rs);padding:12px 20px;font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;}
+.send-btn:disabled{opacity:.35;cursor:not-allowed;}
+.submit-info{font-size:11px;color:var(--muted);white-space:nowrap;}
+
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-80px);background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);padding:12px 20px;font-size:13px;transition:transform .3s;z-index:300;white-space:nowrap;box-shadow:0 8px 24px rgba(0,0,0,.4);}
 .toast.show{transform:translateX(-50%) translateY(0);}
-.toast.success{border-color:rgba(52,211,153,0.4);color:var(--success);}
-.toast.error{border-color:rgba(248,113,113,0.4);color:var(--danger);}
-.toast.info{border-color:rgba(56,189,248,0.4);color:var(--accent);}
-.spinner{width:16px;height:16px;border:2px solid rgba(251,191,36,0.3);border-top-color:var(--warn);border-radius:50%;animation:spin 0.7s linear infinite;display:inline-block;}
+.toast.success{border-color:rgba(52,211,153,.4);color:var(--success);}
+.toast.error{border-color:rgba(248,113,113,.4);color:var(--danger);}
+.toast.info{border-color:rgba(56,189,248,.4);color:var(--accent);}
+.spinner{width:14px;height:14px;border:2px solid rgba(251,191,36,.3);border-top-color:var(--warn);border-radius:50%;animation:spin .7s linear infinite;display:inline-block;}
 @keyframes spin{to{transform:rotate(360deg);}}
-@media(max-width:640px){.pipeline-grid{grid-template-columns:1fr;}body{font-size:14px;}}
 </style>
 </head>
 <body>
 
+<!-- Sidebar -->
 <aside class="sidebar">
   <div class="sidebar-brand">
     <div class="brand-icon">
@@ -123,79 +149,98 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
   </div>
 </aside>
 
+<!-- Page -->
 <div class="page-wrap">
   <div class="topbar">
     <div>
-      <div class="topbar-title">รับเอกสารจากขนส่ง</div>
+      <div class="topbar-title">รับเอกสารจากขนส่ง — Continuous Scan</div>
       <div class="topbar-sub" id="topbarSub">—</div>
     </div>
-    <div class="spinner" id="loadSpinner" style="display:none;"></div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span class="scan-mode-badge">🟢 พร้อมสแกน</span>
+    </div>
   </div>
 
   <div class="content">
-    <!-- Pipeline Summary -->
-    <div class="pipeline-grid">
-      <div class="pipe-card p1">
-        <div class="pipe-label">กับขนส่ง (ยังไม่กลับ)</div>
-        <div class="pipe-value" id="pipeTransporter">—</div>
+
+    <!-- LEFT: Scan panel -->
+    <div class="left-panel">
+
+      <!-- Pipeline mini -->
+      <div class="pipeline-mini">
+        <div class="pm-card p1"><div class="pm-val" id="pipeT">—</div><div class="pm-lbl">🚚 ขนส่ง</div></div>
+        <div class="pm-card p2"><div class="pm-val" id="pipeD">—</div><div class="pm-lbl">📋 จัดส่ง</div></div>
+        <div class="pm-card p3"><div class="pm-val" id="pipeW">—</div><div class="pm-lbl">🏭 คลัง</div></div>
       </div>
-      <div class="pipe-card p2">
-        <div class="pipe-label">ทีมจัดส่งได้รับแล้ว</div>
-        <div class="pipe-value" id="pipeDelivery">—</div>
+
+      <!-- Scan box -->
+      <div class="scan-box">
+        <div class="scan-box-head">
+          <span class="scan-box-title">สแกน Barcode</span>
+          <span class="scan-mode-badge">Auto Add</span>
+        </div>
+        <div id="reader" style="display:none;width:100%;"></div>
+        <div class="input-area">
+          <div class="bc-input-wrap">
+            <input class="bc-input" id="bcInput" type="text" placeholder="สแกน / พิมพ์ barcode แล้วกด Enter"
+              autofocus autocomplete="off" onkeydown="if(event.key==='Enter'){event.preventDefault();handleScan(this.value);}">
+          </div>
+          <div class="bc-hint">Enter หรือเครื่องสแกน USB/Bluetooth</div>
+          <div style="margin-top:10px;">
+            <button class="cam-btn" id="camBtn" onclick="toggleCamera()">📷 เปิดกล้อง</button>
+          </div>
+        </div>
       </div>
-      <div class="pipe-card p3">
-        <div class="pipe-label">ส่งให้คลังพาเลทแล้ว</div>
-        <div class="pipe-value" id="pipeWarehouse">—</div>
+
+      <!-- Last scan feedback -->
+      <div class="last-scan" id="lastScan" style="display:none;">
+        <div class="last-scan-label">สแกนล่าสุด</div>
+        <div class="last-scan-barcode" id="lastBarcode">—</div>
+        <div class="last-scan-info" id="lastInfo">—</div>
+      </div>
+
+    </div>
+
+    <!-- RIGHT: Queue table -->
+    <div class="right-panel">
+      <div class="queue-head">
+        <div class="queue-title">
+          รายการที่สแกนแล้ว
+          <span class="queue-badge" id="queueBadge">0</span>
+        </div>
+        <button class="clear-btn" onclick="clearQueue()">ล้างทั้งหมด</button>
+      </div>
+
+      <div class="q-table-wrap" id="queueWrap">
+        <div class="empty-state" id="emptyState">
+          <div class="icon">📄</div>
+          <div>ยังไม่มีรายการ<br><span style="font-size:11px;">สแกน barcode เพื่อเพิ่มอัตโนมัติ</span></div>
+        </div>
+        <table id="queueTable" style="display:none;">
+          <thead>
+            <tr>
+              <th style="width:40px;">#</th>
+              <th>Barcode</th>
+              <th>Reference</th>
+              <th>ประเภท</th>
+              <th>โอนจาก → โอนไป</th>
+              <th style="width:60px;">QTY</th>
+              <th style="width:36px;"></th>
+            </tr>
+          </thead>
+          <tbody id="queueBody"></tbody>
+        </table>
       </div>
     </div>
 
-    <!-- Scan Box -->
-    <div class="scan-card">
-      <div class="scan-card-head">
-        <span>สแกน Barcode เอกสาร</span>
-        <button class="scan-btn" id="scanBtn" onclick="toggleScanner()">เปิดกล้อง</button>
-      </div>
-      <div id="reader" style="display:none;width:100%;"></div>
-      <div class="manual-row">
-        <input class="manual-input" id="manualInput" type="text" placeholder="พิมพ์ barcode หรือสแกนด้วยเครื่องอ่าน..."
-          onkeydown="if(event.key==='Enter') searchBarcode()">
-        <button class="search-btn" onclick="searchBarcode()">ค้นหา</button>
-      </div>
-    </div>
-
-    <!-- Result Panel -->
-    <div class="result-panel" id="resultPanel">
-      <div class="result-head">
-        <div class="doc-badge" id="rBarcode">—</div>
-        <span id="rStatus" style="font-size:12px;color:var(--muted);"></span>
-      </div>
-      <div class="fields-grid">
-        <div class="field-cell"><div class="field-label">Reference No.</div><div class="field-value mono" id="fRefNo">—</div></div>
-        <div class="field-cell"><div class="field-label">ประเภท</div><div class="field-value" id="fItemName">—</div></div>
-        <div class="field-cell"><div class="field-label">โอนจาก</div><div class="field-value" id="fFrom">—</div></div>
-        <div class="field-cell"><div class="field-label">โอนไป</div><div class="field-value" id="fTo">—</div></div>
-        <div class="field-cell full"><div class="field-label">ยอดที่ส่ง (QTY)</div><div class="field-value mono" id="fQty">—</div></div>
-      </div>
-      <div style="padding:0 16px 16px;">
-        <button class="add-btn" id="addBtn" onclick="addToQueue()">+ เพิ่มลงรายการรับ</button>
-      </div>
-    </div>
-
-    <!-- Queue -->
-    <div class="queue-header">
-      <span class="queue-title">รายการรอยืนยัน <span class="queue-count" id="queueCount">0</span></span>
-      <button class="clear-btn" onclick="clearQueue()">ล้างทั้งหมด</button>
-    </div>
-    <div class="queue-list" id="queueList">
-      <div class="empty">ยังไม่มีรายการ — สแกน barcode เพื่อเริ่มต้น</div>
-    </div>
   </div>
 </div>
 
 <!-- Submit Bar -->
 <div class="submit-bar">
+  <span class="submit-info" id="submitInfo">0 รายการ</span>
   <button class="submit-btn" id="submitBtn" onclick="submitReceive()" disabled>
-    ✅ ยืนยันรับ 0 รายการ (with_delivery)
+    ✅ ยืนยันรับจากขนส่ง
   </button>
   <button class="send-btn" id="sendBtn" onclick="sendToWarehouse()" disabled>
     📦 ส่งให้คลังพาเลท
@@ -205,189 +250,242 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 <div id="toast" class="toast"></div>
 
 <script>
-// ── Auth ──────────────────────────────────────────────────
+// ── Auth ─────────────────────────────────────────────────
 var DocScanAuth = (function(){
   var KEY='docScanSession';
-  function save(e,n,m,s,r){localStorage.setItem(KEY,JSON.stringify({empId:e,empName:n,empEmail:m,site:s,role:r}));}
-  function load(){try{var r=localStorage.getItem(KEY);if(!r)return null;var s=JSON.parse(r);return(s.empId&&s.empName&&s.site)?s:null;}catch(e){return null;}}
+  function load(){try{var r=localStorage.getItem(KEY);if(!r)return null;var s=JSON.parse(r);return(s.empId&&s.site)?s:null;}catch(e){return null;}}
   function clear(){localStorage.removeItem(KEY);}
   function requireAuth(){var s=load();if(!s){window.location.href='login.html';return null;}return s;}
-  return{save:save,load:load,clear:clear,requireAuth:requireAuth};
+  return{load:load,clear:clear,requireAuth:requireAuth};
 })();
 
-var API_URL = 'https://script.google.com/macros/s/AKfycbxC9McrREv4mQ6Mg_309xhlm7imr83boaIoH7Z3oaivwlOQP1tQWHcnHOinY9s41ER-/exec';
-var CSV_URL = API_URL + '?action=getCSV';
-var session, csvData = [], csvLoaded = false;
-var queue = [], currentDoc = null, scanning = false, codeReader = null;
+var API_URL = 'https://script.google.com/macros/s/AKfycbwlMQRPrx8I6S9aTnCWHDJ-os0xe5dAZ-xPaMw_fmY1ICZHMwTia_RthEg6JseFrmPc8w/exec';
+var session, csvData=[], csvLoaded=false;
+var queue=[], scanning=false, codeReader=null;
 
+// ── Init ─────────────────────────────────────────────────
 window.onload = function() {
   session = DocScanAuth.requireAuth();
   if (!session) return;
-  // ถ้า role ไม่ใช่ delivery ให้ redirect
-  if (session.role && session.role !== 'delivery') {
-    window.location.href = 'dashboard.html'; return;
-  }
-  document.getElementById('sidebarName').textContent = session.empName + ' (' + session.empId + ')';
+  if (session.role && session.role !== 'delivery') { window.location.href='dashboard.html'; return; }
+  document.getElementById('sidebarName').textContent = session.empName+' ('+session.empId+')';
   document.getElementById('topbarSub').textContent   = session.site;
   loadCSV();
   loadPipeline();
+  // keep focus on input
+  document.addEventListener('click', function(e){
+    if (!e.target.closest('.scan-box') && !e.target.closest('.cam-btn') && !e.target.closest('.submit-bar'))
+      document.getElementById('bcInput').focus();
+  });
 };
 
+// ── CSV ──────────────────────────────────────────────────
 function loadCSV() {
-  fetch(CSV_URL, {method:'GET',redirect:'follow'})
+  fetch(API_URL+'?action=getCSV',{method:'GET',redirect:'follow'})
     .then(function(r){return r.text();})
-    .then(function(text){csvData=parseCSV(text);csvLoaded=true;})
-    .catch(function(){showToast('โหลด CSV ไม่สำเร็จ','error');});
+    .then(function(t){csvData=parseCSV(t);csvLoaded=true;})
+    .catch(function(){});
 }
-
-function parseCSV(text) {
+function parseCSV(text){
   var lines=text.replace(/\r/g,'').split('\n').filter(function(l){return l.trim();});
   if(lines.length<2)return[];
-  var headers=lines[0].replace(/^\uFEFF/,'').split(',');var rows=[];
-  for(var i=1;i<lines.length;i++){var v=lines[i].split(',');var o={};headers.forEach(function(h,idx){o[h.trim()]=(v[idx]||'').trim();});rows.push(o);}
+  var h=lines[0].replace(/^\uFEFF/,'').split(',');var rows=[];
+  for(var i=1;i<lines.length;i++){var v=lines[i].split(',');var o={};h.forEach(function(k,idx){o[k.trim()]=(v[idx]||'').trim();});rows.push(o);}
   return rows;
 }
+function searchCSV(barcode){
+  barcode=barcode.trim().toUpperCase();
+  return csvData.find(function(r){return(r['barcode']||'').trim().toUpperCase()===barcode;})||null;
+}
 
-function loadPipeline() {
+// ── Pipeline ─────────────────────────────────────────────
+function loadPipeline(){
   fetch(API_URL+'?action=getDelivery&site='+encodeURIComponent(session.site))
     .then(function(r){return r.json();})
-    .then(function(data){
-      if(data.status!=='ok')return;
-      var s=data.summary||{};
-      document.getElementById('pipeTransporter').textContent = s.with_transporter||0;
-      document.getElementById('pipeDelivery').textContent    = s.with_delivery||0;
-      document.getElementById('pipeWarehouse').textContent   = s.with_warehouse||0;
+    .then(function(d){
+      if(d.status!=='ok')return;
+      var s=d.summary||{};
+      document.getElementById('pipeT').textContent=s.with_transporter||0;
+      document.getElementById('pipeD').textContent=s.with_delivery||0;
+      document.getElementById('pipeW').textContent=s.with_warehouse||0;
     }).catch(function(){});
 }
 
-// ── Scanner ──────────────────────────────────────────────
-function toggleScanner(){ scanning ? stopScanner() : startScanner(); }
-function startScanner(){
+// ── Camera ───────────────────────────────────────────────
+function toggleCamera(){
+  scanning ? stopCamera() : startCamera();
+}
+function startCamera(){
   document.getElementById('reader').style.display='block';
   codeReader=new Html5Qrcode('reader');
-  codeReader.start({facingMode:'environment'},{fps:10,qrbox:{width:250,height:150}},
-    function(decoded){stopScanner();document.getElementById('manualInput').value=decoded;fetchDoc(decoded);},
+  codeReader.start({facingMode:'environment'},{fps:10,qrbox:{width:260,height:120}},
+    function(decoded){ handleScan(decoded); },
     function(){}
   ).then(function(){
-    scanning=true;var b=document.getElementById('scanBtn');b.textContent='หยุดกล้อง';b.classList.add('stop');
-  }).catch(function(err){document.getElementById('reader').style.display='none';showToast('เปิดกล้องไม่ได้: '+err,'error');});
-}
-function stopScanner(){
-  if(codeReader){codeReader.stop().then(function(){codeReader.clear();codeReader=null;}).catch(function(){codeReader=null;});}
-  document.getElementById('reader').style.display='none';scanning=false;
-  var b=document.getElementById('scanBtn');b.textContent='เปิดกล้อง';b.classList.remove('stop');
-}
-function searchBarcode(){var v=document.getElementById('manualInput').value.trim();if(v)fetchDoc(v);}
-
-function fetchDoc(barcode) {
-  if(!csvLoaded){showToast('กำลังโหลดข้อมูล กรุณารอ...','info');return;}
-  barcode=barcode.trim().toUpperCase();
-  var row=csvData.find(function(r){return(r['barcode']||'').trim().toUpperCase()===barcode;})||null;
-  // เช็คซ้ำใน queue
-  if(queue.find(function(q){return q.barcode.toUpperCase()===barcode;})){
-    showToast('Barcode นี้อยู่ในรายการแล้ว','error');return;
-  }
-  showDoc(barcode, row);
-}
-
-function showDoc(barcode, row) {
-  currentDoc = {
-    barcode   : barcode,
-    ref_no    : row ? row['ref_no']||'' : '',
-    item_name : row ? row['item_name']||'' : '',
-    from      : row ? row['customer_start_name']||'' : '',
-    to        : row ? row['customer_destination_name']||'' : '',
-    qty       : row ? row['total']||'' : '',
-    not_found : !row
-  };
-  document.getElementById('rBarcode').textContent  = barcode;
-  document.getElementById('rStatus').textContent   = row ? '' : '⚠️ ไม่พบในระบบ';
-  document.getElementById('fRefNo').textContent    = currentDoc.ref_no    || '—';
-  document.getElementById('fItemName').textContent = currentDoc.item_name || '—';
-  document.getElementById('fFrom').textContent     = currentDoc.from      || '—';
-  document.getElementById('fTo').textContent       = currentDoc.to        || '—';
-  document.getElementById('fQty').textContent      = currentDoc.qty       || '—';
-  document.getElementById('resultPanel').classList.add('visible');
-}
-
-function addToQueue() {
-  if(!currentDoc)return;
-  queue.push({
-    barcode   : currentDoc.barcode,
-    ref_no    : currentDoc.ref_no,
-    item_name : currentDoc.item_name,
-    from      : currentDoc.from,
-    to        : currentDoc.to,
-    qty       : currentDoc.qty,
-    not_found : currentDoc.not_found
+    scanning=true;
+    var b=document.getElementById('camBtn');
+    b.textContent='🛑 ปิดกล้อง';b.classList.add('active');
+  }).catch(function(err){
+    document.getElementById('reader').style.display='none';
+    showToast('เปิดกล้องไม่ได้','error');
   });
-  renderQueue();
-  document.getElementById('resultPanel').classList.remove('visible');
-  document.getElementById('manualInput').value='';
-  showToast('เพิ่ม '+currentDoc.barcode+' แล้ว','success');
-  currentDoc=null;
+}
+function stopCamera(){
+  if(codeReader){codeReader.stop().then(function(){codeReader.clear();codeReader=null;}).catch(function(){codeReader=null;});}
+  document.getElementById('reader').style.display='none';
+  scanning=false;
+  var b=document.getElementById('camBtn');b.textContent='📷 เปิดกล้อง';b.classList.remove('active');
 }
 
-function removeFromQueue(i){queue.splice(i,1);renderQueue();}
-function clearQueue(){if(queue.length&&confirm('ล้างรายการทั้งหมด?')){queue=[];renderQueue();}}
+// ── Core: handleScan ─────────────────────────────────────
+function handleScan(raw) {
+  var barcode = (raw||'').trim().toUpperCase();
+  var input   = document.getElementById('bcInput');
+  input.value = '';
+  setTimeout(function(){ input.focus(); }, 50);
 
-function renderQueue(){
+  if (!barcode) return;
+  if (!csvLoaded) { showToast('กำลังโหลดข้อมูล...','info'); return; }
+
+  // ตรวจซ้ำ
+  if (queue.find(function(q){ return q.barcode===barcode; })) {
+    flashInput('err');
+    showLastScan(barcode, null, true);
+    beep(false);
+    showToast('⚠️ Barcode "'+barcode+'" ซ้ำ','error');
+    return;
+  }
+
+  var doc = searchCSV(barcode);
+  var item = {
+    barcode   : barcode,
+    ref_no    : doc ? doc['ref_no']||'' : '',
+    item_name : doc ? doc['item_name']||'' : '',
+    from      : doc ? doc['customer_start_name']||'' : '',
+    to        : doc ? doc['customer_destination_name']||'' : '',
+    qty       : doc ? doc['total']||'' : '',
+    not_found : !doc
+  };
+
+  queue.unshift(item); // เพิ่มด้านบนสุด
+  flashInput('ok');
+  showLastScan(barcode, item, false);
+  beep(true);
+  renderTable();
+}
+
+// ── Flash input ──────────────────────────────────────────
+function flashInput(type){
+  var el=document.getElementById('bcInput');
+  el.classList.remove('flash-ok','flash-err');
+  void el.offsetWidth; // force reflow
+  el.classList.add(type==='ok'?'flash-ok':'flash-err');
+  setTimeout(function(){el.classList.remove('flash-ok','flash-err');},400);
+}
+
+// ── Last scan feedback ────────────────────────────────────
+function showLastScan(barcode, item, isDup){
+  var el=document.getElementById('lastScan');
+  var bcEl=document.getElementById('lastBarcode');
+  var infoEl=document.getElementById('lastInfo');
+  el.style.display='block';
+  el.className='last-scan '+(isDup?'dup':'ok');
+  bcEl.textContent=barcode;
+  if(isDup){
+    infoEl.textContent='⚠️ Barcode ซ้ำ — ไม่ได้เพิ่ม';
+  } else if(item){
+    infoEl.innerHTML=(item.not_found?'<span style="color:var(--warn);">⚠️ ไม่พบในระบบ</span>':'✅ พบข้อมูล')+
+      '<br>'+(item.ref_no||'—')+' · '+(item.from||'—')+' → '+(item.to||'—')+
+      (item.qty?' · QTY: '+item.qty:'');
+  }
+}
+
+// ── Beep ─────────────────────────────────────────────────
+function beep(ok){
+  try{
+    var ctx=new(window.AudioContext||window.webkitAudioContext)();
+    var o=ctx.createOscillator();var g=ctx.createGain();
+    o.connect(g);g.connect(ctx.destination);
+    o.frequency.value=ok?880:300;
+    g.gain.setValueAtTime(.3,ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+(ok?.12:.25));
+    o.start(ctx.currentTime);o.stop(ctx.currentTime+(ok?.12:.25));
+  }catch(e){}
+}
+
+// ── Render Table ─────────────────────────────────────────
+function renderTable(){
   var n=queue.length;
-  document.getElementById('queueCount').textContent=n;
+  document.getElementById('queueBadge').textContent=n;
   document.getElementById('submitBtn').disabled=n===0;
-  document.getElementById('submitBtn').textContent=n?'✅ ยืนยันรับ '+n+' รายการ (with_delivery)':'✅ ยืนยันรับ 0 รายการ';
   document.getElementById('sendBtn').disabled=n===0;
-  var list=document.getElementById('queueList');
-  if(!n){list.innerHTML='<div class="empty">ยังไม่มีรายการ — สแกน barcode เพื่อเริ่มต้น</div>';return;}
-  list.innerHTML=queue.map(function(item,i){
-    return '<div class="queue-item">'+
-      '<div class="queue-num">'+(i+1)+'</div>'+
-      '<div class="queue-info">'+
-        '<div class="queue-barcode">'+item.barcode+'</div>'+
-        '<div class="queue-details">'+(item.ref_no||'—')+' · '+(item.from||'—')+' → '+(item.to||'—')+'</div>'+
-      '</div>'+
-      '<button class="queue-remove" onclick="removeFromQueue('+i+')">✕</button>'+
-    '</div>';
+  document.getElementById('submitInfo').textContent=n+' รายการ';
+
+  var empty=document.getElementById('emptyState');
+  var table=document.getElementById('queueTable');
+
+  if(!n){ empty.style.display='block';table.style.display='none';return;}
+  empty.style.display='none';table.style.display='table';
+
+  document.getElementById('queueBody').innerHTML=queue.map(function(item,i){
+    return '<tr'+(i===0?' class="new-row"':'')+'>'+
+      '<td style="color:var(--muted);font-family:var(--mono);">'+(n-i)+'</td>'+
+      '<td style="font-family:var(--mono);color:var(--warn);">'+esc(item.barcode)+
+        (item.not_found?' <span class="dup-badge">NOT FOUND</span>':'')+'</td>'+
+      '<td style="font-family:var(--mono);font-size:11px;">'+esc(item.ref_no||'—')+'</td>'+
+      '<td style="font-size:11px;">'+esc(item.item_name||'—')+'</td>'+
+      '<td style="font-size:11px;">'+esc(item.from||'—')+' → '+esc(item.to||'—')+'</td>'+
+      '<td style="font-family:var(--mono);text-align:right;">'+esc(item.qty||'—')+'</td>'+
+      '<td><button class="remove-btn" onclick="removeItem('+i+')">✕</button></td>'+
+    '</tr>';
   }).join('');
 }
 
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;');}
+function removeItem(i){queue.splice(i,1);renderTable();}
+function clearQueue(){if(queue.length&&confirm('ล้างรายการทั้งหมด?')){queue=[];renderTable();document.getElementById('lastScan').style.display='none';}}
+
 // ── Submit: with_delivery ────────────────────────────────
-async function submitReceive() {
+async function submitReceive(){
   if(!queue.length)return;
   var btn=document.getElementById('submitBtn');btn.disabled=true;
   btn.textContent='กำลังบันทึก...';
-  try {
+  try{
     var items=queue.map(function(item){
       return{barcode:item.barcode,status:'with_delivery',emp_id:session.empId,emp_name:session.empName,site:session.site,note:'รับจากขนส่ง'};
     });
     var res=await fetch(API_URL,{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action:'updateStatus',items:items})});
     var data=await res.json();
     if(data.status==='ok'){
-      showToast('บันทึกรับ '+queue.length+' รายการเรียบร้อย','success');
-      queue=[];renderQueue();loadPipeline();
+      showToast('✅ บันทึกรับ '+queue.length+' รายการแล้ว','success');
+      queue=[];renderTable();
+      document.getElementById('lastScan').style.display='none';
+      loadPipeline();
     } else { showToast(data.message||'Error','error'); }
-  } catch(err){showToast('เกิดข้อผิดพลาด: '+err.message,'error');}
+  }catch(err){showToast('เกิดข้อผิดพลาด: '+err.message,'error');}
   btn.disabled=false;
-  btn.textContent='✅ ยืนยันรับ 0 รายการ (with_delivery)';
+  btn.textContent='✅ ยืนยันรับจากขนส่ง';
 }
 
-// ── Send to Warehouse: with_warehouse ────────────────────
-async function sendToWarehouse() {
+// ── Send: with_warehouse ─────────────────────────────────
+async function sendToWarehouse(){
   if(!queue.length)return;
   if(!confirm('ส่ง '+queue.length+' รายการให้ทีมคลังพาเลท?'))return;
   var btn=document.getElementById('sendBtn');btn.disabled=true;
   btn.textContent='กำลังส่ง...';
-  try {
+  try{
     var items=queue.map(function(item){
       return{barcode:item.barcode,status:'with_warehouse',emp_id:session.empId,emp_name:session.empName,site:session.site,note:'ส่งให้คลังพาเลท'};
     });
     var res=await fetch(API_URL,{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action:'updateStatus',items:items})});
     var data=await res.json();
     if(data.status==='ok'){
-      showToast('ส่งให้คลังพาเลท '+queue.length+' รายการแล้ว','success');
-      queue=[];renderQueue();loadPipeline();
+      showToast('📦 ส่งให้คลัง '+queue.length+' รายการแล้ว','success');
+      queue=[];renderTable();
+      document.getElementById('lastScan').style.display='none';
+      loadPipeline();
     } else { showToast(data.message||'Error','error'); }
-  } catch(err){showToast('เกิดข้อผิดพลาด: '+err.message,'error');}
+  }catch(err){showToast('เกิดข้อผิดพลาด: '+err.message,'error');}
   btn.disabled=false;btn.textContent='📦 ส่งให้คลังพาเลท';
 }
 
