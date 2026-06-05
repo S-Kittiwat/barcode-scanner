@@ -7,9 +7,29 @@
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
-:root{--bg:#0f172a;--surface:#1e293b;--surface2:#263348;--border:#334155;--accent:#38bdf8;--success:#34d399;--warn:#fbbf24;--danger:#f87171;--text:#f1f5f9;--muted:#94a3b8;--font:'IBM Plex Sans Thai',sans-serif;--mono:'IBM Plex Mono',monospace;--r:12px;--rs:8px;}
+:root{--bg:#0f172a;--surface:#1e293b;--surface2:#263348;--border:#334155;--accent:#38bdf8;--success:#34d399;--warn:#fbbf24;--danger:#f87171;--text:#f1f5f9;--muted:#94a3b8;--font:'IBM Plex Sans Thai',sans-serif;--mono:'IBM Plex Mono',monospace;--r:12px;--rs:8px;--sidebar:240px;}
 *{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;font-size:15px;}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;display:flex;font-size:15px;}
+/* ── Sidebar ── */
+.sidebar{width:var(--sidebar);flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:200;}
+.sidebar-brand{padding:20px 20px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
+.brand-icon{width:36px;height:36px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.brand-name{font-size:14px;font-weight:600;}
+.brand-sub{font-size:10px;color:var(--muted);}
+.sidebar-user{padding:14px 16px;border-bottom:1px solid var(--border);background:var(--surface2);}
+.user-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.user-site{font-size:11px;color:var(--accent);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sidebar-nav{flex:1;padding:12px 8px;display:flex;flex-direction:column;gap:4px;}
+.nav-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;padding:8px 8px 4px;font-weight:500;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--rs);cursor:pointer;text-decoration:none;color:var(--muted);font-size:13px;font-weight:500;transition:background 0.15s,color 0.15s;border:none;background:none;width:100%;font-family:var(--font);}
+.nav-item:hover{background:var(--surface2);color:var(--text);}
+.nav-item.active{background:rgba(56,189,248,0.1);color:var(--accent);border:1px solid rgba(56,189,248,0.2);}
+.nav-icon{font-size:16px;flex-shrink:0;}
+.sidebar-footer{padding:12px 8px;border-top:1px solid var(--border);}
+.logout-btn2{display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:var(--rs);cursor:pointer;color:var(--muted);font-size:13px;background:none;border:none;width:100%;font-family:var(--font);transition:color 0.15s,background 0.15s;}
+.logout-btn2:hover{color:var(--danger);background:rgba(248,113,113,0.08);}
+/* ── Page layout ── */
+.page-wrap{margin-left:var(--sidebar);flex:1;display:flex;flex-direction:column;min-height:100vh;}
 header{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
 .logo{display:flex;align-items:center;gap:10px;}
 .logo-icon{width:34px;height:34px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;}
@@ -101,7 +121,7 @@ main{max-width:900px;margin:0 auto;padding:20px 16px 100px;}
 .detail-save:hover{opacity:0.9;}
 .detail-del{background:rgba(248,113,113,0.12);border:1px solid rgba(248,113,113,0.35);color:var(--danger);border-radius:var(--rs);padding:10px 18px;font-family:var(--font);font-size:14px;cursor:pointer;}
 @media(max-width:520px){.detail-body{flex-direction:column;}.detail-photo{width:100%;border-right:none;border-bottom:1px solid var(--border);}.detail-row{grid-template-columns:1fr;}}
-.submit-bar{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);padding:14px 20px;}
+.submit-bar{position:fixed;bottom:0;left:var(--sidebar);right:0;background:var(--surface);border-top:1px solid var(--border);padding:14px 20px;}
 .submit-btn{width:100%;background:var(--success);border:none;color:#0f172a;border-radius:var(--rs);padding:13px;font-family:var(--font);font-size:15px;font-weight:600;cursor:pointer;}
 .submit-btn:disabled{opacity:0.35;cursor:not-allowed;}
 .toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-80px);background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);padding:12px 20px;font-size:13px;transition:transform 0.3s;z-index:200;white-space:nowrap;box-shadow:0 8px 24px rgba(0,0,0,0.4);}
@@ -136,7 +156,35 @@ main{max-width:900px;margin:0 auto;padding:20px 16px 100px;}
 </head>
 <body>
 
-<!-- Site Overlay -->
+<!-- Sidebar -->
+<aside class="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-icon">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0f172a" stroke-width="2.5">
+        <rect x="3" y="4" width="3" height="16" rx="1"/><rect x="8" y="4" width="1.5" height="16" rx="0.5"/>
+        <rect x="11" y="4" width="3" height="16" rx="1"/><rect x="16" y="4" width="1.5" height="16" rx="0.5"/>
+        <rect x="19" y="4" width="2" height="16" rx="1"/>
+      </svg>
+    </div>
+    <div><div class="brand-name">DocScan</div><div class="brand-sub">Pallet Tracking</div></div>
+  </div>
+  <div class="sidebar-user">
+    <div class="user-name" id="sidebarName">—</div>
+    <div class="user-site" id="sidebarSite">—</div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-label">เมนูหลัก</div>
+    <a class="nav-item" href="dashboard.html"><span class="nav-icon">📊</span> Dashboard</a>
+    <div class="nav-label" style="margin-top:8px;">สแกนเอกสาร</div>
+    <a class="nav-item active" href="index.html"><span class="nav-icon">📷</span> Single Scan</a>
+    <a class="nav-item" href="batch.html"><span class="nav-icon">📦</span> Batch Scan</a>
+  </nav>
+  <div class="sidebar-footer">
+    <button class="logout-btn2" onclick="DocScanAuth.clear();location.href='login.html';">↩ ออกจากระบบ</button>
+  </div>
+</aside>
+
+<div class="page-wrap">
 <div class="site-overlay" id="siteOverlay">
   <div class="site-box">
     <div class="site-box-header">
@@ -176,24 +224,14 @@ main{max-width:900px;margin:0 auto;padding:20px 16px 100px;}
   </div>
 </div>
 
-<!-- Header -->
-<header>
-  <div class="logo">
-    <div class="logo-icon">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0f172a" stroke-width="2.5">
-        <rect x="3" y="4" width="3" height="16" rx="1"/><rect x="8" y="4" width="1.5" height="16" rx="0.5"/>
-        <rect x="11" y="4" width="3" height="16" rx="1"/><rect x="16" y="4" width="1.5" height="16" rx="0.5"/>
-        <rect x="19" y="4" width="2" height="16" rx="1"/>
-      </svg>
-    </div>
-    <div><div class="logo-text">DocScan</div><div class="logo-sub" id="userEmail">กำลังโหลด...</div></div>
+<!-- Topbar -->
+<header style="background:var(--surface);border-bottom:1px solid var(--border);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;">
+  <div>
+    <div style="font-size:15px;font-weight:600;">Single Scan</div>
+    <div style="font-size:11px;color:var(--muted);" id="userEmail">กำลังโหลด...</div>
   </div>
   <div style="display:flex;align-items:center;gap:8px;">
-    <div class="site-badge" id="siteBadge" onclick="changeSite()">—</div>
-    <a href="dashboard.html" class="cart-btn" style="text-decoration:none;">📊 Dashboard</a>
-    <a href="batch.html" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:10px;padding:8px 14px;font-family:var(--font);font-size:13px;cursor:pointer;display:flex;align-items:center;gap:6px;text-decoration:none;">📦 Batch</a>
     <button class="cart-btn" onclick="scrollToQueue()">รายการ <span class="cart-count" id="cartCount">0</span></button>
-    <button class="logout-btn" onclick="DocScanAuth.clear();location.reload();" title="ออกจากระบบ">↩ ออก</button>
   </div>
 </header>
 
@@ -409,7 +447,7 @@ var DocScanAuth = (function () {
     } catch(e) { return null; }
   }
   function clear() { localStorage.removeItem(KEY); }
-  function requireAuth() { var s=load(); if(!s){window.location.href='index.html';return null;} return s; }
+  function requireAuth() { var s=load(); if(!s){window.location.href='login.html';return null;} return s; }
   return { save:save, load:load, clear:clear, requireAuth:requireAuth };
 })();
 
@@ -439,18 +477,19 @@ window.onload = function () {
   document.getElementById('editReceivedDate').value = today;
   if (isMobile) document.getElementById('photoCameraInput').setAttribute('capture', 'environment');
 
-  var s = DocScanAuth.load();
-  if (s) {
-    selectedSite = s.site; selectedEmpId = s.empId;
-    selectedEmpName = s.empName; selectedEmpEmail = s.empEmail;
-    document.getElementById('siteOverlay').style.display = 'none';
-    document.getElementById('siteBadge').textContent = s.empName + ' · ' + s.site;
-    document.getElementById('userEmail').textContent = s.empId + ' — ' + s.empName + ' (' + s.empEmail + ')';
-    document.getElementById('empId').value = s.empId;
-    document.getElementById('empName').value = s.empName;
-    document.getElementById('empEmail').value = s.empEmail;
-    document.getElementById('siteSelect').value = s.site;
-  }
+  var s = DocScanAuth.requireAuth();
+  if (!s) return;
+
+  selectedSite = s.site; selectedEmpId = s.empId;
+  selectedEmpName = s.empName; selectedEmpEmail = s.empEmail;
+  document.getElementById('siteOverlay').style.display = 'none';
+  document.getElementById('sidebarName').textContent = s.empName + ' (' + s.empId + ')';
+  document.getElementById('sidebarSite').textContent = s.site;
+  document.getElementById('userEmail').textContent = s.empId + ' — ' + s.site;
+  document.getElementById('empId').value    = s.empId;
+  document.getElementById('empName').value  = s.empName;
+  document.getElementById('empEmail').value = s.empEmail;
+  document.getElementById('siteSelect').value = s.site;
   loadCSV();
 };
 
@@ -802,5 +841,6 @@ function showToast(msg, type) {
   toastTimer = setTimeout(function(){t.classList.remove('show');},3000);
 }
 </script>
+</div><!-- /page-wrap -->
 </body>
 </html>
