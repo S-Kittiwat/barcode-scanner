@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>DocScan — เข้าสู่ระบบ</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+:root{--bg:#0f172a;--surface:#1e293b;--surface2:#263348;--border:#334155;--accent:#38bdf8;--success:#34d399;--warn:#fbbf24;--danger:#f87171;--text:#f1f5f9;--muted:#94a3b8;--font:'IBM Plex Sans Thai',sans-serif;--mono:'IBM Plex Mono',monospace;--r:12px;--rs:8px;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;}
+.login-wrap{width:100%;max-width:440px;}
+.brand{display:flex;align-items:center;gap:14px;margin-bottom:32px;justify-content:center;}
+.brand-icon{width:48px;height:48px;background:var(--accent);border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.brand-name{font-size:24px;font-weight:600;}
+.brand-sub{font-size:13px;color:var(--muted);margin-top:2px;}
+.box{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:28px;}
+.box-title{font-size:16px;font-weight:600;margin-bottom:4px;}
+.box-sub{font-size:12px;color:var(--muted);margin-bottom:24px;}
+.divider{height:1px;background:var(--border);margin:20px 0;}
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:16px;}
+.label{font-size:12px;color:var(--muted);font-weight:500;}
+.input{background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);color:var(--text);font-family:var(--font);font-size:14px;padding:10px 12px;outline:none;width:100%;transition:border-color 0.15s;}
+.input:focus{border-color:var(--accent);}
+.input::placeholder{color:var(--muted);}
+.select{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);color:var(--text);font-family:var(--font);font-size:14px;padding:10px 12px;outline:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;cursor:pointer;}
+.select:focus{border-color:var(--accent);}
+.select option{background:var(--surface2);}
+.submit-btn{width:100%;background:var(--accent);border:none;color:#0f172a;border-radius:var(--rs);padding:13px;font-family:var(--font);font-size:15px;font-weight:700;cursor:pointer;margin-top:8px;transition:opacity 0.15s;}
+.submit-btn:disabled{opacity:0.35;cursor:not-allowed;}
+.submit-btn:not(:disabled):hover{opacity:0.9;}
+.footer{text-align:center;font-size:11px;color:var(--muted);margin-top:20px;}
+</style>
+</head>
+<body>
+<div class="login-wrap">
+  <div class="brand">
+    <div class="brand-icon">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#0f172a" stroke-width="2.5">
+        <rect x="3" y="4" width="3" height="16" rx="1"/><rect x="8" y="4" width="1.5" height="16" rx="0.5"/>
+        <rect x="11" y="4" width="3" height="16" rx="1"/><rect x="16" y="4" width="1.5" height="16" rx="0.5"/>
+        <rect x="19" y="4" width="2" height="16" rx="1"/>
+      </svg>
+    </div>
+    <div>
+      <div class="brand-name">DocScan</div>
+      <div class="brand-sub">Pallet Tracking System</div>
+    </div>
+  </div>
+
+  <div class="box">
+    <div class="box-title">เข้าสู่ระบบ</div>
+    <div class="box-sub">กรอกข้อมูลเพื่อเริ่มใช้งาน</div>
+
+    <div class="field">
+      <label class="label">รหัสพนักงาน</label>
+      <input class="input" id="empId" type="text" placeholder="กรอกรหัสพนักงาน" oninput="check()">
+    </div>
+    <div class="field">
+      <label class="label">ชื่อ-นามสกุล</label>
+      <input class="input" id="empName" type="text" placeholder="กรอกชื่อ-นามสกุล" oninput="check()">
+    </div>
+    <div class="field">
+      <label class="label">Email</label>
+      <input class="input" id="empEmail" type="email" placeholder="กรอก Email" oninput="check()">
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="field" style="margin-bottom:0;">
+      <label class="label">Site / คลังสินค้า</label>
+      <select class="select" id="siteSelect" onchange="check()">
+        <option value="">— กรุณาเลือก Site —</option>
+        <optgroup label="โรงงาน">
+          <option>BRS สำนักงานใหญ่</option><option>BRS ชลบุรี</option><option>BRS นวนคร</option>
+          <option>BRS บางบัวทอง</option><option>BRS พิษณุโลก</option><option>BRS ลำพูน</option>
+          <option>BRS สุราษฎร์ธานี</option><option>BRS อุบลราชธานี</option><option>BRS หาดใหญ่</option>
+          <option>BRS มีนบุรี</option><option>BRS ทวีวัฒนา</option><option>BRS ขอนแก่น</option>
+          <option>BRS ลาดหลุมแก้ว</option><option>BRS ลำไทร</option>
+        </optgroup>
+        <optgroup label="คลังสินค้า">
+          <option>RDC-ขอนแก่น</option><option>RDC-ลำพูน</option><option>RDC-สุราษฎร์ธานี</option>
+          <option>คลังชลบุรี</option><option>คลังทวีวัฒนา</option><option>คลังบางบัวทอง</option>
+          <option>คลังบางบัวทอง 2</option><option>คลังพิษณุโลก</option><option>คลังมีนบุรี</option>
+          <option>NDC-วังน้อย</option><option>คลังหาดใหญ่</option><option>คลังอุบลราชธานี</option>
+          <option>คลังลาดหลุมแก้ว</option><option>คลังลำไทร (Over Flow)</option>
+        </optgroup>
+      </select>
+    </div>
+
+    <button class="submit-btn" id="submitBtn" onclick="login()" disabled>เข้าสู่ระบบ →</button>
+  </div>
+
+  <div class="footer">Palletmanagement@brs-group.com</div>
+</div>
+
+<script>
+var DocScanAuth = (function(){
+  var KEY='docScanSession';
+  function save(e,n,m,s){localStorage.setItem(KEY,JSON.stringify({empId:e,empName:n,empEmail:m,site:s}));}
+  function load(){try{var r=localStorage.getItem(KEY);if(!r)return null;var s=JSON.parse(r);return(s.empId&&s.empName&&s.empEmail&&s.site)?s:null;}catch(e){return null;}}
+  function clear(){localStorage.removeItem(KEY);}
+  function requireAuth(){var s=load();if(!s){window.location.href='login.html';return null;}return s;}
+  return{save:save,load:load,clear:clear,requireAuth:requireAuth};
+})();
+
+window.onload = function() {
+  var s = DocScanAuth.load();
+  if (s) { window.location.href = 'dashboard.html'; return; }
+};
+
+function check() {
+  var ok = document.getElementById('empId').value.trim() &&
+           document.getElementById('empName').value.trim() &&
+           document.getElementById('empEmail').value.trim() &&
+           document.getElementById('siteSelect').value;
+  document.getElementById('submitBtn').disabled = !ok;
+}
+
+function login() {
+  var empId  = document.getElementById('empId').value.trim();
+  var name   = document.getElementById('empName').value.trim();
+  var email  = document.getElementById('empEmail').value.trim();
+  var site   = document.getElementById('siteSelect').value;
+  if (!empId||!name||!email||!site) return;
+  DocScanAuth.save(empId, name, email, site);
+  window.location.href = 'dashboard.html';
+}
+</script>
+</body>
+</html>
