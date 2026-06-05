@@ -4,11 +4,32 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>DocScan — Batch Mode</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
-:root{--bg:#0f172a;--surface:#1e293b;--surface2:#263348;--border:#334155;--accent:#38bdf8;--success:#34d399;--warn:#fbbf24;--danger:#f87171;--text:#f1f5f9;--muted:#94a3b8;--font:'IBM Plex Sans Thai',sans-serif;--mono:'IBM Plex Mono',monospace;--r:12px;--rs:8px;}
+:root{--bg:#0f172a;--surface:#1e293b;--surface2:#263348;--border:#334155;--accent:#38bdf8;--success:#34d399;--warn:#fbbf24;--danger:#f87171;--text:#f1f5f9;--muted:#94a3b8;--font:'IBM Plex Sans Thai',sans-serif;--mono:'IBM Plex Mono',monospace;--r:12px;--rs:8px;--sidebar:240px;}
 *{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;font-size:15px;}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;display:flex;font-size:15px;}
+.sidebar{width:var(--sidebar);flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:200;}
+.sidebar-brand{padding:20px 20px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
+.brand-icon{width:36px;height:36px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.brand-name{font-size:14px;font-weight:600;}
+.brand-sub{font-size:10px;color:var(--muted);}
+.sidebar-user{padding:14px 16px;border-bottom:1px solid var(--border);background:var(--surface2);}
+.user-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.user-site{font-size:11px;color:var(--accent);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sidebar-nav{flex:1;padding:12px 8px;display:flex;flex-direction:column;gap:4px;}
+.nav-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;padding:8px 8px 4px;font-weight:500;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--rs);cursor:pointer;text-decoration:none;color:var(--muted);font-size:13px;font-weight:500;transition:background 0.15s,color 0.15s;border:none;background:none;width:100%;font-family:var(--font);}
+.nav-item:hover{background:var(--surface2);color:var(--text);}
+.nav-item.active{background:rgba(56,189,248,0.1);color:var(--accent);border:1px solid rgba(56,189,248,0.2);}
+.nav-icon{font-size:16px;flex-shrink:0;}
+.sidebar-footer{padding:12px 8px;border-top:1px solid var(--border);}
+.logout-btn2{display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:var(--rs);cursor:pointer;color:var(--muted);font-size:13px;background:none;border:none;width:100%;font-family:var(--font);transition:color 0.15s,background 0.15s;}
+.logout-btn2:hover{color:var(--danger);background:rgba(248,113,113,0.08);}
+.page-wrap{margin-left:var(--sidebar);flex:1;display:flex;flex-direction:column;min-height:100vh;}
 header{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
 .logo{display:flex;align-items:center;gap:10px;}
 .logo-icon{width:34px;height:34px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;}
@@ -83,7 +104,7 @@ main{width:100%;max-width:100%;padding:20px 24px 100px;}
 .site-confirm-btn{width:100%;background:var(--accent);border:none;color:#0f172a;border-radius:var(--rs);padding:12px;font-family:var(--font);font-size:15px;font-weight:600;cursor:pointer;}
 .site-confirm-btn:disabled{opacity:0.35;cursor:not-allowed;}
 .site-badge{background:rgba(56,189,248,0.12);border:1px solid rgba(56,189,248,0.3);color:var(--accent);font-size:12px;padding:3px 10px;border-radius:6px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px;}
-.submit-bar{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);padding:12px 24px;display:flex;gap:12px;align-items:center;}
+.submit-bar{position:fixed;bottom:0;left:var(--sidebar);right:0;background:var(--surface);border-top:1px solid var(--border);padding:12px 24px;display:flex;gap:12px;align-items:center;}
 .submit-btn{flex:1;background:var(--success);border:none;color:#0f172a;border-radius:var(--rs);padding:11px;font-family:var(--font);font-size:14px;font-weight:600;cursor:pointer;max-width:480px;}
 .submit-btn:disabled{opacity:0.35;cursor:not-allowed;}
 .clear-all-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:var(--rs);padding:11px 20px;font-family:var(--font);font-size:13px;cursor:pointer;}
@@ -112,6 +133,15 @@ main{width:100%;max-width:100%;padding:20px 24px 100px;}
 .limit-banner{display:none;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.3);border-radius:var(--rs);padding:8px 16px;font-size:12px;color:var(--warn);margin-bottom:12px;align-items:center;gap:8px;}
 .limit-banner.show{display:flex;}
 .limit-banner.danger{background:rgba(248,113,113,0.08);border-color:rgba(248,113,113,0.3);color:var(--danger);}
+/* ── PDF Split Progress ── */
+.split-overlay{position:fixed;inset:0;background:rgba(15,23,42,0.85);z-index:400;display:none;align-items:center;justify-content:center;}
+.split-overlay.show{display:flex;}
+.split-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:32px 40px;text-align:center;min-width:320px;}
+.split-title{font-size:15px;font-weight:600;margin-bottom:6px;}
+.split-sub{font-size:12px;color:var(--muted);margin-bottom:20px;}
+.split-bar-wrap{height:6px;background:var(--surface2);border-radius:20px;overflow:hidden;margin-bottom:12px;}
+.split-bar-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--success));border-radius:20px;transition:width 0.2s;}
+.split-detail{font-size:11px;color:var(--muted);font-family:var(--mono);}
 </style>
 </head>
 <body>
@@ -154,25 +184,40 @@ main{width:100%;max-width:100%;padding:20px 24px 100px;}
   </div>
 </div>
 
-<!-- Header -->
-<header>
-  <div class="logo">
-    <div class="logo-icon">
+<!-- Sidebar -->
+<aside class="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-icon">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0f172a" stroke-width="2.5">
         <rect x="3" y="4" width="3" height="16" rx="1"/><rect x="8" y="4" width="1.5" height="16" rx="0.5"/>
         <rect x="11" y="4" width="3" height="16" rx="1"/><rect x="16" y="4" width="1.5" height="16" rx="0.5"/>
         <rect x="19" y="4" width="2" height="16" rx="1"/>
       </svg>
     </div>
-    <div>
-      <div class="logo-text">DocScan Batch</div>
-      <div class="logo-sub" id="userInfo">—</div>
-    </div>
+    <div><div class="brand-name">DocScan</div><div class="brand-sub">Pallet Tracking</div></div>
   </div>
-  <div style="display:flex;align-items:center;gap:8px;">
-    <div class="site-badge" id="siteBadge" onclick="document.getElementById('siteOverlay').style.display='flex'">—</div>
-    <a href="index.html" class="back-btn">← โหมดปกติ</a>
-    <button class="logout-btn" onclick="DocScanAuth.clear();window.location.href='index.html';" title="ออกจากระบบ">↩ ออก</button>
+  <div class="sidebar-user">
+    <div class="user-name" id="sidebarName">—</div>
+    <div class="user-site" id="sidebarSite">—</div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-label">เมนูหลัก</div>
+    <a class="nav-item" href="dashboard.html"><span class="nav-icon">📊</span> Dashboard</a>
+    <div class="nav-label" style="margin-top:8px;">สแกนเอกสาร</div>
+    <a class="nav-item" href="index.html"><span class="nav-icon">📷</span> Single Scan</a>
+    <a class="nav-item active" href="batch.html"><span class="nav-icon">📦</span> Batch Scan</a>
+  </nav>
+  <div class="sidebar-footer">
+    <button class="logout-btn2" onclick="DocScanAuth.clear();window.location.href='login.html';">↩ ออกจากระบบ</button>
+  </div>
+</aside>
+
+<div class="page-wrap">
+<!-- Topbar -->
+<header style="background:var(--surface);border-bottom:1px solid var(--border);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;">
+  <div>
+    <div style="font-size:15px;font-weight:600;">Batch Scan</div>
+    <div style="font-size:11px;color:var(--muted);" id="userInfo">—</div>
   </div>
 </header>
 
@@ -250,7 +295,7 @@ var DocScanAuth = (function () {
     } catch(e) { return null; }
   }
   function clear() { localStorage.removeItem(KEY); }
-  function requireAuth() { var s=load(); if(!s){window.location.href='index.html';return null;} return s; }
+  function requireAuth() { var s=load(); if(!s){window.location.href='login.html';return null;} return s; }
   return { save:save, load:load, clear:clear, requireAuth:requireAuth };
 })();
 
@@ -267,8 +312,9 @@ window.onload = function () {
   selectedSite = s.site; selectedEmpId = s.empId;
   selectedEmpName = s.empName; selectedEmpEmail = s.empEmail;
   document.getElementById('siteOverlay').style.display = 'none';
-  document.getElementById('siteBadge').textContent = s.empName + ' · ' + s.site;
-  document.getElementById('userInfo').textContent = s.empId + ' — ' + s.empName;
+  document.getElementById('sidebarName').textContent = s.empName + ' (' + s.empId + ')';
+  document.getElementById('sidebarSite').textContent = s.site;
+  document.getElementById('userInfo').textContent = s.empId + ' — ' + s.site;
   document.getElementById('empId').value = s.empId;
   document.getElementById('empName').value = s.empName;
   document.getElementById('empEmail').value = s.empEmail;
@@ -355,73 +401,167 @@ function handleDrop(e) {
 }
 function handleFiles(e) { processFiles(Array.from(e.target.files)); e.target.value=''; }
 
-function processFiles(files) {
+async function processFiles(files) {
   var validFiles = files.filter(function(f){ return f.type.startsWith('image/') || f.type==='application/pdf'; });
+  if (!validFiles.length) return;
 
-  // Hard limit check
-  var remaining = BATCH_LIMIT - rows.length;
-  if (remaining <= 0) {
-    showToast('ครบ '+BATCH_LIMIT+' รายการแล้ว กรุณา Submit ก่อน','error');
-    return;
-  }
-  if (validFiles.length > remaining) {
-    showToast('รับได้อีก '+remaining+' ไฟล์ (ตัดออก '+(validFiles.length-remaining)+' ไฟล์)','error');
-    validFiles = validFiles.slice(0, remaining);
-  }
+  validFiles.sort(function(a,b){ return a.name.localeCompare(b.name,undefined,{numeric:true}); });
 
-  validFiles.sort(function(a,b){return a.name.localeCompare(b.name,undefined,{numeric:true});});
+  var skippedFiles = [];
 
-  var existingNames = rows.map(function(r){ return r.file.name.toLowerCase(); });
-  var skippedFiles  = [];
+  for (var fi = 0; fi < validFiles.length; fi++) {
+    var file = validFiles[fi];
 
-  validFiles.forEach(function(file) {
-    // ── ตรวจชื่อไฟล์ซ้ำ ──────────────────────────────────
-    if (existingNames.indexOf(file.name.toLowerCase()) !== -1) {
-      skippedFiles.push(file.name);
-      return;
+    // ── ตรวจ limit ก่อนแต่ละไฟล์ ──────────────────────────
+    if (rows.length >= BATCH_LIMIT) {
+      showToast('ครบ '+BATCH_LIMIT+' รายการแล้ว หยุดเพิ่ม','error'); break;
     }
-    existingNames.push(file.name.toLowerCase());
-    var row = {
-      id:++_rowIdCounter, file:file, photoData:null,
-      photoType:file.type==='application/pdf'?'pdf':'image',
-      barcode:'', doc:null, status:'idle',
-      editVals:{
-        refNo:'', itemName:'',
-        transferFrom:'', originAcc:'',
-        transferTo:'', destAcc:'',
-        despatch:'', receivedDate:'',
-        sentQty:'', receivedQty:''
-      }
-    };
-    var reader = new FileReader();
-    reader.onload = function(e) {
-      if (file.type==='application/pdf') { row.photoData=e.target.result; }
-      else {
-        var img=new Image();
-        img.onload=function(){
-          var canvas=document.createElement('canvas');
-          var maxW=800;var scale=Math.min(1,maxW/img.width);
-          canvas.width=img.width*scale;canvas.height=img.height*scale;
-          canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
-          row.photoData=canvas.toDataURL('image/jpeg',0.75);
-        };
-        img.src=e.target.result;
-      }
-    };
-    reader.readAsDataURL(file);
-    rows.push(row);
-  });
+
+    if (file.type === 'application/pdf') {
+      await processPDF(file, skippedFiles);
+    } else {
+      await processImage(file, skippedFiles);
+    }
+  }
 
   if (skippedFiles.length > 0) {
-    showToast('ไฟล์ซ้ำ '+skippedFiles.length+' ไฟล์ (ข้ามไป): '+skippedFiles.slice(0,2).join(', ')+(skippedFiles.length>2?' ...':''), 'error');
+    showToast('ซ้ำ/ข้าม '+skippedFiles.length+' ไฟล์: '+skippedFiles.slice(0,2).join(', ')+(skippedFiles.length>2?'...':''), 'error');
   }
-
-  // Soft warning
   if (rows.length > BATCH_WARN && rows.length < BATCH_LIMIT) {
     showToast('⚠️ '+rows.length+' รายการ — แนะนำแบ่ง batch ไม่เกิน '+BATCH_WARN,'info');
   }
 
-  setTimeout(function(){ renderTable(); updateBatchCounter(); }, 200);
+  renderTable();
+  updateBatchCounter();
+}
+
+// ── Process รูปภาพ 1 ไฟล์ = 1 แถว ────────────────────────
+function processImage(file, skippedFiles) {
+  return new Promise(function(resolve) {
+    var existingNames = rows.map(function(r){ return r.file.name.toLowerCase(); });
+    if (existingNames.indexOf(file.name.toLowerCase()) !== -1) {
+      skippedFiles.push(file.name); resolve(); return;
+    }
+    var row = _makeRow(file, 'image');
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      var img = new Image();
+      img.onload = function() {
+        var canvas = document.createElement('canvas');
+        var maxW = 800; var scale = Math.min(1, maxW / img.width);
+        canvas.width = img.width * scale; canvas.height = img.height * scale;
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        row.photoData = canvas.toDataURL('image/jpeg', 0.75);
+        rows.push(row); resolve();
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+// ── Process PDF: split แต่ละหน้าเป็นแถว ─────────────────
+async function processPDF(file, skippedFiles) {
+  // แสดง progress overlay
+  var overlay  = document.getElementById('splitOverlay');
+  var barFill  = document.getElementById('splitBarFill');
+  var detail   = document.getElementById('splitDetail');
+  document.getElementById('splitFileName').textContent = file.name;
+  barFill.style.width = '0%'; detail.textContent = 'กำลังอ่าน PDF...';
+  overlay.classList.add('show');
+
+  try {
+    var arrayBuf = await file.arrayBuffer();
+
+    // 1. นับหน้าด้วย PDF.js
+    var pdfJs  = await pdfjsLib.getDocument({ data: arrayBuf.slice(0) }).promise;
+    var numPages = pdfJs.numPages;
+
+    // 2. ถ้า 1 หน้า — ไม่ต้อง split ใช้เหมือนเดิม
+    if (numPages === 1) {
+      overlay.classList.remove('show');
+      var existingNames = rows.map(function(r){ return r.file.name.toLowerCase(); });
+      if (existingNames.indexOf(file.name.toLowerCase()) !== -1) {
+        skippedFiles.push(file.name); return;
+      }
+      var row = _makeRow(file, 'pdf');
+      // render thumbnail หน้า 1
+      row.photoData = await _renderPDFPage(pdfJs, 1, 200);
+      row.pdfPageData = await _extractPDFPage(arrayBuf, 1); // เก็บ PDF 1 หน้า
+      rows.push(row);
+      return;
+    }
+
+    // 3. PDF หลายหน้า — split ทีละหน้า
+    detail.textContent = '0 / ' + numPages + ' หน้า';
+    var remaining = BATCH_LIMIT - rows.length;
+    var pagesToProcess = Math.min(numPages, remaining);
+
+    if (pagesToProcess < numPages) {
+      showToast('PDF '+numPages+' หน้า รับได้อีก '+remaining+' หน้า (ตัดเหลือ '+pagesToProcess+' หน้า)', 'error');
+    }
+
+    for (var p = 1; p <= pagesToProcess; p++) {
+      var pct = Math.round((p / pagesToProcess) * 100);
+      barFill.style.width = pct + '%';
+      detail.textContent = p + ' / ' + pagesToProcess + ' หน้า';
+
+      var pageName = file.name.replace(/\.pdf$/i, '') + '_p' + String(p).padStart(3,'0') + '.pdf';
+      // ตรวจซ้ำ
+      var existNames = rows.map(function(r){ return r.file.name.toLowerCase(); });
+      if (existNames.indexOf(pageName.toLowerCase()) !== -1) { skippedFiles.push(pageName); continue; }
+
+      // สร้าง virtual file object สำหรับแถวนี้
+      var virtualFile = { name: pageName, type: 'application/pdf', size: 0, _virtual: true };
+      var row = _makeRow(virtualFile, 'pdf');
+
+      // render thumbnail
+      row.photoData = await _renderPDFPage(pdfJs, p, 200);
+      // extract หน้าเดี่ยวเป็น PDF bytes
+      row.pdfPageData = await _extractPDFPage(arrayBuf, p);
+      row.pageNum = p;
+      row.totalPages = numPages;
+      row.sourceFile = file.name;
+
+      rows.push(row);
+    }
+
+  } catch(err) {
+    showToast('อ่าน PDF ไม่ได้: ' + err.message, 'error');
+  } finally {
+    overlay.classList.remove('show');
+  }
+}
+
+// render หน้า PDF เป็น base64 JPEG thumbnail
+async function _renderPDFPage(pdfDoc, pageNum, maxW) {
+  var page    = await pdfDoc.getPage(pageNum);
+  var vp0     = page.getViewport({ scale: 1 });
+  var scale   = maxW / vp0.width;
+  var vp      = page.getViewport({ scale: scale });
+  var canvas  = document.createElement('canvas');
+  canvas.width  = vp.width;
+  canvas.height = vp.height;
+  await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
+  return canvas.toDataURL('image/jpeg', 0.75);
+}
+
+// extract หน้าเดี่ยวออกจาก PDF เป็น Uint8Array ผ่าน pdf-lib
+async function _extractPDFPage(arrayBuf, pageNum) {
+  var srcDoc  = await PDFLib.PDFDocument.load(arrayBuf.slice(0));
+  var newDoc  = await PDFLib.PDFDocument.create();
+  var [page]  = await newDoc.copyPages(srcDoc, [pageNum - 1]);
+  newDoc.addPage(page);
+  return await newDoc.save(); // Uint8Array
+}
+
+// สร้าง row object มาตรฐาน
+function _makeRow(file, photoType) {
+  return {
+    id: ++_rowIdCounter, file: file, photoData: null, pdfPageData: null,
+    photoType: photoType, barcode: '', doc: null, status: 'idle',
+    editVals: { refNo:'', itemName:'', transferFrom:'', originAcc:'', transferTo:'', destAcc:'', despatch:'', receivedDate:'', sentQty:'', receivedQty:'' }
+  };
 }
 
 // ── Smart Date Input ──────────────────────────────────────
@@ -544,8 +684,12 @@ function renderTable() {
   wrap.style.display='block';empty.style.display='none';
   var tbody=document.getElementById('batchBody');
   tbody.innerHTML=rows.map(function(row,i){
-    var thumbHtml=row.photoType==='pdf'?'<div class="pdf-thumb">📄</div>':(row.photoData?'<img class="file-thumb" src="'+row.photoData+'">':'<div class="pdf-thumb">🖼</div>');
-    var statusHtml={
+    var thumbHtml = row.photoData
+      ? '<img class="file-thumb" src="'+row.photoData+'">'
+      : '<div class="pdf-thumb">🖼</div>';
+    var fileLabel = row.pageNum
+      ? esc(row.sourceFile).replace(/\.pdf$/i,'')+'<br><span style="color:var(--accent);font-size:10px;">หน้า '+row.pageNum+'/'+row.totalPages+'</span>'
+      : esc(row.file.name);    var statusHtml={
       idle    :'<span class="status-badge status-idle">รอ Barcode</span>',
       found   :'<span class="status-badge status-found">พบข้อมูล</span>',
       notfound:'<span class="status-badge status-notfound">ไม่พบ</span>',
@@ -557,7 +701,7 @@ function renderTable() {
     var rid=row.id;
     return '<tr class="row-'+row.status+'" id="row-'+rid+'">'+
       '<td style="text-align:center;color:var(--muted);font-family:var(--mono);font-size:11px;">'+(i+1)+'</td>'+
-      '<td><div style="display:flex;flex-direction:column;align-items:center;gap:2px;">'+thumbHtml+'<div class="file-name">'+esc(row.file.name)+'</div></div></td>'+
+      '<td><div style="display:flex;flex-direction:column;align-items:center;gap:2px;">'+thumbHtml+'<div class="file-name" style="text-align:center;">'+fileLabel+'</div></div></td>'+
       '<td><input class="'+bcClass+'" value="'+esc(row.barcode)+'" placeholder="สแกน / พิมพ์ barcode" oninput="handleBarcodeInput(\''+rid+'\',this)" onkeydown="if(event.key===\'Enter\'){event.preventDefault();onBarcodeChange(\''+rid+'\',this.value);}"></td>'+
       '<td>'+statusHtml+'</td>'+
       '<td><input class="row-input mono" value="'+esc(ev.refNo)+'" oninput="updateEdit(\''+rid+'\',\'refNo\',this.value)" placeholder="Ref No."></td>'+
@@ -749,10 +893,19 @@ async function submitBatch(){
   try{
     for(var i=0;i<ready.length;i++){
       var row=ready[i];
-      if(row.photoData){
+      // ใช้ pdfPageData (extracted single page) ถ้ามี, ไม่งั้นใช้ photoData
+      var uploadData = row.pdfPageData || row.photoData;
+      if(uploadData){
         btn.textContent='อัปโหลดไฟล์ '+(i+1)+'/'+ready.length+'...';
         var refNo=row.editVals.refNo||row.barcode;
-        row.photoUrl=await uploadPhoto(row.photoData,row.barcode,refNo);
+        // แปลง Uint8Array → base64 ถ้าเป็น PDF split
+        var uploadStr = uploadData;
+        if (uploadData instanceof Uint8Array) {
+          var binary = ''; var bytes = new Uint8Array(uploadData);
+          for (var b=0;b<bytes.byteLength;b++) binary += String.fromCharCode(bytes[b]);
+          uploadStr = 'data:application/pdf;base64,' + btoa(binary);
+        }
+        row.photoUrl=await uploadPhoto(uploadStr,row.barcode,refNo);
       }
     }
     btn.textContent='กำลังบันทึกข้อมูล...';
@@ -793,5 +946,16 @@ async function uploadPhoto(base64,barcode,refNo){
 var toastTimer;
 function showToast(msg,type){var t=document.getElementById('toast');t.textContent=msg;t.className='toast '+(type||'info')+' show';clearTimeout(toastTimer);toastTimer=setTimeout(function(){t.classList.remove('show');},3000);}
 </script>
+</div><!-- /page-wrap -->
+
+<!-- PDF Split Progress Overlay -->
+<div class="split-overlay" id="splitOverlay">
+  <div class="split-box">
+    <div class="split-title">กำลังแยกหน้า PDF...</div>
+    <div class="split-sub" id="splitFileName">—</div>
+    <div class="split-bar-wrap"><div class="split-bar-fill" id="splitBarFill" style="width:0%"></div></div>
+    <div class="split-detail" id="splitDetail">0 / 0 หน้า</div>
+  </div>
+</div>
 </body>
 </html>
