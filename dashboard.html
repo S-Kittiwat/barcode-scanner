@@ -47,7 +47,18 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .sum-card.c-pend  .sum-value{color:var(--warn);}
 .sum-card.c-pct   .sum-value{color:var(--accent);font-size:26px;}
 
-/* ── Progress ── */
+/* ── Pipeline ── */
+.pipeline-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px 20px;margin-bottom:20px;}
+.pipeline-title{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:14px;font-weight:500;}
+.pipeline-steps{display:flex;align-items:center;gap:0;}
+.pipe-step{flex:1;text-align:center;padding:12px 8px;position:relative;}
+.pipe-step:not(:last-child)::after{content:'→';position:absolute;right:-8px;top:50%;transform:translateY(-50%);color:var(--border);font-size:16px;z-index:1;}
+.pipe-num{font-size:24px;font-weight:700;font-family:var(--mono);margin-bottom:4px;}
+.pipe-label{font-size:11px;color:var(--muted);}
+.pipe-step.s1 .pipe-num{color:var(--muted);}
+.pipe-step.s2 .pipe-num{color:var(--warn);}
+.pipe-step.s3 .pipe-num{color:var(--accent);}
+.pipe-step.s4 .pipe-num{color:var(--success);}
 .progress-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px 20px;margin-bottom:20px;}
 .progress-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
 .progress-label{font-size:13px;font-weight:500;}
@@ -114,7 +125,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
     <div class="nav-label">เมนูหลัก</div>
     <a class="nav-item active" href="dashboard.html"><span class="nav-icon">📊</span> Dashboard</a>
     <div class="nav-label" style="margin-top:8px;">สแกนเอกสาร</div>
-    <a class="nav-item" href="index.html"><span class="nav-icon">📷</span> Single Scan</a>
+    <a class="nav-item" href="scan.html"><span class="nav-icon">📷</span> Single Scan</a>
     <a class="nav-item" href="batch.html"><span class="nav-icon">📦</span> Batch Scan</a>
   </nav>
   <div class="sidebar-footer">
@@ -160,6 +171,29 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
         <div class="sum-label">ความคืบหน้า</div>
         <div class="sum-value" id="sumPct">—%</div>
         <div class="sum-sub">ของทั้งหมด</div>
+      </div>
+    </div>
+
+    <!-- Pipeline -->
+    <div class="pipeline-wrap">
+      <div class="pipeline-title">Pipeline เอกสาร</div>
+      <div class="pipeline-steps">
+        <div class="pipe-step s1">
+          <div class="pipe-num" id="pipeTransporter">—</div>
+          <div class="pipe-label">🚚 กับขนส่ง</div>
+        </div>
+        <div class="pipe-step s2">
+          <div class="pipe-num" id="pipeDelivery">—</div>
+          <div class="pipe-label">📋 ทีมจัดส่ง</div>
+        </div>
+        <div class="pipe-step s3">
+          <div class="pipe-num" id="pipeWarehouse">—</div>
+          <div class="pipe-label">🏭 รอ Scan</div>
+        </div>
+        <div class="pipe-step s4">
+          <div class="pipe-num" id="pipeScanned">—</div>
+          <div class="pipe-label">✅ Scan แล้ว</div>
+        </div>
       </div>
     </div>
 
@@ -280,6 +314,12 @@ function loadData() {
       });
       _cachedDone    = data.done    || [];
       _cachedPending = data.pending || [];
+      // pipeline
+      var p = data.pipeline || {};
+      document.getElementById('pipeTransporter').textContent = p.with_transporter || 0;
+      document.getElementById('pipeDelivery').textContent    = p.with_delivery    || 0;
+      document.getElementById('pipeWarehouse').textContent   = p.with_warehouse   || 0;
+      document.getElementById('pipeScanned').textContent     = data.summary.done  || 0;
       applyFilters();
     })
     .catch(function(err){
