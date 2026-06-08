@@ -378,6 +378,9 @@ function loadData() {
       var s  = data.summary;
       var pt = data.pending_tiers || {t1:0,t2:0,t3:0,t4:0};
       var pl = data.pipeline      || {};
+      console.log('[Dashboard] summary:', JSON.stringify(s));
+      console.log('[Dashboard] pending_tiers:', JSON.stringify(pt));
+      console.log('[Dashboard] pipeline:', JSON.stringify(pl));
 
       // Card 1
       document.getElementById('sumTotal').textContent = s.total;
