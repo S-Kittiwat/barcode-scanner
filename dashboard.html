@@ -36,46 +36,80 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .topbar-sub{font-size:11px;color:var(--muted);margin-top:2px;}
 .content{padding:24px;flex:1;}
 
-/* ── Summary ── */
-.summary-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;}
-.sum-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px 20px;}
-.sum-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;font-weight:500;}
-.sum-value{font-size:30px;font-weight:700;font-family:var(--mono);line-height:1;}
-.sum-sub{font-size:11px;color:var(--muted);margin-top:6px;}
+/* ── Summary Cards ── */
+.summary-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px;}
+.sum-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:22px 24px;position:relative;overflow:hidden;}
+.sum-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+.sum-card.c-total::before{background:var(--muted);}
+.sum-card.c-done::before{background:var(--success);}
+.sum-card.c-ontime::before{background:linear-gradient(90deg,var(--success),var(--accent));}
+.sum-card.c-pend::before{background:var(--warn);}
+.sum-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;font-weight:500;}
+.sum-value{font-size:36px;font-weight:700;font-family:var(--mono);line-height:1;margin-bottom:8px;}
 .sum-card.c-total .sum-value{color:var(--text);}
 .sum-card.c-done  .sum-value{color:var(--success);}
 .sum-card.c-pend  .sum-value{color:var(--warn);}
-.sum-card.c-pct   .sum-value{color:var(--accent);font-size:26px;}
-
+.sum-sub{font-size:12px;color:var(--muted);}
+/* Card 3: Ontime/Late */
+.ontime-row{display:flex;align-items:center;gap:8px;margin-bottom:7px;}
+.ontime-label{font-size:12px;min-width:48px;}
+.ontime-bar{flex:1;height:6px;background:var(--surface2);border-radius:10px;overflow:hidden;}
+.ontime-fill{height:100%;border-radius:10px;transition:width .5s;}
+.ontime-pct{font-family:var(--mono);font-size:12px;font-weight:600;min-width:40px;text-align:right;}
+/* ── Tier Breakdown ── */
+.tier-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px 20px;margin-bottom:20px;}
+.tier-title{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:14px;font-weight:500;}
+.tier-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+.tier-card{border-radius:var(--rs);padding:16px 18px;border:1px solid transparent;}
+.tier-card.t1{background:rgba(52,211,153,.07);border-color:rgba(52,211,153,.2);}
+.tier-card.t2{background:rgba(251,191,36,.07);border-color:rgba(251,191,36,.2);}
+.tier-card.t3{background:rgba(251,146,60,.07);border-color:rgba(251,146,60,.2);}
+.tier-card.t4{background:rgba(248,113,113,.07);border-color:rgba(248,113,113,.2);}
+.tier-badge{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;padding:2px 8px;border-radius:20px;}
+.tier-card.t1 .tier-badge{background:rgba(52,211,153,.15);color:var(--success);}
+.tier-card.t2 .tier-badge{background:rgba(251,191,36,.15);color:var(--warn);}
+.tier-card.t3 .tier-badge{background:rgba(251,146,60,.15);color:#fb923c;}
+.tier-card.t4 .tier-badge{background:rgba(248,113,113,.15);color:var(--danger);}
+.tier-range{font-size:11px;color:var(--muted);margin-bottom:10px;}
+.tier-num{font-size:32px;font-weight:700;font-family:var(--mono);line-height:1;}
+.tier-card.t1 .tier-num{color:var(--success);}
+.tier-card.t2 .tier-num{color:var(--warn);}
+.tier-card.t3 .tier-num{color:#fb923c;}
+.tier-card.t4 .tier-num{color:var(--danger);}
+.tier-pct{font-size:12px;margin-top:5px;color:var(--muted);}
 /* ── Pipeline ── */
-.pipeline-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px 20px;margin-bottom:20px;}
-.pipeline-title{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:14px;font-weight:500;}
-.pipeline-steps{display:flex;align-items:center;gap:0;}
-.pipe-step{flex:1;text-align:center;padding:12px 8px;position:relative;}
-.pipe-step:not(:last-child)::after{content:'→';position:absolute;right:-8px;top:50%;transform:translateY(-50%);color:var(--border);font-size:16px;z-index:1;}
-.pipe-num{font-size:24px;font-weight:700;font-family:var(--mono);margin-bottom:4px;}
-.pipe-label{font-size:11px;color:var(--muted);}
-.pipe-step.s1 .pipe-num{color:var(--muted);}
-.pipe-step.s2 .pipe-num{color:var(--warn);}
-.pipe-step.s3 .pipe-num{color:var(--accent);}
-.pipe-step.s4 .pipe-num{color:var(--success);}
-.progress-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px 20px;margin-bottom:20px;}
-.progress-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
-.progress-label{font-size:13px;font-weight:500;}
-.progress-pct{font-family:var(--mono);font-size:16px;font-weight:700;color:var(--success);}
-.progress-bar{height:8px;background:var(--surface2);border-radius:20px;overflow:hidden;}
-.progress-fill{height:100%;background:linear-gradient(90deg,var(--success),var(--accent));border-radius:20px;transition:width 0.5s ease;}
-
-/* ── Filter row ── */
-.filter-row{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center;}
-.f-select{background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);color:var(--text);font-family:var(--font);font-size:13px;padding:7px 12px;outline:none;cursor:pointer;}
+.pipeline-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);margin-bottom:20px;overflow:hidden;}
+.pipeline-head{padding:14px 20px;border-bottom:1px solid var(--border);}
+.pipeline-title{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:500;}
+.pipeline-steps{display:grid;grid-template-columns:repeat(4,1fr);}
+.pipe-step{padding:16px 20px;border-right:1px solid var(--border);position:relative;}
+.pipe-step:last-child{border-right:none;}
+.pipe-arrow{position:absolute;right:-10px;top:20px;color:var(--border);font-size:13px;z-index:1;}
+.pipe-label{font-size:11px;color:var(--muted);font-weight:500;margin-bottom:6px;}
+.pipe-total{font-size:26px;font-weight:700;font-family:var(--mono);line-height:1;margin-bottom:10px;}
+.pipe-step.s1 .pipe-total{color:var(--muted);}
+.pipe-step.s2 .pipe-total{color:var(--warn);}
+.pipe-step.s3 .pipe-total{color:var(--accent);}
+.pipe-step.s4 .pipe-total{color:var(--success);}
+.pipe-tiers{display:flex;flex-direction:column;gap:4px;}
+.pipe-tier-row{display:flex;align-items:center;gap:6px;}
+.pipe-tier-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.dot-t1{background:var(--success);}
+.dot-t2{background:var(--warn);}
+.dot-t3{background:#fb923c;}
+.dot-t4{background:var(--danger);}
+.pipe-tier-count{font-family:var(--mono);font-size:11px;font-weight:600;min-width:28px;}
+.pipe-tier-label{font-size:10px;color:var(--muted);}
+/* ── Filter bar ── */
+.filter-bar{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:12px 16px;margin-bottom:16px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+.f-select{background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);color:var(--text);font-family:var(--font);font-size:12px;padding:6px 10px;outline:none;cursor:pointer;}
 .f-select:focus{border-color:var(--accent);}
-.f-input{background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);color:var(--text);font-family:var(--font);font-size:13px;padding:7px 12px;outline:none;width:150px;}
+.f-input{background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);color:var(--text);font-family:var(--font);font-size:12px;padding:6px 10px;outline:none;width:130px;}
 .f-input:focus{border-color:var(--accent);}
 .f-input::placeholder{color:var(--muted);}
-.refresh-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:var(--rs);padding:7px 14px;font-family:var(--font);font-size:13px;cursor:pointer;}
+.refresh-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:var(--rs);padding:6px 12px;font-family:var(--font);font-size:12px;cursor:pointer;}
 .refresh-btn:hover{border-color:var(--accent);color:var(--accent);}
-.export-btn{background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.3);color:var(--success);border-radius:var(--rs);padding:7px 14px;font-family:var(--font);font-size:13px;cursor:pointer;margin-left:auto;}
+.export-btn{background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.3);color:var(--success);border-radius:var(--rs);padding:6px 12px;font-family:var(--font);font-size:12px;cursor:pointer;margin-left:auto;}
 
 /* ── Tables ── */
 .section{margin-bottom:24px;}
@@ -141,12 +175,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
       <div class="topbar-title">Dashboard</div>
       <div class="topbar-sub" id="topbarSub">—</div>
     </div>
-    <div style="display:flex;gap:8px;">
-      <select class="f-select" id="filterSite" onchange="loadData()" style="max-width:200px;">
-        <option value="">— ทุก Site —</option>
-      </select>
-      <button class="refresh-btn" onclick="loadData()">↻ รีเฟรช</button>
-    </div>
+    <button class="refresh-btn" onclick="loadData()">↻ รีเฟรช</button>
   </div>
 
   <div class="content">
@@ -154,7 +183,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
     <!-- Summary Cards -->
     <div class="summary-grid">
       <div class="sum-card c-total">
-        <div class="sum-label">ทั้งหมด</div>
+        <div class="sum-label">เอกสารทั้งหมด</div>
         <div class="sum-value" id="sumTotal">—</div>
         <div class="sum-sub">รายการในระบบ</div>
       </div>
@@ -163,60 +192,113 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
         <div class="sum-value" id="sumDone">—</div>
         <div class="sum-sub" id="sumDonePct">—</div>
       </div>
+      <div class="sum-card c-ontime">
+        <div class="sum-label">Ontime / Late (เฉพาะที่รับแล้ว)</div>
+        <div style="margin-top:4px;">
+          <div class="ontime-row">
+            <span class="ontime-label" style="color:var(--success);">🟢 Ontime</span>
+            <div class="ontime-bar"><div class="ontime-fill" id="ontimeFill" style="background:var(--success);width:0%;"></div></div>
+            <span class="ontime-pct" id="ontimePct" style="color:var(--success);">—%</span>
+          </div>
+          <div class="ontime-row">
+            <span class="ontime-label" style="color:var(--danger);">🔴 Late</span>
+            <div class="ontime-bar"><div class="ontime-fill" id="lateFill" style="background:var(--danger);width:0%;"></div></div>
+            <span class="ontime-pct" id="latePct" style="color:var(--danger);">—%</span>
+          </div>
+        </div>
+        <div class="sum-sub" style="margin-top:6px;">≤15 วัน = Ontime</div>
+      </div>
       <div class="sum-card c-pend">
         <div class="sum-label">ยังไม่รับ</div>
         <div class="sum-value" id="sumPend">—</div>
         <div class="sum-sub" id="sumPendPct">—</div>
       </div>
-      <div class="sum-card c-pct">
-        <div class="sum-label">ความคืบหน้า</div>
-        <div class="sum-value" id="sumPct">—%</div>
-        <div class="sum-sub">ของทั้งหมด</div>
+    </div>
+
+    <!-- Tier Breakdown -->
+    <div class="tier-wrap">
+      <div class="tier-title">เอกสารยังไม่ได้รับ — แบ่งตาม SLA (นับจาก Created Date)</div>
+      <div class="tier-grid">
+        <div class="tier-card t1">
+          <div class="tier-badge">🟢 On Track</div>
+          <div class="tier-range">≤ 15 วัน</div>
+          <div class="tier-num" id="tierT1">—</div>
+          <div class="tier-pct" id="tierT1Pct">—</div>
+        </div>
+        <div class="tier-card t2">
+          <div class="tier-badge">🟡 Over SLA</div>
+          <div class="tier-range">15 – 30 วัน</div>
+          <div class="tier-num" id="tierT2">—</div>
+          <div class="tier-pct" id="tierT2Pct">—</div>
+        </div>
+        <div class="tier-card t3">
+          <div class="tier-badge">🟠 Business Impact</div>
+          <div class="tier-range">30 – 60 วัน</div>
+          <div class="tier-num" id="tierT3">—</div>
+          <div class="tier-pct" id="tierT3Pct">—</div>
+        </div>
+        <div class="tier-card t4">
+          <div class="tier-badge">🔴 Critical</div>
+          <div class="tier-range">&gt; 60 วัน</div>
+          <div class="tier-num" id="tierT4">—</div>
+          <div class="tier-pct" id="tierT4Pct">—</div>
+        </div>
       </div>
     </div>
 
     <!-- Pipeline -->
     <div class="pipeline-wrap">
-      <div class="pipeline-title">Pipeline เอกสาร</div>
+      <div class="pipeline-head">
+        <div class="pipeline-title">Pipeline เอกสาร</div>
+      </div>
       <div class="pipeline-steps">
         <div class="pipe-step s1">
-          <div class="pipe-num" id="pipeTransporter">—</div>
+          <div class="pipe-arrow">→</div>
           <div class="pipe-label">🚚 กับขนส่ง</div>
+          <div class="pipe-total" id="pipeT">—</div>
+          <div class="pipe-tiers" id="pipeTTiers"></div>
         </div>
         <div class="pipe-step s2">
-          <div class="pipe-num" id="pipeDelivery">—</div>
+          <div class="pipe-arrow">→</div>
           <div class="pipe-label">📋 ทีมจัดส่ง</div>
+          <div class="pipe-total" id="pipeD">—</div>
+          <div class="pipe-tiers" id="pipeDTiers"></div>
         </div>
         <div class="pipe-step s3">
-          <div class="pipe-num" id="pipeWarehouse">—</div>
-          <div class="pipe-label">🏭 รอ Scan</div>
+          <div class="pipe-arrow">→</div>
+          <div class="pipe-label">🚛 ระหว่างทาง</div>
+          <div class="pipe-total" id="pipeR">—</div>
+          <div class="pipe-tiers" id="pipeRTiers"></div>
         </div>
         <div class="pipe-step s4">
-          <div class="pipe-num" id="pipeScanned">—</div>
           <div class="pipe-label">✅ Scan แล้ว</div>
+          <div class="pipe-total" id="pipeS">—</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px;">รับที่คลังพาเลท</div>
         </div>
       </div>
     </div>
 
-    <!-- Progress Bar -->
-    <div class="progress-wrap">
-      <div class="progress-head">
-        <span class="progress-label">ความคืบหน้าการรับเอกสาร</span>
-        <span class="progress-pct" id="progressPct">0%</span>
-      </div>
-      <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
-    </div>
-
-    <!-- Filter Row -->
-    <div class="filter-row">
+    <!-- Filter Bar -->
+    <div class="filter-bar">
+      <select class="f-select" id="filterSite" onchange="loadData()" style="max-width:180px;">
+        <option value="">— ทุก Site —</option>
+      </select>
+      <input class="f-select" type="month" id="filterMonth" onchange="applyFilters()" title="Created Date (เดือน/ปี)" style="width:145px;">
+      <input class="f-select" type="date" id="filterDate" onchange="applyFilters()" title="Created Date (วัน)" style="width:140px;">
       <select class="f-select" id="filterStatus" onchange="applyFilters()">
         <option value="all">ทุกสถานะ</option>
         <option value="done">รับแล้ว</option>
         <option value="pending">ยังไม่รับ</option>
       </select>
+      <select class="f-select" id="filterTier" onchange="applyFilters()">
+        <option value="all">ทุก Tier</option>
+        <option value="t1">🟢 On Track (≤15 วัน)</option>
+        <option value="t2">🟡 Over SLA (15-30 วัน)</option>
+        <option value="t3">🟠 Business Impact (30-60 วัน)</option>
+        <option value="t4">🔴 Critical (&gt;60 วัน)</option>
+      </select>
       <input class="f-input" type="text" id="filterRef" placeholder="Reference..." oninput="applyFilters()">
-      <input class="f-select" type="month" id="filterMonth" onchange="applyFilters()" title="กรองเดือน/ปี" style="width:150px;">
-      <input class="f-select" type="date" id="filterDate" onchange="applyFilters()" title="กรองวันที่รับ" style="width:150px;">
+      <button class="refresh-btn" onclick="loadData()">↻ รีเฟรช</button>
       <button class="export-btn" onclick="exportCSV()">⬇ Export CSV</button>
     </div>
 
@@ -293,34 +375,61 @@ function loadData() {
     .then(function(r){ return r.json(); })
     .then(function(data) {
       if (data.status !== 'ok') throw new Error(data.message);
-      // update summary
-      var s = data.summary;
-      document.getElementById('sumTotal').textContent   = s.total;
+      var s  = data.summary;
+      var pt = data.pending_tiers || {t1:0,t2:0,t3:0,t4:0};
+      var pl = data.pipeline      || {};
+
+      // Card 1
+      document.getElementById('sumTotal').textContent = s.total;
+      // Card 2
       document.getElementById('sumDone').textContent    = s.done;
-      document.getElementById('sumPend').textContent    = s.pending;
-      document.getElementById('sumPct').textContent     = s.pct + '%';
       document.getElementById('sumDonePct').textContent = s.pct + '% ของทั้งหมด';
-      document.getElementById('sumPendPct').textContent = (100-s.pct) + '% ของทั้งหมด';
-      document.getElementById('progressPct').textContent = s.pct + '%';
-      document.getElementById('progressFill').style.width = s.pct + '%';
-      // update site filter
-      var el = document.getElementById('filterSite');
-      var cur = el.value;
+      // Card 3 Ontime/Late
+      document.getElementById('ontimeFill').style.width = (s.ontime_pct||0)+'%';
+      document.getElementById('lateFill').style.width   = (s.late_pct  ||0)+'%';
+      document.getElementById('ontimePct').textContent  = (s.ontime_pct||0)+'%';
+      document.getElementById('latePct').textContent    = (s.late_pct  ||0)+'%';
+      // Card 4
+      document.getElementById('sumPend').textContent    = s.pending;
+      document.getElementById('sumPendPct').textContent = s.total>0 ? Math.round(s.pending/s.total*1000)/10+'% ของทั้งหมด' : '0%';
+
+      // Tier breakdown
+      var pendTotal = (pt.t1+pt.t2+pt.t3+pt.t4)||1;
+      ['t1','t2','t3','t4'].forEach(function(t){
+        var id = 'tier'+t.toUpperCase();
+        document.getElementById(id).textContent        = pt[t]||0;
+        document.getElementById(id+'Pct').textContent  = Math.round((pt[t]||0)/pendTotal*100)+'% ของค้าง';
+      });
+
+      // Pipeline
+      function pipeTierHTML(tiers){
+        if(!tiers) return '';
+        var labels={t1:'On Track',t2:'Over SLA',t3:'Business',t4:'Critical'};
+        return ['t1','t2','t3','t4'].filter(function(t){return tiers[t]>0;}).map(function(t){
+          return '<div class="pipe-tier-row">'+
+            '<div class="pipe-tier-dot dot-'+t+'"></div>'+
+            '<span class="pipe-tier-count">'+tiers[t]+'</span>'+
+            '<span class="pipe-tier-label">'+labels[t]+'</span></div>';
+        }).join('');
+      }
+      document.getElementById('pipeT').textContent = (pl.transporter||{}).total||0;
+      document.getElementById('pipeD').textContent = (pl.delivery   ||{}).total||0;
+      document.getElementById('pipeR').textContent = (pl.transit    ||{}).total||0;
+      document.getElementById('pipeS').textContent = (pl.scanned    ||{}).total||s.done||0;
+      document.getElementById('pipeTTiers').innerHTML = pipeTierHTML((pl.transporter||{}).tiers);
+      document.getElementById('pipeDTiers').innerHTML = pipeTierHTML((pl.delivery   ||{}).tiers);
+      document.getElementById('pipeRTiers').innerHTML = pipeTierHTML((pl.transit    ||{}).tiers);
+
+      // Site filter dropdown
+      var el = document.getElementById('filterSite'); var cur = el.value;
       el.innerHTML = '<option value="">— ทุก Site —</option>';
       (data.siteList||[]).forEach(function(sl){
-        var opt = document.createElement('option');
-        opt.value = sl; opt.textContent = sl;
-        if (sl === cur) opt.selected = true;
-        el.appendChild(opt);
+        var opt=document.createElement('option');opt.value=sl;opt.textContent=sl;
+        if(sl===cur)opt.selected=true; el.appendChild(opt);
       });
+
       _cachedDone    = data.done    || [];
       _cachedPending = data.pending || [];
-      // pipeline
-      var p = data.pipeline || {};
-      document.getElementById('pipeTransporter').textContent = p.with_transporter || 0;
-      document.getElementById('pipeDelivery').textContent    = p.with_delivery    || 0;
-      document.getElementById('pipeWarehouse').textContent   = p.with_warehouse   || 0;
-      document.getElementById('pipeScanned').textContent     = data.summary.done  || 0;
       applyFilters();
     })
     .catch(function(err){
@@ -344,34 +453,46 @@ function applyFilters() {
   var fRef    = document.getElementById('filterRef').value.trim().toLowerCase();
   var fMonth  = document.getElementById('filterMonth').value;
   var fDate   = document.getElementById('filterDate').value;
+  var fTier   = document.getElementById('filterTier').value;
 
   var done = _cachedDone.filter(function(item){
     if (fRef   && (item.ref_no||'').toLowerCase().indexOf(fRef)===-1) return false;
-    if (fMonth && toYM(item.doc_date)!==fMonth)   return false;
+    if (fMonth && toYM(item.doc_date)!==fMonth) return false;
     if (fDate  && (item.received_date||'')!==fDate) return false;
+    if (fTier !== 'all') return false; // done ไม่มี tier (tier ใช้กับ pending)
     return true;
   });
+
   var pend = _cachedPending.filter(function(item){
-    if (fDate)  return false; // กรองวันที่รับ → pending ไม่ผ่าน
     if (fRef   && (item.ref_no||'').toLowerCase().indexOf(fRef)===-1) return false;
     if (fMonth && toYM(item.doc_date)!==fMonth) return false;
+    if (fDate  && toYM(item.doc_date)!==toYM(fDate)) return false;
+    if (fTier !== 'all' && item.tier !== fTier) return false;
     return true;
   });
 
-  // section visibility
-  document.getElementById('sectionDone').style.display    = fStatus==='pending' ? 'none' : 'block';
-  document.getElementById('sectionPending').style.display = fStatus==='done'    ? 'none' : 'block';
+  // ถ้า filter tier เลือก → ซ่อน done table
+  var showDone    = fStatus !== 'pending' && fTier === 'all';
+  var showPending = fStatus !== 'done';
 
-  // render done
+  // อัป section visibility
+  document.getElementById('sectionDone').style.display    = showDone    ? 'block' : 'none';
+  document.getElementById('sectionPending').style.display = showPending ? 'block' : 'none';
+
+  // อัป counter badges
   document.getElementById('countDone').textContent = done.length;
-  document.getElementById('bodyDone').innerHTML = done.length === 0
+  document.getElementById('countPend').textContent = pend.length;
+
+  // render done table
+  document.getElementById('bodyDone').innerHTML = !showDone ? '' : done.length === 0
     ? '<tr class="empty-row"><td colspan="10">ไม่มีรายการ</td></tr>'
     : done.map(function(item,i){
         var photo = item.photo_url
           ? '<a class="photo-link" href="'+item.photo_url+'" target="_blank">📎 ดูไฟล์</a>'
           : '<span style="color:var(--muted);">—</span>';
-        return '<tr>'+
-          '<td style="color:var(--muted);">'+(i+1)+'</td>'+
+        var dtr = item.days_to_receive;
+        var isOntime = dtr!=='' && dtr!==undefined && Number(dtr)<=15;
+        return '<tr><td style="color:var(--muted);">'+(i+1)+'</td>'+
           '<td class="mono" style="color:var(--accent);">'+(item.barcode||'—')+'</td>'+
           '<td class="mono">'+(item.ref_no||'—')+'</td>'+
           '<td>'+(item.item_name||'—')+'</td>'+
@@ -380,26 +501,31 @@ function applyFilters() {
           '<td class="mono">'+(item.received_date||'—')+'</td>'+
           '<td>'+photo+'</td>'+
           '<td class="mono" style="color:var(--muted);">'+(item.doc_date||'—')+'</td>'+
-          '<td class="mono" style="text-align:center;">'+(item.days_to_receive!==undefined?item.days_to_receive+' วัน':'—')+'</td>'+
-        '</tr>';
+          '<td class="mono" style="text-align:center;color:'+(isOntime?'var(--success)':'var(--danger)')+';">'+
+            (dtr!==undefined?dtr+' วัน':'—')+
+            (dtr!==undefined?'<br><span style="font-size:10px;">'+(isOntime?'Ontime':'Late')+'</span>':'')+
+          '</td></tr>';
       }).join('');
 
-  // render pending
-  document.getElementById('countPend').textContent = pend.length;
-  document.getElementById('bodyPending').innerHTML = pend.length === 0
-    ? '<tr class="empty-row"><td colspan="8">'+(fDate?'ซ่อนรายการค้างเมื่อกรองวันที่':'ไม่มีรายการค้าง 🎉')+'</td></tr>'
+  // render pending table
+  var tierColors = {t1:'var(--success)',t2:'var(--warn)',t3:'#fb923c',t4:'var(--danger)'};
+  var tierLabels = {t1:'On Track',t2:'Over SLA',t3:'Business',t4:'Critical'};
+  document.getElementById('bodyPending').innerHTML = !showPending ? '' : pend.length === 0
+    ? '<tr class="empty-row"><td colspan="8">'+(fTier!=='all'?'ไม่มีรายการใน Tier นี้':'ไม่มีรายการค้าง 🎉')+'</td></tr>'
     : pend.map(function(item,i){
-        var daysColor = item.days_pending>30?'var(--danger)':item.days_pending>14?'var(--warn)':'var(--text)';
-        return '<tr>'+
-          '<td style="color:var(--muted);">'+(i+1)+'</td>'+
+        var tc = tierColors[item.tier]||'var(--text)';
+        var tl = tierLabels[item.tier]||'—';
+        return '<tr><td style="color:var(--muted);">'+(i+1)+'</td>'+
           '<td class="mono" style="color:var(--warn);">'+(item.barcode||'—')+'</td>'+
           '<td class="mono">'+(item.ref_no||'—')+'</td>'+
           '<td>'+(item.item_name||'—')+'</td>'+
           '<td style="font-size:11px;">'+(item.transfer_from||'—')+' → '+(item.transfer_to||'—')+'</td>'+
           '<td class="mono" style="text-align:right;">'+(item.sent_qty||'—')+'</td>'+
           '<td class="mono" style="color:var(--muted);">'+(item.doc_date||'—')+'</td>'+
-          '<td class="mono" style="text-align:center;color:'+daysColor+';">'+(item.days_pending!==undefined?item.days_pending+' วัน':'—')+'</td>'+
-        '</tr>';
+          '<td class="mono" style="text-align:center;color:'+tc+';">'+
+            (item.days_pending!==undefined?item.days_pending+' วัน':'—')+
+            '<br><span style="font-size:10px;">'+tl+'</span>'+
+          '</td></tr>';
       }).join('');
 }
 
