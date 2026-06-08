@@ -121,6 +121,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .spinner{width:14px;height:14px;border:2px solid rgba(251,191,36,.3);border-top-color:var(--warn);border-radius:50%;animation:spin .7s linear infinite;display:inline-block;}
 @keyframes spin{to{transform:rotate(360deg);}}
 </style>
+<script src="config.js"></script>
 </head>
 <body>
 
@@ -181,12 +182,19 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
           <span class="scan-mode-badge">Auto Add</span>
         </div>
         <div id="reader" style="display:none;width:100%;"></div>
+        <!-- CSV Loading banner -->
+        <div id="csvLoadingBanner" style="background:rgba(251,191,36,0.08);border-bottom:1px solid rgba(251,191,36,0.2);padding:10px 14px;font-size:11px;color:var(--warn);display:flex;align-items:center;gap:8px;">
+          <span class="spinner"></span> กำลังโหลดข้อมูล กรุณารอก่อนสแกน...
+        </div>
+        <div id="csvReadyBanner" style="display:none;background:rgba(52,211,153,0.08);padding:8px 14px;font-size:11px;color:var(--success);">
+          ✅ พร้อมสแกนแล้ว
+        </div>
         <div class="input-area">
           <div class="bc-input-wrap">
-            <input class="bc-input" id="bcInput" type="text" placeholder="สแกน / พิมพ์ barcode แล้วกด Enter"
-              autofocus autocomplete="off" onkeydown="if(event.key==='Enter'){event.preventDefault();handleScan(this.value);}">
+            <input class="bc-input" id="bcInput" type="text" placeholder="รอโหลดข้อมูล..."
+              autocomplete="off" onkeydown="if(event.key==='Enter'){event.preventDefault();handleScan(this.value);}" disabled>
           </div>
-          <div class="bc-hint">Enter หรือเครื่องสแกน USB/Bluetooth</div>
+          <div class="bc-hint" id="bcHint" style="color:var(--warn);">⏳ กำลังโหลดข้อมูลเอกสาร...</div>
           <div style="margin-top:10px;">
             <button class="cam-btn" id="camBtn" onclick="toggleCamera()">📷 เปิดกล้อง</button>
           </div>
@@ -257,7 +265,7 @@ var DocScanAuth = (function(){
   return{load:load,clear:clear,requireAuth:requireAuth};
 })();
 
-var API_URL = 'https://script.google.com/macros/s/AKfycbyHSXESI5NGf0YFpclz5V5AFoChC4MliHK21OSiONotE4Xre9z39h0B9pfauceG3n20Dg/exec';
+var API_URL = DOCSCAN_CONFIG.API_URL;
 var session, csvData=[], csvLoaded=false;
 var queue=[], scanning=false, codeReader=null;
 
@@ -281,8 +289,23 @@ window.onload = function() {
 function loadCSV() {
   fetch(API_URL+'?action=getCSV',{method:'GET',redirect:'follow'})
     .then(function(r){return r.text();})
-    .then(function(t){csvData=parseCSV(t);csvLoaded=true;})
-    .catch(function(){});
+    .then(function(t){
+      csvData=parseCSV(t); csvLoaded=true;
+      // ── แสดง ready + enable input ──
+      document.getElementById('csvLoadingBanner').style.display = 'none';
+      document.getElementById('csvReadyBanner').style.display   = 'flex';
+      var input = document.getElementById('bcInput');
+      input.disabled     = false;
+      input.placeholder  = 'สแกน / พิมพ์ barcode แล้วกด Enter';
+      input.focus();
+      document.getElementById('bcHint').style.color = 'var(--muted)';
+      document.getElementById('bcHint').textContent = 'Enter หรือเครื่องสแกน USB/Bluetooth';
+      setTimeout(function(){ document.getElementById('csvReadyBanner').style.display='none'; }, 3000);
+    })
+    .catch(function(){
+      document.getElementById('csvLoadingBanner').innerHTML =
+        '❌ โหลดข้อมูลไม่สำเร็จ — <button onclick="loadCSV()" style="background:none;border:none;color:var(--warn);cursor:pointer;font-family:var(--font);font-size:11px;text-decoration:underline;">ลองใหม่</button>';
+    });
 }
 function parseCSV(text){
   var lines=text.replace(/\r/g,'').split('\n').filter(function(l){return l.trim();});
