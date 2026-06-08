@@ -153,6 +153,7 @@ main{max-width:900px;margin:0 auto;padding:20px 16px 100px;}
 .logout-btn{background:none;border:1px solid var(--border);color:var(--muted);border-radius:var(--rs);padding:7px 12px;font-family:var(--font);font-size:12px;cursor:pointer;}
 .logout-btn:hover{border-color:var(--danger);color:var(--danger);}
 </style>
+<script src="config.js"></script>
 </head>
 <body>
 
@@ -242,9 +243,17 @@ main{max-width:900px;margin:0 auto;padding:20px 16px 100px;}
       <button class="scan-btn" id="scanBtn" onclick="toggleScanner()">เปิดกล้อง</button>
     </div>
     <div id="reader" style="display:none;width:100%;"></div>
+    <!-- CSV loading banner -->
+    <div id="csvLoadingBanner" style="background:rgba(56,189,248,0.08);border-bottom:1px solid rgba(56,189,248,0.2);padding:10px 16px;font-size:12px;color:var(--accent);display:flex;align-items:center;gap:8px;">
+      <span class="spinner" style="width:12px;height:12px;border-color:rgba(56,189,248,0.3);border-top-color:var(--accent);"></span>
+      กำลังโหลดข้อมูลเอกสาร กรุณารอสักครู่ก่อนสแกน...
+    </div>
+    <div id="csvReadyBanner" style="display:none;background:rgba(52,211,153,0.08);border-bottom:1px solid rgba(52,211,153,0.2);padding:8px 16px;font-size:12px;color:var(--success);">
+      ✅ พร้อมสแกนแล้ว
+    </div>
     <div class="manual-row">
-      <input class="manual-input" id="manualInput" type="text" placeholder="พิมพ์ barcode หรือสแกนด้วยเครื่องอ่าน..." onkeydown="if(event.key==='Enter') searchBarcode()">
-      <button class="search-btn" onclick="searchBarcode()">ค้นหา</button>
+      <input class="manual-input" id="manualInput" type="text" placeholder="รอโหลดข้อมูล..." onkeydown="if(event.key==='Enter') searchBarcode()" disabled>
+      <button class="search-btn" id="searchBtn" onclick="searchBarcode()" disabled>ค้นหา</button>
     </div>
   </div>
 
@@ -467,7 +476,7 @@ var csvLoaded = false;
 var cameraStream = null;
 var isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
-var API_URL = 'https://script.google.com/macros/s/AKfycbyHSXESI5NGf0YFpclz5V5AFoChC4MliHK21OSiONotE4Xre9z39h0B9pfauceG3n20Dg/exec';
+var API_URL = DOCSCAN_CONFIG.API_URL;
 var CSV_URL = API_URL + '?action=getCSV';
 
 // ── Init ──────────────────────────────────────────────────
@@ -499,10 +508,23 @@ function loadCSV() {
     .then(function(r) { return r.text(); })
     .then(function(text) {
       csvData = parseCSV(text); csvLoaded = true;
-      document.getElementById('userEmail').textContent = (selectedEmpId ? selectedEmpId + ' — ' + selectedEmpName + ' | ' : '') + 'โหลดข้อมูลสำเร็จ ' + csvData.length + ' รายการ';
-      showToast('โหลดข้อมูล ' + csvData.length + ' รายการแล้ว', 'success');
+      // ── แสดง ready + enable input ──
+      document.getElementById('csvLoadingBanner').style.display = 'none';
+      document.getElementById('csvReadyBanner').style.display   = 'flex';
+      document.getElementById('manualInput').disabled  = false;
+      document.getElementById('manualInput').placeholder = 'พิมพ์ barcode หรือสแกนด้วยเครื่องอ่าน...';
+      document.getElementById('searchBtn').disabled    = false;
+      document.getElementById('manualInput').focus();
+      document.getElementById('userEmail').textContent =
+        (selectedEmpId ? selectedEmpId + ' — ' + selectedEmpName + ' | ' : '') +
+        'โหลดข้อมูลสำเร็จ ' + csvData.length + ' รายการ';
+      setTimeout(function(){ document.getElementById('csvReadyBanner').style.display='none'; }, 3000);
     })
-    .catch(function(err) { showToast('โหลด CSV ไม่สำเร็จ: ' + err.message, 'error'); });
+    .catch(function(err) {
+      document.getElementById('csvLoadingBanner').innerHTML =
+        '❌ โหลดข้อมูลไม่สำเร็จ — <button onclick="loadCSV()" style="background:none;border:none;color:var(--accent);cursor:pointer;font-family:var(--font);font-size:12px;text-decoration:underline;">ลองใหม่</button>';
+      showToast('โหลด CSV ไม่สำเร็จ: ' + err.message, 'error');
+    });
 }
 
 function parseCSV(text) {
