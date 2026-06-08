@@ -159,7 +159,10 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
       <div class="topbar-sub" id="topbarSub">—</div>
     </div>
     <div style="display:flex;align-items:center;gap:10px;">
-      <span class="scan-mode-badge">🟢 พร้อมสแกน</span>
+      <span id="csvStatusBadge" style="font-size:11px;background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.3);color:var(--warn);padding:4px 12px;border-radius:20px;display:flex;align-items:center;gap:6px;">
+        <span class="spinner" style="width:10px;height:10px;border-color:rgba(251,191,36,.3);border-top-color:var(--warn);"></span>
+        กำลังโหลดข้อมูล...
+      </span>
     </div>
   </div>
 
@@ -291,19 +294,26 @@ function loadCSV() {
     .then(function(r){return r.text();})
     .then(function(t){
       csvData=parseCSV(t); csvLoaded=true;
-      // ── แสดง ready + enable input ──
+      // ── อัป badge → พร้อมสแกน ──
+      document.getElementById('csvStatusBadge').innerHTML='🟢 พร้อมสแกน — '+csvData.length+' รายการ';
+      document.getElementById('csvStatusBadge').style.cssText='font-size:11px;background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.3);color:var(--success);padding:4px 12px;border-radius:20px;';
+      // ── อัป scan box ──
       document.getElementById('csvLoadingBanner').style.display = 'none';
       document.getElementById('csvReadyBanner').style.display   = 'flex';
       var input = document.getElementById('bcInput');
-      input.disabled     = false;
-      input.placeholder  = 'สแกน / พิมพ์ barcode แล้วกด Enter';
+      input.disabled    = false;
+      input.placeholder = 'สแกน / พิมพ์ barcode แล้วกด Enter';
       input.focus();
-      document.getElementById('bcHint').style.color = 'var(--muted)';
-      document.getElementById('bcHint').textContent = 'Enter หรือเครื่องสแกน USB/Bluetooth';
+      document.getElementById('bcHint').style.color   = 'var(--muted)';
+      document.getElementById('bcHint').textContent   = 'Enter หรือเครื่องสแกน USB/Bluetooth';
       setTimeout(function(){ document.getElementById('csvReadyBanner').style.display='none'; }, 3000);
     })
     .catch(function(){
-      document.getElementById('csvLoadingBanner').innerHTML =
+      // ── อัป badge → โหลดไม่สำเร็จ ──
+      document.getElementById('csvStatusBadge').innerHTML='🔴 โหลดข้อมูลไม่สำเร็จ';
+      document.getElementById('csvStatusBadge').style.cssText='font-size:11px;background:rgba(248,113,113,.12);border:1px solid rgba(248,113,113,.3);color:var(--danger);padding:4px 12px;border-radius:20px;cursor:pointer;';
+      document.getElementById('csvStatusBadge').onclick=function(){ loadCSV(); };
+      document.getElementById('csvLoadingBanner').innerHTML=
         '❌ โหลดข้อมูลไม่สำเร็จ — <button onclick="loadCSV()" style="background:none;border:none;color:var(--warn);cursor:pointer;font-family:var(--font);font-size:11px;text-decoration:underline;">ลองใหม่</button>';
     });
 }
