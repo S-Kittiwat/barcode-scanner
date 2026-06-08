@@ -282,7 +282,7 @@ function loadTab1(){
     .then(function(data){
       if(data.status!=='ok') throw new Error(data.message||'Error');
       _allReceived = (data.batches||[]).filter(function(b){
-        return !session.site || b.site===session.site;
+        return (!session.site || b.site===session.site) && b.status==='with_delivery';
       });
       _filteredR = _allReceived.slice();
       document.getElementById('tab1Count').textContent = _allReceived.length;
@@ -407,19 +407,22 @@ function renderTable2(){
     '<thead><tr>'+
       '<th style="width:40px;">#</th>'+
       '<th>Batch No.</th>'+
-      '<th>วันที่รับ</th>'+
+      '<th>วันที่รับ (จากขนส่ง)</th>'+
+      '<th>วันที่ส่ง (ส่งให้คลังพาเลท)</th>'+
       '<th>คลังที่ส่ง</th>'+
       '<th>ผู้ส่ง</th>'+
       '<th>Site</th>'+
-      '<th style="width:80px;text-align:right;">จำนวน</th>'+
+      '<th style="width:80px;text-align:right;">จำนวนเอกสาร</th>'+
       '<th style="width:80px;text-align:center;">รายละเอียด</th>'+
     '</tr></thead><tbody>'+
     _filteredS.map(function(b,i){
-      var dt = fmtDT(b.scan_date);
+      var receivedDate = fmtDT(b.scan_date);
+      var sentDate     = b.sent_date ? fmtDT(b.sent_date) : '—';
       return '<tr>'+
         '<td style="color:var(--muted);">'+(i+1)+'</td>'+
-        '<td class="mono" style="color:var(--accent);">'+esc(b.batch_id)+'</td>'+
-        '<td class="mono" style="font-size:11px;">'+dt+'</td>'+
+        '<td class="mono" style="color:var(--accent);font-size:11px;">'+esc(b.batch_id)+'</td>'+
+        '<td class="mono" style="font-size:11px;">'+receivedDate+'</td>'+
+        '<td class="mono" style="font-size:11px;">'+sentDate+'</td>'+
         '<td><span class="badge-warehouse">'+esc(b.dest_warehouse||'—')+'</span></td>'+
         '<td style="font-size:11px;">'+esc(b.emp_name||'—')+'</td>'+
         '<td style="font-size:11px;">'+esc(b.site||'—')+'</td>'+
@@ -427,7 +430,7 @@ function renderTable2(){
         '<td style="text-align:center;"><button class="expand-btn" onclick="toggleDetail(\''+esc(b.batch_id)+'\',2)">▾ ดู</button></td>'+
       '</tr>'+
       '<tr class="detail-row" id="drow2-'+esc(b.batch_id)+'">'+
-        '<td colspan="8" class="detail-inner"><div id="dcontent2-'+esc(b.batch_id)+'"></div></td>'+
+        '<td colspan="9" class="detail-inner"><div id="dcontent2-'+esc(b.batch_id)+'"></div></td>'+
       '</tr>';
     }).join('')+
     '</tbody></table></div>';
@@ -518,22 +521,58 @@ async function confirmSend(){
 }
 
 // ── Export CSV ────────────────────────────────────────────
-function exportCSV(){
-  var rows, filename, headers;
-  if(_activeTab===1){
-    headers=['Batch No.','วันที่รับ','ผู้รับ','Site','จำนวน Barcode','สถานะ','คลังปลายทาง'];
-    rows=_filteredR.map(function(b){return[b.batch_id,fmtDT(b.scan_date),b.emp_name||'',b.site||'',b.barcode_count,b.status==='with_warehouse'?'ส่งแล้ว':'รอส่ง',b.dest_warehouse||''];});
-    filename='รับเอกสาร_'+toDateStr(new Date().toISOString())+'.csv';
-  } else {
-    headers=['Batch No.','วันที่รับ','คลังที่ส่ง','ผู้ส่ง','Site','จำนวน Barcode'];
-    rows=_filteredS.map(function(b){return[b.batch_id,fmtDT(b.scan_date),b.dest_warehouse||'',b.emp_name||'',b.site||'',b.barcode_count];});
-    filename='ส่งเอกสาร_'+toDateStr(new Date().toISOString())+'.csv';
+async function exportCSV(){
+  var source   = _activeTab===1 ? _filteredR : _filteredS;
+  var tabName  = _activeTab===1 ? 'รับเอกสาร' : 'ส่งเอกสาร';
+  if(!source.length){ showToast('ไม่มีข้อมูลให้ export','error'); return; }
+
+  showToast('กำลัง export...','info');
+
+  // fetch detail ที่ยังไม่มี cache
+  for(var i=0;i<source.length;i++){
+    var bid=source[i].batch_id;
+    if(!_detailCache[bid]){
+      try{
+        var r=await fetch(API_URL+'?action=getBatchDetail&batch_id='+encodeURIComponent(bid));
+        var d=await r.json();
+        if(d.status==='ok') _detailCache[bid]=d;
+      }catch(e){}
+    }
   }
-  var csv='\uFEFF'+[headers].concat(rows).map(function(r){return r.map(function(v){return '"'+String(v).replace(/"/g,'""')+'"';}).join(',');}).join('\n');
+
+  // flatten batch → barcode rows
+  var headers=['BATCH NO','BARCODE','REFERENCE','วันที่รับ (จากขนส่ง)','วันที่ส่ง (ส่งให้คลังพาเลท)'];
+  var rows=[];
+  source.forEach(function(b){
+    var detail=_detailCache[b.batch_id];
+    var barcodes=detail?detail.barcodes:[];
+    var receivedDate = fmtDT(b.scan_date);
+    var sentDate     = b.status==='with_warehouse' ? fmtDT(b.sent_date||b.scan_date) : '—';
+    // หา sent_date จาก tab 2 ถ้ามี
+    var matchSent=_allSent.find(function(s){return s.batch_id===b.batch_id;});
+    if(matchSent) sentDate=fmtDT(matchSent.scan_date);
+
+    if(barcodes.length){
+      barcodes.forEach(function(item){
+        rows.push([b.batch_id, item.barcode, item.ref_no||'', receivedDate, sentDate]);
+      });
+    } else {
+      // ถ้ายังไม่มี detail ใส่แค่ batch level
+      rows.push([b.batch_id,'(โหลดรายละเอียดไม่สำเร็จ)','',receivedDate,sentDate]);
+    }
+  });
+
+  var csv='\uFEFF'+[headers].concat(rows).map(function(r){
+    return r.map(function(v){return '"'+String(v||'').replace(/"/g,'""')+'"';}).join(',');
+  }).join('\n');
+
   var blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
   var url=URL.createObjectURL(blob);
-  var a=document.createElement('a');a.href=url;a.download=filename;a.click();URL.revokeObjectURL(url);
-  showToast('Export เรียบร้อย','success');
+  var a=document.createElement('a');
+  a.href=url;
+  a.download=tabName+'_'+toDateStr(new Date().toISOString())+'.csv';
+  a.click();URL.revokeObjectURL(url);
+  showToast('Export '+rows.length+' รายการเรียบร้อย','success');
 }
 
 // ── Helpers ───────────────────────────────────────────────
