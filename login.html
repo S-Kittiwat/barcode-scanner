@@ -158,13 +158,34 @@ function loadSiteGroups() {
 
 function buildSiteDropdown() {
   var sel = document.getElementById('siteSelect');
+
+  var warehouses = siteGroups.filter(function(g){ return (g.type||'warehouse') !== 'plant'; });
+  var plants     = siteGroups.filter(function(g){ return g.type === 'plant'; });
+
   sel.innerHTML = '<option value="">— กรุณาเลือก Site —</option>';
-  siteGroups.forEach(function(g) {
-    var opt = document.createElement('option');
-    opt.value       = g.site_name;
-    opt.textContent = g.site_name;
-    sel.appendChild(opt);
-  });
+
+  if (warehouses.length) {
+    var wg = document.createElement('optgroup');
+    wg.label = '🏭 คลังสินค้า / DC';
+    warehouses.forEach(function(g){
+      var opt = document.createElement('option');
+      opt.value = opt.textContent = g.site_name;
+      wg.appendChild(opt);
+    });
+    sel.appendChild(wg);
+  }
+
+  if (plants.length) {
+    var pg = document.createElement('optgroup');
+    pg.label = '🏗️ โรงงาน (Plant)';
+    plants.forEach(function(g){
+      var opt = document.createElement('option');
+      opt.value = opt.textContent = g.site_name;
+      pg.appendChild(opt);
+    });
+    sel.appendChild(pg);
+  }
+
   document.getElementById('siteLoading').style.display = 'none';
   sel.style.display = 'block';
 }
