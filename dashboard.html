@@ -36,70 +36,59 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .topbar-sub{font-size:11px;color:var(--muted);margin-top:2px;}
 .content{padding:24px;flex:1;}
 
-/* ── Summary Cards ── */
-.summary-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px;}
-.sum-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:22px 24px;position:relative;overflow:hidden;}
+/* ── Summary Cards (2 card ใหญ่) ── */
+.summary-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px;}
+.sum-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px 24px;position:relative;overflow:hidden;}
 .sum-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
 .sum-card.c-total::before{background:var(--muted);}
 .sum-card.c-done::before{background:var(--success);}
-.sum-card.c-ontime::before{background:linear-gradient(90deg,var(--success),var(--accent));}
 .sum-card.c-pend::before{background:var(--warn);}
-.sum-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;font-weight:500;}
-.sum-value{font-size:36px;font-weight:700;font-family:var(--mono);line-height:1;margin-bottom:8px;}
+.sum-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;font-weight:500;}
+.sum-value{font-size:36px;font-weight:700;font-family:var(--mono);line-height:1;margin-bottom:6px;}
 .sum-card.c-total .sum-value{color:var(--text);}
 .sum-card.c-done  .sum-value{color:var(--success);}
 .sum-card.c-pend  .sum-value{color:var(--warn);}
 .sum-sub{font-size:12px;color:var(--muted);}
-/* Card 3: Ontime/Late */
-.ontime-row{display:flex;align-items:center;gap:8px;margin-bottom:7px;}
-.ontime-label{font-size:12px;min-width:48px;}
-.ontime-bar{flex:1;height:6px;background:var(--surface2);border-radius:10px;overflow:hidden;}
-.ontime-fill{height:100%;border-radius:10px;transition:width .5s;}
-.ontime-pct{font-family:var(--mono);font-size:12px;font-weight:600;min-width:40px;text-align:right;}
-/* ── Tier Breakdown ── */
-.tier-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px 20px;margin-bottom:20px;}
-.tier-title{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:14px;font-weight:500;}
-.tier-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
-.tier-card{border-radius:var(--rs);padding:16px 18px;border:1px solid transparent;}
-.tier-card.t1{background:rgba(52,211,153,.07);border-color:rgba(52,211,153,.2);}
-.tier-card.t2{background:rgba(251,191,36,.07);border-color:rgba(251,191,36,.2);}
-.tier-card.t3{background:rgba(251,146,60,.07);border-color:rgba(251,146,60,.2);}
-.tier-card.t4{background:rgba(248,113,113,.07);border-color:rgba(248,113,113,.2);}
-.tier-badge{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;padding:2px 8px;border-radius:20px;}
-.tier-card.t1 .tier-badge{background:rgba(52,211,153,.15);color:var(--success);}
-.tier-card.t2 .tier-badge{background:rgba(251,191,36,.15);color:var(--warn);}
-.tier-card.t3 .tier-badge{background:rgba(251,146,60,.15);color:#fb923c;}
-.tier-card.t4 .tier-badge{background:rgba(248,113,113,.15);color:var(--danger);}
-.tier-range{font-size:11px;color:var(--muted);margin-bottom:10px;}
-.tier-num{font-size:32px;font-weight:700;font-family:var(--mono);line-height:1;}
-.tier-card.t1 .tier-num{color:var(--success);}
-.tier-card.t2 .tier-num{color:var(--warn);}
-.tier-card.t3 .tier-num{color:#fb923c;}
-.tier-card.t4 .tier-num{color:var(--danger);}
-.tier-pct{font-size:12px;margin-top:5px;color:var(--muted);}
-/* ── Pipeline ── */
-.pipeline-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);margin-bottom:20px;overflow:hidden;}
-.pipeline-head{padding:14px 20px;border-bottom:1px solid var(--border);}
-.pipeline-title{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:500;}
-.pipeline-steps{display:grid;grid-template-columns:repeat(4,1fr);}
-.pipe-step{padding:16px 20px;border-right:1px solid var(--border);position:relative;}
-.pipe-step:last-child{border-right:none;}
-.pipe-arrow{position:absolute;right:-10px;top:20px;color:var(--border);font-size:13px;z-index:1;}
-.pipe-label{font-size:11px;color:var(--muted);font-weight:500;margin-bottom:6px;}
-.pipe-total{font-size:26px;font-weight:700;font-family:var(--mono);line-height:1;margin-bottom:10px;}
+.sum-divider{height:1px;background:var(--border);margin:12px 0;}
+.sum-section-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;}
+/* bar rows ใน card */
+.sla-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.sla-label{font-size:11px;min-width:110px;white-space:nowrap;}
+.sla-bar{flex:1;height:5px;background:var(--surface2);border-radius:10px;overflow:hidden;}
+.sla-fill{height:100%;border-radius:10px;transition:width .5s;}
+.sla-count{font-family:var(--mono);font-size:11px;font-weight:600;min-width:44px;text-align:right;}
+/* ── Pipeline (flow style) ── */
+.pipeline-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px 20px;margin-bottom:16px;}
+.pipeline-title{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:16px;font-weight:500;}
+.pipeline-flow{display:flex;align-items:stretch;gap:0;}
+.pipe-step{flex:1;min-width:0;}
+.pipe-step-head{display:flex;align-items:center;gap:6px;margin-bottom:6px;}
+.pipe-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+.pipe-dot.s1{background:var(--muted);}
+.pipe-dot.s2{background:var(--warn);}
+.pipe-dot.s3{background:var(--accent);}
+.pipe-dot.s4{background:var(--success);}
+.pipe-label{font-size:11px;color:var(--muted);font-weight:500;white-space:nowrap;}
+.pipe-total{font-size:26px;font-weight:700;font-family:var(--mono);line-height:1;margin-bottom:8px;}
 .pipe-step.s1 .pipe-total{color:var(--muted);}
 .pipe-step.s2 .pipe-total{color:var(--warn);}
 .pipe-step.s3 .pipe-total{color:var(--accent);}
 .pipe-step.s4 .pipe-total{color:var(--success);}
-.pipe-tiers{display:flex;flex-direction:column;gap:4px;}
-.pipe-tier-row{display:flex;align-items:center;gap:6px;}
-.pipe-tier-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
-.dot-t1{background:var(--success);}
-.dot-t2{background:var(--warn);}
-.dot-t3{background:#fb923c;}
-.dot-t4{background:var(--danger);}
-.pipe-tier-count{font-family:var(--mono);font-size:11px;font-weight:600;min-width:28px;}
-.pipe-tier-label{font-size:10px;color:var(--muted);}
+.pipe-mini-bars{display:flex;flex-direction:column;gap:3px;}
+.pipe-mini-row{display:flex;align-items:center;gap:5px;}
+.pipe-mini-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.pipe-mini-bar-wrap{flex:1;height:4px;background:var(--surface2);border-radius:4px;overflow:hidden;}
+.pipe-mini-bar{height:100%;border-radius:4px;transition:width .5s;}
+.pipe-mini-count{font-size:10px;color:var(--muted);font-family:var(--mono);min-width:22px;text-align:right;}
+/* arrow between steps */
+.pipe-arrow-col{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:0 10px;padding-top:3px;flex-shrink:0;}
+.pipe-arrow-line{width:1px;height:16px;background:var(--border);}
+.pipe-arrow-line.bottom{flex:1;}
+.pipe-arrow-svg{margin:-1px 0;}
+/* legend */
+.pipe-legend{display:flex;gap:14px;margin-top:14px;padding-top:12px;border-top:1px solid var(--border);flex-wrap:wrap;}
+.pipe-legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);}
+.pipe-legend-dot{width:7px;height:7px;border-radius:50%;}
 /* ── Filter bar ── */
 .filter-bar{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:12px 16px;margin-bottom:16px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
 .f-select{background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);color:var(--text);font-family:var(--font);font-size:12px;padding:6px 10px;outline:none;cursor:pointer;}
@@ -180,101 +169,125 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 
   <div class="content">
 
-    <!-- Summary Cards -->
+    <!-- Summary Cards: 3 cards -->
     <div class="summary-grid">
+
+      <!-- Card 1: ทั้งหมด -->
       <div class="sum-card c-total">
         <div class="sum-label">เอกสารทั้งหมด</div>
         <div class="sum-value" id="sumTotal">—</div>
         <div class="sum-sub">รายการในระบบ</div>
       </div>
+
+      <!-- Card 2+3: รับแล้ว + Ontime/Late -->
       <div class="sum-card c-done">
         <div class="sum-label">รับแล้ว</div>
         <div class="sum-value" id="sumDone">—</div>
         <div class="sum-sub" id="sumDonePct">—</div>
-      </div>
-      <div class="sum-card c-ontime">
-        <div class="sum-label">Ontime / Late (เฉพาะที่รับแล้ว)</div>
-        <div style="margin-top:4px;">
-          <div class="ontime-row">
-            <span class="ontime-label" style="color:var(--success);">🟢 Ontime</span>
-            <div class="ontime-bar"><div class="ontime-fill" id="ontimeFill" style="background:var(--success);width:0%;"></div></div>
-            <span class="ontime-pct" id="ontimePct" style="color:var(--success);">—%</span>
-          </div>
-          <div class="ontime-row">
-            <span class="ontime-label" style="color:var(--danger);">🔴 Late</span>
-            <div class="ontime-bar"><div class="ontime-fill" id="lateFill" style="background:var(--danger);width:0%;"></div></div>
-            <span class="ontime-pct" id="latePct" style="color:var(--danger);">—%</span>
-          </div>
+        <div class="sum-divider"></div>
+        <div class="sum-section-label">Ontime / Late (เฉพาะที่รับแล้ว)</div>
+        <div class="sla-row">
+          <span class="sla-label" style="color:var(--success);">Ontime ≤15 วัน</span>
+          <div class="sla-bar"><div class="sla-fill" id="ontimeFill" style="background:var(--success);width:0%;"></div></div>
+          <span class="sla-count" id="ontimePct" style="color:var(--success);">—%</span>
         </div>
-        <div class="sum-sub" style="margin-top:6px;">≤15 วัน = Ontime</div>
+        <div class="sla-row">
+          <span class="sla-label" style="color:var(--danger);">Late >15 วัน</span>
+          <div class="sla-bar"><div class="sla-fill" id="lateFill" style="background:var(--danger);width:0%;"></div></div>
+          <span class="sla-count" id="latePct" style="color:var(--danger);">—%</span>
+        </div>
       </div>
+
+      <!-- Card 4+Tier: ยังไม่รับ + SLA bars -->
       <div class="sum-card c-pend">
         <div class="sum-label">ยังไม่รับ</div>
         <div class="sum-value" id="sumPend">—</div>
         <div class="sum-sub" id="sumPendPct">—</div>
-      </div>
-    </div>
-
-    <!-- Tier Breakdown -->
-    <div class="tier-wrap">
-      <div class="tier-title">เอกสารยังไม่ได้รับ — แบ่งตาม SLA (นับจาก Created Date)</div>
-      <div class="tier-grid">
-        <div class="tier-card t1">
-          <div class="tier-badge">🟢 On Track</div>
-          <div class="tier-range">≤ 15 วัน</div>
-          <div class="tier-num" id="tierT1">—</div>
-          <div class="tier-pct" id="tierT1Pct">—</div>
+        <div class="sum-divider"></div>
+        <div class="sum-section-label">แบ่งตาม SLA (นับจาก Created Date)</div>
+        <div class="sla-row">
+          <span class="sla-label" style="color:var(--success);">On Track ≤15 วัน</span>
+          <div class="sla-bar"><div class="sla-fill" id="tierT1Fill" style="background:var(--success);width:0%;"></div></div>
+          <span class="sla-count" id="tierT1" style="color:var(--success);">—</span>
         </div>
-        <div class="tier-card t2">
-          <div class="tier-badge">🟡 Over SLA</div>
-          <div class="tier-range">15 – 30 วัน</div>
-          <div class="tier-num" id="tierT2">—</div>
-          <div class="tier-pct" id="tierT2Pct">—</div>
+        <div class="sla-row">
+          <span class="sla-label" style="color:var(--warn);">Over SLA 15-30 วัน</span>
+          <div class="sla-bar"><div class="sla-fill" id="tierT2Fill" style="background:var(--warn);width:0%;"></div></div>
+          <span class="sla-count" id="tierT2" style="color:var(--warn);">—</span>
         </div>
-        <div class="tier-card t3">
-          <div class="tier-badge">🟠 Business Impact</div>
-          <div class="tier-range">30 – 60 วัน</div>
-          <div class="tier-num" id="tierT3">—</div>
-          <div class="tier-pct" id="tierT3Pct">—</div>
+        <div class="sla-row">
+          <span class="sla-label" style="color:#fb923c;">Business 30-60 วัน</span>
+          <div class="sla-bar"><div class="sla-fill" id="tierT3Fill" style="background:#fb923c;width:0%;"></div></div>
+          <span class="sla-count" id="tierT3" style="color:#fb923c;">—</span>
         </div>
-        <div class="tier-card t4">
-          <div class="tier-badge">🔴 Critical</div>
-          <div class="tier-range">&gt; 60 วัน</div>
-          <div class="tier-num" id="tierT4">—</div>
-          <div class="tier-pct" id="tierT4Pct">—</div>
+        <div class="sla-row">
+          <span class="sla-label" style="color:var(--danger);">Critical >60 วัน</span>
+          <div class="sla-bar"><div class="sla-fill" id="tierT4Fill" style="background:var(--danger);width:0%;"></div></div>
+          <span class="sla-count" id="tierT4" style="color:var(--danger);">—</span>
         </div>
       </div>
+
     </div>
 
-    <!-- Pipeline -->
+    <!-- Pipeline Flow -->
     <div class="pipeline-wrap">
-      <div class="pipeline-head">
-        <div class="pipeline-title">Pipeline เอกสาร</div>
-      </div>
-      <div class="pipeline-steps">
+      <div class="pipeline-title">Pipeline เอกสาร</div>
+      <div class="pipeline-flow">
+
         <div class="pipe-step s1">
-          <div class="pipe-arrow">→</div>
-          <div class="pipe-label">🚚 กับขนส่ง</div>
+          <div class="pipe-step-head"><div class="pipe-dot s1"></div><span class="pipe-label">กับขนส่ง</span></div>
           <div class="pipe-total" id="pipeT">—</div>
-          <div class="pipe-tiers" id="pipeTTiers"></div>
+          <div class="pipe-mini-bars" id="pipeTTiers"></div>
         </div>
+
+        <div class="pipe-arrow-col">
+          <div class="pipe-arrow-line"></div>
+          <svg class="pipe-arrow-svg" width="16" height="12" viewBox="0 0 16 12" fill="none">
+            <path d="M0 6h13M9 1l5 5-5 5" stroke="var(--muted)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <div class="pipe-arrow-line bottom"></div>
+        </div>
+
         <div class="pipe-step s2">
-          <div class="pipe-arrow">→</div>
-          <div class="pipe-label">📋 ทีมจัดส่ง</div>
+          <div class="pipe-step-head"><div class="pipe-dot s2"></div><span class="pipe-label">ทีมจัดส่ง</span></div>
           <div class="pipe-total" id="pipeD">—</div>
-          <div class="pipe-tiers" id="pipeDTiers"></div>
+          <div class="pipe-mini-bars" id="pipeDTiers"></div>
         </div>
+
+        <div class="pipe-arrow-col">
+          <div class="pipe-arrow-line"></div>
+          <svg class="pipe-arrow-svg" width="16" height="12" viewBox="0 0 16 12" fill="none">
+            <path d="M0 6h13M9 1l5 5-5 5" stroke="var(--muted)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <div class="pipe-arrow-line bottom"></div>
+        </div>
+
         <div class="pipe-step s3">
-          <div class="pipe-arrow">→</div>
-          <div class="pipe-label">🚛 ระหว่างทาง</div>
+          <div class="pipe-step-head"><div class="pipe-dot s3"></div><span class="pipe-label">ระหว่างทาง</span></div>
           <div class="pipe-total" id="pipeR">—</div>
-          <div class="pipe-tiers" id="pipeRTiers"></div>
+          <div class="pipe-mini-bars" id="pipeRTiers"></div>
         </div>
+
+        <div class="pipe-arrow-col">
+          <div class="pipe-arrow-line"></div>
+          <svg class="pipe-arrow-svg" width="16" height="12" viewBox="0 0 16 12" fill="none">
+            <path d="M0 6h13M9 1l5 5-5 5" stroke="var(--muted)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <div class="pipe-arrow-line bottom"></div>
+        </div>
+
         <div class="pipe-step s4">
-          <div class="pipe-label">✅ Scan แล้ว</div>
+          <div class="pipe-step-head"><div class="pipe-dot s4"></div><span class="pipe-label">Scan แล้ว</span></div>
           <div class="pipe-total" id="pipeS">—</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:4px;">รับที่คลังพาเลท</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px;line-height:1.5;">รับที่คลังพาเลทแล้ว</div>
         </div>
+
+      </div>
+      <div class="pipe-legend">
+        <div class="pipe-legend-item"><div class="pipe-legend-dot" style="background:var(--success);"></div>On Track ≤15 วัน</div>
+        <div class="pipe-legend-item"><div class="pipe-legend-dot" style="background:var(--warn);"></div>Over SLA 15-30 วัน</div>
+        <div class="pipe-legend-item"><div class="pipe-legend-dot" style="background:#fb923c;"></div>Business 30-60 วัน</div>
+        <div class="pipe-legend-item"><div class="pipe-legend-dot" style="background:var(--danger);"></div>Critical >60 วัน</div>
       </div>
     </div>
 
@@ -396,32 +409,35 @@ function loadData() {
       document.getElementById('sumPend').textContent    = s.pending;
       document.getElementById('sumPendPct').textContent = s.total>0 ? Math.round(s.pending/s.total*1000)/10+'% ของทั้งหมด' : '0%';
 
-      // Tier breakdown
+      // Tier bars ใน card
       var pendTotal = (pt.t1+pt.t2+pt.t3+pt.t4)||1;
       ['t1','t2','t3','t4'].forEach(function(t){
-        var id = 'tier'+t.toUpperCase();
-        document.getElementById(id).textContent        = pt[t]||0;
-        document.getElementById(id+'Pct').textContent  = Math.round((pt[t]||0)/pendTotal*100)+'% ของค้าง';
+        var pct = Math.round((pt[t]||0)/pendTotal*100);
+        document.getElementById('tier'+t.toUpperCase()+'Fill').style.width = pct+'%';
+        document.getElementById('tier'+t.toUpperCase()).textContent = (pt[t]||0).toLocaleString();
       });
 
       // Pipeline
-      function pipeTierHTML(tiers){
-        if(!tiers) return '';
-        var labels={t1:'On Track',t2:'Over SLA',t3:'Business',t4:'Critical'};
+      function pipeMiniHTML(tiers, stepTotal){
+        if(!tiers||!stepTotal) return '';
+        var colors={t1:'var(--success)',t2:'var(--warn)',t3:'#fb923c',t4:'var(--danger)'};
         return ['t1','t2','t3','t4'].filter(function(t){return tiers[t]>0;}).map(function(t){
-          return '<div class="pipe-tier-row">'+
-            '<div class="pipe-tier-dot dot-'+t+'"></div>'+
-            '<span class="pipe-tier-count">'+tiers[t]+'</span>'+
-            '<span class="pipe-tier-label">'+labels[t]+'</span></div>';
+          var pct=Math.round(tiers[t]/stepTotal*100);
+          return '<div class="pipe-mini-row">'+
+            '<div class="pipe-mini-dot" style="background:'+colors[t]+';"></div>'+
+            '<div class="pipe-mini-bar-wrap"><div class="pipe-mini-bar" style="background:'+colors[t]+';width:'+pct+'%;"></div></div>'+
+            '<span class="pipe-mini-count">'+tiers[t]+'</span>'+
+          '</div>';
         }).join('');
       }
-      document.getElementById('pipeT').textContent = (pl.transporter||{}).total||0;
-      document.getElementById('pipeD').textContent = (pl.delivery   ||{}).total||0;
-      document.getElementById('pipeR').textContent = (pl.transit    ||{}).total||0;
-      document.getElementById('pipeS').textContent = (pl.scanned    ||{}).total||s.done||0;
-      document.getElementById('pipeTTiers').innerHTML = pipeTierHTML((pl.transporter||{}).tiers);
-      document.getElementById('pipeDTiers').innerHTML = pipeTierHTML((pl.delivery   ||{}).tiers);
-      document.getElementById('pipeRTiers').innerHTML = pipeTierHTML((pl.transit    ||{}).tiers);
+      var pT=(pl.transporter||{}), pD=(pl.delivery||{}), pR=(pl.transit||{});
+      document.getElementById('pipeT').textContent = pT.total||0;
+      document.getElementById('pipeD').textContent = pD.total||0;
+      document.getElementById('pipeR').textContent = pR.total||0;
+      document.getElementById('pipeS').textContent = pl.scanned ? pl.scanned.total : s.done||0;
+      document.getElementById('pipeTTiers').innerHTML = pipeMiniHTML(pT.tiers, pT.total);
+      document.getElementById('pipeDTiers').innerHTML = pipeMiniHTML(pD.tiers, pD.total);
+      document.getElementById('pipeRTiers').innerHTML = pipeMiniHTML(pR.tiers, pR.total);
 
       // Site filter dropdown
       var el = document.getElementById('filterSite'); var cur = el.value;
