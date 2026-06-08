@@ -102,6 +102,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .toast.error{border-color:rgba(248,113,113,0.4);color:var(--danger);}
 .toast.success{border-color:rgba(52,211,153,0.4);color:var(--success);}
 </style>
+<script src="config.js"></script>
 </head>
 <body>
 
@@ -271,7 +272,7 @@ var DocScanAuth = (function(){
   return{save:save,load:load,clear:clear,requireAuth:requireAuth};
 })();
 
-var API_URL = 'https://script.google.com/macros/s/AKfycbyHSXESI5NGf0YFpclz5V5AFoChC4MliHK21OSiONotE4Xre9z39h0B9pfauceG3n20Dg/exec';
+var API_URL = DOCSCAN_CONFIG.API_URL;
 var session;
 var _cachedDone = [], _cachedPending = [];
 
