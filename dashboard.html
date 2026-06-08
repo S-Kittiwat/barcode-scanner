@@ -289,7 +289,7 @@ function loadData() {
   document.getElementById('bodyDone').innerHTML    = '<tr class="empty-row"><td colspan="10"><span class="spinner"></span>กำลังโหลด...</td></tr>';
   document.getElementById('bodyPending').innerHTML = '<tr class="empty-row"><td colspan="8"><span class="spinner"></span>กำลังโหลด...</td></tr>';
   var site = document.getElementById('filterSite').value || '';
-  fetch(API_URL + '?action=getDashboard&site=' + encodeURIComponent(site))
+  fetch(API_URL + '?action=getDashboard' + getSiteFilterParam(session))
     .then(function(r){ return r.json(); })
     .then(function(data) {
       if (data.status !== 'ok') throw new Error(data.message);
@@ -431,6 +431,12 @@ function logout() {
   if (confirm('ออกจากระบบ?')) { DocScanAuth.clear(); window.location.href='login.html'; }
 }
 
+function getSiteFilterParam(s){
+  if(!s)return "";
+  var f=s.site_filter;
+  if(f&&f.length)return "&site_filter="+encodeURIComponent(f.join("|"));
+  return "&site="+encodeURIComponent(s.site||"");
+}
 var toastTimer;
 function showToast(msg,type){var t=document.getElementById('toast');t.textContent=msg;t.className='toast '+(type||'info')+' show';clearTimeout(toastTimer);toastTimer=setTimeout(function(){t.classList.remove('show');},3000);}
 </script>
