@@ -143,6 +143,7 @@ main{width:100%;max-width:100%;padding:20px 24px 100px;}
 .split-bar-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--success));border-radius:20px;transition:width 0.2s;}
 .split-detail{font-size:11px;color:var(--muted);font-family:var(--mono);}
 </style>
+<script src="config.js"></script>
 </head>
 <body>
 
@@ -204,7 +205,7 @@ main{width:100%;max-width:100%;padding:20px 24px 100px;}
     <div class="nav-label">เมนูหลัก</div>
     <a class="nav-item" href="dashboard.html"><span class="nav-icon">📊</span> Dashboard</a>
     <div class="nav-label" style="margin-top:8px;">สแกนเอกสาร</div>
-    <a class="nav-item" href="index.html"><span class="nav-icon">📷</span> Single Scan</a>
+    <a class="nav-item" href="scan.html"><span class="nav-icon">📷</span> Single Scan</a>
     <a class="nav-item active" href="batch.html"><span class="nav-icon">📦</span> Batch Scan</a>
   </nav>
   <div class="sidebar-footer">
@@ -299,7 +300,7 @@ var DocScanAuth = (function () {
   return { save:save, load:load, clear:clear, requireAuth:requireAuth };
 })();
 
-var API_URL = 'https://script.google.com/macros/s/AKfycbyHSXESI5NGf0YFpclz5V5AFoChC4MliHK21OSiONotE4Xre9z39h0B9pfauceG3n20Dg/exec';
+var API_URL = DOCSCAN_CONFIG.API_URL;
 var CSV_URL = API_URL + '?action=getCSV';
 var selectedSite = ''; var selectedEmpId = ''; var selectedEmpName = ''; var selectedEmpEmail = '';
 var csvData = []; var csvLoaded = false;
