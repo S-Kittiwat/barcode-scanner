@@ -277,7 +277,7 @@ function switchTab(n){
 // ── Load Tab 1: รับเอกสาร ────────────────────────────────
 function loadTab1(){
   document.getElementById('table1Wrap').innerHTML = '<div class="loading"><span class="spinner"></span>กำลังโหลด...</div>';
-  fetch(API_URL+'?action=getBatches&status_filter=with_delivery')
+  fetch(API_URL+'?action=getBatches&status_filter=with_delivery'+getSiteFilterParam(session))
     .then(function(r){return r.json();})
     .then(function(data){
       if(data.status!=='ok') throw new Error(data.message||'Error');
@@ -304,7 +304,7 @@ function loadTab1(){
 function loadTab2(){
   _tab2Loaded = true;
   document.getElementById('table2Wrap').innerHTML = '<div class="loading"><span class="spinner"></span>กำลังโหลด...</div>';
-  fetch(API_URL+'?action=getBatches&status_filter=with_warehouse')
+  fetch(API_URL+'?action=getBatches&status_filter=with_warehouse'+getSiteFilterParam(session))
     .then(function(r){return r.json();})
     .then(function(data){
       if(data.status!=='ok') throw new Error(data.message||'Error');
@@ -586,6 +586,12 @@ function toDateStr(iso){
 }
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');}
 document.addEventListener('click',function(e){if(e.target.id==='modalOverlay')closeModal();});
+function getSiteFilterParam(s){
+  if(!s)return "";
+  var f=s.site_filter;
+  if(f&&f.length)return "&site_filter="+encodeURIComponent(f.join("|"));
+  return "&site="+encodeURIComponent(s.site||"");
+}
 var toastTimer;
 function showToast(msg,type){var t=document.getElementById('toast');t.textContent=msg;t.className='toast '+(type||'info')+' show';clearTimeout(toastTimer);toastTimer=setTimeout(function(){t.classList.remove('show');},4000);}
 </script>
