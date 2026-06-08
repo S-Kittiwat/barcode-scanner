@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>DocScan — รอส่งให้คลัง</title>
+<title>DocScan — ประวัติการรับส่งเอกสาร</title>
+<script src="config.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
 :root{
@@ -38,47 +39,54 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .page-wrap{margin-left:var(--sidebar);flex:1;display:flex;flex-direction:column;min-height:100vh;}
 .topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
 .topbar-title{font-size:15px;font-weight:600;}.topbar-sub{font-size:11px;color:var(--muted);margin-top:2px;}
-.refresh-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:var(--rs);padding:7px 14px;font-family:var(--font);font-size:13px;cursor:pointer;}
-.refresh-btn:hover{border-color:var(--warn);color:var(--warn);}
 .content{padding:24px;flex:1;}
 
-/* ── Batch list ── */
-.batch-grid{display:flex;flex-direction:column;gap:12px;}
-.batch-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;transition:border-color .15s;}
-.batch-card:hover{border-color:var(--warn);}
-.batch-card.highlighted{border-color:var(--success);box-shadow:0 0 0 2px rgba(52,211,153,.2);animation:highlightIn .5s ease;}
-@keyframes highlightIn{from{border-color:var(--success);box-shadow:0 0 0 6px rgba(52,211,153,.3);}to{border-color:var(--success);box-shadow:0 0 0 2px rgba(52,211,153,.2);}}
-.batch-header{padding:14px 20px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;}
-.batch-header:hover .batch-id{color:var(--warn);}
-.batch-left{display:flex;align-items:center;gap:14px;}
-.batch-id{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--accent);transition:color .15s;}
-.batch-meta{font-size:12px;color:var(--muted);}
-.batch-right{display:flex;align-items:center;gap:10px;}
-.badge-delivery{background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.3);color:var(--warn);font-size:11px;padding:3px 10px;border-radius:20px;white-space:nowrap;}
-.badge-warehouse{background:rgba(56,189,248,.12);border:1px solid rgba(56,189,248,.3);color:var(--accent);font-size:11px;padding:3px 10px;border-radius:20px;white-space:nowrap;}
-.bc-count{background:var(--surface2);border:1px solid var(--border);font-family:var(--mono);font-size:12px;padding:3px 10px;border-radius:20px;}
-.send-btn{background:var(--accent);border:none;color:#0f172a;border-radius:var(--rs);padding:7px 16px;font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;}
-.send-btn:disabled{opacity:.4;cursor:not-allowed;}
-.chevron{font-size:14px;color:var(--muted);transition:transform .2s;}
-.chevron.open{transform:rotate(180deg);}
+/* ── Tabs ── */
+.tab-bar{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:20px;}
+.tab-btn{padding:10px 24px;font-family:var(--font);font-size:13px;font-weight:500;background:none;border:none;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:color .15s,border-color .15s;display:flex;align-items:center;gap:8px;}
+.tab-btn:hover{color:var(--text);}
+.tab-btn.active{color:var(--warn);border-bottom-color:var(--warn);}
+.tab-btn .tab-count{background:var(--surface2);border:1px solid var(--border);font-size:10px;font-weight:600;padding:1px 7px;border-radius:20px;font-family:var(--mono);}
+.tab-btn.active .tab-count{background:rgba(251,191,36,.15);border-color:rgba(251,191,36,.3);color:var(--warn);}
 
-/* detail panel */
-.batch-detail{display:none;border-top:1px solid var(--border);}
-.batch-detail.open{display:block;}
-.detail-inner{padding:16px 20px;}
-.dest-info{font-size:12px;color:var(--muted);margin-bottom:12px;display:flex;align-items:center;gap:6px;}
-.dest-info strong{color:var(--accent);}
-table{width:100%;border-collapse:collapse;}
-th{background:var(--surface2);padding:8px 12px;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;text-align:left;border-bottom:1px solid var(--border);}
-td{padding:8px 12px;font-size:12px;border-bottom:1px solid var(--border);}
-tr:last-child td{border-bottom:none;}
-tr:hover td{background:rgba(255,255,255,.02);}
+/* ── Filter bar ── */
+.filter-bar{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;margin-bottom:16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+.f-input{background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);color:var(--text);font-family:var(--font);font-size:13px;padding:7px 12px;outline:none;}
+.f-input:focus{border-color:var(--warn);}
+.f-input::placeholder{color:var(--muted);}
+.f-input.mono{font-family:var(--mono);}
+.f-clear{background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;padding:4px 8px;border-radius:var(--rs);font-family:var(--font);}
+.f-clear:hover{color:var(--danger);}
+.export-btn{margin-left:auto;background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.3);color:var(--success);border-radius:var(--rs);padding:7px 14px;font-family:var(--font);font-size:12px;cursor:pointer;white-space:nowrap;}
+.export-btn:hover{background:rgba(52,211,153,.2);}
+
+/* ── Table ── */
+.table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;}
+.table-wrap table{width:100%;border-collapse:collapse;}
+.table-wrap th{background:var(--surface2);padding:9px 14px;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;}
+.table-wrap td{padding:10px 14px;font-size:12px;border-bottom:1px solid var(--border);vertical-align:middle;}
+.table-wrap tr:last-child td{border-bottom:none;}
+.table-wrap tr:hover td{background:rgba(255,255,255,.02);}
 .mono{font-family:var(--mono);}
+.badge-delivery{background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.3);color:var(--warn);font-size:10px;padding:2px 8px;border-radius:20px;white-space:nowrap;}
+.badge-warehouse{background:rgba(56,189,248,.12);border:1px solid rgba(56,189,248,.3);color:var(--accent);font-size:10px;padding:2px 8px;border-radius:20px;white-space:nowrap;}
+.expand-btn{background:none;border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:3px 10px;font-size:11px;cursor:pointer;font-family:var(--font);white-space:nowrap;}
+.expand-btn:hover{border-color:var(--warn);color:var(--warn);}
 
+/* ── Detail rows ── */
+.detail-row{display:none;}
+.detail-row.open{display:table-row;}
+.detail-inner{padding:0;background:var(--surface2);}
+.detail-table{width:100%;border-collapse:collapse;}
+.detail-table th{background:rgba(0,0,0,.2);padding:7px 14px;font-size:10px;color:var(--muted);text-align:left;border-bottom:1px solid var(--border);}
+.detail-table td{padding:7px 14px;font-size:11px;border-bottom:1px solid rgba(255,255,255,.04);color:var(--muted);}
+.detail-table tr:last-child td{border-bottom:none;}
+
+/* ── States ── */
 .loading{text-align:center;padding:48px;color:var(--muted);font-size:13px;}
+.empty{text-align:center;padding:48px;color:var(--muted);font-size:13px;}
 .spinner{width:18px;height:18px;border:2px solid rgba(251,191,36,.3);border-top-color:var(--warn);border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:8px;}
 @keyframes spin{to{transform:rotate(360deg);}}
-.empty{text-align:center;padding:48px;color:var(--muted);font-size:13px;}
 
 /* ── Modal ── */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:500;display:none;align-items:center;justify-content:center;padding:20px;}
@@ -104,8 +112,8 @@ tr:hover td{background:rgba(255,255,255,.02);}
 .toast.show{transform:translateX(-50%) translateY(0);}
 .toast.success{border-color:rgba(52,211,153,.4);color:var(--success);}
 .toast.error{border-color:rgba(248,113,113,.4);color:var(--danger);}
+.toast.info{border-color:rgba(56,189,248,.4);color:var(--accent);}
 </style>
-<script src="config.js"></script>
 </head>
 <body>
 
@@ -128,7 +136,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
   <nav class="sidebar-nav">
     <div class="nav-label">เมนู</div>
     <a class="nav-item" href="delivery.html"><span class="nav-icon">📥</span> รับเอกสาร</a>
-    <a class="nav-item active" href="delivery_batches.html"><span class="nav-icon">📦</span> รอส่งให้คลัง</a>
+    <a class="nav-item active" href="delivery_batches.html"><span class="nav-icon">📋</span> ประวัติรับส่ง</a>
   </nav>
   <div class="sidebar-footer">
     <button class="logout-btn" onclick="DocScanAuth.clear();location.href='login.html';">↩ ออกจากระบบ</button>
@@ -139,16 +147,54 @@ tr:hover td{background:rgba(255,255,255,.02);}
 <div class="page-wrap">
   <div class="topbar">
     <div>
-      <div class="topbar-title">รอส่งเอกสารให้คลังพาเลท</div>
+      <div class="topbar-title">ประวัติการรับส่งเอกสาร</div>
       <div class="topbar-sub" id="topbarSub">—</div>
     </div>
-    <button class="refresh-btn" onclick="loadBatches()">↻ รีเฟรช</button>
+    <button class="export-btn" onclick="exportCSV()" style="background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.3);color:var(--success);border-radius:var(--rs);padding:7px 14px;font-family:var(--font);font-size:13px;cursor:pointer;">
+      ⬇ Export CSV
+    </button>
   </div>
 
   <div class="content">
-    <div id="batchList">
-      <div class="loading"><span class="spinner"></span>กำลังโหลด...</div>
+
+    <!-- Tabs -->
+    <div class="tab-bar">
+      <button class="tab-btn active" id="tab1Btn" onclick="switchTab(1)">
+        📥 รายการรับเอกสาร
+        <span class="tab-count" id="tab1Count">—</span>
+      </button>
+      <button class="tab-btn" id="tab2Btn" onclick="switchTab(2)">
+        📦 รายการส่งเอกสาร
+        <span class="tab-count" id="tab2Count">—</span>
+      </button>
     </div>
+
+    <!-- Tab 1: รับเอกสาร (with_delivery) -->
+    <div id="tab1Panel">
+      <div class="filter-bar">
+        <input class="f-input mono" id="f1BatchId" placeholder="Batch No. เช่น DEL-20260605-001" style="width:240px;" oninput="applyFilter1()">
+        <input class="f-input" type="date" id="f1Date" onchange="applyFilter1()" title="วันที่รับเอกสาร">
+        <button class="f-clear" onclick="clearFilter1()">✕ ล้าง</button>
+        <span id="f1Result" style="font-size:12px;color:var(--muted);"></span>
+      </div>
+      <div id="table1Wrap">
+        <div class="loading"><span class="spinner"></span>กำลังโหลด...</div>
+      </div>
+    </div>
+
+    <!-- Tab 2: ส่งเอกสาร (with_warehouse) -->
+    <div id="tab2Panel" style="display:none;">
+      <div class="filter-bar">
+        <input class="f-input mono" id="f2BatchId" placeholder="Batch No. เช่น DEL-20260605-001" style="width:240px;" oninput="applyFilter2()">
+        <input class="f-input" type="date" id="f2Date" onchange="applyFilter2()" title="วันที่ส่งเอกสาร">
+        <button class="f-clear" onclick="clearFilter2()">✕ ล้าง</button>
+        <span id="f2Result" style="font-size:12px;color:var(--muted);"></span>
+      </div>
+      <div id="table2Wrap">
+        <div class="loading"><span class="spinner"></span>กำลังโหลด...</div>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -176,9 +222,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
       <div class="modal-summary" id="modalSummary">—</div>
       <div class="modal-foot">
         <button class="modal-cancel" onclick="closeModal()">ยกเลิก</button>
-        <button class="modal-confirm" id="modalConfirmBtn" onclick="confirmSend()" disabled>
-          📦 ยืนยันส่ง
-        </button>
+        <button class="modal-confirm" id="modalConfirmBtn" onclick="confirmSend()" disabled>📦 ยืนยันส่ง</button>
       </div>
     </div>
   </div>
@@ -197,7 +241,15 @@ var DocScanAuth=(function(){
 })();
 
 var API_URL = DOCSCAN_CONFIG.API_URL;
-var session, batches=[], detailCache={}, _sendingBatchId='';
+var session;
+var _allReceived = [];  // with_delivery batches (raw)
+var _allSent     = [];  // with_warehouse batches (raw)
+var _filteredR   = [];
+var _filteredS   = [];
+var _detailCache = {};
+var _sendBatchId = '';
+var _activeTab   = 1;
+var _tab2Loaded  = false;
 
 // ── Init ─────────────────────────────────────────────────
 window.onload = function(){
@@ -206,199 +258,295 @@ window.onload = function(){
   if(session.role && session.role!=='delivery'){ window.location.href='dashboard.html'; return; }
   document.getElementById('sidebarName').textContent = session.empName+' ('+session.empId+')';
   document.getElementById('topbarSub').textContent   = session.site;
-  loadBatches();
+  loadTab1();
+  // highlight จาก query string
+  var hl = new URLSearchParams(window.location.search).get('highlight');
+  if(hl) window._highlight = hl;
 };
 
-// ── Load batches ──────────────────────────────────────────
-function loadBatches(){
-  document.getElementById('batchList').innerHTML='<div class="loading"><span class="spinner"></span>กำลังโหลด...</div>';
-  // ไม่กรอง site เพื่อดู batch ทั้งหมดก่อน แล้วค่อย filter ฝั่ง client
-  fetch(API_URL+'?action=getBatches')
+// ── Tab switch ────────────────────────────────────────────
+function switchTab(n){
+  _activeTab = n;
+  document.getElementById('tab1Btn').classList.toggle('active', n===1);
+  document.getElementById('tab2Btn').classList.toggle('active', n===2);
+  document.getElementById('tab1Panel').style.display = n===1 ? 'block' : 'none';
+  document.getElementById('tab2Panel').style.display = n===2 ? 'block' : 'none';
+  if(n===2 && !_tab2Loaded) loadTab2();
+}
+
+// ── Load Tab 1: รับเอกสาร ────────────────────────────────
+function loadTab1(){
+  document.getElementById('table1Wrap').innerHTML = '<div class="loading"><span class="spinner"></span>กำลังโหลด...</div>';
+  fetch(API_URL+'?action=getBatches&status_filter=with_delivery')
     .then(function(r){return r.json();})
     .then(function(data){
-      if(data.status!=='ok') throw new Error(data.message||JSON.stringify(data));
-      // filter ฝั่ง client ตาม site ของ session
-      batches = (data.batches||[]).filter(function(b){
-        return !session.site || b.site === session.site;
+      if(data.status!=='ok') throw new Error(data.message||'Error');
+      _allReceived = (data.batches||[]).filter(function(b){
+        return !session.site || b.site===session.site;
       });
-      renderBatches();
-      // highlight batch ที่เพิ่งสร้าง (จาก query string)
-      var hl = new URLSearchParams(window.location.search).get('highlight');
-      if(hl){
+      _filteredR = _allReceived.slice();
+      document.getElementById('tab1Count').textContent = _allReceived.length;
+      renderTable1();
+      // highlight
+      if(window._highlight){
         setTimeout(function(){
-          var el=document.getElementById('card-'+hl);
-          if(el){ el.classList.add('highlighted'); el.scrollIntoView({behavior:'smooth',block:'center'}); openDetail(hl); }
+          var row = document.getElementById('brow-'+window._highlight);
+          if(row){ row.scrollIntoView({behavior:'smooth',block:'center'}); row.style.background='rgba(52,211,153,.1)'; setTimeout(function(){row.style.background='';},2000); }
         },300);
       }
     })
     .catch(function(err){
-      document.getElementById('batchList').innerHTML=
-        '<div class="empty" style="color:var(--danger);">โหลดไม่สำเร็จ: '+err.message+'<br>'+
-        '<small style="color:var(--muted);">ตรวจสอบว่า GAS deploy ใหม่แล้วและมี Sheet doc_log</small></div>';
+      document.getElementById('table1Wrap').innerHTML='<div class="empty" style="color:var(--danger);">โหลดไม่สำเร็จ: '+err.message+'</div>';
     });
 }
 
-// ── Render batch list ─────────────────────────────────────
-function renderBatches(){
-  var list=document.getElementById('batchList');
-  if(!batches.length){ list.innerHTML='<div class="empty">ยังไม่มีรายการ Batch</div>'; return; }
-  list.innerHTML='<div class="batch-grid">'+batches.map(function(b){
-    var isWarehouse = b.status==='with_warehouse';
-    var badge = isWarehouse
-      ? '<span class="badge-warehouse">📦 ส่งให้คลังแล้ว</span>'
-      : '<span class="badge-delivery">📋 รอส่งคลัง</span>';
-    var sendBtn = isWarehouse
-      ? '<button class="send-btn" disabled>ส่งแล้ว</button>'
-      : '<button class="send-btn" onclick="openModal(\''+b.batch_id+'\',event)">📦 ส่งให้คลัง →</button>';
-    var dt = b.scan_date ? new Date(b.scan_date).toLocaleString('th-TH',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
-    return '<div class="batch-card" id="card-'+esc(b.batch_id)+'">'+
-      '<div class="batch-header" onclick="toggleDetail(\''+esc(b.batch_id)+'\')">'+
-        '<div class="batch-left">'+
-          '<div>'+
-            '<div class="batch-id">'+esc(b.batch_id)+'</div>'+
-            '<div class="batch-meta">'+dt+' · '+esc(b.emp_name||'—')+'</div>'+
-          '</div>'+
-          badge+
-          '<span class="bc-count">'+b.barcode_count+' barcodes</span>'+
-          (isWarehouse&&b.dest_warehouse?'<span class="badge-warehouse" style="font-size:11px;">→ '+esc(b.dest_warehouse)+'</span>':'')+
-        '</div>'+
-        '<div class="batch-right">'+
-          sendBtn+
-          '<span class="chevron" id="chev-'+esc(b.batch_id)+'">▾</span>'+
-        '</div>'+
-      '</div>'+
-      '<div class="batch-detail" id="detail-'+esc(b.batch_id)+'">'+
-        '<div class="detail-inner"><div style="color:var(--muted);font-size:12px;text-align:center;padding:12px;"><span class="spinner"></span> กำลังโหลด...</div></div>'+
-      '</div>'+
-    '</div>';
-  }).join('')+'</div>';
-}
-
-// ── Toggle detail (accordion) ─────────────────────────────
-function toggleDetail(batchId){
-  var panel = document.getElementById('detail-'+batchId);
-  var chev  = document.getElementById('chev-'+batchId);
-  if(panel.classList.contains('open')){ panel.classList.remove('open'); chev.classList.remove('open'); return; }
-  openDetail(batchId);
-}
-
-function openDetail(batchId){
-  var panel = document.getElementById('detail-'+batchId);
-  var chev  = document.getElementById('chev-'+batchId);
-  panel.classList.add('open');
-  chev.classList.add('open');
-  if(detailCache[batchId]){ renderDetail(batchId, detailCache[batchId]); return; }
-  fetch(API_URL+'?action=getBatchDetail&batch_id='+encodeURIComponent(batchId))
+// ── Load Tab 2: ส่งเอกสาร (on-demand) ───────────────────
+function loadTab2(){
+  _tab2Loaded = true;
+  document.getElementById('table2Wrap').innerHTML = '<div class="loading"><span class="spinner"></span>กำลังโหลด...</div>';
+  fetch(API_URL+'?action=getBatches&status_filter=with_warehouse')
     .then(function(r){return r.json();})
     .then(function(data){
-      if(data.status!=='ok') throw new Error(data.message);
-      detailCache[batchId]=data;
-      renderDetail(batchId, data);
+      if(data.status!=='ok') throw new Error(data.message||'Error');
+      _allSent = (data.batches||[]).filter(function(b){
+        return !session.site || b.site===session.site;
+      });
+      _filteredS = _allSent.slice();
+      document.getElementById('tab2Count').textContent = _allSent.length;
+      renderTable2();
     })
     .catch(function(err){
-      document.getElementById('detail-'+batchId).innerHTML='<div class="detail-inner" style="color:var(--danger);font-size:12px;">โหลดไม่สำเร็จ: '+err.message+'</div>';
+      document.getElementById('table2Wrap').innerHTML='<div class="empty" style="color:var(--danger);">โหลดไม่สำเร็จ: '+err.message+'</div>';
     });
 }
 
-function renderDetail(batchId, data){
-  var panel = document.getElementById('detail-'+batchId);
-  var destInfo = data.dest_warehouse
-    ? '<div class="dest-info">📦 ส่งให้คลัง: <strong>'+esc(data.dest_warehouse)+'</strong></div>'
-    : '';
-  panel.innerHTML='<div class="detail-inner">'+destInfo+
-    '<table><thead><tr>'+
-      '<th>#</th><th>Barcode</th><th>Reference</th>'+
-      '<th>ประเภท</th><th>โอนจาก → โอนไป</th><th>QTY</th>'+
-    '</tr></thead><tbody>'+
-    (data.barcodes||[]).map(function(item,i){
-      return '<tr>'+
+// ── Filter Tab 1 ──────────────────────────────────────────
+function applyFilter1(){
+  var fBatch = document.getElementById('f1BatchId').value.trim().toLowerCase();
+  var fDate  = document.getElementById('f1Date').value;
+  _filteredR = _allReceived.filter(function(b){
+    if(fBatch && b.batch_id.toLowerCase().indexOf(fBatch)===-1) return false;
+    if(fDate  && toDateStr(b.scan_date)!==fDate) return false;
+    return true;
+  });
+  document.getElementById('f1Result').textContent = fBatch||fDate ? 'พบ '+_filteredR.length+' batch' : '';
+  renderTable1();
+}
+
+function clearFilter1(){
+  document.getElementById('f1BatchId').value='';
+  document.getElementById('f1Date').value='';
+  _filteredR=_allReceived.slice();
+  document.getElementById('f1Result').textContent='';
+  renderTable1();
+}
+
+// ── Filter Tab 2 ──────────────────────────────────────────
+function applyFilter2(){
+  var fBatch = document.getElementById('f2BatchId').value.trim().toLowerCase();
+  var fDate  = document.getElementById('f2Date').value;
+  _filteredS = _allSent.filter(function(b){
+    if(fBatch && b.batch_id.toLowerCase().indexOf(fBatch)===-1) return false;
+    if(fDate  && toDateStr(b.sent_date||b.scan_date)!==fDate) return false;
+    return true;
+  });
+  document.getElementById('f2Result').textContent = fBatch||fDate ? 'พบ '+_filteredS.length+' batch' : '';
+  renderTable2();
+}
+
+function clearFilter2(){
+  document.getElementById('f2BatchId').value='';
+  document.getElementById('f2Date').value='';
+  _filteredS=_allSent.slice();
+  document.getElementById('f2Result').textContent='';
+  renderTable2();
+}
+
+// ── Render Table 1 ────────────────────────────────────────
+function renderTable1(){
+  var wrap = document.getElementById('table1Wrap');
+  if(!_filteredR.length){ wrap.innerHTML='<div class="empty">ไม่มีรายการ</div>'; return; }
+  wrap.innerHTML='<div class="table-wrap"><table>'+
+    '<thead><tr>'+
+      '<th style="width:40px;">#</th>'+
+      '<th>Batch No.</th>'+
+      '<th>วันที่รับ</th>'+
+      '<th>ผู้รับ</th>'+
+      '<th>Site</th>'+
+      '<th style="width:80px;text-align:right;">จำนวน</th>'+
+      '<th style="width:100px;text-align:center;">สถานะ</th>'+
+      '<th style="width:80px;text-align:center;">รายละเอียด</th>'+
+      '<th style="width:90px;text-align:center;">ส่งคลัง</th>'+
+    '</tr></thead><tbody id="tbody1">'+
+    _filteredR.map(function(b,i){
+      var dt = fmtDT(b.scan_date);
+      var sent = b.status==='with_warehouse';
+      return '<tr id="brow-'+esc(b.batch_id)+'">'+
         '<td style="color:var(--muted);">'+(i+1)+'</td>'+
-        '<td class="mono" style="color:var(--warn);">'+esc(item.barcode)+'</td>'+
-        '<td class="mono">'+esc(item.ref_no||'—')+'</td>'+
-        '<td>'+esc(item.item_name||'—')+'</td>'+
-        '<td style="font-size:11px;">'+esc(item.transfer_from||'—')+' → '+esc(item.transfer_to||'—')+'</td>'+
-        '<td class="mono" style="text-align:right;">'+esc(item.sent_qty||'—')+'</td>'+
+        '<td class="mono" style="color:var(--accent);">'+esc(b.batch_id)+'</td>'+
+        '<td class="mono" style="font-size:11px;">'+dt+'</td>'+
+        '<td style="font-size:11px;">'+esc(b.emp_name||'—')+'</td>'+
+        '<td style="font-size:11px;">'+esc(b.site||'—')+'</td>'+
+        '<td class="mono" style="text-align:right;">'+b.barcode_count+'</td>'+
+        '<td style="text-align:center;">'+(sent?'<span class="badge-warehouse">ส่งแล้ว</span>':'<span class="badge-delivery">รอส่ง</span>')+'</td>'+
+        '<td style="text-align:center;"><button class="expand-btn" onclick="toggleDetail(\''+esc(b.batch_id)+'\',1)">▾ ดู</button></td>'+
+        '<td style="text-align:center;">'+(sent?'<span style="font-size:11px;color:var(--muted);">→ '+esc(b.dest_warehouse||'')+'</span>':'<button class="expand-btn" style="color:var(--accent);border-color:rgba(56,189,248,.3);" onclick="openModal(\''+esc(b.batch_id)+'\',event)">📦 ส่ง</button>')+'</td>'+
+      '</tr>'+
+      '<tr class="detail-row" id="drow-'+esc(b.batch_id)+'">'+
+        '<td colspan="9" class="detail-inner"><div id="dcontent-'+esc(b.batch_id)+'"></div></td>'+
       '</tr>';
     }).join('')+
     '</tbody></table></div>';
 }
 
-// ── Modal: เลือกคลัง ─────────────────────────────────────
+// ── Render Table 2 ────────────────────────────────────────
+function renderTable2(){
+  var wrap = document.getElementById('table2Wrap');
+  if(!_filteredS.length){ wrap.innerHTML='<div class="empty">ยังไม่มีรายการส่ง</div>'; return; }
+  wrap.innerHTML='<div class="table-wrap"><table>'+
+    '<thead><tr>'+
+      '<th style="width:40px;">#</th>'+
+      '<th>Batch No.</th>'+
+      '<th>วันที่รับ</th>'+
+      '<th>คลังที่ส่ง</th>'+
+      '<th>ผู้ส่ง</th>'+
+      '<th>Site</th>'+
+      '<th style="width:80px;text-align:right;">จำนวน</th>'+
+      '<th style="width:80px;text-align:center;">รายละเอียด</th>'+
+    '</tr></thead><tbody>'+
+    _filteredS.map(function(b,i){
+      var dt = fmtDT(b.scan_date);
+      return '<tr>'+
+        '<td style="color:var(--muted);">'+(i+1)+'</td>'+
+        '<td class="mono" style="color:var(--accent);">'+esc(b.batch_id)+'</td>'+
+        '<td class="mono" style="font-size:11px;">'+dt+'</td>'+
+        '<td><span class="badge-warehouse">'+esc(b.dest_warehouse||'—')+'</span></td>'+
+        '<td style="font-size:11px;">'+esc(b.emp_name||'—')+'</td>'+
+        '<td style="font-size:11px;">'+esc(b.site||'—')+'</td>'+
+        '<td class="mono" style="text-align:right;">'+b.barcode_count+'</td>'+
+        '<td style="text-align:center;"><button class="expand-btn" onclick="toggleDetail(\''+esc(b.batch_id)+'\',2)">▾ ดู</button></td>'+
+      '</tr>'+
+      '<tr class="detail-row" id="drow2-'+esc(b.batch_id)+'">'+
+        '<td colspan="8" class="detail-inner"><div id="dcontent2-'+esc(b.batch_id)+'"></div></td>'+
+      '</tr>';
+    }).join('')+
+    '</tbody></table></div>';
+}
+
+// ── Toggle detail accordion ───────────────────────────────
+function toggleDetail(batchId, tab){
+  var rowId = 'drow'+(tab===2?'2':'')+'-'+batchId;
+  var row   = document.getElementById(rowId);
+  if(!row) return;
+  var isOpen = row.classList.contains('open');
+  if(isOpen){ row.classList.remove('open'); return; }
+  row.classList.add('open');
+  var contentId = 'dcontent'+(tab===2?'2':'')+'-'+batchId;
+  var content   = document.getElementById(contentId);
+  if(_detailCache[batchId]){ renderDetailContent(content, _detailCache[batchId]); return; }
+  content.innerHTML = '<div style="padding:14px;color:var(--muted);font-size:12px;"><span class="spinner"></span> กำลังโหลด...</div>';
+  fetch(API_URL+'?action=getBatchDetail&batch_id='+encodeURIComponent(batchId))
+    .then(function(r){return r.json();})
+    .then(function(data){
+      if(data.status!=='ok') throw new Error(data.message);
+      _detailCache[batchId]=data;
+      renderDetailContent(content, data);
+      // sync ทั้ง 2 tab ถ้า cache เหมือนกัน
+      var other = document.getElementById('dcontent'+(tab===1?'2':'')+'-'+batchId);
+      if(other) renderDetailContent(other, data);
+    })
+    .catch(function(err){ content.innerHTML='<div style="padding:14px;color:var(--danger);font-size:12px;">โหลดไม่สำเร็จ: '+err.message+'</div>'; });
+}
+
+function renderDetailContent(el, data){
+  el.innerHTML='<table class="detail-table"><thead><tr>'+
+    '<th>#</th><th>Barcode</th><th>Reference</th><th>ประเภท</th><th>โอนจาก → โอนไป</th><th>QTY</th>'+
+    '</tr></thead><tbody>'+
+    (data.barcodes||[]).map(function(item,i){
+      return '<tr>'+
+        '<td>'+(i+1)+'</td>'+
+        '<td class="mono" style="color:var(--warn);">'+esc(item.barcode)+'</td>'+
+        '<td class="mono">'+esc(item.ref_no||'—')+'</td>'+
+        '<td>'+esc(item.item_name||'—')+'</td>'+
+        '<td>'+esc(item.transfer_from||'—')+' → '+esc(item.transfer_to||'—')+'</td>'+
+        '<td class="mono" style="text-align:right;">'+esc(item.sent_qty||'—')+'</td>'+
+      '</tr>';
+    }).join('')+
+    '</tbody></table>';
+}
+
+// ── Modal ─────────────────────────────────────────────────
 function openModal(batchId, event){
-  event.stopPropagation(); // ไม่ให้ toggle detail
-  _sendingBatchId = batchId;
-  var b = batches.find(function(x){return x.batch_id===batchId;});
+  if(event) event.stopPropagation();
+  _sendBatchId = batchId;
+  var b = _allReceived.find(function(x){return x.batch_id===batchId;});
   document.getElementById('warehouseSelect').value='';
   document.getElementById('modalConfirmBtn').disabled=true;
   document.getElementById('modalSummary').innerHTML=
     '<strong>Batch:</strong> '+esc(batchId)+'<br>'+
     '<strong>จำนวน:</strong> '+(b?b.barcode_count:0)+' barcode<br>'+
-    '<strong>วันที่รับ:</strong> '+(b&&b.scan_date?new Date(b.scan_date).toLocaleString('th-TH',{dateStyle:'medium',timeStyle:'short'}):'—')+'<br>'+
-    '<strong>ผู้รับ:</strong> '+(b?esc(b.emp_name||'—'):'—');
+    '<strong>วันที่รับ:</strong> '+(b?fmtDT(b.scan_date):'—')+'<br>'+
+    '<strong>ผู้รับ:</strong> '+esc(b?b.emp_name||'—':'—');
   document.getElementById('modalOverlay').classList.add('open');
 }
 
-function closeModal(){
-  document.getElementById('modalOverlay').classList.remove('open');
-  _sendingBatchId='';
-}
-
-function checkModal(){
-  document.getElementById('modalConfirmBtn').disabled = !document.getElementById('warehouseSelect').value;
-}
+function closeModal(){ document.getElementById('modalOverlay').classList.remove('open'); _sendBatchId=''; }
+function checkModal(){ document.getElementById('modalConfirmBtn').disabled=!document.getElementById('warehouseSelect').value; }
 
 async function confirmSend(){
-  var dest = document.getElementById('warehouseSelect').value;
-  if(!dest||!_sendingBatchId) return;
-
-  var b     = batches.find(function(x){return x.batch_id===_sendingBatchId;});
-  var count = b ? b.barcode_count : 0;
-
-  // Confirm
-  var ok = confirm('ยืนยันส่ง '+count+' barcode\nจาก Batch: '+_sendingBatchId+'\nไปคลัง: '+dest+'\n\nกดตกลงเพื่อยืนยัน');
-  if(!ok) return;
-
+  var dest=document.getElementById('warehouseSelect').value;
+  if(!dest||!_sendBatchId) return;
+  var b=_allReceived.find(function(x){return x.batch_id===_sendBatchId;});
+  var count=b?b.barcode_count:0;
+  if(!confirm('ยืนยันส่ง '+count+' barcode\nBatch: '+_sendBatchId+'\nไปคลัง: '+dest)) return;
   var btn=document.getElementById('modalConfirmBtn');btn.disabled=true;btn.textContent='กำลังส่ง...';
-
   try{
-    // ดึง barcode ทั้งหมดใน batch ก่อน
-    var detail = detailCache[_sendingBatchId];
-    if(!detail){
-      var r=await fetch(API_URL+'?action=getBatchDetail&batch_id='+encodeURIComponent(_sendingBatchId));
-      detail=await r.json();
-      detailCache[_sendingBatchId]=detail;
-    }
+    var detail=_detailCache[_sendBatchId];
+    if(!detail){ var r=await fetch(API_URL+'?action=getBatchDetail&batch_id='+encodeURIComponent(_sendBatchId)); detail=await r.json(); _detailCache[_sendBatchId]=detail; }
     var items=(detail.barcodes||[]).map(function(item){
-      return{
-        barcode        :item.barcode,
-        status         :'with_warehouse',
-        emp_id         :session.empId,
-        emp_name       :session.empName,
-        site           :session.site,
-        note           :'ส่งให้คลังพาเลท',
-        batch_id       :_sendingBatchId,
-        dest_warehouse :dest
-      };
+      return{barcode:item.barcode,status:'with_warehouse',emp_id:session.empId,emp_name:session.empName,site:session.site,note:'ส่งให้คลังพาเลท',batch_id:_sendBatchId,dest_warehouse:dest};
     });
-    var res=await fetch(API_URL,{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain'},
-      body:JSON.stringify({action:'updateStatus',items:items})});
+    var res=await fetch(API_URL,{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action:'updateStatus',items:items})});
     var data=await res.json();
     if(data.status==='ok'){
       showToast('📦 ส่ง '+count+' barcode ไป '+dest+' แล้ว','success');
-      closeModal();
-      detailCache={};
-      loadBatches();
+      closeModal(); _detailCache={}; _tab2Loaded=false;
+      loadTab1(); // refresh tab 1
     } else { showToast(data.message||'Error','error'); }
-  }catch(err){ showToast('เกิดข้อผิดพลาด: '+err.message,'error'); }
-  btn.disabled=false; btn.textContent='📦 ยืนยันส่ง';
+  }catch(err){showToast('เกิดข้อผิดพลาด: '+err.message,'error');}
+  btn.disabled=false;btn.textContent='📦 ยืนยันส่ง';
+}
+
+// ── Export CSV ────────────────────────────────────────────
+function exportCSV(){
+  var rows, filename, headers;
+  if(_activeTab===1){
+    headers=['Batch No.','วันที่รับ','ผู้รับ','Site','จำนวน Barcode','สถานะ','คลังปลายทาง'];
+    rows=_filteredR.map(function(b){return[b.batch_id,fmtDT(b.scan_date),b.emp_name||'',b.site||'',b.barcode_count,b.status==='with_warehouse'?'ส่งแล้ว':'รอส่ง',b.dest_warehouse||''];});
+    filename='รับเอกสาร_'+toDateStr(new Date().toISOString())+'.csv';
+  } else {
+    headers=['Batch No.','วันที่รับ','คลังที่ส่ง','ผู้ส่ง','Site','จำนวน Barcode'];
+    rows=_filteredS.map(function(b){return[b.batch_id,fmtDT(b.scan_date),b.dest_warehouse||'',b.emp_name||'',b.site||'',b.barcode_count];});
+    filename='ส่งเอกสาร_'+toDateStr(new Date().toISOString())+'.csv';
+  }
+  var csv='\uFEFF'+[headers].concat(rows).map(function(r){return r.map(function(v){return '"'+String(v).replace(/"/g,'""')+'"';}).join(',');}).join('\n');
+  var blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');a.href=url;a.download=filename;a.click();URL.revokeObjectURL(url);
+  showToast('Export เรียบร้อย','success');
 }
 
 // ── Helpers ───────────────────────────────────────────────
+function fmtDT(iso){
+  if(!iso) return '—';
+  try{ return new Date(iso).toLocaleString('th-TH',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}); }catch(e){return iso;}
+}
+function toDateStr(iso){
+  if(!iso) return '';
+  try{ return new Date(iso).toISOString().split('T')[0]; }catch(e){return '';}
+}
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');}
-
-// ปิด modal เมื่อกด backdrop
 document.addEventListener('click',function(e){if(e.target.id==='modalOverlay')closeModal();});
-
 var toastTimer;
 function showToast(msg,type){var t=document.getElementById('toast');t.textContent=msg;t.className='toast '+(type||'info')+' show';clearTimeout(toastTimer);toastTimer=setTimeout(function(){t.classList.remove('show');},4000);}
 </script>
