@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>DocScan — เข้าสู่ระบบ</title>
+<script src="config.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
 :root{--bg:#0f172a;--surface:#1e293b;--surface2:#263348;--border:#334155;--accent:#38bdf8;--success:#34d399;--warn:#fbbf24;--danger:#f87171;--text:#f1f5f9;--muted:#94a3b8;--font:'IBM Plex Sans Thai',sans-serif;--mono:'IBM Plex Mono',monospace;--r:12px;--rs:8px;}
@@ -26,6 +27,10 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .select{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);color:var(--text);font-family:var(--font);font-size:14px;padding:10px 12px;outline:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;cursor:pointer;}
 .select:focus{border-color:var(--accent);}
 .select option{background:var(--surface2);}
+.site-loading{font-size:12px;color:var(--muted);padding:8px 0;display:flex;align-items:center;gap:6px;}
+.spinner{width:12px;height:12px;border:2px solid rgba(56,189,248,0.3);border-top-color:var(--accent);border-radius:50%;animation:spin 0.7s linear infinite;display:inline-block;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.site-filter-info{font-size:11px;color:var(--muted);margin-top:4px;line-height:1.5;min-height:16px;}
 .submit-btn{width:100%;background:var(--accent);border:none;color:#0f172a;border-radius:var(--rs);padding:13px;font-family:var(--font);font-size:15px;font-weight:700;cursor:pointer;margin-top:8px;transition:opacity 0.15s;}
 .submit-btn:disabled{opacity:0.35;cursor:not-allowed;}
 .submit-btn:not(:disabled):hover{opacity:0.9;}
@@ -78,23 +83,15 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 
     <div class="field" style="margin-bottom:0;">
       <label class="label">Site / คลังสินค้า</label>
-      <select class="select" id="siteSelect" onchange="check()">
+      <!-- แสดง loading ขณะโหลด groups -->
+      <div class="site-loading" id="siteLoading">
+        <span class="spinner"></span> กำลังโหลด Site...
+      </div>
+      <select class="select" id="siteSelect" onchange="onSiteChange()" style="display:none;">
         <option value="">— กรุณาเลือก Site —</option>
-        <optgroup label="โรงงาน">
-          <option>BRS สำนักงานใหญ่</option><option>BRS ชลบุรี</option><option>BRS นวนคร</option>
-          <option>BRS บางบัวทอง</option><option>BRS พิษณุโลก</option><option>BRS ลำพูน</option>
-          <option>BRS สุราษฎร์ธานี</option><option>BRS อุบลราชธานี</option><option>BRS หาดใหญ่</option>
-          <option>BRS มีนบุรี</option><option>BRS ทวีวัฒนา</option><option>BRS ขอนแก่น</option>
-          <option>BRS ลาดหลุมแก้ว</option><option>BRS ลำไทร</option>
-        </optgroup>
-        <optgroup label="คลังสินค้า">
-          <option>RDC-ขอนแก่น</option><option>RDC-ลำพูน</option><option>RDC-สุราษฎร์ธานี</option>
-          <option>คลังชลบุรี</option><option>คลังทวีวัฒนา</option><option>คลังบางบัวทอง</option>
-          <option>คลังบางบัวทอง 2</option><option>คลังพิษณุโลก</option><option>คลังมีนบุรี</option>
-          <option>NDC-วังน้อย</option><option>คลังหาดใหญ่</option><option>คลังอุบลราชธานี</option>
-          <option>คลังลาดหลุมแก้ว</option><option>คลังลำไทร (Over Flow)</option>
-        </optgroup>
       </select>
+      <!-- แสดง customer_start_name ที่ครอบคลุม -->
+      <div class="site-filter-info" id="siteFilterInfo"></div>
     </div>
 
     <button class="submit-btn" id="submitBtn" onclick="login()" disabled>เข้าสู่ระบบ →</button>
@@ -104,26 +101,94 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 </div>
 
 <script>
-var DocScanAuth = (function(){
-  var KEY='docScanSession';
-  function save(e,n,m,s){localStorage.setItem(KEY,JSON.stringify({empId:e,empName:n,empEmail:m,site:s}));}
-  function load(){try{var r=localStorage.getItem(KEY);if(!r)return null;var s=JSON.parse(r);return(s.empId&&s.empName&&s.empEmail&&s.site)?s:null;}catch(e){return null;}}
-  function clear(){localStorage.removeItem(KEY);}
-  function requireAuth(){var s=load();if(!s){window.location.href='login.html';return null;}return s;}
-  return{save:save,load:load,clear:clear,requireAuth:requireAuth};
-})();
+var API_URL    = DOCSCAN_CONFIG.API_URL;
+var siteGroups = []; // [{ site_name, customer_start_names: [] }]
 
+// ── redirect ถ้ามี session แล้ว ───────────────────────────
 window.onload = function() {
-  var s = DocScanAuth.load();
-  if (s) { window.location.href = 'dashboard.html'; return; }
+  try {
+    var s = JSON.parse(localStorage.getItem('docScanSession'));
+    if (s && s.empId && s.site) {
+      window.location.replace(s.role==='delivery' ? 'delivery.html' : 'dashboard.html');
+      return;
+    }
+  } catch(e) {}
+  loadSiteGroups();
 };
+
+// ── โหลด site groups จาก GAS ─────────────────────────────
+function loadSiteGroups() {
+  fetch(API_URL + '?action=getSiteGroups')
+    .then(function(r){ return r.json(); })
+    .then(function(data) {
+      if (data.status !== 'ok') throw new Error(data.message);
+      siteGroups = data.groups || [];
+      buildSiteDropdown();
+    })
+    .catch(function(err) {
+      // fallback hardcode ถ้า GAS ไม่ตอบ
+      console.warn('loadSiteGroups fallback:', err.message);
+      siteGroups = [
+        {site_name:'NDC-วังน้อย',       customer_start_names:['NDC-วังน้อย','NDC-วังน้อย (CHEP)','NDC-วังน้อย (CHEP-ASRS)']},
+        {site_name:'โรงงานปทุมธานี',    customer_start_names:['โรงงานปทุมธานี','โรงงานปทุมธานี สาขาวังน้อย','โรงงานปทุมธานี (CHEP)']},
+        {site_name:'คลังลาดหลุมแก้ว',   customer_start_names:['คลังลาดหลุมแก้ว','คลังลาดหลุมแก้ว 2 (Overflow)','คลังลาดหลุมแก้ว (CHEP)']},
+        {site_name:'RDC-ขอนแก่น',       customer_start_names:['RDC-ขอนแก่น','RDC-ขอนแก่น (CHEP)']},
+        {site_name:'คลังอุบลราชธานี',   customer_start_names:['คลังอุบลราชธานี','คลังอุบลราชธานี (CHEP)']},
+        {site_name:'คลังชลบุรี',         customer_start_names:['คลังชลบุรี','คลังชลบุรี (CHEP)']},
+        {site_name:'โรงงานขอนแก่น',     customer_start_names:['โรงงานขอนแก่น','โรงงานขอนแก่น (CHEP)']},
+        {site_name:'โรงงานมหาสารคาม',   customer_start_names:['โรงงานมหาสารคาม','โรงงานมหาสารคาม (CHEP)']},
+        {site_name:'คลังลำไทร',          customer_start_names:['คลังลำไทร (Overflow)']},
+        {site_name:'คลังบางบัวทอง',      customer_start_names:['คลังบางบัวทอง']},
+        {site_name:'คลังบางบัวทอง 2',    customer_start_names:['บจก. บุญรอด ซัพพลายเชน สาขาที่ 00008 (คลังบางบัวทอง 2)']},
+        {site_name:'RDC-สุราษฎร์ธานี',  customer_start_names:['RDC-สุราษฎร์ธานี']},
+        {site_name:'RDC-ลำพูน',          customer_start_names:['RDC-ลำพูน']},
+        {site_name:'คลังมีนบุรี',         customer_start_names:['คลังมีนบุรี']},
+        {site_name:'คลังพิษณุโลก',        customer_start_names:['คลังพิษณุโลก']},
+        {site_name:'คลังทวีวัฒนา',        customer_start_names:['คลังทวีวัฒนา']},
+        {site_name:'คลังหาดใหญ่',         customer_start_names:['คลังหาดใหญ่']},
+        {site_name:'โรงงานสุราษฎร์ธานี', customer_start_names:['โรงงานสุราษฎร์ธานี']},
+        {site_name:'โรงงานสิงห์บุรี',     customer_start_names:['โรงงานสิงห์บุรี']},
+        {site_name:'โรงงานบางเลน',        customer_start_names:['โรงงานบางเลน']},
+        {site_name:'โรงงานเชียงใหม่',     customer_start_names:['โรงงานเชียงใหม่']},
+        {site_name:'โรงงานวังน้อย',        customer_start_names:['โรงงานวังน้อย']}
+      ];
+      buildSiteDropdown();
+    });
+}
+
+function buildSiteDropdown() {
+  var sel = document.getElementById('siteSelect');
+  sel.innerHTML = '<option value="">— กรุณาเลือก Site —</option>';
+  siteGroups.forEach(function(g) {
+    var opt = document.createElement('option');
+    opt.value       = g.site_name;
+    opt.textContent = g.site_name;
+    sel.appendChild(opt);
+  });
+  document.getElementById('siteLoading').style.display = 'none';
+  sel.style.display = 'block';
+}
+
+function onSiteChange() {
+  var siteName = document.getElementById('siteSelect').value;
+  var infoEl   = document.getElementById('siteFilterInfo');
+  if (!siteName) { infoEl.textContent = ''; check(); return; }
+  var group = siteGroups.find(function(g){ return g.site_name === siteName; });
+  if (group && group.customer_start_names.length > 1) {
+    infoEl.innerHTML = '<span style="color:var(--accent);">ครอบคลุม:</span> ' +
+      group.customer_start_names.join(', ');
+  } else {
+    infoEl.textContent = '';
+  }
+  check();
+}
 
 function check() {
   var ok = document.getElementById('empId').value.trim() &&
            document.getElementById('empName').value.trim() &&
            document.getElementById('empEmail').value.trim() &&
-           document.getElementById('siteSelect').value &&
-           document.getElementById('roleSelect').value;
+           document.getElementById('roleSelect').value &&
+           document.getElementById('siteSelect').value;
   document.getElementById('submitBtn').disabled = !ok;
 }
 
@@ -131,15 +196,24 @@ function login() {
   var empId  = document.getElementById('empId').value.trim();
   var name   = document.getElementById('empName').value.trim();
   var email  = document.getElementById('empEmail').value.trim();
-  var site   = document.getElementById('siteSelect').value;
   var role   = document.getElementById('roleSelect').value;
-  if (!empId||!name||!email||!site||!role) return;
+  var site   = document.getElementById('siteSelect').value;
+  if (!empId||!name||!email||!role||!site) return;
+
+  // หา customer_start_names ของ site นี้
+  var group  = siteGroups.find(function(g){ return g.site_name === site; });
+  var filter = group ? group.customer_start_names : [site];
+
   localStorage.setItem('docScanSession', JSON.stringify({
-    empId:empId, empName:name, empEmail:email, site:site, role:role
+    empId      : empId,
+    empName    : name,
+    empEmail   : email,
+    site       : site,
+    site_filter: filter,   // ← array ของ customer_start_name
+    role       : role
   }));
-  // redirect ตาม role
-  if (role === 'delivery') { window.location.href = 'delivery.html'; }
-  else { window.location.href = 'dashboard.html'; }
+
+  window.location.href = role === 'delivery' ? 'delivery.html' : 'dashboard.html';
 }
 </script>
 </body>
