@@ -99,6 +99,13 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .refresh-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:var(--rs);padding:6px 12px;font-family:var(--font);font-size:12px;cursor:pointer;}
 .refresh-btn:hover{border-color:var(--accent);color:var(--accent);}
 .export-btn{background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.3);color:var(--success);border-radius:var(--rs);padding:6px 12px;font-family:var(--font);font-size:12px;cursor:pointer;margin-left:auto;}
+/* ── Top filter (Site + Month on cards) ── */
+.top-filter{display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
+/* ── Area Chart in Card 1 ── */
+.chart-toggle{display:flex;gap:2px;margin:8px 0 4px;}
+.chart-toggle button{background:none;border:1px solid var(--border);color:var(--muted);font-family:var(--font);font-size:10px;padding:2px 8px;border-radius:var(--rs);cursor:pointer;transition:all .15s;}
+.chart-toggle button.active{background:var(--accent);border-color:var(--accent);color:#0f172a;font-weight:600;}
+#areaChart{width:100%;display:block;}
 
 /* ── Tables ── */
 .section{margin-bottom:24px;}
@@ -169,14 +176,30 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 
   <div class="content">
 
+    <!-- Top Filter: Site + Month -->
+    <div class="top-filter">
+      <span class="top-filter-label">กรองข้อมูล:</span>
+      <select class="f-select" id="filterSite" onchange="onSiteChange()" style="max-width:200px;">
+        <option value="">— ทุก Site —</option>
+      </select>
+      <input class="f-select" type="month" id="filterMonth" onchange="onMonthChange()" title="Created Date (เดือน/ปี)" style="width:148px;">
+      <button class="refresh-btn" onclick="loadData()">↻ รีเฟรช</button>
+    </div>
+
     <!-- Summary Cards: 3 cards -->
     <div class="summary-grid">
 
-      <!-- Card 1: ทั้งหมด -->
+      <!-- Card 1: ทั้งหมด + Area Chart -->
       <div class="sum-card c-total">
         <div class="sum-label">เอกสารทั้งหมด</div>
         <div class="sum-value" id="sumTotal">—</div>
         <div class="sum-sub">รายการในระบบ</div>
+        <div class="chart-toggle">
+          <button id="btnD" onclick="setChartMode('day')" class="active">วัน</button>
+          <button id="btnW" onclick="setChartMode('week')">สัปดาห์</button>
+          <button id="btnM" onclick="setChartMode('month')">เดือน</button>
+        </div>
+        <canvas id="areaChart" height="72"></canvas>
       </div>
 
       <!-- Card 2+3: รับแล้ว + Ontime/Late -->
@@ -291,13 +314,9 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
       </div>
     </div>
 
-    <!-- Filter Bar -->
+    <!-- Filter Bar (table filters) -->
     <div class="filter-bar">
-      <select class="f-select" id="filterSite" onchange="loadData()" style="max-width:180px;">
-        <option value="">— ทุก Site —</option>
-      </select>
-      <input class="f-select" type="month" id="filterMonth" onchange="applyFilters()" title="Created Date (เดือน/ปี)" style="width:145px;">
-      <input class="f-select" type="date" id="filterDate" onchange="applyFilters()" title="Created Date (วัน)" style="width:140px;">
+      <input class="f-select" type="date" id="filterDate" onchange="applyFilters()" title="วันที่รับ" style="width:140px;">
       <select class="f-select" id="filterStatus" onchange="applyFilters()">
         <option value="all">ทุกสถานะ</option>
         <option value="done">รับแล้ว</option>
@@ -311,7 +330,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
         <option value="t4">🔴 Critical (&gt;60 วัน)</option>
       </select>
       <input class="f-input" type="text" id="filterRef" placeholder="Reference..." oninput="applyFilters()">
-      <button class="refresh-btn" onclick="loadData()">↻ รีเฟรช</button>
       <button class="export-btn" onclick="exportCSV()">⬇ Export CSV</button>
     </div>
 
@@ -383,7 +401,7 @@ window.onload = function() {
 function loadData() {
   document.getElementById('bodyDone').innerHTML    = '<tr class="empty-row"><td colspan="10"><span class="spinner"></span>กำลังโหลด...</td></tr>';
   document.getElementById('bodyPending').innerHTML = '<tr class="empty-row"><td colspan="8"><span class="spinner"></span>กำลังโหลด...</td></tr>';
-  var site = document.getElementById('filterSite').value || '';
+  var site = document.getElementById('filterSite') ? document.getElementById('filterSite').value : '';
   fetch(API_URL + '?action=getDashboard' + getSiteFilterParam(session))
     .then(function(r){ return r.json(); })
     .then(function(data) {
@@ -450,6 +468,7 @@ function loadData() {
       _cachedDone    = data.done    || [];
       _cachedPending = data.pending || [];
       applyFilters();
+      setTimeout(drawChart, 100); // รอ canvas render
     })
     .catch(function(err){
       showToast('โหลดข้อมูลไม่สำเร็จ: ' + err.message, 'error');
@@ -582,6 +601,185 @@ function getSiteFilterParam(s){
   if(f&&f.length)return "&site_filter="+encodeURIComponent(f.join("|"));
   return "&site="+encodeURIComponent(s.site||"");
 }
+var _chartMode = 'day';
+var _chartData  = []; // all items (done+pending) with doc_date
+
+function setChartMode(mode){
+  _chartMode = mode;
+  ['D','W','M'].forEach(function(m){
+    document.getElementById('btn'+m).classList.remove('active');
+  });
+  document.getElementById('btn'+(_chartMode==='day'?'D':_chartMode==='week'?'W':'M')).classList.add('active');
+  drawChart();
+}
+
+function buildChartData(items) {
+  // items = done[] + pending[] ที่ผ่าน filter month แล้ว
+  var counts = {};
+  items.forEach(function(item){
+    var raw = (item.doc_date||'').trim();
+    if(!raw) return;
+    var key = dateToKey(raw, _chartMode);
+    if(!key) return;
+    counts[key] = (counts[key]||0) + 1;
+  });
+  var keys = Object.keys(counts).sort();
+  return { labels: keys, values: keys.map(function(k){ return counts[k]; }) };
+}
+
+function dateToKey(raw, mode){
+  // raw อาจเป็น d/m/yyyy หรือ dd/mm/yyyy
+  var d;
+  if(raw.indexOf('/')>-1){
+    var p=raw.split('/');
+    if(p.length!==3) return null;
+    var y=p[2].length===2?'20'+p[2]:p[2];
+    d=new Date(Number(y),Number(p[1])-1,Number(p[0]));
+  } else { d=new Date(raw); }
+  if(isNaN(d.getTime())) return null;
+  if(mode==='month') return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+  if(mode==='week'){
+    var jan1=new Date(d.getFullYear(),0,1);
+    var wk=Math.ceil(((d-jan1)/86400000+jan1.getDay()+1)/7);
+    return d.getFullYear()+'-W'+String(wk).padStart(2,'0');
+  }
+  // day
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+
+function drawChart(){
+  var canvas = document.getElementById('areaChart');
+  if(!canvas) return;
+  var allItems = _cachedDone.concat(_cachedPending);
+  // กรอง month ถ้ามี
+  var fMonth = document.getElementById('filterMonth').value;
+  if(fMonth){
+    allItems = allItems.filter(function(item){
+      return toYM(item.doc_date)===fMonth;
+    });
+  }
+  var chartData = buildChartData(allItems);
+  if(!chartData.labels.length){ clearChart(canvas); return; }
+
+  var W=canvas.offsetWidth||canvas.parentElement.offsetWidth||300;
+  var H=72;
+  canvas.width=W; canvas.height=H;
+  var ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,W,H);
+
+  var vals=chartData.values;
+  var max=Math.max.apply(null,vals)||1;
+  var n=vals.length;
+  var padL=4,padR=4,padT=6,padB=14;
+  var cW=W-padL-padR, cH=H-padT-padB;
+
+  // draw area
+  ctx.beginPath();
+  vals.forEach(function(v,i){
+    var x=padL+(i/(n>1?n-1:1))*cW;
+    var y=padT+cH-(v/max)*cH;
+    if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  });
+  // close path for fill
+  var lastX=padL+cW, firstX=padL;
+  ctx.lineTo(lastX,padT+cH); ctx.lineTo(firstX,padT+cH); ctx.closePath();
+  var grad=ctx.createLinearGradient(0,padT,0,padT+cH);
+  grad.addColorStop(0,'rgba(56,189,248,0.25)'); grad.addColorStop(1,'rgba(56,189,248,0.02)');
+  ctx.fillStyle=grad; ctx.fill();
+
+  // draw line
+  ctx.beginPath();
+  vals.forEach(function(v,i){
+    var x=padL+(i/(n>1?n-1:1))*cW;
+    var y=padT+cH-(v/max)*cH;
+    if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  });
+  ctx.strokeStyle='rgba(56,189,248,0.8)'; ctx.lineWidth=1.5; ctx.stroke();
+
+  // x-axis labels (max 6 labels)
+  ctx.fillStyle='rgba(148,163,184,0.8)'; ctx.font='9px monospace'; ctx.textAlign='center';
+  var step=Math.max(1,Math.ceil(n/6));
+  for(var i=0;i<n;i+=step){
+    var x=padL+(i/(n>1?n-1:1))*cW;
+    var lbl=chartData.labels[i];
+    // shorten label
+    if(_chartMode==='month') lbl=lbl.slice(5); // MM
+    else if(_chartMode==='week') lbl=lbl.slice(5); // Wxx
+    else lbl=lbl.slice(5); // MM-DD
+    ctx.fillText(lbl,x,H-2);
+  }
+}
+
+function clearChart(canvas){
+  var W=canvas.offsetWidth||300; canvas.width=W; canvas.height=72;
+  var ctx=canvas.getContext('2d'); ctx.clearRect(0,0,W,72);
+}
+
+// ── Site / Month filter → อัป cards + chart ──────────────
+function onSiteChange(){
+  loadData(); // reload GAS เพราะต้อง filter server-side
+}
+
+function onMonthChange(){
+  // client-side: re-compute cards + chart จากข้อมูลที่มีอยู่
+  updateCardsFromCache();
+  drawChart();
+}
+
+function updateCardsFromCache(){
+  var fMonth = document.getElementById('filterMonth').value;
+  var done    = _cachedDone;
+  var pending = _cachedPending;
+
+  if(fMonth){
+    done    = done.filter(function(i){ return toYM(i.doc_date)===fMonth; });
+    pending = pending.filter(function(i){ return toYM(i.doc_date)===fMonth; });
+  }
+
+  var total   = done.length + pending.length;
+  var doneCnt = done.length;
+  var pct     = total>0 ? Math.round(doneCnt/total*1000)/10 : 0;
+
+  // ontime/late
+  var ontimeCnt=0, lateCnt=0;
+  done.forEach(function(item){
+    var dtr=Number(item.days_to_receive);
+    if(!isNaN(dtr) && item.days_to_receive!=='') { if(dtr<=15) ontimeCnt++; else lateCnt++; }
+  });
+  var doneT=ontimeCnt+lateCnt||1;
+
+  // tier
+  var t1=0,t2=0,t3=0,t4=0;
+  pending.forEach(function(item){
+    var d=Number(item.days_pending);
+    if(item.tier==='t1'||d<=15) t1++;
+    else if(item.tier==='t2'||d<=30) t2++;
+    else if(item.tier==='t3'||d<=60) t3++;
+    else t4++;
+  });
+  var pendT=t1+t2+t3+t4||1;
+
+  document.getElementById('sumTotal').textContent   = total.toLocaleString();
+  document.getElementById('sumDone').textContent    = doneCnt.toLocaleString();
+  document.getElementById('sumDonePct').textContent = pct+'% ของทั้งหมด';
+  document.getElementById('sumPend').textContent    = pending.length.toLocaleString();
+  document.getElementById('sumPendPct').textContent = total>0?Math.round(pending.length/total*1000)/10+'% ของทั้งหมด':'0%';
+
+  document.getElementById('ontimeFill').style.width = Math.round(ontimeCnt/doneT*100)+'%';
+  document.getElementById('lateFill').style.width   = Math.round(lateCnt/doneT*100)+'%';
+  document.getElementById('ontimePct').textContent  = Math.round(ontimeCnt/doneT*100)+'%';
+  document.getElementById('latePct').textContent    = Math.round(lateCnt/doneT*100)+'%';
+
+  document.getElementById('tierT1Fill').style.width = Math.round(t1/pendT*100)+'%';
+  document.getElementById('tierT2Fill').style.width = Math.round(t2/pendT*100)+'%';
+  document.getElementById('tierT3Fill').style.width = Math.round(t3/pendT*100)+'%';
+  document.getElementById('tierT4Fill').style.width = Math.round(t4/pendT*100)+'%';
+  document.getElementById('tierT1').textContent = t1.toLocaleString();
+  document.getElementById('tierT2').textContent = t2.toLocaleString();
+  document.getElementById('tierT3').textContent = t3.toLocaleString();
+  document.getElementById('tierT4').textContent = t4.toLocaleString();
+}
+
 var toastTimer;
 function showToast(msg,type){var t=document.getElementById('toast');t.textContent=msg;t.className='toast '+(type||'info')+' show';clearTimeout(toastTimer);toastTimer=setTimeout(function(){t.classList.remove('show');},3000);}
 </script>
