@@ -4,20 +4,15 @@
 <meta charset="UTF-8">
 <meta http-equiv="refresh" content="0; url=login.html">
 <title>DocScan</title>
-<style>
-body{font-family:sans-serif;background:#0f172a;color:#f1f5f9;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;}
-</style>
 </head>
 <body>
 <script>
 try {
   var s = JSON.parse(localStorage.getItem('docScanSession'));
   if (s && s.empId && s.site) {
-    if (s.role === 'delivery') window.location.replace('delivery.html');
-    else window.location.replace('dashboard.html');
+    window.location.replace(s.role === 'delivery' ? 'delivery.html' : 'dashboard.html');
   } else { window.location.replace('login.html'); }
 } catch(e) { window.location.replace('login.html'); }
 </script>
-<p>กำลังโหลด... <a href="login.html" style="color:#38bdf8;">คลิกที่นี่ถ้าไม่ redirect อัตโนมัติ</a></p>
 </body>
 </html>
