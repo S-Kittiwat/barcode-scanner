@@ -286,98 +286,170 @@ main{width:100%;max-width:100%;padding:20px 24px 100px;}
 <div class="page-wrap">
 <!-- Topbar -->
 <header style="background:var(--surface);border-bottom:1px solid var(--border);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;">
-  <div>
-    <div style="font-size:15px;font-weight:600;">Batch Scan</div>
-    <div style="font-size:11px;color:var(--muted);" id="userInfo">—</div>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <button id="backBtn" onclick="goBackToList()" style="display:none;background:none;border:1px solid var(--border);color:var(--muted);border-radius:var(--rs);padding:5px 12px;font-family:var(--font);font-size:12px;cursor:pointer;">← กลับ</button>
+    <div>
+      <div style="font-size:15px;font-weight:600;" id="topbarTitle">Batch Scan</div>
+      <div style="font-size:11px;color:var(--muted);" id="userInfo">—</div>
+    </div>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center;">
+    <button onclick="switchState('incoming')" id="btnIncomingList"
+      style="background:rgba(56,189,248,.1);border:1px solid rgba(56,189,248,.3);color:var(--accent);border-radius:var(--rs);padding:6px 14px;font-family:var(--font);font-size:12px;cursor:pointer;">
+      📥 รับจากจัดส่ง <span id="incomingBadge" style="font-family:var(--mono);font-weight:700;"></span>
+    </button>
+    <button onclick="switchState('batch')" id="btnNormalBatch"
+      style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:var(--rs);padding:6px 14px;font-family:var(--font);font-size:12px;cursor:pointer;">
+      📦 Batch Scan ปกติ
+    </button>
   </div>
 </header>
 
 <main>
-  <!-- Tab Bar -->
-  <div class="tab-bar">
-    <button class="tab-btn active" id="tabBatchBtn" onclick="switchTab('batch')">
-      📦 Batch Scan
-    </button>
-    <button class="tab-btn" id="tabIncomingBtn" onclick="switchTab('incoming')">
-      📥 รับจากจัดส่ง
-      <span class="tab-badge" id="incomingBadge">—</span>
-    </button>
-  </div>
 
-  <!-- ── Tab: Batch Scan (เดิม) ── -->
-  <div id="tabBatch">
-  <div class="upload-zone" id="uploadZone"
-    ondragover="event.preventDefault();this.classList.add('drag')"
-    ondragleave="this.classList.remove('drag')"
-    ondrop="handleDrop(event)">
-    <div class="icon">📂</div>
-    <div>
-      <div class="label">ลากไฟล์มาวางที่นี่ หรือคลิกเพื่อเลือกไฟล์</div>
-      <div class="sub">รองรับรูปภาพ (JPG, PNG) และ PDF — เลือกได้หลายไฟล์พร้อมกัน</div>
-    </div>
-    <div class="batch-counter" id="batchCounter">
-      <span id="batchCountNum">0</span> / 50
-      <div class="batch-counter-bar"><div class="batch-counter-fill" id="batchCountFill"></div></div>
-    </div>
-    <input type="file" id="fileInput" accept="image/*,application/pdf" multiple onchange="handleFiles(event)">
-  </div>
-  <script>document.getElementById('uploadZone').addEventListener('click',function(e){if(e.target!==document.getElementById('fileInput')&&!document.getElementById('uploadZone').classList.contains('blocked'))document.getElementById('fileInput').click();});</script>
-
-  <div class="limit-banner" id="limitBanner">
-    <span id="limitBannerText">⚠️ ไฟล์เกิน 30 รายการ — ระบบอาจทำงานช้า แนะนำให้แบ่ง batch</span>
-  </div>
-
-  <div id="batchWrap">
-    <div class="empty-state" id="emptyState">
-      <div class="icon">📋</div>
-      <div>ยังไม่มีไฟล์ — Upload ไฟล์เพื่อเริ่มต้น</div>
-    </div>
-    <div class="batch-table-wrap" id="batchTableWrap" style="display:none;">
-      <table>
-        <thead>
-          <tr>
-            <th style="width:3%;">#</th>
-            <th style="width:6%;">ไฟล์</th>
-            <th style="width:13%;">Barcode</th>
-            <th style="width:6%;">สถานะ</th>
-            <th style="width:9%;">Reference</th>
-            <th style="width:9%;">ประเภท</th>
-            <th style="width:14%;">โอนจาก / Origin Acc.</th>
-            <th style="width:14%;">โอนไป / Dest. Acc.</th>
-            <th style="width:9%;">วันที่ส่ง</th>
-            <th style="width:9%;">วันที่รับ</th>
-            <th style="width:5%;">ส่ง</th>
-            <th style="width:5%;">รับ</th>
-            <th style="width:3%;"></th>
-          </tr>
-        </thead>
-        <tbody id="batchBody"></tbody>
-      </table>
+  <!-- ══ STATE: LIST รายการรอรับจากจัดส่ง ══ -->
+  <div id="stateList" style="display:none;">
+    <div style="padding:20px 24px;">
+      <div style="font-size:13px;font-weight:500;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;">
+        <span>รายการรอรับจากจัดส่ง</span>
+        <button onclick="loadIncomingList()" style="background:none;border:1px solid var(--border);color:var(--muted);border-radius:var(--rs);padding:4px 12px;font-family:var(--font);font-size:12px;cursor:pointer;">↻ รีเฟรช</button>
+      </div>
+      <div id="incomingListWrap">
+        <div class="empty-state"><span class="spinner"></span> กำลังโหลด...</div>
+      </div>
     </div>
   </div>
-  </div><!-- end tabBatch -->
 
-  <!-- ── Tab: รับจากจัดส่ง ── -->
-  <div id="tabIncoming" style="display:none;">
-    <div class="incoming-wrap">
+  <!-- ══ STATE: RECEIVE รับเอกสาร (Batch Info + Batch Scan) ══ -->
+  <div id="stateReceive" style="display:none;">
 
-      <!-- Search box -->
-      <div class="incoming-search">
-        <div class="incoming-search-title">🔍 สแกน QR หรือพิมพ์ Batch ID จาก Handover Sheet</div>
-        <div class="qr-input-row">
-          <input class="qr-input" id="batchIdInput" type="text"
-            placeholder="DEL-20260605-001 หรือ scan QR Code"
-            onkeydown="if(event.key==='Enter'){event.preventDefault();loadIncoming(this.value);}">
-          <button class="qr-btn" onclick="loadIncoming(document.getElementById('batchIdInput').value)">
-            🔎 ค้นหา
-          </button>
+    <!-- ── Batch Info Panel (ด้านบน) ── -->
+    <div id="batchInfoPanel" style="background:var(--surface2);border-bottom:2px solid var(--border);padding:16px 24px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="font-family:var(--mono);font-size:14px;font-weight:700;color:var(--accent);" id="infoBatchId">—</span>
+          <span id="infoStatus" style="font-size:11px;padding:2px 10px;border-radius:20px;background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.3);color:var(--warn);">⏳ รอดำเนินการ</span>
         </div>
-        <!-- รายการ batch รอรับ -->
-        <div id="pendingBatchList" style="margin-top:4px;"></div>
+        <div style="font-size:11px;color:var(--muted);" id="infoMeta">—</div>
       </div>
 
-      <!-- Batch Info Card -->
-      <div class="batch-info-card" id="batchInfoCard">
+      <!-- Progress bar -->
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+        <div style="flex:1;height:6px;background:var(--surface);border-radius:10px;overflow:hidden;">
+          <div id="infoProgressBar" style="height:100%;background:var(--success);border-radius:10px;width:0%;transition:width .3s;"></div>
+        </div>
+        <span style="font-size:12px;color:var(--muted);font-family:var(--mono);white-space:nowrap;" id="infoProgressText">0 / 0</span>
+      </div>
+
+      <!-- Barcode checklist (scrollable) -->
+      <div id="infoBarcodeList" style="display:flex;flex-wrap:wrap;gap:6px;max-height:90px;overflow-y:auto;"></div>
+    </div>
+
+    <!-- ── Batch Scan (ด้านล่าง) ── -->
+    <div id="tabBatch" style="padding:0;">
+      <div class="upload-zone" id="uploadZone"
+        ondragover="event.preventDefault();this.classList.add('drag')"
+        ondragleave="this.classList.remove('drag')"
+        ondrop="handleDrop(event)">
+        <div class="icon">📂</div>
+        <div>
+          <div class="label">Upload PDF หรือรูปภาพ</div>
+          <div class="sub">รองรับ JPG, PNG, PDF — เลือกได้หลายไฟล์</div>
+        </div>
+        <div class="batch-counter" id="batchCounter">
+          <span id="batchCountNum">0</span> / 50
+          <div class="batch-counter-bar"><div class="batch-counter-fill" id="batchCountFill"></div></div>
+        </div>
+        <input type="file" id="fileInput" accept="image/*,application/pdf" multiple onchange="handleFiles(event)">
+      </div>
+      <script>document.getElementById('uploadZone').addEventListener('click',function(e){if(e.target!==document.getElementById('fileInput')&&!document.getElementById('uploadZone').classList.contains('blocked'))document.getElementById('fileInput').click();});</script>
+
+      <div class="limit-banner" id="limitBanner">
+        <span id="limitBannerText">⚠️ ไฟล์เกิน 30 รายการ</span>
+      </div>
+
+      <div id="batchWrap">
+        <div class="empty-state" id="emptyState">
+          <div class="icon">📋</div>
+          <div>Upload ไฟล์แล้วยิง Barcode เพื่อเริ่มต้น</div>
+        </div>
+        <div class="batch-table-wrap" id="batchTableWrap" style="display:none;">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:3%;">#</th>
+                <th style="width:6%;">ไฟล์</th>
+                <th style="width:13%;">Barcode</th>
+                <th style="width:6%;">สถานะ</th>
+                <th style="width:9%;">Reference</th>
+                <th style="width:9%;">ประเภท</th>
+                <th style="width:14%;">โอนจาก / Origin Acc.</th>
+                <th style="width:14%;">โอนไป / Dest. Acc.</th>
+                <th style="width:9%;">วันที่ส่ง</th>
+                <th style="width:9%;">วันที่รับ</th>
+                <th style="width:5%;">ส่ง</th>
+                <th style="width:5%;">รับ</th>
+                <th style="width:3%;"></th>
+              </tr>
+            </thead>
+            <tbody id="batchBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ STATE: BATCH SCAN ปกติ ══ -->
+  <div id="stateNormal" style="display:block;">
+    <div class="upload-zone" id="uploadZoneNormal"
+      ondragover="event.preventDefault();this.classList.add('drag')"
+      ondragleave="this.classList.remove('drag')"
+      ondrop="handleDrop(event)">
+      <div class="icon">📂</div>
+      <div>
+        <div class="label">ลากไฟล์มาวางที่นี่ หรือคลิกเพื่อเลือกไฟล์</div>
+        <div class="sub">รองรับรูปภาพ (JPG, PNG) และ PDF — เลือกได้หลายไฟล์พร้อมกัน</div>
+      </div>
+      <div class="batch-counter" id="batchCounterNormal">
+        <span id="batchCountNumNormal">0</span> / 50
+        <div class="batch-counter-bar"><div class="batch-counter-fill" id="batchCountFillNormal"></div></div>
+      </div>
+      <input type="file" id="fileInputNormal" accept="image/*,application/pdf" multiple onchange="handleFiles(event)">
+    </div>
+    <div class="limit-banner" id="limitBannerNormal" style="display:none;">
+      <span>⚠️ ไฟล์เกิน 30 รายการ</span>
+    </div>
+    <div id="batchWrapNormal">
+      <div class="empty-state" id="emptyStateNormal">
+        <div class="icon">📋</div>
+        <div>ยังไม่มีไฟล์ — Upload ไฟล์เพื่อเริ่มต้น</div>
+      </div>
+      <div class="batch-table-wrap" id="batchTableWrapNormal" style="display:none;">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:3%;">#</th>
+              <th style="width:6%;">ไฟล์</th>
+              <th style="width:13%;">Barcode</th>
+              <th style="width:6%;">สถานะ</th>
+              <th style="width:9%;">Reference</th>
+              <th style="width:9%;">ประเภท</th>
+              <th style="width:14%;">โอนจาก / Origin Acc.</th>
+              <th style="width:14%;">โอนไป / Dest. Acc.</th>
+              <th style="width:9%;">วันที่ส่ง</th>
+              <th style="width:9%;">วันที่รับ</th>
+              <th style="width:5%;">ส่ง</th>
+              <th style="width:5%;">รับ</th>
+              <th style="width:3%;"></th>
+            </tr>
+          </thead>
+          <tbody id="batchBodyNormal"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</main>
         <div class="bic-head">
           <span class="bic-badge" id="bicBatchId">—</span>
           <span class="bic-status ok" id="bicStatus">—</span>
@@ -401,27 +473,10 @@ main{width:100%;max-width:100%;padding:20px 24px 100px;}
 
         <!-- Barcode list (read-only แสดงรายการจากจัดส่ง) -->
         <div class="bc-list-wrap">
-          <div class="bc-list-title">
-            <span>รายการ Barcode ที่จัดส่งส่งมา</span>
-            <span style="font-size:11px;color:var(--muted);">ทำ Batch Scan แล้วระบบจะเทียบให้อัตโนมัติ</span>
-          </div>
-          <div class="bc-list" id="bicBarcodeList"></div>
-        </div>
-
-        <!-- Action: เริ่ม Batch Scan -->
-        <div class="incoming-actions">
-          <button class="btn-receive" id="btnStartScan" onclick="startBatchScanFromIncoming()">
-            📦 เริ่ม Batch Scan →
-          </button>
-        </div>
-      </div>
-
-    </div>
-  </div><!-- end tabIncoming -->
 
 </main>
 
-<!-- Validation Result Modal (หลัง submit batch scan) -->
+<!-- Validation Result Modal -->
 <div class="dispute-overlay" id="valResultOverlay">
   <div class="dispute-box" style="max-width:560px;">
     <div class="dispute-head">
@@ -429,30 +484,18 @@ main{width:100%;max-width:100%;padding:20px 24px 100px;}
       <button class="dispute-close" onclick="closeValResult()">×</button>
     </div>
     <div class="dispute-body">
-      <!-- Summary cards -->
       <div class="val-summary" style="margin:0;">
-        <div class="val-card matched">
-          <div class="val-num" id="vrMatched">0</div>
-          <div class="val-label">✅ ตรงกัน</div>
-        </div>
-        <div class="val-card pending">
-          <div class="val-num" id="vrMissing">0</div>
-          <div class="val-label">⚠️ ขาด (อยู่ใน batch แต่ไม่มีใน scan)</div>
-        </div>
-        <div class="val-card extra">
-          <div class="val-num" id="vrExtra">0</div>
-          <div class="val-label">➕ เกิน (scan มาแต่ไม่อยู่ใน batch)</div>
-        </div>
+        <div class="val-card matched"><div class="val-num" id="vrMatched">0</div><div class="val-label">✅ ตรงกัน</div></div>
+        <div class="val-card pending"><div class="val-num" id="vrMissing">0</div><div class="val-label">⚠️ ขาด</div></div>
+        <div class="val-card extra"><div class="val-num" id="vrExtra">0</div><div class="val-label">➕ เกิน</div></div>
       </div>
-      <!-- Detail lists -->
       <div id="vrDetail" style="max-height:200px;overflow-y:auto;font-size:12px;background:var(--surface2);border-radius:var(--rs);padding:10px 12px;margin-top:4px;"></div>
-      <div>
-        <div class="d-label">หมายเหตุ (สำหรับแจ้งปัญหา)</div>
-        <textarea class="d-textarea" id="vrNote" placeholder="ระบุรายละเอียดเพิ่มเติม..."></textarea>
-      </div>
+      <div><div class="d-label">หมายเหตุ</div><textarea class="d-textarea" id="vrNote" placeholder="ระบุรายละเอียดเพิ่มเติม..."></textarea></div>
     </div>
     <div class="dispute-foot" id="vrFooter"></div>
   </div>
+</div>
+
 <div class="submit-bar">
   <button class="clear-all-btn" onclick="clearAll()">ล้างทั้งหมด</button>
   <button class="submit-btn" id="submitBtn" onclick="submitBatch()" disabled>ยืนยัน 0 รายการ สู่ Google Sheet</button>
@@ -499,7 +542,16 @@ window.onload = function () {
   document.getElementById('empName').value = s.empName;
   document.getElementById('empEmail').value = s.empEmail;
   document.getElementById('siteSelect').value = s.site;
+  switchState('normal');
   loadCSV();
+  // โหลด badge จำนวนรอรับ
+  var sf = s.site_filter ? s.site_filter.join('|') : s.site;
+  fetch(API_URL+'?action=getIncoming&site_filter='+encodeURIComponent(sf))
+    .then(function(r){return r.json();})
+    .then(function(d){
+      var n=(d.batches||[]).length;
+      document.getElementById('incomingBadge').textContent = n ? ' ('+n+')' : '';
+    }).catch(function(){});
 };
 
 function loadCSV() {
@@ -916,6 +968,7 @@ function onBarcodeChange(id, value) {
   if (!row) return;
 
   row.barcode = value.trim();
+  if (_incomingMode) updateBatchInfoPanel(); // real-time check
 
   if (!row.barcode) {
     row.status = 'idle'; row.doc = null;
@@ -1067,26 +1120,13 @@ function updateSubmitBtn(){
 }
 
 async function submitBatch(){
-  var ready=rows.filter(function(r){return r.status!=='dup'&&r.barcode&&r.editVals.transferFrom&&r.editVals.transferTo&&r.editVals.receivedDate&&r.editVals.sentQty&&r.editVals.receivedQty;});
-  if(!ready.length)return;
-
-  // ── Incoming mode: เทียบกับ batch จากจัดส่งก่อน submit ──
+  var ready=rows.filter(function(r){return r.status!=='dup'&&r.barcode&&r.editVals&&r.editVals.transferFrom&&r.editVals.transferTo&&r.editVals.receivedDate&&r.editVals.sentQty&&r.editVals.receivedQty;});
+  if(!ready.length) return;
   if (_incomingMode && _incomingBatch) {
-    var scannedBarcodes = ready.map(function(r){ return r.barcode; });
-    var result = validateAgainstIncoming(scannedBarcodes);
-    if (!result.isComplete) {
-      // แสดง modal ให้ user เลือก
-      showValidationResult(result,
-        function(){ _proceedSubmit(ready); },   // ยืนยันทั้งหมด (กรณีครบ)
-        function(){ }                            // matched only (จัดการใน doSubmitMatchedOnly)
-      );
-      return; // หยุดรอ user กด
-    }
-    // ครบ — บันทึก received_warehouse ก่อนแล้ว submit ปกติ
-    showValidationResult(result, function(){ _proceedSubmit(ready); }, null);
+    var result = validateAgainstIncoming(ready.map(function(r){ return r.barcode; }));
+    showValidationResult(result, null);
     return;
   }
-
   _proceedSubmit(ready);
 }
 
@@ -1140,22 +1180,19 @@ async function _proceedSubmit(ready){
       rows = rows.filter(function(r){return submittedIds.indexOf(r.id)===-1;});
       renderTable();
       showToast('บันทึก '+ready.length+' รายการเรียบร้อย','success');
-      // ถ้าอยู่ใน incoming mode → บันทึก received_warehouse ด้วย
       if (_incomingMode && _incomingBatch) {
-        var s = DocScanAuth.load();
+        var s2 = DocScanAuth.load();
         var recItems = ready.map(function(r){
-          return { barcode:r.barcode, batch_id:_incomingBatch.batch_id,
-                   emp_id:s?s.empId:'', emp_name:s?s.empName:'',
-                   site:selectedSite, note:'คลังรับเข้าแล้ว', dest_warehouse:selectedSite };
+          return {barcode:r.barcode, batch_id:_incomingBatch.batch_id,
+                  emp_id:s2?s2.empId:'', emp_name:s2?s2.empName:'',
+                  site:selectedSite, note:'คลังรับเข้าแล้ว', dest_warehouse:selectedSite};
         });
-        fetch(API_URL, { method:'POST', redirect:'follow',
-          headers:{'Content-Type':'text/plain'},
-          body: JSON.stringify({ action:'receiveItems', items:recItems }) });
-        _incomingMode  = false;
-        _incomingBatch = null;
+        fetch(API_URL,{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain'},
+          body:JSON.stringify({action:'receiveItems',items:recItems})});
+        _incomingMode = false; _incomingBatch = null;
+        setTimeout(function(){ switchState('list'); }, 1200);
       }
-    }
-    else{showToast(data.message||'Error','error');}
+    } else { showToast(data.message||'Error','error'); }
   }catch(err){showToast('เกิดข้อผิดพลาด: '+err.message,'error');}
   updateSubmitBtn();
 }
@@ -1165,132 +1202,177 @@ async function uploadPhoto(base64,barcode,refNo){
 }
 
 // ══════════════════════════════════════════════════════════
-//  INCOMING TAB — รับจากจัดส่ง (flow ใหม่)
+//  STATE MANAGEMENT
+//  states: 'normal' | 'list' | 'receive'
 // ══════════════════════════════════════════════════════════
 
-var _incomingBatch = null;  // batch info จากจัดส่ง
-var _incomingMode  = false; // flag บอกว่า batch scan ทำงานภายใต้ incoming
+var _currentState  = 'normal';
+var _incomingBatch = null;   // batch ที่เลือกรับ
+var _incomingMode  = false;  // flag ให้ submitBatch รู้ว่าอยู่ใน receive mode
 
-// ── switchTab ─────────────────────────────────────────────
-function switchTab(tab) {
-  var isBatch = tab === 'batch';
-  document.getElementById('tabBatch').style.display    = isBatch ? 'block' : 'none';
-  document.getElementById('tabIncoming').style.display = isBatch ? 'none'  : 'block';
-  document.getElementById('tabBatchBtn').classList.toggle('active', isBatch);
-  document.getElementById('tabIncomingBtn').classList.toggle('active', !isBatch);
-  document.querySelector('.submit-bar').style.display  = isBatch ? 'flex'  : 'none';
-  if (!isBatch) {
-    loadPendingBatches();
-    setTimeout(function(){ document.getElementById('batchIdInput').focus(); }, 200);
+function switchState(state) {
+  _currentState = state;
+  document.getElementById('stateNormal').style.display  = state==='normal'  ? 'block' : 'none';
+  document.getElementById('stateList').style.display    = state==='list'    ? 'block' : 'none';
+  document.getElementById('stateReceive').style.display = state==='receive' ? 'block' : 'none';
+  document.getElementById('backBtn').style.display      = state!=='normal'  ? 'block' : 'none';
+  document.querySelector('.submit-bar').style.display   = (state==='normal'||state==='receive') ? 'flex' : 'none';
+
+  var title = state==='list' ? 'รายการรอรับจากจัดส่ง'
+            : state==='receive' ? 'รับเอกสาร — '+(_incomingBatch?_incomingBatch.batch_id:'')
+            : 'Batch Scan';
+  document.getElementById('topbarTitle').textContent = title;
+
+  if (state === 'list') loadIncomingList();
+}
+
+function goBackToList() {
+  if (_currentState === 'receive') {
+    if (rows.length > 0 && !confirm('ยกเลิกการรับเอกสารนี้? รายการที่ scan ไว้จะหาย')) return;
+    rows = []; renderTable();
+    _incomingBatch = null; _incomingMode = false;
+    switchState('list');
+  } else {
+    switchState('normal');
+    _incomingBatch = null;
   }
 }
 
-// ── โหลดรายการ batch รอรับ ───────────────────────────────
-function loadPendingBatches() {
+function switchTab(t) { switchState(t === 'batch' ? 'normal' : 'list'); }
+
+// ── โหลด LIST รายการรอรับ ────────────────────────────────
+function loadIncomingList() {
   var s = DocScanAuth.load(); if (!s) return;
   var sf = s.site_filter ? s.site_filter.join('|') : s.site;
-  var listEl = document.getElementById('pendingBatchList');
-  listEl.innerHTML = '<div style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px;">'+
-    '<span class="spinner" style="width:10px;height:10px;border-color:rgba(56,189,248,.3);border-top-color:var(--accent);"></span>กำลังโหลด...</div>';
+  var wrap = document.getElementById('incomingListWrap');
+  wrap.innerHTML = '<div class="empty-state"><span class="spinner"></span> กำลังโหลด...</div>';
 
   fetch(API_URL + '?action=getIncoming&site_filter=' + encodeURIComponent(sf))
     .then(function(r){ return r.json(); })
     .then(function(data) {
       var batches = data.batches || [];
-      document.getElementById('incomingBadge').textContent = batches.length || '0';
+      document.getElementById('incomingBadge').textContent = batches.length ? ' ('+batches.length+')' : '';
       if (!batches.length) {
-        listEl.innerHTML = '<div style="font-size:11px;color:var(--muted);">ไม่มี batch รอรับ</div>';
+        wrap.innerHTML = '<div class="empty-state"><div class="icon">✅</div><div>ไม่มีรายการรอรับ</div></div>';
         return;
       }
-      listEl.innerHTML =
-        '<div style="font-size:11px;color:var(--muted);margin-bottom:6px;">'+batches.length+' batch รอรับ — กดเพื่อเลือก:</div>'+
-        '<div style="display:flex;flex-wrap:wrap;gap:6px;">'+
-        batches.map(function(b){
-          return '<button onclick="selectBatch(\''+b.batch_id+'\')" style="background:var(--surface2);border:1px solid var(--border);color:var(--accent);border-radius:var(--rs);padding:4px 12px;font-family:var(--mono);font-size:12px;cursor:pointer;">'+
-            b.batch_id+'<span style="color:var(--muted);"> ('+b.barcode_count+')</span></button>';
-        }).join('')+'</div>';
+      wrap.innerHTML =
+        '<div class="batch-table-wrap"><table>'+
+        '<thead><tr>'+
+          '<th>Batch No.</th><th>วันที่ส่ง</th><th>ส่งจาก</th>'+
+          '<th style="text-align:right;">จำนวน</th><th style="text-align:center;">ดำเนินการ</th>'+
+        '</tr></thead><tbody>'+
+        batches.map(function(b) {
+          var dt = b.sent_date ? new Date(b.sent_date).toLocaleString('th-TH',{dateStyle:'medium',timeStyle:'short'}) : '—';
+          return '<tr>'+
+            '<td class="mono" style="color:var(--accent);">'+b.batch_id+'</td>'+
+            '<td class="mono" style="font-size:11px;">'+dt+'</td>'+
+            '<td style="font-size:11px;">'+esc(b.site||'—')+'</td>'+
+            '<td class="mono" style="text-align:right;">'+b.barcode_count+' ใบ</td>'+
+            '<td style="text-align:center;">'+
+              '<button onclick="openReceive(\''+esc(b.batch_id)+'\')" '+
+              'style="background:var(--accent);border:none;color:#0f172a;border-radius:var(--rs);'+
+              'padding:6px 16px;font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer;">'+
+              '📥 รับเอกสาร</button>'+
+            '</td>'+
+          '</tr>';
+        }).join('')+
+        '</tbody></table></div>';
     })
-    .catch(function(){ listEl.innerHTML = ''; });
+    .catch(function(err) {
+      wrap.innerHTML = '<div class="empty-state" style="color:var(--danger);">โหลดไม่สำเร็จ: '+err.message+'</div>';
+    });
 }
 
-function selectBatch(batchId) {
-  document.getElementById('batchIdInput').value = batchId;
-  loadIncoming(batchId);
-}
-
-// ── loadIncoming — โหลด batch info ──────────────────────
-function loadIncoming(batchId) {
-  batchId = (batchId || '').trim();
-  if (!batchId) { showToast('กรุณาระบุ Batch ID','error'); return; }
-  _incomingBatch = null;
-  document.getElementById('batchInfoCard').classList.remove('visible');
-
+// ── openReceive — เปิดหน้ารับเอกสาร ─────────────────────
+function openReceive(batchId) {
   fetch(API_URL + '?action=getBatchDetail&batch_id=' + encodeURIComponent(batchId))
     .then(function(r){ return r.json(); })
     .then(function(data) {
-      if (data.status !== 'ok') throw new Error(data.message || 'ไม่พบ Batch');
+      if (data.status !== 'ok') throw new Error(data.message);
       _incomingBatch = data;
-      renderBatchInfoCard();
-      showToast('โหลด Batch สำเร็จ — '+(data.barcodes||[]).length+' barcode','success');
+      _incomingMode  = true;
+      rows = []; renderTable();
+      renderBatchInfoPanel();
+      switchState('receive');
     })
     .catch(function(err){ showToast('ไม่พบ Batch: '+err.message,'error'); });
 }
 
-// ── renderBatchInfoCard ───────────────────────────────────
-function renderBatchInfoCard() {
+// ── renderBatchInfoPanel — แสดงข้อมูล batch ด้านบน ──────
+function renderBatchInfoPanel() {
   if (!_incomingBatch) return;
-  var d = _incomingBatch;
+  var d        = _incomingBatch;
   var barcodes = d.barcodes || [];
-  document.getElementById('bicBatchId').textContent = d.batch_id || '—';
-  document.getElementById('bicDate').textContent    = d.scan_date
-    ? new Date(d.scan_date).toLocaleString('th-TH',{dateStyle:'medium',timeStyle:'short'}) : '—';
-  document.getElementById('bicSite').textContent    = d.site || '—';
-  document.getElementById('bicCount').textContent   = barcodes.length;
+  var dt       = d.scan_date ? new Date(d.scan_date).toLocaleString('th-TH',{dateStyle:'medium',timeStyle:'short'}) : '—';
 
-  // แสดง barcode list (read-only)
-  document.getElementById('bicBarcodeList').innerHTML = barcodes.map(function(item,i){
-    return '<div class="bc-list-item">'+
-      '<span style="color:var(--muted);font-size:10px;min-width:20px;">'+(i+1)+'</span>'+
-      '<span class="bc">'+item.barcode+'</span>'+
-      '<span class="bc-ref">'+( item.ref_no||'—')+' · '+(item.item_name||'—')+'</span>'+
-    '</div>';
+  document.getElementById('infoBatchId').textContent = d.batch_id || '—';
+  document.getElementById('infoMeta').textContent    = 'ส่งจาก: '+(d.site||'—')+' · วันที่: '+dt;
+  document.getElementById('infoProgressText').textContent = '0 / '+barcodes.length;
+  document.getElementById('infoProgressBar').style.width  = '0%';
+
+  // checklist chips
+  document.getElementById('infoBarcodeList').innerHTML = barcodes.map(function(item) {
+    return '<span id="chip-'+item.barcode+'" style="'+
+      'font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:20px;'+
+      'background:var(--surface);border:1px solid var(--border);color:var(--muted);">'+
+      item.barcode+'</span>';
   }).join('');
-
-  document.getElementById('batchInfoCard').classList.add('visible');
 }
 
-// ── startBatchScanFromIncoming — ไปทำ batch scan ────────
-function startBatchScanFromIncoming() {
-  if (!_incomingBatch) { showToast('กรุณาโหลด Batch ก่อน','error'); return; }
-  _incomingMode = true;
-  // ล้าง rows เดิม (ถ้ามี) แล้วสลับไป batch tab
-  if (rows.length > 0) {
-    if (!confirm('มีรายการใน Batch Scan อยู่แล้ว '+rows.length+' รายการ\nต้องการล้างและเริ่มใหม่สำหรับ Batch นี้?')) {
-      _incomingMode = false; return;
+// ── updateBatchInfoPanel — real-time check เมื่อ scan barcode ──
+function updateBatchInfoPanel() {
+  if (!_incomingBatch || !_incomingMode) return;
+  var barcodes     = _incomingBatch.barcodes || [];
+  var scannedSet   = {};
+  rows.forEach(function(r){ if(r.barcode) scannedSet[r.barcode.toUpperCase()] = true; });
+
+  var matched = 0;
+  barcodes.forEach(function(item) {
+    var bc    = item.barcode.toUpperCase();
+    var chip  = document.getElementById('chip-'+item.barcode);
+    var found = !!scannedSet[bc];
+    if (found) { matched++; }
+    if (chip) {
+      chip.style.background = found ? 'rgba(52,211,153,.15)' : 'var(--surface)';
+      chip.style.borderColor= found ? 'rgba(52,211,153,.4)'  : 'var(--border)';
+      chip.style.color      = found ? 'var(--success)'       : 'var(--muted)';
     }
-    clearAll();
+  });
+
+  var total = barcodes.length;
+  var pct   = total > 0 ? Math.round(matched/total*100) : 0;
+  document.getElementById('infoProgressBar').style.width  = pct+'%';
+  document.getElementById('infoProgressText').textContent = matched+' / '+total;
+
+  var statusEl = document.getElementById('infoStatus');
+  if (matched === total) {
+    statusEl.textContent = '✅ ครบถ้วน';
+    statusEl.style.background = 'rgba(52,211,153,.12)';
+    statusEl.style.borderColor= 'rgba(52,211,153,.3)';
+    statusEl.style.color      = 'var(--success)';
+  } else {
+    statusEl.textContent = matched+'/'+total+' ตรง';
+    statusEl.style.background = 'rgba(251,191,36,.12)';
+    statusEl.style.borderColor= 'rgba(251,191,36,.3)';
+    statusEl.style.color      = 'var(--warn)';
   }
-  switchTab('batch');
-  showToast('📦 กำลัง Batch Scan สำหรับ '+_incomingBatch.batch_id,'info');
 }
 
-// ── validateAgainstIncoming — เรียกตอน submit ───────────
+// ── validateAgainstIncoming ───────────────────────────────
 function validateAgainstIncoming(scannedBarcodes) {
-  // scannedBarcodes = array ของ barcode string จาก rows ที่ scan
   var batchBarcodes = (_incomingBatch.barcodes||[]).map(function(b){ return b.barcode.toUpperCase(); });
   var scannedSet    = {};
   scannedBarcodes.forEach(function(bc){ scannedSet[bc.toUpperCase()] = true; });
-
   var matched = batchBarcodes.filter(function(bc){ return scannedSet[bc]; });
   var missing = batchBarcodes.filter(function(bc){ return !scannedSet[bc]; });
   var extra   = scannedBarcodes.filter(function(bc){ return batchBarcodes.indexOf(bc.toUpperCase()) === -1; });
-
   return { matched:matched, missing:missing, extra:extra,
            total:batchBarcodes.length, isComplete: missing.length===0 && extra.length===0 };
 }
 
-// ── showValidationResult — modal แสดงผล ─────────────────
-function showValidationResult(result, onConfirmAll, onConfirmMatched) {
+// ── showValidationResult ──────────────────────────────────
+function showValidationResult(result, onConfirmAll) {
   document.getElementById('vrMatched').textContent = result.matched.length;
   document.getElementById('vrMissing').textContent = result.missing.length;
   document.getElementById('vrExtra').textContent   = result.extra.length;
@@ -1298,24 +1380,21 @@ function showValidationResult(result, onConfirmAll, onConfirmMatched) {
     result.isComplete ? '✅ ครบถ้วน — พร้อม Submit' : '⚠️ พบความคลาดเคลื่อน';
 
   var detail = '';
-  if (result.missing.length) {
-    detail += '<div style="margin-bottom:6px;color:var(--warn);font-weight:500;">⚠️ ขาด '+result.missing.length+' ใบ:</div>'+
-      result.missing.map(function(bc){ return '<div style="font-family:var(--mono);padding:2px 0;">'+bc+'</div>'; }).join('');
-  }
-  if (result.extra.length) {
-    detail += '<div style="margin-bottom:6px;margin-top:8px;color:var(--danger);font-weight:500;">➕ เกิน '+result.extra.length+' ใบ (scan มาแต่ไม่อยู่ใน batch):</div>'+
-      result.extra.map(function(bc){ return '<div style="font-family:var(--mono);padding:2px 0;">'+bc+'</div>'; }).join('');
-  }
+  if (result.missing.length) detail +=
+    '<div style="margin-bottom:6px;color:var(--warn);font-weight:500;">⚠️ ขาด '+result.missing.length+' ใบ:</div>'+
+    result.missing.map(function(bc){ return '<div style="font-family:var(--mono);padding:2px 0;">'+bc+'</div>'; }).join('');
+  if (result.extra.length)   detail +=
+    '<div style="margin-bottom:6px;margin-top:8px;color:var(--danger);font-weight:500;">➕ เกิน '+result.extra.length+' ใบ:</div>'+
+    result.extra.map(function(bc){ return '<div style="font-family:var(--mono);padding:2px 0;">'+bc+'</div>'; }).join('');
   if (!detail) detail = '<div style="color:var(--success);">barcode ตรงกันทั้งหมด ✅</div>';
   document.getElementById('vrDetail').innerHTML = detail;
   document.getElementById('vrNote').value = '';
 
-  // footer buttons
   var footer = document.getElementById('vrFooter');
   if (result.isComplete) {
     footer.innerHTML =
       '<button class="d-cancel" onclick="closeValResult()">ยกเลิก</button>'+
-      '<button class="d-confirm" style="background:var(--success);" onclick="closeValResult();('+onConfirmAll+')()">✅ ยืนยัน Submit ทั้งหมด</button>';
+      '<button class="d-confirm" style="background:var(--success);" onclick="closeValResult();_proceedSubmitAll()">✅ ยืนยัน Submit</button>';
   } else {
     footer.innerHTML =
       '<button class="d-cancel" onclick="closeValResult()">ยกเลิก</button>'+
@@ -1323,117 +1402,68 @@ function showValidationResult(result, onConfirmAll, onConfirmMatched) {
       '<button class="d-confirm" style="margin-left:6px;" onclick="doDisputeAndSubmitAll()">📩 แจ้งปัญหา + Submit ที่ตรง</button>';
   }
 
+  window._vrResult = result;
   document.getElementById('valResultOverlay').classList.add('open');
-  // store callbacks
-  window._vrOnConfirmAll     = onConfirmAll;
-  window._vrOnConfirmMatched = onConfirmMatched;
-  window._vrResult           = result;
 }
 
-function closeValResult() {
-  document.getElementById('valResultOverlay').classList.remove('open');
+function closeValResult() { document.getElementById('valResultOverlay').classList.remove('open'); }
+
+function _proceedSubmitAll() {
+  var ready=rows.filter(function(r){return r.status!=='dup'&&r.barcode&&r.editVals&&r.editVals.transferFrom&&r.editVals.transferTo&&r.editVals.receivedDate&&r.editVals.sentQty&&r.editVals.receivedQty;});
+  _proceedSubmit(ready);
 }
 
-// ── doSubmitMatchedOnly — submit เฉพาะ rows ที่ match ───
 function doSubmitMatchedOnly() {
   closeValResult();
   if (!window._vrResult) return;
   var matchedSet = {};
   window._vrResult.matched.forEach(function(bc){ matchedSet[bc.toUpperCase()] = true; });
-  // กรอง rows เหลือเฉพาะที่ match
   rows = rows.filter(function(r){ return matchedSet[(r.barcode||'').toUpperCase()]; });
   renderTable();
-  // dispute ส่วนที่ขาด
   _doDisputeMissing(window._vrResult.missing, document.getElementById('vrNote').value);
-  // submit ปกติ
-  submitBatch();
+  var ready = rows.filter(function(r){return r.status!=='dup'&&r.barcode&&r.editVals&&r.editVals.transferFrom;});
+  _proceedSubmit(ready);
 }
 
-// ── doDisputeAndSubmitAll — แจ้งปัญหา + submit ที่ตรง ──
 function doDisputeAndSubmitAll() {
   closeValResult();
   if (!window._vrResult) return;
   var note = document.getElementById('vrNote').value || 'แจ้งปัญหาจากคลัง';
   _doDisputeMissing(window._vrResult.missing, note);
   _doDisputeExtra(window._vrResult.extra, note);
-  // submit เฉพาะที่ตรง
   var matchedSet = {};
   window._vrResult.matched.forEach(function(bc){ matchedSet[bc.toUpperCase()] = true; });
   rows = rows.filter(function(r){ return matchedSet[(r.barcode||'').toUpperCase()]; });
   renderTable();
-  submitBatch();
+  var ready = rows.filter(function(r){return r.status!=='dup'&&r.barcode&&r.editVals&&r.editVals.transferFrom;});
+  _proceedSubmit(ready);
 }
 
 async function _doDisputeMissing(missingBarcodes, note) {
   if (!missingBarcodes.length || !_incomingBatch) return;
   var s = DocScanAuth.load(); if (!s) return;
-  var pendingBatchId = _incomingBatch.batch_id + '-PEND';
-  var items = missingBarcodes.map(function(bc) {
-    return { barcode:bc, batch_id:pendingBatchId, emp_id:s.empId, emp_name:s.empName,
-             site:s.site, note:note||'เอกสารขาด', dispute_type:'missing', dest_warehouse:s.site };
+  var pid = _incomingBatch.batch_id + '-PEND';
+  var items = missingBarcodes.map(function(bc){
+    return {barcode:bc,batch_id:pid,emp_id:s.empId,emp_name:s.empName,
+            site:s.site,note:note||'เอกสารขาด',dispute_type:'missing',dest_warehouse:s.site};
   });
-  try {
-    await fetch(API_URL, { method:'POST', redirect:'follow',
-      headers:{'Content-Type':'text/plain'},
-      body: JSON.stringify({ action:'disputeItems', items:items }) });
-    showToast('แจ้งขาด '+items.length+' รายการแล้ว','info');
-  } catch(e) {}
+  try { await fetch(API_URL,{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action:'disputeItems',items:items})}); } catch(e){}
 }
 
 async function _doDisputeExtra(extraBarcodes, note) {
   if (!extraBarcodes.length || !_incomingBatch) return;
   var s = DocScanAuth.load(); if (!s) return;
-  var pendingBatchId = _incomingBatch.batch_id + '-PEND';
-  var items = extraBarcodes.map(function(bc) {
-    return { barcode:bc, batch_id:pendingBatchId, emp_id:s.empId, emp_name:s.empName,
-             site:s.site, note:note||'เอกสารเกิน', dispute_type:'extra', dest_warehouse:s.site };
+  var pid = _incomingBatch.batch_id + '-PEND';
+  var items = extraBarcodes.map(function(bc){
+    return {barcode:bc,batch_id:pid,emp_id:s.empId,emp_name:s.empName,
+            site:s.site,note:note||'เอกสารเกิน',dispute_type:'extra',dest_warehouse:s.site};
   });
-  try {
-    await fetch(API_URL, { method:'POST', redirect:'follow',
-      headers:{'Content-Type':'text/plain'},
-      body: JSON.stringify({ action:'disputeItems', items:items }) });
-  } catch(e) {}
+  try { await fetch(API_URL,{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action:'disputeItems',items:items})}); } catch(e){}
 }
 
-// ── backdrop close ───────────────────────────────────────
-document.addEventListener('click', function(e) {
-  if (e.target.id === 'valResultOverlay') closeValResult();
-});
+document.addEventListener('click',function(e){ if(e.target.id==='valResultOverlay') closeValResult(); });
 
 var toastTimer;
-
-// ── โหลดรายการ batch ที่รอรับ (preload) ─────────────────
-function loadPendingBatches() {
-  var s = DocScanAuth.load();
-  if (!s) return;
-  var siteFilter = s.site_filter ? s.site_filter.join('|') : s.site;
-  document.getElementById('pendingBatchList').innerHTML =
-    '<div style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px;">'+
-    '<span class="spinner" style="width:10px;height:10px;border-color:rgba(56,189,248,.3);border-top-color:var(--accent);"></span>กำลังโหลดรายการรอรับ...</div>';
-
-  fetch(API_URL + '?action=getIncoming&site_filter=' + encodeURIComponent(siteFilter))
-    .then(function(r){ return r.json(); })
-    .then(function(data) {
-      var batches = data.batches || [];
-      document.getElementById('incomingBadge').textContent = batches.length || '0';
-      if (!batches.length) {
-        document.getElementById('pendingBatchList').innerHTML =
-          '<div style="font-size:11px;color:var(--muted);">ไม่มี batch รอรับ</div>';
-        return;
-      }
-      document.getElementById('pendingBatchList').innerHTML =
-        '<div style="font-size:11px;color:var(--muted);margin-bottom:6px;">'+batches.length+' batch รอรับ — กดเพื่อเลือก:</div>'+
-        '<div style="display:flex;flex-wrap:wrap;gap:6px;">'+
-        batches.map(function(b){
-          return '<button onclick="selectBatch(\''+b.batch_id+'\')" style="'+
-            'background:var(--surface2);border:1px solid var(--border);color:var(--accent);'+
-            'border-radius:var(--rs);padding:4px 12px;font-family:var(--mono);font-size:12px;cursor:pointer;">'+
-            b.batch_id + ' <span style="color:var(--muted);">('+b.barcode_count+')</span></button>';
-        }).join('')+'</div>';
-    })
-    .catch(function(){ document.getElementById('pendingBatchList').innerHTML = ''; });
-}
-
 var toastTimer;
 function showToast(msg,type){var t=document.getElementById('toast');t.textContent=msg;t.className='toast '+(type||'info')+' show';clearTimeout(toastTimer);toastTimer=setTimeout(function(){t.classList.remove('show');},3000);}
 </script>
