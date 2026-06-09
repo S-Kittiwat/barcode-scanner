@@ -183,12 +183,9 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 
   <div class="content">
 
-    <!-- Top Filter: Site + Month -->
+    <!-- Top Filter: Month only -->
     <div class="top-filter">
       <span class="top-filter-label">กรองข้อมูล:</span>
-      <select class="f-select" id="filterSite" onchange="onSiteChange()" style="max-width:200px;">
-        <option value="">— ทุก Site —</option>
-      </select>
       <input class="f-select" type="month" id="filterMonth" onchange="onMonthChange()" title="Created Date (เดือน/ปี)" style="width:148px;">
       <button class="refresh-btn" onclick="loadData()">↻ รีเฟรช</button>
     </div>
@@ -413,53 +410,13 @@ window.onload = function() {
   document.getElementById('sidebarName').textContent = session.empName + ' (' + session.empId + ')';
   document.getElementById('sidebarSite').textContent = session.site;
   document.getElementById('topbarSub').textContent   = session.site;
-  // โหลด site groups สำหรับ filter dropdown
-  fetch(API_URL + '?action=getSiteGroups')
-    .then(function(r){ return r.json(); })
-    .then(function(data){
-      window._siteGroups = data.groups || [];
-      buildSiteFilterDropdown(data.groups || []);
-    })
-    .catch(function(){ window._siteGroups = []; })
-    .finally(function(){ loadData(); });
+  loadData();
 };
-
-function buildSiteFilterDropdown(groups) {
-  var el  = document.getElementById('filterSite');
-  var cur = el.value;
-  el.innerHTML = '<option value="">— ทุก Site —</option>';
-  var warehouses = groups.filter(function(g){ return (g.type||'warehouse') !== 'plant'; });
-  var plants     = groups.filter(function(g){ return g.type === 'plant'; });
-  if (warehouses.length) {
-    var wg = document.createElement('optgroup'); wg.label = '🏭 คลังสินค้า / DC';
-    warehouses.forEach(function(g){ var o=document.createElement('option');o.value=o.textContent=g.site_name;if(g.site_name===cur)o.selected=true;wg.appendChild(o); });
-    el.appendChild(wg);
-  }
-  if (plants.length) {
-    var pg = document.createElement('optgroup'); pg.label = '🏗️ โรงงาน (Plant)';
-    plants.forEach(function(g){ var o=document.createElement('option');o.value=o.textContent=g.site_name;if(g.site_name===cur)o.selected=true;pg.appendChild(o); });
-    el.appendChild(pg);
-  }
-}
 
 function loadData() {
   document.getElementById('bodyDone').innerHTML    = '<tr class="empty-row"><td colspan="10"><span class="spinner"></span>กำลังโหลด...</td></tr>';
   document.getElementById('bodyPending').innerHTML = '<tr class="empty-row"><td colspan="8"><span class="spinner"></span>กำลังโหลด...</td></tr>';
-
-  // ใช้ filterSite dropdown ถ้าเลือกไว้ ไม่งั้นใช้ site_filter จาก session
-  var selectedSite = document.getElementById('filterSite').value;
-  var param;
-  if (selectedSite) {
-    // เลือก site เฉพาะ → หา site_filter จาก siteGroups
-    var group = (window._siteGroups||[]).find(function(g){ return g.site_name === selectedSite; });
-    var filter = group ? group.customer_start_names : [selectedSite];
-    param = '&site_filter=' + encodeURIComponent(filter.join('|'));
-  } else {
-    // ไม่ได้เลือก → ใช้ session site_filter (site ของ user ที่ login)
-    param = getSiteFilterParam(session);
-  }
-
-  fetch(API_URL + '?action=getDashboard' + param)
+  fetch(API_URL + '?action=getDashboard' + getSiteFilterParam(session))
     .then(function(r){ return r.json(); })
     .then(function(data) {
       if (data.status !== 'ok') throw new Error(data.message);
@@ -513,14 +470,6 @@ function loadData() {
       document.getElementById('pipeTTiers').innerHTML = pipeMiniHTML(pT.tiers, pT.total);
       document.getElementById('pipeDTiers').innerHTML = pipeMiniHTML(pD.tiers, pD.total);
       document.getElementById('pipeRTiers').innerHTML = pipeMiniHTML(pR.tiers, pR.total);
-
-      // Site filter dropdown
-      var el = document.getElementById('filterSite'); var cur = el.value;
-      el.innerHTML = '<option value="">— ทุก Site —</option>';
-      (data.siteList||[]).forEach(function(sl){
-        var opt=document.createElement('option');opt.value=sl;opt.textContent=sl;
-        if(sl===cur)opt.selected=true; el.appendChild(opt);
-      });
 
       _cachedDone    = data.done    || [];
       _cachedPending = data.pending || [];
@@ -879,7 +828,7 @@ function exportCSV() {
   var a     = document.createElement('a');
   a.href    = url;
   var fItemName = document.getElementById('filterItemName').value || '';
-  a.download = 'DocScan_'+(document.getElementById('filterSite').value||'all')+
+  a.download = 'DocScan_'+(session.site||'all')+
                (fItemName?'_'+fItemName:'')+
                '_'+ new Date().toISOString().split('T')[0]+'.csv';
   a.click();
@@ -1012,9 +961,6 @@ function clearChart(canvas){
 }
 
 // ── Site / Month filter → อัป cards + chart ──────────────
-function onSiteChange(){
-  loadData(); // reload GAS เพราะต้อง filter server-side
-}
 
 
 var toastTimer;
