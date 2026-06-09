@@ -99,6 +99,14 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .refresh-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:var(--rs);padding:6px 12px;font-family:var(--font);font-size:12px;cursor:pointer;}
 .refresh-btn:hover{border-color:var(--accent);color:var(--accent);}
 .export-btn{background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.3);color:var(--success);border-radius:var(--rs);padding:6px 12px;font-family:var(--font);font-size:12px;cursor:pointer;margin-left:auto;}
+/* ── Pagination ── */
+.pagination-bar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-top:1px solid var(--border);background:var(--surface2);font-size:12px;color:var(--muted);flex-wrap:wrap;gap:8px;}
+.page-info{}
+.page-btns{display:flex;gap:4px;}
+.page-btn{background:none;border:1px solid var(--border);color:var(--muted);border-radius:var(--rs);padding:4px 9px;font-family:var(--font);font-size:12px;cursor:pointer;transition:all .15s;min-width:30px;}
+.page-btn:hover:not(:disabled){border-color:var(--accent);color:var(--accent);}
+.page-btn.active{background:var(--accent);border-color:var(--accent);color:#0f172a;font-weight:600;}
+.page-btn:disabled{opacity:.35;cursor:not-allowed;}
 /* ── Top filter (Site + Month on cards) ── */
 .top-filter{display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
 /* ── Area Chart in Card 1 ── */
@@ -349,6 +357,10 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
           </thead>
           <tbody id="bodyDone"><tr class="empty-row"><td colspan="10"><span class="spinner"></span>กำลังโหลด...</td></tr></tbody>
         </table>
+        <div class="pagination-bar" id="pageDone" style="display:none;">
+          <span class="page-info" id="pageInfoDone">—</span>
+          <div class="page-btns" id="pageBtnsDone"></div>
+        </div>
       </div>
     </div>
 
@@ -367,6 +379,10 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
           </thead>
           <tbody id="bodyPending"><tr class="empty-row"><td colspan="8"><span class="spinner"></span>กำลังโหลด...</td></tr></tbody>
         </table>
+        <div class="pagination-bar" id="pagePend" style="display:none;">
+          <span class="page-info" id="pageInfoPend">—</span>
+          <div class="page-btns" id="pageBtnsPend"></div>
+        </div>
       </div>
     </div>
 
@@ -477,39 +493,40 @@ function loadData() {
     });
 }
 
-// ── Phase 1: Helpers ─────────────────────────────────────
+// ── Phase 1 Fixes ────────────────────────────────────────
 
-// แปลง d/m/yyyy → yyyy-mm-dd (ISO) สำหรับเทียบวันที่
-function docDateToISO(raw) {
+// normalizeDate — รองรับทุก format: d/m/yy, d/m/yyyy, dd/mm/yy, dd/mm/yyyy, yyyy-mm-dd
+function normalizeDate(raw) {
   if (!raw) return '';
-  raw = raw.trim();
+  raw = String(raw).trim();
   if (raw.indexOf('/') > -1) {
     var p = raw.split('/');
     if (p.length !== 3) return '';
-    var y = p[2].length === 2 ? '20' + p[2] : p[2];
-    var m = p[1].padStart(2, '0');
     var d = p[0].padStart(2, '0');
+    var m = p[1].padStart(2, '0');
+    var y = p[2].length === 2 ? '20' + p[2] : p[2];
+    if (isNaN(Number(d))||isNaN(Number(m))||isNaN(Number(y))) return '';
     return y + '-' + m + '-' + d;
   }
-  return raw.substring(0, 10); // ISO already
+  // yyyy-mm-dd หรือ ISO
+  return raw.substring(0, 10);
 }
 
+// docDateToISO alias
+function docDateToISO(raw) { return normalizeDate(raw); }
+
 function toYM(dateStr) {
-  var iso = docDateToISO(dateStr);
+  var iso = normalizeDate(dateStr);
   return iso ? iso.substring(0, 7) : '';
 }
 
 // CSV cell escape — รองรับ comma, double-quote, ภาษาไทย
 function csvCell(v) {
   var s = String(v == null ? '' : v);
-  // ถ้ามี comma, double-quote, newline หรือ non-ASCII → ห่อ double-quote
-  if (/[",\n\r]/.test(s) || /[^\x00-\x7F]/.test(s)) {
-    return '"' + s.replace(/"/g, '""') + '"';
-  }
-  return '"' + s + '"'; // ห่อทุกช่องเพื่อความปลอดภัย
+  return '"' + s.replace(/"/g, '""') + '"';
 }
 
-// ── Step 1: getFilteredData() — คืน filtered {done, pend} ─
+// ── getFilteredData() ─────────────────────────────────────
 function getFilteredData() {
   var fStatus = document.getElementById('filterStatus').value;
   var fRef    = (document.getElementById('filterRef').value    || '').trim().toLowerCase();
@@ -520,98 +537,251 @@ function getFilteredData() {
   var done = _cachedDone.filter(function(item) {
     if (fRef   && (item.ref_no||'').toLowerCase().indexOf(fRef) === -1) return false;
     if (fMonth && toYM(item.doc_date) !== fMonth)                       return false;
-    // FIX: เทียบวันที่รับแบบ exact ISO ไม่ใช่แค่เดือน
+    // exact ISO date comparison
     if (fDate  && (item.received_date||'') !== fDate)                   return false;
-    if (fTier !== 'all')                                                 return false; // done ไม่มี tier
     return true;
   });
 
   var pend = _cachedPending.filter(function(item) {
     if (fRef   && (item.ref_no||'').toLowerCase().indexOf(fRef) === -1) return false;
     if (fMonth && toYM(item.doc_date) !== fMonth)                       return false;
-    // FIX: เทียบวันที่สร้างแบบ exact ISO
-    if (fDate  && docDateToISO(item.doc_date) !== fDate)                return false;
-    // ใช้ tier จาก backend เท่านั้น ไม่คำนวณ frontend ซ้ำ
+    // FIX: normalizeDate ก่อนเทียบ ไม่ใช่ toYM
+    if (fDate  && normalizeDate(item.doc_date) !== fDate)               return false;
+    // tier จาก backend เท่านั้น
     if (fTier !== 'all' && item.tier !== fTier)                         return false;
     return true;
   });
 
-  return { done: done, pend: pend };
+  return { done: done, pend: pend, fStatus: fStatus, fTier: fTier };
 }
 
-// ── Step 2: renderTables(filtered) — render เท่านั้น ─────
-function renderTables(filtered) {
-  var fStatus  = document.getElementById('filterStatus').value;
-  var fTier    = document.getElementById('filterTier').value || 'all';
-  var done     = filtered.done;
-  var pend     = filtered.pend;
+// ── Phase 1.5 ─────────────────────────────────────────────
+var PAGE_SIZE = 50;
+var _pageDone = 1;
+var _pagePend = 1;
+// tier labels/colors จาก map เดียว (ย้ายมาที่นี่ทั้งหมด)
+var TIER_LABELS = {t1:'On Track',t2:'Over SLA',t3:'Business Impact',t4:'Critical'};
+var TIER_COLORS = {t1:'var(--success)',t2:'var(--warn)',t3:'#fb923c',t4:'var(--danger)'};
 
-  var showDone    = fStatus !== 'pending' && fTier === 'all';
+// ── renderTables — Pagination + Pipeline Sync ─────────────
+function renderTables(filtered) {
+  var done    = filtered.done;
+  var pend    = filtered.pend;
+  var fStatus = filtered.fStatus || '';
+  var fTier   = filtered.fTier   || 'all';
+
+  var showDone    = fStatus !== 'pending';
   var showPending = fStatus !== 'done';
 
   document.getElementById('sectionDone').style.display    = showDone    ? 'block' : 'none';
   document.getElementById('sectionPending').style.display = showPending ? 'block' : 'none';
-  document.getElementById('countDone').textContent = done.length;
-  document.getElementById('countPend').textContent = pend.length;
+  document.getElementById('countDone').textContent = done.length.toLocaleString();
+  document.getElementById('countPend').textContent = pend.length.toLocaleString();
 
-  var tierColors = {t1:'var(--success)',t2:'var(--warn)',t3:'#fb923c',t4:'var(--danger)'};
-  var tierLabels = {t1:'On Track',t2:'Over SLA',t3:'Business',t4:'Critical'};
+  if (showDone)    renderPagedTable('done',    done,  _pageDone);
+  if (showPending) renderPagedTable('pending', pend,  _pagePend);
 
-  // render done
-  document.getElementById('bodyDone').innerHTML = !showDone ? '' :
-    done.length === 0
-      ? '<tr class="empty-row"><td colspan="10">ไม่มีรายการ</td></tr>'
-      : done.map(function(item, i) {
-          var dtr = item.days_to_receive;
-          var isOntime = dtr !== '' && dtr !== undefined && Number(dtr) <= 15;
-          var photo = item.photo_url
-            ? '<a class="photo-link" href="'+item.photo_url+'" target="_blank">📎 ดูไฟล์</a>'
-            : '<span style="color:var(--muted);">—</span>';
-          return '<tr>'+
-            '<td style="color:var(--muted);">'+(i+1)+'</td>'+
-            '<td class="mono" style="color:var(--accent);">'+(item.barcode||'—')+'</td>'+
-            '<td class="mono">'+(item.ref_no||'—')+'</td>'+
-            '<td>'+(item.item_name||'—')+'</td>'+
-            '<td style="font-size:11px;">'+(item.transfer_from||'—')+' → '+(item.transfer_to||'—')+'</td>'+
-            '<td class="mono" style="text-align:right;">'+(item.received_qty||'—')+'</td>'+
-            '<td class="mono">'+(item.received_date||'—')+'</td>'+
-            '<td>'+photo+'</td>'+
-            '<td class="mono" style="color:var(--muted);">'+(item.doc_date||'—')+'</td>'+
-            '<td class="mono" style="text-align:center;color:'+(isOntime?'var(--success)':'var(--danger)')+';">'+
-              (dtr!==undefined?dtr+' วัน':'—')+
-              (dtr!==undefined?'<br><span style="font-size:10px;">'+(isOntime?'Ontime':'Late')+'</span>':'')+
-            '</td></tr>';
-        }).join('');
-
-  // render pending
-  document.getElementById('bodyPending').innerHTML = !showPending ? '' :
-    pend.length === 0
-      ? '<tr class="empty-row"><td colspan="8">'+(fTier!=='all'?'ไม่มีรายการใน Tier นี้':'ไม่มีรายการค้าง 🎉')+'</td></tr>'
-      : pend.map(function(item, i) {
-          var tc = tierColors[item.tier] || 'var(--text)';
-          var tl = tierLabels[item.tier] || '—';
-          return '<tr>'+
-            '<td style="color:var(--muted);">'+(i+1)+'</td>'+
-            '<td class="mono" style="color:var(--warn);">'+(item.barcode||'—')+'</td>'+
-            '<td class="mono">'+(item.ref_no||'—')+'</td>'+
-            '<td>'+(item.item_name||'—')+'</td>'+
-            '<td style="font-size:11px;">'+(item.transfer_from||'—')+' → '+(item.transfer_to||'—')+'</td>'+
-            '<td class="mono" style="text-align:right;">'+(item.sent_qty||'—')+'</td>'+
-            '<td class="mono" style="color:var(--muted);">'+(item.doc_date||'—')+'</td>'+
-            '<td class="mono" style="text-align:center;color:'+tc+';">'+
-              (item.days_pending!==undefined?item.days_pending+' วัน':'—')+
-              '<br><span style="font-size:10px;">'+tl+'</span>'+
-            '</td></tr>';
-        }).join('');
+  // Pipeline sync กับ filter
+  updatePipelineFromFiltered(filtered);
 }
 
-// ── Step 3: applyFilters() — orchestrate ─────────────────
-function applyFilters() {
+function renderPagedTable(type, items, page) {
+  var isDone   = type === 'done';
+  var bodyId   = isDone ? 'bodyDone'     : 'bodyPending';
+  var pageId   = isDone ? 'pageDone'     : 'pagePend';
+  var infoId   = isDone ? 'pageInfoDone' : 'pageInfoPend';
+  var btnsId   = isDone ? 'pageBtnsDone' : 'pageBtnsPend';
+  var cols     = isDone ? 10 : 8;
+
+  if (!items.length) {
+    document.getElementById(bodyId).innerHTML =
+      '<tr class="empty-row"><td colspan="'+cols+'">'+(isDone?'ไม่มีรายการ':'ไม่มีรายการค้าง 🎉')+'</td></tr>';
+    document.getElementById(pageId).style.display = 'none';
+    return;
+  }
+
+  var totalPages = Math.ceil(items.length / PAGE_SIZE);
+  page = Math.max(1, Math.min(page, totalPages));
+  if (isDone) _pageDone = page; else _pagePend = page;
+
+  var start = (page - 1) * PAGE_SIZE;
+  var slice = items.slice(start, start + PAGE_SIZE);
+  var offset = start;
+
+  document.getElementById(bodyId).innerHTML = isDone
+    ? slice.map(function(item, i) {
+        var dtr = item.days_to_receive;
+        var isOntime = dtr !== '' && dtr !== undefined && Number(dtr) <= 15;
+        var photo = item.photo_url
+          ? '<a class="photo-link" href="'+item.photo_url+'" target="_blank">📎 ดูไฟล์</a>'
+          : '<span style="color:var(--muted);">—</span>';
+        return '<tr>'+
+          '<td style="color:var(--muted);">'+(offset+i+1)+'</td>'+
+          '<td class="mono" style="color:var(--accent);">'+(item.barcode||'—')+'</td>'+
+          '<td class="mono">'+(item.ref_no||'—')+'</td>'+
+          '<td>'+(item.item_name||'—')+'</td>'+
+          '<td style="font-size:11px;">'+(item.transfer_from||'—')+' → '+(item.transfer_to||'—')+'</td>'+
+          '<td class="mono" style="text-align:right;">'+(item.received_qty||'—')+'</td>'+
+          '<td class="mono">'+(item.received_date||'—')+'</td>'+
+          '<td>'+photo+'</td>'+
+          '<td class="mono" style="color:var(--muted);">'+(item.doc_date||'—')+'</td>'+
+          '<td class="mono" style="text-align:center;color:'+(isOntime?'var(--success)':'var(--danger)')+';">'+
+            (dtr!==undefined?dtr+' วัน':'—')+
+            (dtr!==undefined?'<br><span style="font-size:10px;">'+(isOntime?'Ontime':'Late')+'</span>':'')+
+          '</td></tr>';
+      }).join('')
+    : slice.map(function(item, i) {
+        var tc = TIER_COLORS[item.tier] || 'var(--text)';
+        var tl = TIER_LABELS[item.tier] || '—';
+        return '<tr>'+
+          '<td style="color:var(--muted);">'+(offset+i+1)+'</td>'+
+          '<td class="mono" style="color:var(--warn);">'+(item.barcode||'—')+'</td>'+
+          '<td class="mono">'+(item.ref_no||'—')+'</td>'+
+          '<td>'+(item.item_name||'—')+'</td>'+
+          '<td style="font-size:11px;">'+(item.transfer_from||'—')+' → '+(item.transfer_to||'—')+'</td>'+
+          '<td class="mono" style="text-align:right;">'+(item.sent_qty||'—')+'</td>'+
+          '<td class="mono" style="color:var(--muted);">'+(item.doc_date||'—')+'</td>'+
+          '<td class="mono" style="text-align:center;color:'+tc+';">'+
+            (item.days_pending!==undefined?item.days_pending+' วัน':'—')+
+            '<br><span style="font-size:10px;">'+tl+'</span>'+
+          '</td></tr>';
+      }).join('');
+
+  // pagination info
+  var showing = Math.min(start + PAGE_SIZE, items.length);
+  document.getElementById(infoId).textContent =
+    'Showing '+(start+1).toLocaleString()+'-'+showing.toLocaleString()+' of '+items.length.toLocaleString();
+
+  // pagination buttons
+  document.getElementById(pageId).style.display = items.length > PAGE_SIZE ? 'flex' : 'none';
+  var btns = '';
+  btns += '<button class="page-btn" onclick="goPage(\''+type+'\',1)"'+(page===1?' disabled':'')+'>«</button>';
+  btns += '<button class="page-btn" onclick="goPage(\''+type+'\','+(page-1)+')"'+(page===1?' disabled':'')+'>‹</button>';
+  // แสดงหมายเลขหน้า max 5 ปุ่ม
+  var startP = Math.max(1, page-2);
+  var endP   = Math.min(totalPages, startP+4);
+  if (endP-startP < 4) startP = Math.max(1, endP-4);
+  for(var p=startP; p<=endP; p++){
+    btns += '<button class="page-btn'+(p===page?' active':'')+'" onclick="goPage(\''+type+'\','+p+')">'+p+'</button>';
+  }
+  btns += '<button class="page-btn" onclick="goPage(\''+type+'\','+(page+1)+')"'+(page===totalPages?' disabled':'')+'>›</button>';
+  btns += '<button class="page-btn" onclick="goPage(\''+type+'\','+totalPages+')"'+(page===totalPages?' disabled':'')+'>»</button>';
+  document.getElementById(btnsId).innerHTML = btns;
+}
+
+function goPage(type, page) {
   var filtered = getFilteredData();
+  var items = type === 'done' ? filtered.done : filtered.pend;
+  if (type === 'done') _pageDone = page; else _pagePend = page;
+  renderPagedTable(type, items, page);
+}
+
+// ── Pipeline Sync กับ Filter ─────────────────────────────
+function updatePipelineFromFiltered(filtered) {
+  var done    = filtered.done;
+  var pending = filtered.pend;
+
+  // คำนวณ pipeline จาก filtered pending
+  var deliverySet  = {};
+  var transitItems = [];
+  pending.forEach(function(item) {
+    var cs = item.current_status || 'with_transporter';
+    if (cs === 'with_delivery' || cs === 'with_warehouse') deliverySet[item.barcode] = item;
+    if (cs === 'with_warehouse') transitItems.push(item);
+  });
+
+  var transporterItems = pending.filter(function(item){
+    return !deliverySet[item.barcode];
+  });
+  var deliveryItems = pending.filter(function(item){
+    var cs = item.current_status||'with_transporter';
+    return cs === 'with_delivery';
+  });
+
+  function countTiers(arr){
+    var t={t1:0,t2:0,t3:0,t4:0};
+    arr.forEach(function(item){ if(t.hasOwnProperty(item.tier)) t[item.tier]++; });
+    return t;
+  }
+  function miniHTML(arr){
+    var tiers=countTiers(arr); var total=arr.length||1;
+    return ['t1','t2','t3','t4'].filter(function(t){return tiers[t]>0;}).map(function(t){
+      return '<div class="pipe-mini-row">'+
+        '<div class="pipe-mini-dot" style="background:'+TIER_COLORS[t]+';"></div>'+
+        '<div class="pipe-mini-bar-wrap"><div class="pipe-mini-bar" style="background:'+TIER_COLORS[t]+';width:'+Math.round(tiers[t]/total*100)+'%;"></div></div>'+
+        '<span class="pipe-mini-count">'+tiers[t]+'</span></div>';
+    }).join('');
+  }
+
+  document.getElementById('pipeT').textContent = transporterItems.length;
+  document.getElementById('pipeD').textContent = deliveryItems.length;
+  document.getElementById('pipeR').textContent = transitItems.length;
+  document.getElementById('pipeS').textContent = done.length;
+  document.getElementById('pipeTTiers').innerHTML = miniHTML(transporterItems);
+  document.getElementById('pipeDTiers').innerHTML = miniHTML(deliveryItems);
+  document.getElementById('pipeRTiers').innerHTML = miniHTML(transitItems);
+}
+
+// ── applyFilters() — orchestrate ─────────────────────────
+function applyFilters() {
+  _pageDone = 1; _pagePend = 1; // รีเซ็ต pagination เมื่อ filter เปลี่ยน
+  var filtered = getFilteredData();
+  updateSummaryFromFiltered(filtered);
   renderTables(filtered);
 }
 
-// ── Step 4: exportCSV() — ใช้ filtered data ─────────────
+function onMonthChange() {
+  applyFilters();
+  drawChart();
+}
+
+// ── updateSummaryFromFiltered() ───────────────────────────
+function updateSummaryFromFiltered(filtered) {
+  var done    = filtered.done;
+  var pending = filtered.pend;
+  var total   = done.length + pending.length;
+  var doneCnt = done.length;
+  var pct     = total > 0 ? Math.round(doneCnt/total*1000)/10 : 0;
+
+  var ontimeCnt = 0, lateCnt = 0;
+  done.forEach(function(item) {
+    var dtr = Number(item.days_to_receive);
+    if (item.days_to_receive !== '' && item.days_to_receive !== undefined && !isNaN(dtr)) {
+      if (dtr <= 15) ontimeCnt++; else lateCnt++;
+    }
+  });
+  var doneT = ontimeCnt + lateCnt || 1;
+
+  // tier จาก backend item.tier เท่านั้น
+  var t1=0,t2=0,t3=0,t4=0;
+  pending.forEach(function(item) {
+    if      (item.tier==='t1') t1++;
+    else if (item.tier==='t2') t2++;
+    else if (item.tier==='t3') t3++;
+    else if (item.tier==='t4') t4++;
+  });
+  var pendMax = Math.max(t1,t2,t3,t4) || 1;
+
+  document.getElementById('sumTotal').textContent   = total.toLocaleString();
+  document.getElementById('sumDone').textContent    = doneCnt.toLocaleString();
+  document.getElementById('sumDonePct').textContent = pct + '% ของทั้งหมด';
+  document.getElementById('sumPend').textContent    = pending.length.toLocaleString();
+  document.getElementById('sumPendPct').textContent = total>0 ? Math.round(pending.length/total*1000)/10+'% ของทั้งหมด' : '0%';
+
+  document.getElementById('ontimeFill').style.width = Math.round(ontimeCnt/doneT*100)+'%';
+  document.getElementById('lateFill').style.width   = Math.round(lateCnt/doneT*100)+'%';
+  document.getElementById('ontimePct').textContent  = Math.round(ontimeCnt/doneT*100)+'%';
+  document.getElementById('latePct').textContent    = Math.round(lateCnt/doneT*100)+'%';
+
+  document.getElementById('tierT1Fill').style.width = Math.round(t1/pendMax*100)+'%';
+  document.getElementById('tierT2Fill').style.width = Math.round(t2/pendMax*100)+'%';
+  document.getElementById('tierT3Fill').style.width = Math.round(t3/pendMax*100)+'%';
+  document.getElementById('tierT4Fill').style.width = Math.round(t4/pendMax*100)+'%';
+  document.getElementById('tierT1').textContent = t1.toLocaleString();
+  document.getElementById('tierT2').textContent = t2.toLocaleString();
+  document.getElementById('tierT3').textContent = t3.toLocaleString();
+  document.getElementById('tierT4').textContent = t4.toLocaleString();
+}
 function exportCSV() {
   var filtered = getFilteredData();
   var fStatus  = document.getElementById('filterStatus').value;
@@ -658,8 +828,6 @@ function exportCSV() {
   a.click();
   URL.revokeObjectURL(url);
   showToast('Export '+total+' รายการ เรียบร้อย', 'success');
-}
-  showToast('Export เรียบร้อย','success');
 }
 
 function logout() {
@@ -791,67 +959,6 @@ function onSiteChange(){
   loadData(); // reload GAS เพราะต้อง filter server-side
 }
 
-function onMonthChange(){
-  // client-side: re-compute cards + chart จากข้อมูลที่มีอยู่
-  updateCardsFromCache();
-  drawChart();
-}
-
-function updateCardsFromCache(){
-  var fMonth = document.getElementById('filterMonth').value;
-  var done    = _cachedDone;
-  var pending = _cachedPending;
-
-  if(fMonth){
-    done    = done.filter(function(i){ return toYM(i.doc_date)===fMonth; });
-    pending = pending.filter(function(i){ return toYM(i.doc_date)===fMonth; });
-  }
-
-  var total   = done.length + pending.length;
-  var doneCnt = done.length;
-  var pct     = total>0 ? Math.round(doneCnt/total*1000)/10 : 0;
-
-  // ontime/late จาก days_to_receive (backend คำนวณมาแล้ว)
-  var ontimeCnt=0, lateCnt=0;
-  done.forEach(function(item){
-    var dtr = Number(item.days_to_receive);
-    if(item.days_to_receive!=='' && item.days_to_receive!==undefined && !isNaN(dtr)){
-      if(dtr<=15) ontimeCnt++; else lateCnt++;
-    }
-  });
-  var doneT = ontimeCnt+lateCnt || 1;
-
-  // tier จาก backend item.tier เท่านั้น — ไม่คำนวณซ้ำ
-  var t1=0,t2=0,t3=0,t4=0;
-  pending.forEach(function(item){
-    if     (item.tier==='t1') t1++;
-    else if(item.tier==='t2') t2++;
-    else if(item.tier==='t3') t3++;
-    else if(item.tier==='t4') t4++;
-  });
-  var pendT = t1+t2+t3+t4 || 1;
-
-  document.getElementById('sumTotal').textContent   = total.toLocaleString();
-  document.getElementById('sumDone').textContent    = doneCnt.toLocaleString();
-  document.getElementById('sumDonePct').textContent = pct+'% ของทั้งหมด';
-  document.getElementById('sumPend').textContent    = pending.length.toLocaleString();
-  document.getElementById('sumPendPct').textContent = total>0?Math.round(pending.length/total*1000)/10+'% ของทั้งหมด':'0%';
-
-  document.getElementById('ontimeFill').style.width = Math.round(ontimeCnt/doneT*100)+'%';
-  document.getElementById('lateFill').style.width   = Math.round(lateCnt/doneT*100)+'%';
-  document.getElementById('ontimePct').textContent  = Math.round(ontimeCnt/doneT*100)+'%';
-  document.getElementById('latePct').textContent    = Math.round(lateCnt/doneT*100)+'%';
-
-  var pendMax = Math.max(t1,t2,t3,t4) || 1;
-  document.getElementById('tierT1Fill').style.width = Math.round(t1/pendMax*100)+'%';
-  document.getElementById('tierT2Fill').style.width = Math.round(t2/pendMax*100)+'%';
-  document.getElementById('tierT3Fill').style.width = Math.round(t3/pendMax*100)+'%';
-  document.getElementById('tierT4Fill').style.width = Math.round(t4/pendMax*100)+'%';
-  document.getElementById('tierT1').textContent = t1.toLocaleString();
-  document.getElementById('tierT2').textContent = t2.toLocaleString();
-  document.getElementById('tierT3').textContent = t3.toLocaleString();
-  document.getElementById('tierT4').textContent = t4.toLocaleString();
-}
 
 var toastTimer;
 function showToast(msg,type){var t=document.getElementById('toast');t.textContent=msg;t.className='toast '+(type||'info')+' show';clearTimeout(toastTimer);toastTimer=setTimeout(function(){t.classList.remove('show');},3000);}
