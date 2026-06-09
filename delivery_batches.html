@@ -191,8 +191,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
         <span class="tab-count" id="tab2Count">—</span>
       </button>
       <button class="tab-btn" id="tab3Btn" onclick="switchTab(3)">
-        ⚠️ เอกสารมีปัญหา
-        <span class="tab-count" id="tab3Count" style="background:rgba(248,113,113,.15);border-color:rgba(248,113,113,.3);color:var(--danger);">—</span>
+        🔴 เอกสารมีปัญหา
+        <span class="tab-count" id="tab3Count">—</span>
       </button>
     </div>
 
@@ -222,16 +222,11 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
       </div>
     </div>
 
-    <!-- Tab 3: เอกสารมีปัญหา (disputed / lost_document) -->
+    <!-- Tab 3: เอกสารมีปัญหา -->
     <div id="tab3Panel" style="display:none;">
       <div class="filter-bar">
-        <input class="f-input mono" id="f3BatchId" placeholder="Batch No. เช่น DEL-20260605-001" style="width:240px;" oninput="applyFilter3()">
-        <select class="f-input" id="f3Status" onchange="applyFilter3()" style="width:160px;">
-          <option value="">— สถานะทั้งหมด —</option>
-          <option value="disputed">⚠️ disputed</option>
-          <option value="lost_document">🔴 lost_document</option>
-          <option value="resolved">✅ resolved</option>
-        </select>
+        <input class="f-input mono" id="f3BatchId" placeholder="Batch No." style="width:240px;" oninput="applyFilter3()">
+        <input class="f-input" type="date" id="f3Date" onchange="applyFilter3()">
         <button class="f-clear" onclick="clearFilter3()">✕ ล้าง</button>
         <span id="f3Result" style="font-size:12px;color:var(--muted);"></span>
       </div>
@@ -239,11 +234,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
         <div class="loading"><span class="spinner"></span>กำลังโหลด...</div>
       </div>
     </div>
-
-  </div>
-</div>
-
-<!-- Modal: เลือกคลังปลายทาง -->
 <div class="modal-overlay" id="modalOverlay">
   <div class="modal-box">
     <div class="modal-head">
@@ -325,15 +315,15 @@ var API_URL = DOCSCAN_CONFIG.API_URL;
 var session;
 var _allReceived = [];  // with_delivery batches (raw)
 var _allSent     = [];  // with_warehouse batches (raw)
-var _allDisputed = [];  // disputed/lost_document batches (raw)
 var _filteredR   = [];
 var _filteredS   = [];
-var _filteredD   = [];
 var _detailCache = {};
 var _sendBatchId = '';
 var _activeTab   = 1;
 var _tab2Loaded  = false;
 var _tab3Loaded  = false;
+var _allDisputed = [];
+var _filteredD   = [];
 
 // ── Init ─────────────────────────────────────────────────
 window.onload = function(){
@@ -351,12 +341,11 @@ window.onload = function(){
 // ── Tab switch ────────────────────────────────────────────
 function switchTab(n){
   _activeTab = n;
-  document.getElementById('tab1Btn').classList.toggle('active', n===1);
-  document.getElementById('tab2Btn').classList.toggle('active', n===2);
-  document.getElementById('tab3Btn').classList.toggle('active', n===3);
-  document.getElementById('tab1Panel').style.display = n===1 ? 'block' : 'none';
-  document.getElementById('tab2Panel').style.display = n===2 ? 'block' : 'none';
-  document.getElementById('tab3Panel').style.display = n===3 ? 'block' : 'none';
+  [1,2,3].forEach(function(i){
+    document.getElementById('tab'+i+'Btn').classList.toggle('active', i===n);
+    var p = document.getElementById('tab'+i+'Panel');
+    if(p) p.style.display = i===n ? 'block' : 'none';
+  });
   if(n===2 && !_tab2Loaded) loadTab2();
   if(n===3 && !_tab3Loaded) loadTab3();
 }
@@ -387,7 +376,84 @@ function loadTab1(){
     });
 }
 
-// ── Load Tab 2: ส่งเอกสาร (on-demand) ───────────────────
+// ── Load Tab 3: เอกสารมีปัญหา ───────────────────────────
+function loadTab3(){
+  _tab3Loaded = true;
+  document.getElementById('table3Wrap').innerHTML = '<div class="loading"><span class="spinner"></span>กำลังโหลด...</div>';
+  fetch(API_URL+'?action=getBatches&status_filter=disputed'+getSiteFilterParam(session))
+    .then(function(r){return r.json();})
+    .then(function(data){
+      if(data.status!=='ok') throw new Error(data.message||'Error');
+      _allDisputed = (data.batches||[]).filter(function(b){
+        return !session.site || b.site===session.site;
+      });
+      _filteredD = _allDisputed.slice();
+      document.getElementById('tab3Count').textContent = _allDisputed.length;
+      renderTable3();
+    })
+    .catch(function(err){
+      document.getElementById('table3Wrap').innerHTML='<div class="empty" style="color:var(--danger);">โหลดไม่สำเร็จ: '+err.message+'</div>';
+    });
+}
+
+function applyFilter3(){
+  var fBatch = document.getElementById('f3BatchId').value.trim().toLowerCase();
+  var fDate  = document.getElementById('f3Date').value;
+  _filteredD = _allDisputed.filter(function(b){
+    if(fBatch && b.batch_id.toLowerCase().indexOf(fBatch)===-1) return false;
+    if(fDate  && toDateStr(b.scan_date)!==fDate) return false;
+    return true;
+  });
+  document.getElementById('f3Result').textContent = fBatch||fDate ? 'พบ '+_filteredD.length+' batch' : '';
+  renderTable3();
+}
+
+function clearFilter3(){
+  document.getElementById('f3BatchId').value='';
+  document.getElementById('f3Date').value='';
+  _filteredD=_allDisputed.slice();
+  document.getElementById('f3Result').textContent='';
+  renderTable3();
+}
+
+function renderTable3(){
+  var wrap = document.getElementById('table3Wrap');
+  if(!_filteredD.length){ wrap.innerHTML='<div class="empty">ไม่มีรายการที่มีปัญหา 🎉</div>'; return; }
+  wrap.innerHTML='<div class="table-wrap"><table>'+
+    '<thead><tr>'+
+      '<th style="width:40px;">#</th>'+
+      '<th>Batch No. (PEND)</th>'+
+      '<th>Batch ต้นทาง</th>'+
+      '<th>วันที่แจ้งปัญหา</th>'+
+      '<th>Site</th>'+
+      '<th style="width:80px;text-align:right;">จำนวน</th>'+
+      '<th style="width:80px;text-align:center;">รายละเอียด</th>'+
+      '<th style="width:120px;text-align:center;">สถานะ</th>'+
+    '</tr></thead><tbody>'+
+    _filteredD.map(function(b,i){
+      var dt = fmtDT(b.scan_date);
+      var originalBatch = b.batch_id.replace('-PEND','');
+      var isLost = b.status === 'lost_document';
+      return '<tr>'+
+        '<td style="color:var(--muted);">'+(i+1)+'</td>'+
+        '<td class="mono" style="color:var(--danger);">'+esc(b.batch_id)+'</td>'+
+        '<td class="mono" style="font-size:11px;color:var(--muted);">'+esc(originalBatch)+'</td>'+
+        '<td class="mono" style="font-size:11px;">'+dt+'</td>'+
+        '<td style="font-size:11px;">'+esc(b.site||'—')+'</td>'+
+        '<td class="mono" style="text-align:right;">'+b.barcode_count+'</td>'+
+        '<td style="text-align:center;"><button class="expand-btn" onclick="toggleDetail(\''+esc(b.batch_id)+'\',3)">▾ ดู</button></td>'+
+        '<td style="text-align:center;">'+
+          (isLost
+            ? '<span style="font-size:11px;color:var(--danger);font-weight:600;">🔴 เอกสารหาย</span>'
+            : '<span style="font-size:11px;color:var(--warn);">⚠️ รอจัดส่ง</span>')+
+        '</td>'+
+      '</tr>'+
+      '<tr class="detail-row" id="drow3-'+esc(b.batch_id)+'">'+
+        '<td colspan="8" class="detail-inner"><div id="dcontent3-'+esc(b.batch_id)+'"></div></td>'+
+      '</tr>';
+    }).join('')+
+    '</tbody></table></div>';
+}
 function loadTab2(){
   _tab2Loaded = true;
   document.getElementById('table2Wrap').innerHTML = '<div class="loading"><span class="spinner"></span>กำลังโหลด...</div>';
@@ -447,125 +513,6 @@ function clearFilter2(){
   _filteredS=_allSent.slice();
   document.getElementById('f2Result').textContent='';
   renderTable2();
-}
-
-// ── Load Tab 3: เอกสารมีปัญหา (on-demand) ───────────────
-function loadTab3(){
-  _tab3Loaded = true;
-  document.getElementById('table3Wrap').innerHTML = '<div class="loading"><span class="spinner"></span>กำลังโหลด...</div>';
-  fetch(API_URL+'?action=getBatches&status_filter=disputed'+getSiteFilterParam(session), {redirect:'follow'})
-    .then(function(r){return r.json();})
-    .then(function(data){
-      if(data.status!=='ok') throw new Error(data.message||'Error');
-      _allDisputed = data.batches||[];
-      _filteredD   = _allDisputed.slice();
-      var dangerCount = _allDisputed.filter(function(b){ return b.status==='disputed'||b.status==='lost_document'; }).length;
-      document.getElementById('tab3Count').textContent = dangerCount || '0';
-      renderTable3();
-    })
-    .catch(function(err){
-      document.getElementById('table3Wrap').innerHTML='<div class="empty" style="color:var(--danger);">โหลดไม่สำเร็จ: '+err.message+'</div>';
-    });
-}
-
-// ── Filter Tab 3 ──────────────────────────────────────────
-function applyFilter3(){
-  var fBatch  = document.getElementById('f3BatchId').value.trim().toLowerCase();
-  var fStatus = document.getElementById('f3Status').value;
-  _filteredD = _allDisputed.filter(function(b){
-    if(fBatch  && b.batch_id.toLowerCase().indexOf(fBatch)===-1) return false;
-    if(fStatus && b.status!==fStatus) return false;
-    return true;
-  });
-  document.getElementById('f3Result').textContent = (fBatch||fStatus) ? 'พบ '+_filteredD.length+' batch' : '';
-  renderTable3();
-}
-
-function clearFilter3(){
-  document.getElementById('f3BatchId').value='';
-  document.getElementById('f3Status').value='';
-  _filteredD=_allDisputed.slice();
-  document.getElementById('f3Result').textContent='';
-  renderTable3();
-}
-
-// ── Render Table 3 ────────────────────────────────────────
-function renderTable3(){
-  var wrap = document.getElementById('table3Wrap');
-  if(!_filteredD.length){ wrap.innerHTML='<div class="empty">ไม่มีรายการที่มีปัญหา ✅</div>'; return; }
-  var statusLabel = {
-    'disputed'     : '<span style="color:var(--warn);font-weight:700;">⚠️ disputed</span>',
-    'lost_document': '<span style="color:var(--danger);font-weight:700;">🔴 lost_document</span>',
-    'resolved'     : '<span style="color:var(--success);font-weight:700;">✅ resolved</span>'
-  };
-  wrap.innerHTML='<div class="table-wrap"><table>'+
-    '<thead><tr>'+
-      '<th style="width:40px;">#</th>'+
-      '<th>Batch No.</th>'+
-      '<th>สถานะ</th>'+
-      '<th>ประเภทปัญหา</th>'+
-      '<th>วันที่รับ</th>'+
-      '<th>Site</th>'+
-      '<th>ส่งจาก → คลัง</th>'+
-      '<th style="width:80px;text-align:right;">เอกสาร</th>'+
-      '<th style="width:90px;text-align:center;">รายละเอียด</th>'+
-    '</tr></thead><tbody>'+
-    _filteredD.map(function(b,i){
-      var st = statusLabel[b.status] || ('<span style="color:var(--muted);">'+esc(b.status)+'</span>');
-      var rowStyle = b.status==='lost_document' ? 'background:rgba(248,113,113,.04);' : b.status==='resolved' ? 'opacity:.65;' : '';
-      return '<tr style="'+rowStyle+'">'+
-        '<td style="color:var(--muted);">'+(i+1)+'</td>'+
-        '<td class="mono" style="color:var(--accent);font-size:11px;">'+esc(b.batch_id)+'</td>'+
-        '<td>'+st+'</td>'+
-        '<td style="font-size:11px;color:var(--muted);">'+esc(b.dispute_type||'—')+'</td>'+
-        '<td class="mono" style="font-size:11px;">'+fmtDT(b.scan_date)+'</td>'+
-        '<td style="font-size:11px;">'+esc(b.site||'—')+'</td>'+
-        '<td style="font-size:11px;">'+esc(b.site||'—')+' → '+esc(b.dest_warehouse||'—')+'</td>'+
-        '<td class="mono" style="text-align:right;">'+esc(String(b.barcode_count||'—'))+'</td>'+
-        '<td style="text-align:center;">'+
-          '<button class="expand-btn" onclick="toggleDetail3(\''+esc(b.batch_id)+'\')">▾ ดู</button>'+
-          (b.status==='disputed'?'<button class="expand-btn" style="color:var(--success);border-color:rgba(52,211,153,.3);margin-left:4px;" onclick="resolveDispute(\''+esc(b.batch_id)+'\')">✅ แก้แล้ว</button>':'')+'</td>'+
-      '</tr>'+
-      '<tr class="detail-row" id="drow3-'+esc(b.batch_id)+'">'+
-        '<td colspan="9" class="detail-inner"><div id="dcontent3-'+esc(b.batch_id)+'"></div></td>'+
-      '</tr>';
-    }).join('')+
-    '</tbody></table></div>';
-}
-
-// ── Toggle detail Tab 3 ───────────────────────────────────
-function toggleDetail3(batchId){
-  var row = document.getElementById('drow3-'+batchId);
-  if(!row) return;
-  if(row.classList.contains('open')){ row.classList.remove('open'); return; }
-  row.classList.add('open');
-  var content = document.getElementById('dcontent3-'+batchId);
-  if(_detailCache[batchId]){ renderDetailContent(content, _detailCache[batchId]); return; }
-  content.innerHTML='<div style="padding:14px;color:var(--muted);font-size:12px;"><span class="spinner"></span> กำลังโหลด...</div>';
-  fetch(API_URL+'?action=getBatchDetail&batch_id='+encodeURIComponent(batchId),{redirect:'follow'})
-    .then(function(r){return r.json();})
-    .then(function(data){
-      if(data.status!=='ok') throw new Error(data.message);
-      _detailCache[batchId]=data; renderDetailContent(content, data);
-    })
-    .catch(function(err){ content.innerHTML='<div style="padding:14px;color:var(--danger);">โหลดไม่สำเร็จ: '+err.message+'</div>'; });
-}
-
-// ── Resolve Dispute ───────────────────────────────────────
-async function resolveDispute(batchId){
-  if(!confirm('ยืนยันว่าปัญหาของ '+batchId+' ได้รับการแก้ไขแล้ว?\nระบบจะเปลี่ยน status เป็น resolved')) return;
-  try{
-    var res = await fetch(API_URL, {
-      method:'POST', redirect:'follow',
-      headers:{'Content-Type':'text/plain'},
-      body: JSON.stringify({ action:'resolveDispute', batch_id:batchId, emp_id:session.empId, emp_name:session.empName })
-    });
-    var data = await res.json();
-    if(data.status==='ok'){
-      showToast('✅ batch '+batchId+' — resolved แล้ว','success');
-      _tab3Loaded=false; loadTab3();
-    } else { showToast(data.message||'Error','error'); }
-  } catch(err){ showToast('เกิดข้อผิดพลาด: '+err.message,'error'); }
 }
 
 // ── Render Table 1 ────────────────────────────────────────
@@ -645,13 +592,14 @@ function renderTable2(){
 
 // ── Toggle detail accordion ───────────────────────────────
 function toggleDetail(batchId, tab){
-  var rowId = 'drow'+(tab===2?'2':'')+'-'+batchId;
-  var row   = document.getElementById(rowId);
+  var prefix  = tab===2?'2':tab===3?'3':'';
+  var rowId   = 'drow'+prefix+'-'+batchId;
+  var row     = document.getElementById(rowId);
   if(!row) return;
-  var isOpen = row.classList.contains('open');
+  var isOpen  = row.classList.contains('open');
   if(isOpen){ row.classList.remove('open'); return; }
   row.classList.add('open');
-  var contentId = 'dcontent'+(tab===2?'2':'')+'-'+batchId;
+  var contentId = 'dcontent'+prefix+'-'+batchId;
   var content   = document.getElementById(contentId);
   if(_detailCache[batchId]){ renderDetailContent(content, _detailCache[batchId]); return; }
   content.innerHTML = '<div style="padding:14px;color:var(--muted);font-size:12px;"><span class="spinner"></span> กำลังโหลด...</div>';
@@ -661,9 +609,6 @@ function toggleDetail(batchId, tab){
       if(data.status!=='ok') throw new Error(data.message);
       _detailCache[batchId]=data;
       renderDetailContent(content, data);
-      // sync ทั้ง 2 tab ถ้า cache เหมือนกัน
-      var other = document.getElementById('dcontent'+(tab===1?'2':'')+'-'+batchId);
-      if(other) renderDetailContent(other, data);
     })
     .catch(function(err){ content.innerHTML='<div style="padding:14px;color:var(--danger);font-size:12px;">โหลดไม่สำเร็จ: '+err.message+'</div>'; });
 }
