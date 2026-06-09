@@ -3,7 +3,7 @@
 //  แก้ไขที่นี่ที่เดียว มีผลทุกหน้า
 // ============================================================
 var DOCSCAN_CONFIG = {
-  API_URL: 'https://script.google.com/macros/s/AKfycbwV79dOlk9atVZsLx8VCoQ0cQFF4_MsYBFBG1AixNq7tx37_FeeBZP4RZqAAlPRgKN71g/exec',
+  API_URL: 'https://script.google.com/macros/s/AKfycbztRqOY2R25r83eP4XzN2nXjpnAAEg4OpR5pFei6Rs-pZ7FwGHI-u-4fKltiaswYV1ChQ/exec',
   APP_NAME: 'DocScan',
   VERSION: '1.0.0'
 };
