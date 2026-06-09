@@ -279,42 +279,6 @@ main{width:100%;max-width:100%;padding:20px 24px 100px;}
 <body>
 
 <!-- Site Overlay (สำหรับเปลี่ยน site เท่านั้น — ซ่อนถ้า session มีแล้ว) -->
-<div class="site-overlay" id="siteOverlay">
-  <div class="site-box">
-    <div class="site-box-header">
-      <div class="site-box-title">DocScan — Batch Mode</div>
-      <div class="site-box-sub">กรอกข้อมูลก่อนเริ่มงาน</div>
-    </div>
-    <div class="site-box-body">
-      <label class="site-label">รหัสพนักงาน</label>
-      <input class="site-input" id="empId" type="text" placeholder="กรอกรหัสพนักงาน" oninput="checkSite()">
-      <label class="site-label">ชื่อผู้กรอก</label>
-      <input class="site-input" id="empName" type="text" placeholder="กรอกชื่อ-นามสกุล" oninput="checkSite()">
-      <label class="site-label">Email</label>
-      <input class="site-input" id="empEmail" type="email" placeholder="กรอก Email" oninput="checkSite()">
-      <label class="site-label">Site / คลังสินค้า</label>
-      <select class="site-select" id="siteSelect" onchange="checkSite()">
-        <option value="">— กรุณาเลือก —</option>
-        <optgroup label="โรงงาน">
-          <option>โรงงานเชียงใหม่</option><option>โรงงานบางเลน</option>
-          <option>โรงงานปทุมธานี</option><option>โรงงานมหาสารคาม</option>
-          <option>โรงงานวังน้อย</option><option>โรงงานสิงห์บุรี</option>
-          <option>โรงงานสุราษฎร์ธานี</option><option>โรงงานขอนแก่น</option>
-        </optgroup>
-        <optgroup label="คลังสินค้า">
-          <option>RDC-ขอนแก่น</option><option>RDC-ลำพูน</option>
-          <option>RDC-สุราษฎร์ธานี</option><option>คลังชลบุรี</option>
-          <option>คลังทวีวัฒนา</option><option>คลังบางบัวทอง</option>
-          <option>คลังบางบัวทอง 2</option><option>คลังพิษณุโลก</option>
-          <option>คลังมีนบุรี</option><option>NDC-วังน้อย</option>
-          <option>คลังหาดใหญ่</option><option>คลังอุบลราชธานี</option>
-          <option>คลังลาดหลุมแก้ว</option><option>คลังลำไทร (Over Flow)</option>
-        </optgroup>
-      </select>
-      <button class="site-confirm-btn" id="siteConfirmBtn" onclick="confirmSite()" disabled>เริ่มต้น Batch</button>
-    </div>
-  </div>
-</div>
 
 <!-- Sidebar -->
 <aside class="sidebar">
@@ -587,7 +551,7 @@ function confirmSite() {
   DocScanAuth.save(selectedEmpId, selectedEmpName, selectedEmpEmail, selectedSite);
   document.getElementById('siteBadge').textContent = selectedEmpName + ' · ' + selectedSite;
   document.getElementById('userInfo').textContent = selectedEmpId + ' — ' + selectedEmpName;
-  document.getElementById('siteOverlay').style.display = 'none';
+  // siteOverlay removed
 }
 
 var _rowIdCounter = 0;
@@ -1418,7 +1382,7 @@ window.onload = function() {
   var s = DocScanAuth.requireAuth(); if (!s) return;
   selectedSite = s.site; selectedEmpId = s.empId;
   selectedEmpName = s.empName; selectedEmpEmail = s.empEmail;
-  document.getElementById('siteOverlay').style.display = 'none';
+  // siteOverlay removed
   document.getElementById('sidebarName').textContent = s.empName+' ('+s.empId+')';
   document.getElementById('sidebarSite').textContent = s.site;
   document.getElementById('userInfo').textContent    = s.empId+' — '+s.site;
