@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>DocScan — ประวัติการรับส่งเอกสาร</title>
 <script src="config.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.6/JsBarcode.all.min.js"></script>
 <style>
 /* ── Print Handover Sheet ── */
 @media print {
@@ -270,7 +270,10 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
       <div class="hs-title">ใบส่งมอบเอกสาร (Handover Sheet)</div>
       <div class="hs-sub">DocScan — Pallet Tracking System</div>
     </div>
-    <div id="hsQR" style="width:80px;height:80px;"></div>
+    <div id="hsQR" style="text-align:right;">
+      <svg id="hsBarcodesvg"></svg>
+      <div style="font-size:9px;color:#555;margin-top:2px;" id="hsBatchIdBarcode"></div>
+    </div>
   </div>
   <div class="hs-meta">
     <div class="hs-meta-item"><span class="hs-meta-label">Batch ID:</span><span id="hsBatchId">—</span></div>
@@ -760,11 +763,16 @@ async function printHandover(batchId) {
       '<td>'+esc(item.sent_qty||'—')+'</td></tr>';
   }).join('');
 
-  var qrEl = document.getElementById('hsQR');
-  qrEl.innerHTML = '';
-  if (typeof QRCode !== 'undefined') {
-    new QRCode(qrEl, { text:batchId, width:80, height:80,
-      colorDark:'#000', colorLight:'#fff', correctLevel:QRCode.CorrectLevel.M });
+  // Barcode 1D (Code128)
+  document.getElementById('hsBatchIdBarcode').textContent = batchId;
+  if (typeof JsBarcode !== 'undefined') {
+    JsBarcode('#hsBarcodesvg', batchId, {
+      format   : 'CODE128',
+      width    : 1.5,
+      height   : 40,
+      displayValue: false,
+      margin   : 0
+    });
   }
   setTimeout(function(){ window.print(); }, 300);
 }
