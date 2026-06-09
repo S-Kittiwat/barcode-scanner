@@ -337,6 +337,9 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
         <option value="t3">🟠 Business Impact (30-60 วัน)</option>
         <option value="t4">🔴 Critical (&gt;60 วัน)</option>
       </select>
+      <select class="f-select" id="filterItemName" onchange="applyFilters()" style="max-width:160px;">
+        <option value="">— ทุกประเภท —</option>
+      </select>
       <input class="f-input" type="text" id="filterRef" placeholder="Reference..." oninput="applyFilters()">
       <button class="export-btn" onclick="exportCSV()">⬇ Export CSV</button>
     </div>
@@ -411,14 +414,53 @@ window.onload = function() {
   document.getElementById('sidebarName').textContent = session.empName + ' (' + session.empId + ')';
   document.getElementById('sidebarSite').textContent = session.site;
   document.getElementById('topbarSub').textContent   = session.site;
-  loadData();
+  // โหลด site groups สำหรับ filter dropdown
+  fetch(API_URL + '?action=getSiteGroups')
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      window._siteGroups = data.groups || [];
+      buildSiteFilterDropdown(data.groups || []);
+    })
+    .catch(function(){ window._siteGroups = []; })
+    .finally(function(){ loadData(); });
 };
+
+function buildSiteFilterDropdown(groups) {
+  var el  = document.getElementById('filterSite');
+  var cur = el.value;
+  el.innerHTML = '<option value="">— ทุก Site —</option>';
+  var warehouses = groups.filter(function(g){ return (g.type||'warehouse') !== 'plant'; });
+  var plants     = groups.filter(function(g){ return g.type === 'plant'; });
+  if (warehouses.length) {
+    var wg = document.createElement('optgroup'); wg.label = '🏭 คลังสินค้า / DC';
+    warehouses.forEach(function(g){ var o=document.createElement('option');o.value=o.textContent=g.site_name;if(g.site_name===cur)o.selected=true;wg.appendChild(o); });
+    el.appendChild(wg);
+  }
+  if (plants.length) {
+    var pg = document.createElement('optgroup'); pg.label = '🏗️ โรงงาน (Plant)';
+    plants.forEach(function(g){ var o=document.createElement('option');o.value=o.textContent=g.site_name;if(g.site_name===cur)o.selected=true;pg.appendChild(o); });
+    el.appendChild(pg);
+  }
+}
 
 function loadData() {
   document.getElementById('bodyDone').innerHTML    = '<tr class="empty-row"><td colspan="10"><span class="spinner"></span>กำลังโหลด...</td></tr>';
   document.getElementById('bodyPending').innerHTML = '<tr class="empty-row"><td colspan="8"><span class="spinner"></span>กำลังโหลด...</td></tr>';
-  var site = document.getElementById('filterSite') ? document.getElementById('filterSite').value : '';
-  fetch(API_URL + '?action=getDashboard' + getSiteFilterParam(session))
+
+  // ใช้ filterSite dropdown ถ้าเลือกไว้ ไม่งั้นใช้ site_filter จาก session
+  var selectedSite = document.getElementById('filterSite').value;
+  var param;
+  if (selectedSite) {
+    // เลือก site เฉพาะ → หา site_filter จาก siteGroups
+    var group = (window._siteGroups||[]).find(function(g){ return g.site_name === selectedSite; });
+    var filter = group ? group.customer_start_names : [selectedSite];
+    param = '&site_filter=' + encodeURIComponent(filter.join('|'));
+  } else {
+    // ไม่ได้เลือก → ใช้ session site_filter (site ของ user ที่ login)
+    param = getSiteFilterParam(session);
+  }
+
+  fetch(API_URL + '?action=getDashboard' + param)
     .then(function(r){ return r.json(); })
     .then(function(data) {
       if (data.status !== 'ok') throw new Error(data.message);
@@ -483,8 +525,22 @@ function loadData() {
 
       _cachedDone    = data.done    || [];
       _cachedPending = data.pending || [];
+
+      // populate item_name dropdown จากข้อมูลจริง
+      var nameSet = {};
+      _cachedDone.concat(_cachedPending).forEach(function(item){
+        if(item.item_name) nameSet[item.item_name] = true;
+      });
+      var el2 = document.getElementById('filterItemName');
+      var cur2 = el2.value;
+      el2.innerHTML = '<option value="">— ทุกประเภท —</option>';
+      Object.keys(nameSet).sort().forEach(function(n){
+        var o=document.createElement('option');o.value=o.textContent=n;
+        if(n===cur2)o.selected=true; el2.appendChild(o);
+      });
+
       applyFilters();
-      setTimeout(drawChart, 100); // รอ canvas render
+      setTimeout(drawChart, 100);
     })
     .catch(function(err){
       showToast('โหลดข้อมูลไม่สำเร็จ: ' + err.message, 'error');
@@ -528,27 +584,27 @@ function csvCell(v) {
 
 // ── getFilteredData() ─────────────────────────────────────
 function getFilteredData() {
-  var fStatus = document.getElementById('filterStatus').value;
-  var fRef    = (document.getElementById('filterRef').value    || '').trim().toLowerCase();
-  var fMonth  = (document.getElementById('filterMonth').value  || '');
-  var fDate   = (document.getElementById('filterDate').value   || '');
-  var fTier   = (document.getElementById('filterTier').value   || 'all');
+  var fStatus   = document.getElementById('filterStatus').value;
+  var fRef      = (document.getElementById('filterRef').value       || '').trim().toLowerCase();
+  var fMonth    = (document.getElementById('filterMonth').value     || '');
+  var fDate     = (document.getElementById('filterDate').value      || '');
+  var fTier     = (document.getElementById('filterTier').value      || 'all');
+  var fItemName = (document.getElementById('filterItemName').value  || '');
 
   var done = _cachedDone.filter(function(item) {
-    if (fRef   && (item.ref_no||'').toLowerCase().indexOf(fRef) === -1) return false;
-    if (fMonth && toYM(item.doc_date) !== fMonth)                       return false;
-    // exact ISO date comparison
-    if (fDate  && (item.received_date||'') !== fDate)                   return false;
+    if (fRef      && (item.ref_no||'').toLowerCase().indexOf(fRef) === -1)   return false;
+    if (fMonth    && toYM(item.doc_date) !== fMonth)                          return false;
+    if (fDate     && (item.received_date||'') !== fDate)                      return false;
+    if (fItemName && (item.item_name||'') !== fItemName)                      return false;
     return true;
   });
 
   var pend = _cachedPending.filter(function(item) {
-    if (fRef   && (item.ref_no||'').toLowerCase().indexOf(fRef) === -1) return false;
-    if (fMonth && toYM(item.doc_date) !== fMonth)                       return false;
-    // FIX: normalizeDate ก่อนเทียบ ไม่ใช่ toYM
-    if (fDate  && normalizeDate(item.doc_date) !== fDate)               return false;
-    // tier จาก backend เท่านั้น
-    if (fTier !== 'all' && item.tier !== fTier)                         return false;
+    if (fRef      && (item.ref_no||'').toLowerCase().indexOf(fRef) === -1)   return false;
+    if (fMonth    && toYM(item.doc_date) !== fMonth)                          return false;
+    if (fDate     && normalizeDate(item.doc_date) !== fDate)                  return false;
+    if (fTier     !== 'all' && item.tier !== fTier)                           return false;
+    if (fItemName && (item.item_name||'') !== fItemName)                      return false;
     return true;
   });
 
@@ -823,7 +879,9 @@ function exportCSV() {
   var url   = URL.createObjectURL(blob);
   var a     = document.createElement('a');
   a.href    = url;
+  var fItemName = document.getElementById('filterItemName').value || '';
   a.download = 'DocScan_'+(document.getElementById('filterSite').value||'all')+
+               (fItemName?'_'+fItemName:'')+
                '_'+ new Date().toISOString().split('T')[0]+'.csv';
   a.click();
   URL.revokeObjectURL(url);
