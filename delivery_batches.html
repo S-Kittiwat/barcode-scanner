@@ -5,6 +5,29 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>DocScan — ประวัติการรับส่งเอกสาร</title>
 <script src="config.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+/* ── Print Handover Sheet ── */
+@media print {
+  body > *:not(#printArea){ display:none !important; }
+  #printArea{ display:block !important; }
+  .no-print{ display:none !important; }
+}
+#printArea{ display:none; font-family:'IBM Plex Sans Thai',sans-serif; color:#000; padding:24px; }
+.hs-header{ display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px; border-bottom:2px solid #000; padding-bottom:12px; }
+.hs-title{ font-size:20px; font-weight:700; }
+.hs-sub{ font-size:12px; color:#555; margin-top:4px; }
+.hs-meta{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:16px; font-size:13px; }
+.hs-meta-item{ display:flex; gap:6px; }
+.hs-meta-label{ font-weight:600; min-width:80px; }
+.hs-table{ width:100%; border-collapse:collapse; font-size:12px; margin-bottom:16px; }
+.hs-table th{ background:#f0f0f0; padding:6px 10px; text-align:left; border:1px solid #ccc; }
+.hs-table td{ padding:6px 10px; border:1px solid #ccc; }
+.hs-sign{ display:grid; grid-template-columns:1fr 1fr; gap:32px; margin-top:24px; }
+.hs-sign-box{ border-top:1px solid #000; padding-top:8px; font-size:12px; }
+.hs-sign-label{ font-weight:600; margin-bottom:24px; }
+.hs-footer{ font-size:10px; color:#777; text-align:center; margin-top:16px; border-top:1px solid #ccc; padding-top:8px; }
+</style>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
 :root{
@@ -228,6 +251,42 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
   </div>
 </div>
 
+<!-- Print Area (hidden ยกเว้นตอน print) -->
+<div id="printArea">
+  <div class="hs-header">
+    <div>
+      <div class="hs-title">ใบส่งมอบเอกสาร (Handover Sheet)</div>
+      <div class="hs-sub">DocScan — Pallet Tracking System</div>
+    </div>
+    <div id="hsQR" style="width:80px;height:80px;"></div>
+  </div>
+  <div class="hs-meta">
+    <div class="hs-meta-item"><span class="hs-meta-label">Batch ID:</span><span id="hsBatchId">—</span></div>
+    <div class="hs-meta-item"><span class="hs-meta-label">วันที่ส่ง:</span><span id="hsDate">—</span></div>
+    <div class="hs-meta-item"><span class="hs-meta-label">ส่งจาก:</span><span id="hsSite">—</span></div>
+    <div class="hs-meta-item"><span class="hs-meta-label">คลังปลายทาง:</span><span id="hsDest">—</span></div>
+    <div class="hs-meta-item"><span class="hs-meta-label">ผู้ส่ง:</span><span id="hsEmp">—</span></div>
+    <div class="hs-meta-item"><span class="hs-meta-label">จำนวน:</span><span id="hsCount">—</span> ฉบับ</div>
+  </div>
+  <table class="hs-table">
+    <thead><tr><th>#</th><th>Barcode</th><th>Reference</th><th>ประเภท</th><th>โอนจาก → โอนไป</th><th>QTY</th></tr></thead>
+    <tbody id="hsTableBody"></tbody>
+  </table>
+  <div class="hs-sign">
+    <div class="hs-sign-box">
+      <div class="hs-sign-label">ผู้ส่ง (ทีมจัดส่ง)</div>
+      <div>ชื่อ: ................................</div><br>
+      <div>วันที่: ..............................</div>
+    </div>
+    <div class="hs-sign-box">
+      <div class="hs-sign-label">ผู้รับ (ทีมคลังพาเลท)</div>
+      <div>ชื่อ: ................................</div><br>
+      <div>วันที่: ..............................</div>
+    </div>
+  </div>
+  <div class="hs-footer">พิมพ์จากระบบ DocScan — Batch: <span id="hsFooterBatch">—</span> — <span id="hsFooterDate">—</span></div>
+</div>
+
 <div id="toast" class="toast"></div>
 
 <script>
@@ -427,7 +486,8 @@ function renderTable2(){
         '<td style="font-size:11px;">'+esc(b.emp_name||'—')+'</td>'+
         '<td style="font-size:11px;">'+esc(b.site||'—')+'</td>'+
         '<td class="mono" style="text-align:right;">'+b.barcode_count+'</td>'+
-        '<td style="text-align:center;"><button class="expand-btn" onclick="toggleDetail(\''+esc(b.batch_id)+'\',2)">▾ ดู</button></td>'+
+        '<td style="text-align:center;"><button class="expand-btn" onclick="toggleDetail(\''+esc(b.batch_id)+'\',2)">▾ ดู</button> '+
+        '<button class="expand-btn no-print" style="color:var(--success);border-color:rgba(52,211,153,.3);" onclick="printHandover(\''+esc(b.batch_id)+'\')">🖨 พิมพ์</button></td>'+
       '</tr>'+
       '<tr class="detail-row" id="drow2-'+esc(b.batch_id)+'">'+
         '<td colspan="9" class="detail-inner"><div id="dcontent2-'+esc(b.batch_id)+'"></div></td>'+
@@ -576,6 +636,47 @@ async function exportCSV(){
 }
 
 // ── Helpers ───────────────────────────────────────────────
+// ── Print Handover Sheet ─────────────────────────────────
+async function printHandover(batchId) {
+  if (!_detailCache[batchId]) {
+    try {
+      var r = await fetch(API_URL+'?action=getBatchDetail&batch_id='+encodeURIComponent(batchId));
+      var d = await r.json();
+      if (d.status==='ok') _detailCache[batchId]=d;
+      else { showToast('โหลดข้อมูลไม่สำเร็จ','error'); return; }
+    } catch(err) { showToast('โหลดข้อมูลไม่สำเร็จ','error'); return; }
+  }
+  var detail = _detailCache[batchId];
+  var b = (_allReceived.concat(_allSent)).find(function(x){ return x.batch_id===batchId; }) || {};
+
+  document.getElementById('hsBatchId').textContent  = batchId;
+  document.getElementById('hsDate').textContent     = fmtDT(b.scan_date||detail.scan_date||'');
+  document.getElementById('hsSite').textContent     = b.site||detail.site||'—';
+  document.getElementById('hsDest').textContent     = b.dest_warehouse||detail.dest_warehouse||'—';
+  document.getElementById('hsEmp').textContent      = b.emp_name||detail.emp_name||'—';
+  document.getElementById('hsCount').textContent    = (detail.barcodes||[]).length;
+  document.getElementById('hsFooterBatch').textContent = batchId;
+  document.getElementById('hsFooterDate').textContent  = new Date().toLocaleString('th-TH');
+
+  document.getElementById('hsTableBody').innerHTML = (detail.barcodes||[]).map(function(item,i){
+    return '<tr>'+
+      '<td>'+(i+1)+'</td>'+
+      '<td style="font-family:monospace;">'+esc(item.barcode)+'</td>'+
+      '<td>'+esc(item.ref_no||'—')+'</td>'+
+      '<td>'+esc(item.item_name||'—')+'</td>'+
+      '<td style="font-size:11px;">'+esc(item.transfer_from||'—')+' → '+esc(item.transfer_to||'—')+'</td>'+
+      '<td>'+esc(item.sent_qty||'—')+'</td></tr>';
+  }).join('');
+
+  var qrEl = document.getElementById('hsQR');
+  qrEl.innerHTML = '';
+  if (typeof QRCode !== 'undefined') {
+    new QRCode(qrEl, { text:batchId, width:80, height:80,
+      colorDark:'#000', colorLight:'#fff', correctLevel:QRCode.CorrectLevel.M });
+  }
+  setTimeout(function(){ window.print(); }, 300);
+}
+
 function fmtDT(iso){
   if(!iso) return '—';
   try{ return new Date(iso).toLocaleString('th-TH',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}); }catch(e){return iso;}
