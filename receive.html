@@ -4,9 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>DocScan — รับเอกสาร</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="config.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
 :root{
@@ -155,12 +156,46 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .toast.success{border-color:rgba(52,211,153,.4);color:var(--success);}
 .toast.error{border-color:rgba(248,113,113,.4);color:var(--danger);}
 .toast.info{border-color:rgba(56,189,248,.4);color:var(--accent);}
+
+/* ── เพิ่มเติมจาก Best Version ── */
+.bc-input{background:var(--surface2);border:1.5px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:12px;padding:5px 8px;outline:none;width:100%;transition:border-color .15s;}
+.bc-input:focus{border-color:var(--accent);}
+.bc-input.found{border-color:var(--success);}
+.bc-input.notfound{border-color:var(--warn);}
+.bc-input.dup{border-color:var(--danger);}
+.date-smart{letter-spacing:.05em;text-align:center;}
+.date-smart.ok{border-color:var(--success);color:var(--success);}
+.date-smart.err{border-color:var(--danger);color:var(--danger);}
+.sb{font-size:10px;font-weight:600;padding:1px 7px;border-radius:20px;white-space:nowrap;}
+.sb-idle   {background:var(--surface2);color:var(--muted);border:1px solid var(--border);}
+.sb-found  {background:rgba(56,189,248,.1);color:var(--accent);border:1px solid rgba(56,189,248,.25);}
+.sb-ready  {background:rgba(52,211,153,.1);color:var(--success);border:1px solid rgba(52,211,153,.25);}
+.sb-nf     {background:rgba(248,113,113,.1);color:var(--danger);border:1px solid rgba(248,113,113,.25);}
+.sb-dup    {background:rgba(251,191,36,.1);color:var(--warn);border:1px solid rgba(251,191,36,.25);}
+.sb-reject {background:rgba(148,163,184,.1);color:var(--muted);border:1px solid var(--border);}
+.batch-table-wrap tr.row-dup td{background:rgba(251,191,36,.05);}
+.upload-counter{display:flex;align-items:center;gap:10px;margin-bottom:8px;font-size:12px;color:var(--muted);}
+.upload-counter-bar{flex:1;height:4px;background:var(--surface2);border-radius:10px;overflow:hidden;}
+.upload-counter-fill{height:100%;background:var(--accent);border-radius:10px;transition:width .3s;}
+.upload-counter-fill.warn{background:var(--warn);}
+.upload-counter-fill.full{background:var(--danger);}
+.limit-banner{display:none;background:rgba(251,191,36,.07);border:1px solid rgba(251,191,36,.3);border-radius:var(--rs);padding:7px 14px;font-size:12px;color:var(--warn);margin-bottom:8px;align-items:center;gap:8px;}
+.limit-banner.show{display:flex;}
+.limit-banner.danger{background:rgba(248,113,113,.07);border-color:rgba(248,113,113,.3);color:var(--danger);}
+.upload-zone.drag{border-color:var(--accent);background:rgba(56,189,248,.03);}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
+@media (max-width: 640px) {
+  .nav-user { display: none; }
+  .nav-brand .nav-brand-sub { display: none; }
+  .nav-link { padding: 0 10px; font-size: 12px; }
+  .content { padding: 12px 14px 100px; }
+}
+
 </style>
 </head>
 <body>
 
-<!-- Sidebar -->
-<!-- Page -->
+<!-- Top Navigation -->
 <nav class="nav-bar">
   <a class="nav-brand" href="dashboard.html">
     <div class="nav-brand-icon">
@@ -173,34 +208,33 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
     <div><div class="nav-brand-name">DocScan</div><div class="nav-brand-sub">Pallet Tracking</div></div>
   </a>
   <div class="nav-pages">
-  <a class="nav-link" href="dashboard.html">📊 Dashboard</a>
-  <a class="nav-link active" href="incoming.html">📥 รับเอกสาร</a>
-  <a class="nav-link" href="batch.html">📦 Batch Scan</a>
+    <a class="nav-link" href="dashboard.html">📊 Dashboard</a>
+    <a class="nav-link active" href="incoming.html">📥 รับเอกสาร</a>
   </div>
   <div class="nav-user">
     <div>
       <div class="nav-user-name" id="sidebarName">—</div>
       <div class="nav-user-site" id="sidebarSite">—</div>
     </div>
-    <button class="nav-logout" onclick="logout()">↩ ออก</button>
+    <button class="nav-logout" onclick="DocScanAuth.clear();location.href='login.html';">↩ ออก</button>
   </div>
 </nav>
 
 <div class="page-wrap">
   <div class="topbar">
     <div style="display:flex;align-items:center;">
-      <button class="back-btn" onclick="history.back()">← กลับ</button>
+      <a href="incoming.html" class="back-btn" onclick="return confirmBack()">← กลับ</a>
       <div>
-        <div class="topbar-title" id="topbarTitle">รับเอกสาร</div>
+        <div class="topbar-title" id="topbarTitle">รับเอกสารจากจัดส่ง</div>
         <div class="topbar-sub" id="topbarSub">—</div>
       </div>
     </div>
-    <span class="status-badge badge-wait" id="statusBadge">⏳ รอยืนยัน</span>
+    <span class="status-badge badge-wait" id="statusBadge" style="display:none;">⏳ รอยืนยัน</span>
   </div>
 
   <div class="content">
 
-    <!-- ══ STEP 1: Scan ยืนยัน ══ -->
+    <!-- ══ STEP 1 ══ -->
     <div class="step-card active" id="step1Card">
       <div class="step-head">
         <span class="step-num active">Step 1</span>
@@ -213,18 +247,15 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
         </div>
         <div class="scan-row">
           <input class="scan-input" id="step1Input" type="text"
-            placeholder="DEL-20260609-001"
-            autocomplete="off"
+            placeholder="DEL-20260609-001" autocomplete="off"
             onkeydown="if(event.key==='Enter'){event.preventDefault();verifyBatch(this.value);}">
-          <button class="scan-btn" onclick="verifyBatch(document.getElementById('step1Input').value)">
-            ✓ ยืนยัน
-          </button>
+          <button class="scan-btn" onclick="verifyBatch(document.getElementById('step1Input').value)">✓ ยืนยัน</button>
         </div>
         <div class="verify-result" id="verifyResult"></div>
       </div>
     </div>
 
-    <!-- ══ STEP 2: Upload + Scan ══ -->
+    <!-- ══ STEP 2 ══ -->
     <div class="step-card locked" id="step2Card">
       <div class="step-head">
         <span class="step-num locked" id="step2Num">Step 2</span>
@@ -232,7 +263,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
         <span class="step-hint" id="step2Hint">🔒 ต้องผ่าน Step 1 ก่อน</span>
       </div>
       <div class="step-body">
-        <!-- batch info mini -->
+        <!-- batch info chips -->
         <div id="ripSection" style="margin-bottom:12px;display:none;">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
             <span style="font-size:12px;color:var(--muted);">รายการจากจัดส่ง</span>
@@ -245,31 +276,45 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
         </div>
 
         <!-- upload zone -->
-        <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+        <div class="upload-zone" id="uploadZone"
+          ondragover="event.preventDefault();this.classList.add('drag')"
+          ondragleave="this.classList.remove('drag')"
+          ondrop="handleDrop(event)">
           <div class="icon">📂</div>
-          <div class="label">Upload PDF หรือรูปภาพ</div>
-          <div class="sub">JPG, PNG, PDF — เลือกได้หลายไฟล์</div>
+          <div class="label">ลากไฟล์มาวางที่นี่ หรือคลิกเพื่อเลือกไฟล์</div>
+          <div class="sub">JPG, PNG, PDF (สูงสุด 40 หน้า/ไฟล์) — Upload เพิ่มได้เรื่อยๆ</div>
         </div>
         <input type="file" id="fileInput" accept="image/*,application/pdf" multiple
-          onchange="handleFiles(this.files)" style="display:none;">
+          onchange="handleFiles(this.files);this.value='';" style="display:none;">
+        <!-- counter + limit banner -->
+        <div class="upload-counter" id="uploadCounter" style="display:none;">
+          <span id="counterText">0 / 200</span>
+          <div class="upload-counter-bar"><div class="upload-counter-fill" id="counterFill" style="width:0%;"></div></div>
+        </div>
+        <div class="limit-banner" id="limitBanner">
+          <span id="limitBannerText">⚠️ ใกล้เต็มแล้ว</span>
+        </div>
 
         <!-- table -->
         <div id="tableWrap" style="display:none;">
           <div class="batch-table-wrap">
             <table>
               <thead><tr>
-                <th style="width:4%;">#</th>
-                <th style="width:6%;">ไฟล์</th>
-                <th style="width:12%;">Barcode</th>
-                <th style="width:6%;">Match</th>
-                <th style="width:10%;">Reference</th>
-                <th style="width:9%;">ประเภท</th>
-                <th style="width:13%;">โอนจาก</th>
-                <th style="width:13%;">โอนไป</th>
-                <th style="width:9%;">วันที่รับ</th>
-                <th style="width:5%;">QTY รับ</th>
-                <th style="width:8%;">สถานะ</th>
-                <th style="width:5%;"></th>
+                <th style="width:3%;">#</th>
+                <th style="width:5%;">ไฟล์</th>
+                <th style="width:11%;">Barcode</th>
+                <th style="width:7%;">สถานะ</th>
+                <th style="width:5%;">Match</th>
+                <th style="width:9%;">Reference</th>
+                <th style="width:8%;">ประเภท</th>
+                <th style="width:10%;">โอนจาก</th>
+                <th style="width:9%;">Origin Acc.</th>
+                <th style="width:10%;">โอนไป</th>
+                <th style="width:9%;">Dest Acc.</th>
+                <th style="width:8%;">วันที่รับ</th>
+                <th style="width:4%;">QTY</th>
+                <th style="width:4%;"></th>
+                <th style="width:3%;"></th>
               </tr></thead>
               <tbody id="tableBody"></tbody>
             </table>
@@ -278,7 +323,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
       </div>
     </div>
 
-    <!-- ══ STEP 3: ตรวจสอบ + ยืนยัน ══ -->
+    <!-- ══ STEP 3 ══ -->
     <div class="step-card locked" id="step3Card">
       <div class="step-head">
         <span class="step-num locked" id="step3Num">Step 3</span>
@@ -312,7 +357,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
       <div>
         <div class="m-label">ประเภทปัญหา</div>
         <div class="m-radio-group">
-          <label class="m-radio"><input type="radio" name="rejectType" value="missing" checked> เอกสารขาด (อยู่ใน Batch แต่ไม่มีไฟล์)</label>
+          <label class="m-radio"><input type="radio" name="rejectType" value="missing" checked> เอกสารขาด</label>
           <label class="m-radio"><input type="radio" name="rejectType" value="mismatch"> บาร์โค้ดไม่ตรงกับ Batch</label>
           <label class="m-radio"><input type="radio" name="rejectType" value="damaged"> เอกสารชำรุด / อ่านไม่ได้</label>
         </div>
@@ -343,17 +388,122 @@ var DocScanAuth=(function(){
 
 var API_URL = DOCSCAN_CONFIG.API_URL;
 var session, csvData=[], csvLoaded=false;
-var _batch    = null;   // batch detail จาก GAS
-var _rows     = [];     // scan rows
+var _batch    = null;
+var _rows     = [];
 var _rowId    = 0;
-var _verified = false;  // step 1 ผ่านแล้ว
+var _verified = false;
+var MAX_ROWS      = 200;
+var MAX_PDF_PAGES = 40;
+var WARN_ROWS     = 160;
+
+document.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('uploadZone').addEventListener('click', function() {
+    document.getElementById('fileInput').click();
+  });
+});
+
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('uploadZone').classList.remove('drag');
+  handleFiles(e.dataTransfer.files);
+}
+
+function handleFiles(files) {
+  Array.from(files).forEach(function(file) {
+    if (file.type === 'application/pdf') handlePDF(file);
+    else handleImage(file);
+  });
+}
+
+function handleImage(file) {
+  // ต้องมีพื้นที่อย่างน้อย 1 slot
+  if (_rows.length >= MAX_ROWS) {
+    showToast('เต็มแล้ว — ไม่สามารถเพิ่ม "'+file.name+'" ได้', 'error');
+    return;
+  }
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    addRow({file:file, fileName:file.name, thumb:e.target.result, photoData:e.target.result});
+  };
+  reader.readAsDataURL(file);
+}
+
+function handlePDF(file) {
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var arr = new Uint8Array(e.target.result);
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    pdfjsLib.getDocument({data:arr}).promise.then(function(pdf) {
+      var total = pdf.numPages;
+      var pages = Math.min(total, MAX_PDF_PAGES);
+      if (total > MAX_PDF_PAGES) {
+        showToast(file.name+' มี '+total+' หน้า — ตัดเหลือ '+MAX_PDF_PAGES+' หน้า', 'error');
+      }
+      // ตรวจว่ามีพื้นที่พอรับทั้งไฟล์ไหม
+      var available = MAX_ROWS - _rows.length;
+      if (available < pages) {
+        showToast('พื้นที่เหลือ '+available+' — "'+file.name+'" ต้องการ '+pages+' หน้า ไม่รับเข้า', 'error');
+        return;
+      }
+      for (var p = 1; p <= pages; p++) {
+        (function(pageNum) {
+          pdf.getPage(pageNum).then(function(page) {
+            var vp = page.getViewport({scale:0.4});
+            var canvas = document.createElement('canvas');
+            canvas.width = vp.width; canvas.height = vp.height;
+            page.render({canvasContext:canvas.getContext('2d'),viewport:vp}).promise.then(function() {
+              addRow({file:file, fileName:file.name+'[p'+pageNum+']', thumb:canvas.toDataURL(), photoData:canvas.toDataURL()});
+            });
+          });
+        })(p);
+      }
+    });
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function addRow(opts) {
+  if (_rows.length >= MAX_ROWS) return;
+  var id = ++_rowId;
+  _rows.push({
+    id:id, file:opts.file, fileName:opts.fileName, thumb:opts.thumb,
+    barcode:'', status:'idle', doc:null, rejected:false, rejectNote:'',
+    editVals:{ref:'',itemName:'',from:'',originAcc:'',to:'',destAcc:'',receivedDate:'',recvQty:''},
+    photoData:opts.photoData
+  });
+  renderTable();
+  document.getElementById('tableWrap').style.display = 'block';
+  updateCounter();
+  updateSummary();
+}
+
+function updateCounter() {
+  var n   = _rows.length;
+  var pct = Math.min(100, n / MAX_ROWS * 100);
+  var counterEl = document.getElementById('uploadCounter');
+  var fillEl    = document.getElementById('counterFill');
+  var textEl    = document.getElementById('counterText');
+  var banner    = document.getElementById('limitBanner');
+  var bannerTxt = document.getElementById('limitBannerText');
+
+  counterEl.style.display = n > 0 ? 'flex' : 'none';
+  textEl.textContent = n + ' / ' + MAX_ROWS;
+  fillEl.style.width = pct + '%';
+  fillEl.className   = 'upload-counter-fill' + (n >= MAX_ROWS ? ' full' : n >= WARN_ROWS ? ' warn' : '');
+  banner.className   = 'limit-banner' + (n >= MAX_ROWS ? ' danger show' : n >= WARN_ROWS ? ' show' : '');
+  bannerTxt.textContent = n >= MAX_ROWS
+    ? '🚫 ครบ '+MAX_ROWS+' รายการแล้ว — ไม่สามารถเพิ่มไฟล์ใหม่ได้'
+    : '⚠️ ใกล้เต็ม — เหลืออีก '+(MAX_ROWS-n)+' รายการ';
+}
 
 // ── Init ─────────────────────────────────────────────────
 window.onload = function() {
   session = DocScanAuth.requireAuth();
   if (!session) return;
   document.getElementById('sidebarName').textContent = session.empName+' ('+session.empId+')';
+  var ss=document.getElementById('sidebarSite'); if(ss) ss.textContent=session.site;
   document.getElementById('topbarSub').textContent   = session.site;
+  var tns = document.getElementById('topnavSite'); if (tns) tns.textContent = session.site;
   loadCSV();
   // รับ batchId จาก query string
   var batchId = new URLSearchParams(window.location.search).get('batch_id');
@@ -367,20 +517,33 @@ window.onload = function() {
 
 // ── CSV ───────────────────────────────────────────────────
 function loadCSV() {
-  fetch(API_URL+'?action=getCSV',{method:'GET',redirect:'follow'})
-    .then(function(r){return r.text();})
-    .then(function(t){
-      var lines=t.replace(/\r/g,'').split('\n').filter(function(l){return l.trim();});
-      if(lines.length<2)return;
-      var h=lines[0].replace(/^\uFEFF/,'').split(',');
-      csvData=[];
-      for(var i=1;i<lines.length;i++){
-        var v=lines[i].split(',');var o={};
-        h.forEach(function(k,idx){o[k.trim()]=(v[idx]||'').trim();});
+  fetch(API_URL+'?action=getCSV', {method:'GET', redirect:'follow'})
+    .then(function(r) {
+      if (!r.ok) throw new Error('HTTP '+r.status);
+      return r.text();
+    })
+    .then(function(t) {
+      // ถ้า GAS return JSON error ให้จับไว้
+      if (t.trim().startsWith('{')) {
+        var j = JSON.parse(t);
+        throw new Error(j.message || 'GAS error');
+      }
+      var lines = t.replace(/\r/g,'').split('\n').filter(function(l){return l.trim();});
+      if (lines.length < 2) throw new Error('CSV ว่างเปล่า ('+lines.length+' lines)');
+      var h = lines[0].replace(/^\uFEFF/,'').split(',');
+      csvData = [];
+      for (var i = 1; i < lines.length; i++) {
+        var v = lines[i].split(','); var o = {};
+        h.forEach(function(k,idx){ o[k.trim()] = (v[idx]||'').trim(); });
         csvData.push(o);
       }
-      csvLoaded=true;
-    }).catch(function(){});
+      csvLoaded = true;
+      console.log('✅ CSV loaded:', csvData.length, 'rows, headers:', h.slice(0,5));
+    })
+    .catch(function(err) {
+      console.error('❌ loadCSV error:', err.message);
+      showToast('โหลด CSV ไม่สำเร็จ: '+err.message, 'error');
+    });
 }
 
 function searchCSV(barcode){
@@ -485,91 +648,84 @@ function updateRIP() {
 }
 
 // ── File handling ─────────────────────────────────────────
-function handleFiles(files) {
-  Array.from(files).forEach(function(file) {
-    if (file.type === 'application/pdf') handlePDF(file);
-    else handleImage(file);
-  });
-}
-
-function handleImage(file) {
-  var reader = new FileReader();
-  reader.onload = function(e) {
-    addRow({file:file, fileName:file.name, thumb:e.target.result, barcode:'', photoData:e.target.result});
-  };
-  reader.readAsDataURL(file);
-}
-
-function handlePDF(file) {
-  var reader = new FileReader();
-  reader.onload = function(e) {
-    var arr = new Uint8Array(e.target.result);
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-    pdfjsLib.getDocument({data: arr}).promise.then(function(pdf) {
-      for(var p=1;p<=pdf.numPages;p++){
-        (function(pageNum){
-          pdf.getPage(pageNum).then(function(page){
-            var vp=page.getViewport({scale:0.4});
-            var canvas=document.createElement('canvas');
-            canvas.width=vp.width; canvas.height=vp.height;
-            page.render({canvasContext:canvas.getContext('2d'),viewport:vp}).promise.then(function(){
-              addRow({file:file, fileName:file.name+'[p'+pageNum+']', thumb:canvas.toDataURL(), barcode:'', photoData:canvas.toDataURL()});
-            });
-          });
-        })(p);
-      }
-    });
-  };
-  reader.readAsArrayBuffer(file);
-}
-
-function addRow(opts) {
-  var id = ++_rowId;
-  _rows.push({
-    id:id, file:opts.file, fileName:opts.fileName, thumb:opts.thumb,
-    barcode:'', status:'idle', doc:null, rejected:false, rejectNote:'',
-    editVals:{ref:'',itemName:'',from:'',to:'',receivedDate:'',recvQty:''},
-    photoData:opts.photoData
-  });
-  renderTable();
-  document.getElementById('tableWrap').style.display = 'block';
-  document.getElementById('uploadZone').style.display = 'none';
-  updateSummary();
-}
-
 // ── Render Table ─────────────────────────────────────────
+function _getDupSet() {
+  var seen = {}, dups = {};
+  _rows.forEach(function(r) {
+    if (!r.barcode || r.rejected) return;
+    var bc = r.barcode.toUpperCase();
+    if (seen[bc]) dups[bc] = true;
+    seen[bc] = true;
+  });
+  return dups;
+}
+
+function _rowStatus(row, inBatch, isDup) {
+  if (row.rejected) return 'reject';
+  if (isDup)        return 'dup';
+  if (!row.barcode) return 'idle';
+  var ev = row.editVals;
+  var hasRequired = ev.from && ev.to && ev.receivedDate && ev.recvQty;
+  if (inBatch === false) return 'nf';
+  if (row.doc || inBatch === true) return hasRequired ? 'ready' : 'found';
+  return 'found';
+}
+
+function _statusBadge(st) {
+  var map = {
+    idle   : ['sb sb-idle',   'รอ barcode'],
+    found  : ['sb sb-found',  'พบข้อมูล'],
+    ready  : ['sb sb-ready',  'พร้อมส่ง'],
+    nf     : ['sb sb-nf',     'ไม่พบ'],
+    dup    : ['sb sb-dup',    'ซ้ำ'],
+    reject : ['sb sb-reject', 'reject']
+  };
+  var d = map[st] || map.idle;
+  return '<span class="'+d[0]+'">'+d[1]+'</span>';
+}
+
 function renderTable() {
   var tbody = document.getElementById('tableBody');
   if (!_rows.length) {
     tbody.innerHTML = '';
     document.getElementById('tableWrap').style.display = 'none';
-    document.getElementById('uploadZone').style.display = 'block';
     return;
   }
   var batchBarcodes = _batch ? (_batch.barcodes||[]).map(function(b){return b.barcode.toUpperCase();}) : [];
+  var dups = _getDupSet();
   tbody.innerHTML = _rows.map(function(row, i) {
-    var inBatch   = row.barcode ? batchBarcodes.indexOf(row.barcode.toUpperCase())!==-1 : null;
-    var matchCls  = row.rejected ? 'row-rejected' : row.barcode && inBatch===true ? 'row-matched' : row.barcode && inBatch===false ? 'row-extra' : '';
-    var matchBadge = row.rejected
-      ? '<span style="font-size:10px;color:var(--muted);">❌ reject</span>'
-      : !row.barcode ? '<span style="font-size:10px;color:var(--muted);">—</span>'
-      : inBatch ? '<span style="font-size:10px;color:var(--success);">✅</span>'
-      : '<span style="font-size:10px;color:var(--danger);">⚠️ ไม่ตรง</span>';
+    var bc       = (row.barcode||'').toUpperCase();
+    var inBatch  = bc ? batchBarcodes.indexOf(bc) !== -1 : null;
+    var isDup    = bc && !row.rejected && !!dups[bc];
+    var st       = _rowStatus(row, inBatch, isDup);
+    var rowCls   = st === 'reject' ? 'row-rejected'
+                 : st === 'dup'    ? 'row-dup'
+                 : inBatch === true ? 'row-matched'
+                 : bc && inBatch === false ? 'row-extra' : '';
+    var matchBadge = !bc ? '<span style="font-size:10px;color:var(--muted);">—</span>'
+                 : row.rejected ? '<span style="font-size:10px;color:var(--muted);">—</span>'
+                 : inBatch === true  ? '<span style="font-size:10px;color:var(--success);">✅</span>'
+                 : inBatch === false ? '<span style="font-size:10px;color:var(--danger);">⚠️</span>'
+                 : '<span style="font-size:10px;color:var(--muted);">—</span>';
     var doc = row.doc || {};
-    return '<tr class="'+matchCls+'" id="row-'+row.id+'">'+
+    var ev  = row.editVals;
+    return '<tr class="'+rowCls+'" id="row-'+row.id+'">'+
       '<td style="color:var(--muted);">'+(i+1)+'</td>'+
       '<td><img src="'+(row.thumb||'')+'" style="width:36px;height:28px;object-fit:cover;border-radius:3px;"></td>'+
-      '<td><input class="edit-input mono" value="'+esc(row.barcode)+'" placeholder="scan..." '+
-        'onchange="onBcChange('+row.id+',this.value)" '+
+      '<td><input class="bc-input '+(row.barcode&&!isDup&&inBatch===true?'found':row.barcode&&inBatch===false?'notfound':isDup?'dup':'')+'" value="'+esc(row.barcode)+'" placeholder="scan..." '+
+        'oninput="onBcInput('+row.id+',this.value)" '+
         'onkeydown="if(event.key===\'Enter\'){onBcChange('+row.id+',this.value);}"></td>'+
+      '<td>'+_statusBadge(st)+'</td>'+
       '<td style="text-align:center;">'+matchBadge+'</td>'+
-      '<td><input class="edit-input" value="'+esc(row.editVals.ref||doc['ref_no']||'')+'" onchange="onEditChange('+row.id+',\'ref\',this.value)"></td>'+
-      '<td><input class="edit-input" value="'+esc(row.editVals.itemName||doc['item_name']||'')+'" onchange="onEditChange('+row.id+',\'itemName\',this.value)"></td>'+
-      '<td><input class="edit-input" value="'+esc(row.editVals.from||doc['customer_start_name']||'')+'" onchange="onEditChange('+row.id+',\'from\',this.value)"></td>'+
-      '<td><input class="edit-input" value="'+esc(row.editVals.to||doc['customer_destination_name']||'')+'" onchange="onEditChange('+row.id+',\'to\',this.value)"></td>'+
-      '<td><input class="edit-input" type="date" value="'+esc(row.editVals.receivedDate||'')+'" onchange="onEditChange('+row.id+',\'receivedDate\',this.value)"></td>'+
-      '<td><input class="edit-input mono" value="'+esc(row.editVals.recvQty||doc['total']||'')+'" style="width:50px;" onchange="onEditChange('+row.id+',\'recvQty\',this.value)"></td>'+
-      '<td style="text-align:center;">'+
+      '<td><input class="edit-input" value="'+esc(ev.ref||doc['ref_no']||'')+'" onchange="onEditChange('+row.id+',\'ref\',this.value)" placeholder="Ref No."></td>'+
+      '<td><input class="edit-input" value="'+esc(ev.itemName||doc['item_name']||'')+'" onchange="onEditChange('+row.id+',\'itemName\',this.value)" placeholder="ประเภท"></td>'+
+      '<td><input class="edit-input" value="'+esc(ev.from||doc['customer_start_name']||'')+'" onchange="onEditChange('+row.id+',\'from\',this.value)" placeholder="โอนจาก"></td>'+
+      '<td><input class="edit-input mono" value="'+esc(ev.originAcc||doc['customer_start_code']||'')+'" onchange="onEditChange('+row.id+',\'originAcc\',this.value)" placeholder="Origin Acc."></td>'+
+      '<td><input class="edit-input" value="'+esc(ev.to||doc['customer_destination_name']||'')+'" onchange="onEditChange('+row.id+',\'to\',this.value)" placeholder="โอนไป"></td>'+
+      '<td><input class="edit-input mono" value="'+esc(ev.destAcc||doc['customer_destination_code']||'')+'" onchange="onEditChange('+row.id+',\'destAcc\',this.value)" placeholder="Dest Acc."></td>'+
+      '<td><input class="edit-input date-smart" data-rid="'+row.id+'" value="'+esc(toDisplayDate(ev.receivedDate))+'" placeholder="ddmmyy" maxlength="10" style="font-family:var(--mono);"></td>'+
+      '<td><input class="edit-input mono" value="'+esc(ev.recvQty||doc['total']||'')+'" style="width:46px;" onchange="onEditChange('+row.id+',\'recvQty\',this.value)"></td>'+
+      '<td>'+
         (row.rejected
           ? '<button class="restore-btn" onclick="restoreRow('+row.id+')">↩ คืน</button>'
           : '<button class="reject-btn" onclick="rejectRowInline('+row.id+')">reject</button>')+
@@ -579,28 +735,203 @@ function renderTable() {
   }).join('');
 }
 
-function onBcChange(id, value) {
+// ── Date helpers ─────────────────────────────────────────
+function toInputDate(val) {
+  if (!val) return new Date().toISOString().split('T')[0];
+  try {
+    if (val.indexOf('/') > -1) {
+      var p = val.split('/');
+      if (p.length === 3) { var y = p[2].length===2 ? '20'+p[2] : p[2]; return y+'-'+p[1].padStart(2,'0')+'-'+p[0].padStart(2,'0'); }
+    }
+    return new Date(val).toISOString().split('T')[0];
+  } catch(e) { return ''; }
+}
+
+function toDisplayDate(isoVal) {
+  if (!isoVal) return '';
+  try { var p = isoVal.split('-'); if (p.length===3) return p[2]+'/'+p[1]+'/'+p[0]; } catch(e) {}
+  return isoVal;
+}
+
+function parseDateInput(raw) {
+  var s = raw.trim().replace(/[-\s]/g, '/');
+  if (s.indexOf('/') > -1) {
+    var p = s.split('/');
+    if (p.length === 3) {
+      var d = p[0].padStart(2,'0'), m = p[1].padStart(2,'0');
+      var y = p[2].length===2 ? '20'+p[2] : p[2];
+      return _validateDate(d, m, y);
+    }
+    return null;
+  }
+  var digits = s.replace(/\D/g,'');
+  if (digits.length===6) return _validateDate(digits.slice(0,2), digits.slice(2,4), '20'+digits.slice(4,6));
+  if (digits.length===8) return _validateDate(digits.slice(0,2), digits.slice(2,4), digits.slice(4,8));
+  return null;
+}
+function _validateDate(d, m, y) {
+  var dd=parseInt(d,10), mm=parseInt(m,10), yy=parseInt(y,10);
+  if (dd<1||dd>31||mm<1||mm>12||yy<2000||yy>2099) return null;
+  return y+'-'+m.padStart(2,'0')+'-'+d.padStart(2,'0');
+}
+
+function _applyDateEl(el) {
+  var raw = el.value.trim();
+  var rid = parseInt(el.getAttribute('data-rid'), 10);
+  if (!raw) { el.classList.remove('ok','err'); _setReceiveDate(rid, ''); return true; }
+  var iso = parseDateInput(raw);
+  if (iso) {
+    el.value = toDisplayDate(iso);
+    el.classList.add('ok'); el.classList.remove('err');
+    _setReceiveDate(rid, iso);
+    return true;
+  }
+  el.classList.add('err'); el.classList.remove('ok');
+  showToast('รูปแบบวันที่ไม่ถูกต้อง เช่น 010126 หรือ 01/01/26', 'error');
+  return false;
+}
+
+function _setReceiveDate(rid, iso) {
+  var row = _rows.find(function(r){ return r.id===rid; });
+  if (!row) return;
+  row.editVals.receivedDate = iso;
+  updateSummary();
+}
+
+// date-smart: Enter → apply + focus ถัดไป, blur → apply
+var _skipBlurR = false;
+document.addEventListener('keydown', function(e) {
+  if (!e.target.classList.contains('date-smart')) return;
+  if (e.key !== 'Enter') return;
+  e.preventDefault();
+  var ok = _applyDateEl(e.target);
+  if (!ok) return;
+  var all  = Array.from(document.querySelectorAll('#tableBody input.date-smart'));
+  var idx  = all.indexOf(e.target);
+  var next = all[idx + 1];
+  _skipBlurR = true;
+  setTimeout(function(){ _skipBlurR = false; }, 150);
+  if (next) { next.focus(); next.select(); }
+  else { showToast('กรอกวันที่รับครบทุกแถวแล้ว ✅', 'success'); }
+}, true);
+
+document.addEventListener('blur', function(e) {
+  if (!e.target.classList.contains('date-smart')) return;
+  if (_skipBlurR) return;
+  _applyDateEl(e.target);
+}, true);
+
+// ── Update row DOM (ไม่ re-render ทั้งตาราง) ─────────────
+function _updateRowDOM(row) {
+  var tr = document.getElementById('row-'+row.id);
+  if (!tr) return;
+  var ev  = row.editVals;
+  var doc = row.doc || {};
+  var st  = row.status;
+
+  // bc-input border class
+  var bcEl = tr.querySelector('.bc-input');
+  if (bcEl) {
+    bcEl.className = 'bc-input' +
+      (st==='found'||st==='ready' ? ' found' : st==='notfound' ? ' notfound' : st==='dup' ? ' dup' : '');
+  }
+  // status badge
+  var badge = tr.querySelector('.sb');
+  if (badge) {
+    var map = {idle:['sb sb-idle','รอ barcode'],found:['sb sb-found','พบข้อมูล'],
+               ready:['sb sb-ready','พร้อมส่ง'],nf:['sb sb-nf','ไม่พบ'],
+               dup:['sb sb-dup','ซ้ำ'],reject:['sb sb-reject','reject']};
+    var d = map[st]||map.idle;
+    badge.className  = d[0];
+    badge.textContent = d[1];
+  }
+  if (!row.doc) return;
+  // fill inputs
+  var inputs = tr.querySelectorAll('input.edit-input:not(.date-smart)');
+  var fields = [
+    ev.ref||doc['ref_no']||'',
+    ev.itemName||doc['item_name']||'',
+    ev.from||doc['customer_start_name']||'',
+    ev.originAcc||doc['customer_start_code']||'',
+    ev.to||doc['customer_destination_name']||'',
+    ev.destAcc||doc['customer_destination_code']||'',
+    ev.recvQty||doc['total']||''
+  ];
+  fields.forEach(function(val, i){ if (inputs[i]) inputs[i].value = val; });
+  // date-smart
+  var dateEl = tr.querySelector('.date-smart');
+  if (dateEl) {
+    dateEl.value = toDisplayDate(ev.receivedDate);
+    dateEl.classList.remove('err');
+    dateEl.classList.toggle('ok', !!ev.receivedDate);
+  }
+}
+
+var _bcTimer = {};
+function onBcInput(id, value) {
   var row = _rows.find(function(r){return r.id===id;});
   if (!row) return;
   row.barcode = (value||'').trim().toUpperCase();
-  // auto-fill จาก CSV
-  if (row.barcode && csvLoaded) {
-    var doc = searchCSV(row.barcode);
-    if (doc) {
-      row.doc = doc;
-      if (!row.editVals.ref)      row.editVals.ref      = doc['ref_no']||'';
-      if (!row.editVals.itemName) row.editVals.itemName = doc['item_name']||'';
-      if (!row.editVals.from)     row.editVals.from     = doc['customer_start_name']||'';
-      if (!row.editVals.to)       row.editVals.to       = doc['customer_destination_name']||'';
-      if (!row.editVals.recvQty)  row.editVals.recvQty  = doc['total']||'';
-    }
+  clearTimeout(_bcTimer[id]);
+  _bcTimer[id] = setTimeout(function(){ onBcChange(id, row.barcode); }, 500);
+}
+
+function onBcChange(id, value) {
+  clearTimeout(_bcTimer[id]);
+  var row = _rows.find(function(r){return r.id===id;});
+  if (!row) return;
+  row.barcode = (value||'').trim().toUpperCase();
+
+  if (!row.barcode) {
+    row.status = 'idle'; row.doc = null;
+    _updateRowDOM(row); updateSummary(); return;
   }
-  renderTable(); updateRIP(); updateSummary();
+
+  // ตรวจซ้ำ
+  var isDup = _rows.some(function(r){ return r.id!==id && !r.rejected && r.barcode===row.barcode; });
+  if (isDup) {
+    row.status = 'dup';
+    _updateRowDOM(row);
+    showToast('⚠️ Barcode "'+row.barcode+'" ซ้ำ', 'error');
+    updateSummary(); return;
+  }
+
+  var doc = csvLoaded ? searchCSV(row.barcode) : null;
+  console.log('lookup', row.barcode, '→', doc?'FOUND':'NOT FOUND', '| csv:', csvData.length);
+  row.doc    = doc;
+  row.status = doc ? 'found' : 'nf';
+
+  if (doc) {
+    row.editVals.ref       = doc['ref_no']                    || '';
+    row.editVals.itemName  = doc['item_name']                 || '';
+    row.editVals.from      = doc['customer_start_name']       || '';
+    row.editVals.originAcc = doc['customer_start_code']       || '';
+    row.editVals.to        = doc['customer_destination_name'] || '';
+    row.editVals.destAcc   = doc['customer_destination_code'] || '';
+    row.editVals.recvQty   = doc['total']                     || '';
+    row.editVals.receivedDate = doc['real_recived_at']
+      ? toInputDate(doc['real_recived_at'])
+      : new Date().toISOString().split('T')[0];
+  }
+
+  _updateRowDOM(row);
+  updateRIP();
+  updateSummary();
+
+  // focus แถวถัดไป
+  var idx = _rows.indexOf(row);
+  var next = _rows[idx + 1];
+  if (next) {
+    var nextEl = document.querySelector('#row-'+next.id+' .bc-input');
+    if (nextEl) { nextEl.focus(); nextEl.select(); }
+  } else {
+    showToast('สแกน barcode ครบทุกแถวแล้ว ✅', 'success');
+  }
 }
 
 function onEditChange(id, field, value) {
   var row = _rows.find(function(r){return r.id===id;});
-  if (row) row.editVals[field] = value;
+  if (row) { row.editVals[field] = value; renderTable(); updateSummary(); }
 }
 
 function rejectRowInline(id) {
@@ -615,7 +946,7 @@ function restoreRow(id) {
 
 function removeRow(id) {
   _rows = _rows.filter(function(r){return r.id!==id;});
-  renderTable(); updateRIP(); updateSummary();
+  renderTable(); updateRIP(); updateCounter(); updateSummary();
 }
 
 // ── Summary ───────────────────────────────────────────────
@@ -637,6 +968,7 @@ function updateSummary() {
   document.getElementById('btnDispute').disabled = !_verified;
   // badge
   var badge = document.getElementById('statusBadge');
+  badge.style.display = _verified ? '' : 'none';
   if (pending===0 && rejected===0 && matched>0) {
     badge.textContent='✅ ครบถ้วน'; badge.className='status-badge badge-ok';
   } else if (rejected>0 || pending<barcodes.length) {
@@ -705,7 +1037,8 @@ async function confirmReceive() {
         item_name:row.editVals.itemName||row.doc&&row.doc['item_name']||'',
         transfer_from:row.editVals.from||row.doc&&row.doc['customer_start_name']||'',
         transfer_to:row.editVals.to||row.doc&&row.doc['customer_destination_name']||'',
-        origin_acc:'', dest_acc:'',
+        origin_acc:row.editVals.originAcc||row.doc&&row.doc['customer_start_code']||'',
+        dest_acc:row.editVals.destAcc||row.doc&&row.doc['customer_destination_code']||'',
         despatch_date:'', received_date:row.editVals.receivedDate,
         sent_qty:row.doc&&row.doc['total']||'', received_qty:row.editVals.recvQty||'',
         not_found:!row.doc, site:session.site, emp_id:session.empId,
@@ -716,31 +1049,49 @@ async function confirmReceive() {
       body:JSON.stringify({action:'updateItems',items:items})});
     var data = await res.json();
     if (data.status!=='ok') throw new Error(data.message);
-    // receiveItems
+
+    // receiveItems → mark received_warehouse + scanned
     var recItems = ready.map(function(r){
-      return {barcode:r.barcode,batch_id:_batch.batch_id,emp_id:session.empId,
-              emp_name:session.empName,site:session.site,note:'คลังรับแล้ว',dest_warehouse:session.site};
+      return {barcode:r.barcode, batch_id:_batch.batch_id, emp_id:session.empId,
+              emp_name:session.empName, site:session.site, note:'คลังรับแล้ว', dest_warehouse:session.site};
     });
     await fetch(API_URL,{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain'},
       body:JSON.stringify({action:'receiveItems',items:recItems})});
-    // dispute missing/rejected
-    var rejectItems = _rows.filter(function(r){return r.rejected;});
-    if (missing.length||rejectItems.length) {
-      var disputeNote = document.getElementById('rejectNote').value || 'แจ้งปัญหาจากคลัง';
-      var dItems = missing.map(function(bc){
-        return {barcode:bc,batch_id:_batch.batch_id+'-PEND',emp_id:session.empId,
-                emp_name:session.empName,site:session.site,note:disputeNote,
-                dispute_type:'missing',dest_warehouse:session.site};
-      }).concat(rejectItems.map(function(r){
-        return {barcode:r.barcode,batch_id:_batch.batch_id+'-PEND',emp_id:session.empId,
-                emp_name:session.empName,site:session.site,note:r.rejectNote||'reject',
-                dispute_type:'mismatch',dest_warehouse:session.site};
-      }));
-      if (dItems.length) await fetch(API_URL,{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain'},
-        body:JSON.stringify({action:'disputeItems',items:dItems})});
+
+    // splitBatch ถ้ามี missing/rejected → สร้าง PEND batch + แจ้ง email
+    var rejectItems  = _rows.filter(function(r){return r.rejected;});
+    var pendBarcodes = missing.map(function(bc){return bc;})
+      .concat(rejectItems.map(function(r){return r.barcode;}));
+
+    if (pendBarcodes.length > 0) {
+      var disputeNote = document.getElementById('rejectNote') ?
+        document.getElementById('rejectNote').value || '' : '';
+      var splitRes  = await fetch(API_URL, {
+        method:'POST', redirect:'follow',
+        headers:{'Content-Type':'text/plain'},
+        body: JSON.stringify({
+          action            : 'splitBatch',
+          original_batch_id : _batch.batch_id,
+          pend_barcodes     : pendBarcodes,
+          note              : disputeNote || ('แยกจาก '+_batch.batch_id+' — '+pendBarcodes.length+' ใบ'),
+          dispute_type      : rejectItems.length > 0 ? 'mismatch' : 'missing',
+          emp_id            : session.empId,
+          emp_name          : session.empName,
+          site              : session.site,
+          dest_warehouse    : session.site,
+          notify_email      : session.empEmail || ''
+        })
+      });
+      var splitData = await splitRes.json();
+      if (splitData.status === 'ok' && splitData.pend_batch_id) {
+        showToast('✅ บันทึก '+ready.length+' รายการ · สร้าง '+splitData.pend_batch_id+' ('+splitData.pend_count+' ใบ) · แจ้งทีมจัดส่งแล้ว', 'success');
+      } else {
+        showToast('✅ บันทึก '+ready.length+' รายการ', 'success');
+      }
+    } else {
+      showToast('✅ บันทึก '+ready.length+' รายการ · batch ปิดสมบูรณ์ 🎉', 'success');
     }
-    showToast('✅ บันทึก '+ready.length+' รายการเรียบร้อย','success');
-    setTimeout(function(){ window.location.href='batch.html'; },1500);
+    setTimeout(function(){ window.location.href='incoming.html'; },2000);
   } catch(err) {
     showToast('เกิดข้อผิดพลาด: '+err.message,'error');
     btn.disabled=false; btn.textContent='✅ ยืนยันรับ';
@@ -776,9 +1127,17 @@ async function submitReject() {
 
 document.addEventListener('click',function(e){if(e.target.id==='rejectModal')closeRejectModal();});
 
+function confirmBack() {
+  if (_rows.length > 0) {
+    return confirm('มีรายการที่ยังไม่ได้ Submit อยู่ ' + _rows.length + ' รายการ\nต้องการกลับโดยไม่บันทึกใช่ไหม?');
+  }
+  return true;
+}
+
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');}
 var toastTimer;
 function showToast(msg,type){var t=document.getElementById('toast');t.textContent=msg;t.className='toast '+(type||'info')+' show';clearTimeout(toastTimer);toastTimer=setTimeout(function(){t.classList.remove('show');},3500);}
 </script>
+
 </body>
 </html>
