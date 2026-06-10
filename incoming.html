@@ -160,11 +160,17 @@ window.onload = function() {
 
 function switchTab(tab) {
   _activeTab = tab;
-  document.getElementById('tabPendingBtn').classList.toggle('active', tab==='pending');
-  document.getElementById('tabDoneBtn').classList.toggle('active',    tab==='done');
-  document.getElementById('panelPending').style.display = tab==='pending' ? 'block' : 'none';
-  document.getElementById('panelDone').style.display    = tab==='done'    ? 'block' : 'none';
-  document.getElementById('listTitle').textContent      = tab==='pending' ? 'รายการรอรับ' : 'รายการที่รับแล้ว';
+  var btnP = document.getElementById('tabPendingBtn');
+  var btnD = document.getElementById('tabDoneBtn');
+  var panP = document.getElementById('panelPending');
+  var panD = document.getElementById('panelDone');
+  var title = document.getElementById('listTitle');
+
+  if (btnP) btnP.classList.toggle('active', tab==='pending');
+  if (btnD) btnD.classList.toggle('active', tab==='done');
+  if (panP) panP.style.display = tab==='pending' ? 'block' : 'none';
+  if (panD) panD.style.display = tab==='done'    ? 'block' : 'none';
+  if (title) title.textContent = tab==='pending' ? 'รายการรอรับ' : 'รายการที่รับแล้ว';
 
   if (tab==='done' && !_doneLoaded) loadDone();
 }
@@ -174,20 +180,27 @@ function loadCurrent() {
   else { _doneLoaded=false; loadDone(); }
 }
 
+function _setBadge(id, val) {
+  var el = document.getElementById(id);
+  if (el) el.textContent = val;
+}
+
 function loadPending() {
   var sf   = session.site_filter ? session.site_filter.join('|') : session.site;
   var wrap = document.getElementById('listWrap');
+  if (!wrap) return;
   wrap.innerHTML = '<div class="empty"><span class="spinner"></span> กำลังโหลด...</div>';
 
   fetch(API_URL+'?action=getIncoming&tab=pending&site_filter='+encodeURIComponent(sf))
     .then(function(r){ return r.json(); })
     .then(function(data) {
-      var batches  = data.batches || [];
+      var batches   = data.batches  || [];
       var doneCount = data.done_count || 0;
-      document.getElementById('badgePending').textContent = batches.length  || '0';
-      document.getElementById('badgeDone').textContent    = doneCount       || '0';
-      document.getElementById('countBadge').textContent   = batches.length  || '0';
+      _setBadge('badgePending', batches.length || '0');
+      _setBadge('badgeDone',    doneCount      || '0');
+      _setBadge('countBadge',   batches.length || '0');
 
+      if (!wrap) return;
       if (!batches.length) {
         wrap.innerHTML = '<div class="empty"><div class="icon">✅</div>ไม่มีรายการรอรับ</div>';
         return;
@@ -195,7 +208,7 @@ function loadPending() {
       wrap.innerHTML = _renderTable(batches, 'pending');
     })
     .catch(function(err){
-      wrap.innerHTML = '<div class="empty" style="color:var(--danger);">โหลดไม่สำเร็จ: '+err.message+'</div>';
+      if (wrap) wrap.innerHTML = '<div class="empty" style="color:var(--danger);">โหลดไม่สำเร็จ: '+err.message+'</div>';
     });
 }
 
@@ -203,15 +216,17 @@ function loadDone() {
   _doneLoaded = true;
   var sf   = session.site_filter ? session.site_filter.join('|') : session.site;
   var wrap = document.getElementById('doneWrap');
+  if (!wrap) return;
   wrap.innerHTML = '<div class="empty"><span class="spinner"></span> กำลังโหลด...</div>';
 
   fetch(API_URL+'?action=getIncoming&tab=done&site_filter='+encodeURIComponent(sf))
     .then(function(r){ return r.json(); })
     .then(function(data) {
       var batches = data.batches || [];
-      document.getElementById('badgeDone').textContent  = batches.length || '0';
-      document.getElementById('countBadge').textContent = batches.length || '0';
+      _setBadge('badgeDone',  batches.length || '0');
+      _setBadge('countBadge', batches.length || '0');
 
+      if (!wrap) return;
       if (!batches.length) {
         wrap.innerHTML = '<div class="empty"><div class="icon">📭</div>ยังไม่มีรายการที่รับแล้ว</div>';
         return;
@@ -219,7 +234,7 @@ function loadDone() {
       wrap.innerHTML = _renderTable(batches, 'done');
     })
     .catch(function(err){
-      wrap.innerHTML = '<div class="empty" style="color:var(--danger);">โหลดไม่สำเร็จ: '+err.message+'</div>';
+      if (wrap) wrap.innerHTML = '<div class="empty" style="color:var(--danger);">โหลดไม่สำเร็จ: '+err.message+'</div>';
     });
 }
 
