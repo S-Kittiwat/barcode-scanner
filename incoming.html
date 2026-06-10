@@ -15,7 +15,8 @@
   --r:12px;--rs:8px;--sidebar:240px;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;display:flex;font-size:15px;}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;display:flex;}
+/* Sidebar */
 .sidebar{width:var(--sidebar);flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:200;}
 .sidebar-brand{padding:20px 20px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
 .brand-icon{width:36px;height:36px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
@@ -24,54 +25,54 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .user-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .user-role{font-size:11px;color:var(--accent);margin-top:2px;}
 .sidebar-nav{flex:1;padding:12px 8px;display:flex;flex-direction:column;gap:4px;}
-.nav-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;padding:8px 8px 4px;font-weight:500;}
+.nav-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;padding:8px 8px 4px;font-weight:500;}
 .nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--rs);text-decoration:none;color:var(--muted);font-size:13px;font-weight:500;transition:background .15s,color .15s;}
 .nav-item:hover{background:var(--surface2);color:var(--text);}
 .nav-item.active{background:rgba(56,189,248,.1);color:var(--accent);border:1px solid rgba(56,189,248,.2);}
 .sidebar-footer{padding:12px 8px;border-top:1px solid var(--border);}
 .logout-btn{display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:var(--rs);cursor:pointer;color:var(--muted);font-size:13px;background:none;border:none;width:100%;font-family:var(--font);}
 .logout-btn:hover{color:var(--danger);}
-.page-wrap{margin-left:var(--sidebar);flex:1;display:flex;flex-direction:column;}
+/* Page */
+.page-wrap{margin-left:var(--sidebar);flex:1;display:flex;flex-direction:column;min-height:100vh;}
 .topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
 .topbar-title{font-size:15px;font-weight:600;}
 .topbar-sub{font-size:11px;color:var(--muted);margin-top:2px;}
-.content{padding:24px;flex:1;}
-/* list */
-.list-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
-.list-title{font-size:13px;font-weight:500;display:flex;align-items:center;gap:8px;}
-.count-badge{background:var(--accent);color:#0f172a;font-size:11px;font-weight:700;padding:1px 8px;border-radius:20px;font-family:var(--mono);}
 .refresh-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:var(--rs);padding:6px 14px;font-family:var(--font);font-size:12px;cursor:pointer;}
 .refresh-btn:hover{border-color:var(--accent);color:var(--accent);}
-.tab-bar{display:flex;border-bottom:1px solid var(--border);background:var(--surface);padding:0 24px;gap:0;}
-.tab-btn{display:flex;align-items:center;gap:7px;padding:12px 20px;background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-family:var(--font);font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;white-space:nowrap;margin-bottom:-1px;}
-.tab-btn.active{border-bottom-color:var(--accent);color:var(--accent);font-weight:600;}
-.tab-btn:hover:not(.active){color:var(--text);}
-.tab-badge{font-size:11px;font-weight:700;padding:1px 7px;border-radius:20px;font-family:var(--mono);}
-.tab-badge.pending{background:rgba(56,189,248,.15);border:1px solid rgba(56,189,248,.3);color:var(--accent);}
-.tab-badge.done{background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.25);color:var(--success);}
-.table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;}
+/* Tabs */
+.tab-wrap{padding:16px 24px 0;background:var(--surface);border-bottom:1px solid var(--border);}
+.tab-bar{display:flex;gap:0;}
+.tab-btn{padding:10px 20px;font-family:var(--font);font-size:13px;font-weight:500;background:none;border:none;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:color .15s,border-color .15s;display:flex;align-items:center;gap:7px;white-space:nowrap;}
+.tab-btn:hover{color:var(--text);}
+.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent);}
+.tab-count{font-size:10px;font-family:var(--mono);font-weight:700;padding:1px 7px;border-radius:20px;background:var(--surface2);border:1px solid var(--border);}
+.tab-btn.active .tab-count{background:rgba(56,189,248,.15);border-color:rgba(56,189,248,.3);color:var(--accent);}
+/* Content */
+.content{padding:20px 24px;flex:1;}
+/* Table */
+.table-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;}
+.table-head{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.table-title{font-size:13px;font-weight:500;}
 table{width:100%;border-collapse:collapse;}
-th{background:var(--surface2);padding:9px 16px;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;text-align:left;border-bottom:1px solid var(--border);}
-td{padding:11px 16px;font-size:12px;border-bottom:1px solid var(--border);vertical-align:middle;}
+th{background:var(--surface2);padding:8px 14px;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;}
+td{padding:11px 14px;font-size:12px;border-bottom:1px solid var(--border);vertical-align:middle;}
 tr:last-child td{border-bottom:none;}
-tr:hover td{background:rgba(255,255,255,.02);}
+tr:hover td{background:rgba(255,255,255,.015);}
 .mono{font-family:var(--mono);}
-.receive-btn{background:var(--accent);border:none;color:#0f172a;border-radius:var(--rs);padding:7px 18px;font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;}
-.receive-btn:hover{opacity:.85;}
-.expand-btn{background:none;border:1px solid var(--border);color:var(--muted);border-radius:var(--rs);padding:4px 10px;font-family:var(--font);font-size:11px;cursor:pointer;transition:all .15s;}
-.expand-btn:hover{border-color:var(--accent);color:var(--accent);}
-.expand-btn.open{border-color:var(--accent);color:var(--accent);background:rgba(56,189,248,.06);}
-.detail-row{display:none;}
-.detail-row.open{display:table-row;}
-.detail-inner{padding:0 !important;border-bottom:1px solid var(--border);}
-.detail-box{background:var(--surface2);padding:14px 20px;}
-.detail-table{width:100%;border-collapse:collapse;font-size:11px;}
-.detail-table th{color:var(--muted);text-align:left;padding:5px 10px 5px 0;font-weight:500;letter-spacing:.04em;border-bottom:1px solid var(--border);}
-.detail-table td{padding:6px 10px 6px 0;border-bottom:1px solid rgba(51,65,85,.4);vertical-align:middle;}
-.detail-table tr:last-child td{border-bottom:none;}
-.empty{text-align:center;padding:56px;color:var(--muted);font-size:13px;}
-.empty .icon{font-size:36px;margin-bottom:10px;}
-.spinner{width:16px;height:16px;border:2px solid rgba(56,189,248,.3);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:8px;}
+/* Buttons */
+.btn-receive{background:var(--accent);border:none;color:#0f172a;border-radius:var(--rs);padding:6px 16px;font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer;}
+.btn-receive:hover{opacity:.85;}
+/* Status badges */
+.badge{font-size:10px;padding:2px 9px;border-radius:20px;font-weight:500;white-space:nowrap;}
+.badge-wait{background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.3);color:var(--warn);}
+.badge-done{background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.3);color:var(--success);}
+.badge-dispute{background:rgba(248,113,113,.12);border:1px solid rgba(248,113,113,.3);color:var(--danger);}
+.badge-lost{background:rgba(148,163,184,.12);border:1px solid rgba(148,163,184,.3);color:var(--muted);}
+/* Empty */
+.empty{text-align:center;padding:56px 24px;color:var(--muted);}
+.empty-icon{font-size:36px;margin-bottom:10px;}
+/* Spinner */
+.spinner{width:16px;height:16px;border:2px solid rgba(56,189,248,.3);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:6px;}
 @keyframes spin{to{transform:rotate(360deg);}}
 </style>
 </head>
@@ -81,8 +82,8 @@ tr:hover td{background:rgba(255,255,255,.02);}
   <div class="sidebar-brand">
     <div class="brand-icon">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0f172a" stroke-width="2.5">
-        <rect x="3" y="4" width="3" height="16" rx="1"/><rect x="8" y="4" width="1.5" height="16" rx="0.5"/>
-        <rect x="11" y="4" width="3" height="16" rx="1"/><rect x="16" y="4" width="1.5" height="16" rx="0.5"/>
+        <rect x="3" y="4" width="3" height="16" rx="1"/><rect x="8" y="4" width="1.5" height="16" rx=".5"/>
+        <rect x="11" y="4" width="3" height="16" rx="1"/><rect x="16" y="4" width="1.5" height="16" rx=".5"/>
         <rect x="19" y="4" width="2" height="16" rx="1"/>
       </svg>
     </div>
@@ -96,6 +97,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
     <div class="nav-label">เมนู</div>
     <a class="nav-item" href="dashboard.html">📊 Dashboard</a>
     <a class="nav-item active" href="incoming.html">📥 รับเอกสาร</a>
+    <a class="nav-item" href="batch.html">📦 Batch Scan ปกติ</a>
   </nav>
   <div class="sidebar-footer">
     <button class="logout-btn" onclick="DocScanAuth.clear();location.href='login.html';">↩ ออกจากระบบ</button>
@@ -103,47 +105,56 @@ tr:hover td{background:rgba(255,255,255,.02);}
 </aside>
 
 <div class="page-wrap">
+
   <div class="topbar">
     <div>
       <div class="topbar-title">รับเอกสารจากจัดส่ง</div>
       <div class="topbar-sub" id="topbarSub">—</div>
     </div>
-    <div style="display:flex;gap:8px;align-items:center;"><a href="batch.html" style="display:flex;align-items:center;gap:7px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:var(--rs);padding:7px 16px;font-family:var(--font);font-size:13px;font-weight:600;text-decoration:none;transition:border-color .15s;" onmouseenter="this.style.borderColor='var(--accent)'" onmouseleave="this.style.borderColor='var(--border)'">📦 Batch Scan ปกติ</a><button class="refresh-btn" onclick="loadList()">↻ รีเฟรช</button></div>
+    <button class="refresh-btn" onclick="refreshAll()">↻ รีเฟรช</button>
   </div>
 
-  <div class="tab-bar">
-    <button class="tab-btn active" id="tabPendingBtn" onclick="switchTab('pending')">
-      📥 รอรับ
-      <span class="tab-badge pending" id="badgePending">—</span>
-    </button>
-    <button class="tab-btn" id="tabDoneBtn" onclick="switchTab('done')">
-      ✅ รับแล้ว
-      <span class="tab-badge done" id="badgeDone">—</span>
-    </button>
+  <!-- Tabs -->
+  <div class="tab-wrap">
+    <div class="tab-bar">
+      <button class="tab-btn active" id="tab1Btn" onclick="switchTab(1)">
+        🚛 รายการระหว่างทาง
+        <span class="tab-count" id="count1">—</span>
+      </button>
+      <button class="tab-btn" id="tab2Btn" onclick="switchTab(2)">
+        ✅ รายการรับแล้ว
+        <span class="tab-count" id="count2">—</span>
+      </button>
+      <button class="tab-btn" id="tab3Btn" onclick="switchTab(3)">
+        ⚠️ รายการแก้ไข
+        <span class="tab-count" id="count3">—</span>
+      </button>
+    </div>
   </div>
 
   <div class="content">
-    <div class="list-head">
-      <div class="list-title" id="listTitle">
-        รายการรอรับ
-        <span class="count-badge" id="countBadge">—</span>
-      </div>
-      <button class="refresh-btn" onclick="loadCurrent()">↻ รีเฟรช</button>
-    </div>
 
-    <!-- Tab: รอรับ -->
-    <div id="panelPending">
-      <div id="listWrap" class="table-wrap">
-        <div class="empty"><span class="spinner"></span> กำลังโหลด...</div>
+    <!-- Tab 1: รอรับ -->
+    <div id="panel1">
+      <div class="table-card">
+        <div id="wrap1"><div class="empty"><span class="spinner"></span> กำลังโหลด...</div></div>
       </div>
     </div>
 
-    <!-- Tab: รับแล้ว -->
-    <div id="panelDone" style="display:none;">
-      <div id="doneWrap" class="table-wrap">
-        <div class="empty"><span class="spinner"></span> กำลังโหลด...</div>
+    <!-- Tab 2: รับแล้ว -->
+    <div id="panel2" style="display:none;">
+      <div class="table-card">
+        <div id="wrap2"><div class="empty"><span class="spinner"></span> กำลังโหลด...</div></div>
       </div>
     </div>
+
+    <!-- Tab 3: รายการแก้ไข -->
+    <div id="panel3" style="display:none;">
+      <div class="table-card">
+        <div id="wrap3"><div class="empty"><span class="spinner"></span> กำลังโหลด...</div></div>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -158,215 +169,174 @@ var DocScanAuth=(function(){
 
 var API_URL = DOCSCAN_CONFIG.API_URL;
 var session;
-var _activeTab = 'pending';
-var _doneLoaded = false;
+var _loaded = {1:false, 2:false, 3:false};
+var _activeTab = 1;
 
 window.onload = function() {
   session = DocScanAuth.requireAuth();
   if (!session) return;
-  document.getElementById('sidebarName').textContent = session.empName+' ('+session.empId+')';
+  document.getElementById('sidebarName').textContent = session.empName + ' (' + session.empId + ')';
   document.getElementById('topbarSub').textContent   = session.site;
-  loadPending();
+  loadTab(1);
 };
 
-function switchTab(tab) {
-  _activeTab = tab;
-  var btnP = document.getElementById('tabPendingBtn');
-  var btnD = document.getElementById('tabDoneBtn');
-  var panP = document.getElementById('panelPending');
-  var panD = document.getElementById('panelDone');
-  var title = document.getElementById('listTitle');
-
-  if (btnP) btnP.classList.toggle('active', tab==='pending');
-  if (btnD) btnD.classList.toggle('active', tab==='done');
-  if (panP) panP.style.display = tab==='pending' ? 'block' : 'none';
-  if (panD) panD.style.display = tab==='done'    ? 'block' : 'none';
-  if (title) title.textContent = tab==='pending' ? 'รายการรอรับ' : 'รายการที่รับแล้ว';
-
-  if (tab==='done' && !_doneLoaded) loadDone();
+function switchTab(n) {
+  _activeTab = n;
+  [1,2,3].forEach(function(i) {
+    document.getElementById('tab'+i+'Btn').classList.toggle('active', i===n);
+    document.getElementById('panel'+i).style.display = i===n ? 'block' : 'none';
+  });
+  if (!_loaded[n]) loadTab(n);
 }
 
-function loadCurrent() {
-  if (_activeTab==='pending') loadPending();
-  else { _doneLoaded=false; loadDone(); }
+function refreshAll() {
+  _loaded = {1:false, 2:false, 3:false};
+  loadTab(_activeTab);
 }
 
-function _setBadge(id, val) {
-  var el = document.getElementById(id);
-  if (el) el.textContent = val;
+function getSiteFilter() {
+  return session.site_filter ? session.site_filter.join('|') : session.site;
+}
+
+function fmtDate(iso) {
+  if (!iso) return '—';
+  try { return new Date(iso).toLocaleString('th-TH',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}); }
+  catch(e) { return iso; }
+}
+
+// ── Tab 1: รอรับ (with_warehouse) ────────────────────────
+function loadTab(n) {
+  if (n===1) loadPending();
+  else if (n===2) loadDone();
+  else if (n===3) loadDisputed();
 }
 
 function loadPending() {
-  var sf   = session.site_filter ? session.site_filter.join('|') : session.site;
-  var wrap = document.getElementById('listWrap');
-  if (!wrap) return;
+  _loaded[1] = true;
+  var sf   = getSiteFilter();
+  var wrap = document.getElementById('wrap1');
   wrap.innerHTML = '<div class="empty"><span class="spinner"></span> กำลังโหลด...</div>';
 
-  fetch(API_URL+'?action=getIncoming&tab=pending&site_filter='+encodeURIComponent(sf))
-    .then(function(r){ return r.json(); })
-    .then(function(data) {
-      var batches   = data.batches  || [];
-      var doneCount = data.done_count || 0;
-      _setBadge('badgePending', batches.length || '0');
-      _setBadge('badgeDone',    doneCount      || '0');
-      _setBadge('countBadge',   batches.length || '0');
-
-      if (!wrap) return;
-      if (!batches.length) {
-        wrap.innerHTML = '<div class="empty"><div class="icon">✅</div>ไม่มีรายการรอรับ</div>';
-        return;
-      }
-      wrap.innerHTML = _renderTable(batches, 'pending');
-    })
-    .catch(function(err){
-      if (wrap) wrap.innerHTML = '<div class="empty" style="color:var(--danger);">โหลดไม่สำเร็จ: '+err.message+'</div>';
-    });
-}
-
-function loadDone() {
-  _doneLoaded = true;
-  var sf   = session.site_filter ? session.site_filter.join('|') : session.site;
-  var wrap = document.getElementById('doneWrap');
-  if (!wrap) return;
-  wrap.innerHTML = '<div class="empty"><span class="spinner"></span> กำลังโหลด...</div>';
-
-  fetch(API_URL+'?action=getIncoming&tab=done&site_filter='+encodeURIComponent(sf))
+  fetch(API_URL + '?action=getIncoming&tab=pending&site_filter=' + encodeURIComponent(sf))
     .then(function(r){ return r.json(); })
     .then(function(data) {
       var batches = data.batches || [];
-      _setBadge('badgeDone',  batches.length || '0');
-      _setBadge('countBadge', batches.length || '0');
+      document.getElementById('count1').textContent = batches.length;
+      // อัป done_count ที่ได้มาด้วย
+      if (data.done_count !== undefined) document.getElementById('count2').textContent = data.done_count;
 
-      if (!wrap) return;
       if (!batches.length) {
-        wrap.innerHTML = '<div class="empty"><div class="icon">📭</div>ยังไม่มีรายการที่รับแล้ว</div>';
+        wrap.innerHTML = '<div class="empty"><div class="empty-icon">✅</div>ไม่มีรายการรอรับ</div>';
         return;
       }
-      wrap.innerHTML = _renderTable(batches, 'done');
+      wrap.innerHTML = '<table><thead><tr>'+
+        '<th>Batch No.</th><th>วันที่ส่ง</th><th>ส่งจาก</th>'+
+        '<th style="text-align:right;">จำนวน</th><th style="text-align:center;">ดำเนินการ</th>'+
+        '</tr></thead><tbody>'+
+        batches.map(function(b) {
+          return '<tr>'+
+            '<td class="mono" style="color:var(--accent);">'+b.batch_id+'</td>'+
+            '<td class="mono" style="font-size:11px;">'+fmtDate(b.sent_date||b.scan_date)+'</td>'+
+            '<td style="font-size:11px;">'+(b.from_site||b.site||'—')+'</td>'+
+            '<td class="mono" style="text-align:right;">'+b.barcode_count+' ใบ</td>'+
+            '<td style="text-align:center;">'+
+              '<button class="btn-receive" onclick="location.href=\'receive.html?batch_id='+encodeURIComponent(b.batch_id)+'\'">'+
+              '📥 รับเอกสาร</button>'+
+            '</td></tr>';
+        }).join('')+'</tbody></table>';
     })
-    .catch(function(err){
-      if (wrap) wrap.innerHTML = '<div class="empty" style="color:var(--danger);">โหลดไม่สำเร็จ: '+err.message+'</div>';
+    .catch(function(err) {
+      wrap.innerHTML = '<div class="empty" style="color:var(--danger);">โหลดไม่สำเร็จ: '+err.message+'</div>';
     });
 }
 
-function _renderTable(batches, tab) {
-  var dt = function(iso) {
-    if (!iso) return '—';
-    return new Date(iso).toLocaleString('th-TH',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
-  };
-  var statusLabel = {
-    'with_warehouse'     : '<span style="font-size:10px;background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.3);color:var(--warn);padding:1px 7px;border-radius:20px;">⏳ รอรับ</span>',
-    'received_warehouse' : '<span style="font-size:10px;background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.3);color:var(--success);padding:1px 7px;border-radius:20px;">✅ รับแล้ว</span>',
-    'scanned'            : '<span style="font-size:10px;background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.3);color:var(--success);padding:1px 7px;border-radius:20px;">✅ scanned</span>',
-    'batch_closed'       : '<span style="font-size:10px;background:rgba(52,211,153,.15);border:1px solid rgba(52,211,153,.4);color:var(--success);padding:1px 7px;border-radius:20px;font-weight:600;">🎉 ปิดแล้ว</span>'
-  };
+// ── Tab 2: รับแล้ว ────────────────────────────────────────
+function loadDone() {
+  _loaded[2] = true;
+  var sf   = getSiteFilter();
+  var wrap = document.getElementById('wrap2');
+  wrap.innerHTML = '<div class="empty"><span class="spinner"></span> กำลังโหลด...</div>';
 
-  var isPending = tab === 'pending';
+  fetch(API_URL + '?action=getIncoming&tab=done&site_filter=' + encodeURIComponent(sf))
+    .then(function(r){ return r.json(); })
+    .then(function(data) {
+      var batches = data.batches || [];
+      document.getElementById('count2').textContent = batches.length;
 
-  var header = '<thead><tr>'+
-    '<th>Batch No.</th>'+
-    '<th>วันที่ส่ง</th>'+
-    (isPending ? '' : '<th>วันที่รับ</th>') +
-    '<th>ส่งจาก</th>'+
-    '<th style="text-align:right;">จำนวน</th>'+
-    '<th style="text-align:center;width:120px;">'+(isPending?'ดำเนินการ':'สถานะ')+'</th>'+
-    '<th style="width:50px;"></th>'+
-    '</tr></thead>';
-
-  var rows = batches.map(function(b) {
-    var eid     = 'dr-' + b.batch_id.replace(/[^a-zA-Z0-9]/g,'_');
-    var action  = isPending
-      ? '<button class="receive-btn" onclick="location.href=\'receive.html?batch_id='+encodeURIComponent(b.batch_id)+'\'">📥 รับเอกสาร</button>'
-      : (statusLabel[b.status] || '<span style="font-size:10px;color:var(--muted);">'+b.status+'</span>');
-
-    var mainRow = '<tr>'+
-      '<td class="mono" style="color:var(--accent);font-weight:600;">'+b.batch_id+'</td>'+
-      '<td class="mono" style="font-size:11px;">'+dt(b.sent_date||b.scan_date)+'</td>'+
-      (!isPending ? '<td class="mono" style="font-size:11px;color:var(--success);">'+dt(b.received_at)+'</td>' : '')+
-      '<td style="font-size:11px;">'+(b.site||b.from_site||'—')+'</td>'+
-      '<td class="mono" style="text-align:right;">'+b.barcode_count+' ใบ</td>'+
-      '<td style="text-align:center;">'+action+'</td>'+
-      '<td style="text-align:center;">'+
-        '<button class="expand-btn" id="btn-'+eid+'" onclick="toggleDetail(\''+eid+'\',this)">▾ ดู</button>'+
-      '</td>'+
-    '</tr>';
-
-    // detail row
-    var detailContent = _renderDetail(b, isPending);
-    var detailRow = '<tr class="detail-row" id="'+eid+'">'+
-      '<td class="detail-inner" colspan="'+(isPending?6:7)+'">'+
-        '<div class="detail-box">'+detailContent+'</div>'+
-      '</td>'+
-    '</tr>';
-
-    return mainRow + detailRow;
-  }).join('');
-
-  return '<table>'+header+'<tbody>'+rows+'</tbody></table>';
+      if (!batches.length) {
+        wrap.innerHTML = '<div class="empty"><div class="empty-icon">📭</div>ยังไม่มีรายการที่รับแล้ว</div>';
+        return;
+      }
+      wrap.innerHTML = '<table><thead><tr>'+
+        '<th>Batch No.</th><th>วันที่ส่ง</th><th>ส่งจาก</th>'+
+        '<th>รับโดย</th><th>วันที่รับ</th>'+
+        '<th style="text-align:right;">จำนวน</th><th style="text-align:center;">สถานะ</th>'+
+        '</tr></thead><tbody>'+
+        batches.map(function(b) {
+          var statusBadge = b.status === 'scanned'
+            ? '<span class="badge badge-done">✅ Scan แล้ว</span>'
+            : '<span class="badge badge-done">✅ รายการรับแล้ว</span>';
+          return '<tr>'+
+            '<td class="mono" style="color:var(--success);">'+b.batch_id+'</td>'+
+            '<td class="mono" style="font-size:11px;">'+fmtDate(b.sent_date||b.scan_date)+'</td>'+
+            '<td style="font-size:11px;">'+(b.from_site||b.site||'—')+'</td>'+
+            '<td style="font-size:11px;">'+(b.received_by||'—')+'</td>'+
+            '<td class="mono" style="font-size:11px;">'+fmtDate(b.received_at)+'</td>'+
+            '<td class="mono" style="text-align:right;">'+b.barcode_count+' ใบ</td>'+
+            '<td style="text-align:center;">'+statusBadge+'</td>'+
+          '</tr>';
+        }).join('')+'</tbody></table>';
+    })
+    .catch(function(err) {
+      wrap.innerHTML = '<div class="empty" style="color:var(--danger);">โหลดไม่สำเร็จ: '+err.message+'</div>';
+    });
 }
 
-function _renderDetail(b, isPending) {
-  var barcodes = b.barcodes || [];
+// ── Tab 3: รายการแก้ไข (disputed/lost_document) ──────────
+function loadDisputed() {
+  _loaded[3] = true;
+  var sf   = getSiteFilter();
+  var wrap = document.getElementById('wrap3');
+  wrap.innerHTML = '<div class="empty"><span class="spinner"></span> กำลังโหลด...</div>';
 
-  // meta info
-  var meta = '<div style="display:flex;gap:24px;margin-bottom:12px;flex-wrap:wrap;">'+
-    '<div><div style="font-size:10px;color:var(--muted);margin-bottom:2px;">BATCH ID</div><div class="mono" style="font-size:12px;color:var(--accent);">'+b.batch_id+'</div></div>'+
-    '<div><div style="font-size:10px;color:var(--muted);margin-bottom:2px;">ส่งจาก</div><div style="font-size:12px;">'+(b.site||b.from_site||'—')+'</div></div>'+
-    (!isPending && b.received_at
-      ? '<div><div style="font-size:10px;color:var(--muted);margin-bottom:2px;">รับโดย</div><div style="font-size:12px;">'+(b.received_by||'—')+'</div></div>'
-      : '')+
-    '<div><div style="font-size:10px;color:var(--muted);margin-bottom:2px;">จำนวน</div><div class="mono" style="font-size:12px;">'+b.barcode_count+' ใบ</div></div>'+
-  '</div>';
+  fetch(API_URL + '?action=getBatches&status_filter=disputed&site_filter=' + encodeURIComponent(sf))
+    .then(function(r){ return r.json(); })
+    .then(function(data) {
+      // กรองเฉพาะ PEND batches ที่ dest ตรงกับ site คลัง
+      var batches = (data.batches||[]).filter(function(b) {
+        return b.batch_id && b.batch_id.indexOf('-PEND') !== -1;
+      });
+      document.getElementById('count3').textContent = batches.length;
 
-  if (!barcodes.length) {
-    return meta + '<div style="font-size:12px;color:var(--muted);">ไม่มีข้อมูล barcode</div>';
-  }
-
-  // ถ้า barcodes เป็น array of string (pending mode)
-  var isSimple = (typeof barcodes[0] === 'string');
-  if (isSimple) {
-    return meta +
-      '<div style="display:flex;flex-wrap:wrap;gap:6px;">'+
-      barcodes.map(function(bc){
-        return '<span class="mono" style="font-size:11px;background:var(--surface);border:1px solid var(--border);padding:2px 8px;border-radius:20px;">'+bc+'</span>';
-      }).join('')+
-      '</div>';
-  }
-
-  // done mode — มี ref_no, item_name ฯลฯ
-  var tableRows = barcodes.map(function(item) {
-    return '<tr>'+
-      '<td class="mono" style="color:var(--accent);">'+item.barcode+'</td>'+
-      '<td class="mono" style="font-size:10px;color:var(--muted);">'+esc(item.ref_no||'—')+'</td>'+
-      '<td>'+esc(item.item_name||'—')+'</td>'+
-      '<td>'+esc(item.transfer_from||'—')+'</td>'+
-      '<td>'+esc(item.transfer_to||'—')+'</td>'+
-      '<td class="mono" style="text-align:right;">'+esc(item.sent_qty||'—')+'</td>'+
-    '</tr>';
-  }).join('');
-
-  return meta +
-    '<table class="detail-table">'+
-    '<thead><tr>'+
-      '<th>Barcode</th><th>Ref No.</th><th>ประเภท</th>'+
-      '<th>โอนจาก</th><th>โอนไป</th><th style="text-align:right;">QTY</th>'+
-    '</tr></thead>'+
-    '<tbody>'+tableRows+'</tbody>'+
-    '</table>';
+      if (!batches.length) {
+        wrap.innerHTML = '<div class="empty"><div class="empty-icon">🎉</div>ไม่มีรายการที่ต้องแก้ไข</div>';
+        return;
+      }
+      wrap.innerHTML = '<table><thead><tr>'+
+        '<th>Batch PEND</th><th>Batch ต้นทาง</th><th>วันที่แจ้ง</th>'+
+        '<th>ส่งจาก</th><th style="text-align:right;">จำนวน</th>'+
+        '<th style="text-align:center;">สถานะ</th>'+
+        '</tr></thead><tbody>'+
+        batches.map(function(b) {
+          var originalBatch = b.batch_id.replace('-PEND','');
+          var isLost = b.status === 'lost_document';
+          var badge  = isLost
+            ? '<span class="badge badge-lost">🔴 เอกสารหาย</span>'
+            : '<span class="badge badge-dispute">⚠️ รอจัดส่ง</span>';
+          return '<tr>'+
+            '<td class="mono" style="color:var(--danger);">'+b.batch_id+'</td>'+
+            '<td class="mono" style="font-size:11px;color:var(--muted);">'+originalBatch+'</td>'+
+            '<td class="mono" style="font-size:11px;">'+fmtDate(b.scan_date)+'</td>'+
+            '<td style="font-size:11px;">'+(b.site||'—')+'</td>'+
+            '<td class="mono" style="text-align:right;">'+b.barcode_count+' ใบ</td>'+
+            '<td style="text-align:center;">'+badge+'</td>'+
+          '</tr>';
+        }).join('')+'</tbody></table>';
+    })
+    .catch(function(err) {
+      wrap.innerHTML = '<div class="empty" style="color:var(--danger);">โหลดไม่สำเร็จ: '+err.message+'</div>';
+    });
 }
-
-function toggleDetail(eid, btn) {
-  var row = document.getElementById(eid);
-  if (!row) return;
-  var isOpen = row.classList.toggle('open');
-  btn.classList.toggle('open', isOpen);
-  btn.textContent = isOpen ? '▴ ปิด' : '▾ ดู';
-}
-
-function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'); }
-
-function loadList() { loadCurrent(); }
-</script>
 </script>
 </body>
 </html>
