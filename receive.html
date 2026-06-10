@@ -163,7 +163,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
   <nav class="sidebar-nav">
     <div class="nav-label">เมนู</div>
     <a class="nav-item" href="dashboard.html">📊 Dashboard</a>
-    <a class="nav-item active" href="receive.html">📥 รับเอกสาร</a>
+    <a class="nav-item active" href="incoming.html">📥 รับเอกสาร</a>
   </nav>
   <div class="sidebar-footer">
     <button class="logout-btn" onclick="DocScanAuth.clear();location.href='login.html';">↩ ออกจากระบบ</button>
@@ -181,9 +181,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
     </div>
     <div style="display:flex;align-items:center;gap:10px;">
       <span class="status-badge badge-wait" id="statusBadge" style="display:none;">⏳ รอยืนยัน</span>
-      <a href="batch.html" style="display:flex;align-items:center;gap:7px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:var(--rs);padding:7px 16px;font-family:var(--font);font-size:13px;font-weight:600;text-decoration:none;transition:border-color .15s;" onmouseenter="this.style.borderColor='var(--accent)'" onmouseleave="this.style.borderColor='var(--border)'">
-        📦 Batch Scan ปกติ
-      </a>
     </div>
   </div>
 
@@ -730,7 +727,7 @@ async function confirmReceive() {
         body:JSON.stringify({action:'disputeItems',items:dItems})});
     }
     showToast('✅ บันทึก '+ready.length+' รายการเรียบร้อย','success');
-    setTimeout(function(){ window.location.href='receive.html'; },1500);
+    setTimeout(function(){ window.location.href='incoming.html'; },1500);
   } catch(err) {
     showToast('เกิดข้อผิดพลาด: '+err.message,'error');
     btn.disabled=false; btn.textContent='✅ ยืนยันรับ';
