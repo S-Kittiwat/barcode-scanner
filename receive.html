@@ -114,6 +114,15 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .batch-table-wrap tr.row-rejected td{background:rgba(148,163,184,.04);opacity:.6;}
 .edit-input{background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--text);font-family:var(--font);font-size:11px;padding:3px 7px;width:100%;outline:none;}
 .edit-input:focus{border-color:var(--accent);}
+.bc-input{background:var(--surface2);border:1.5px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:12px;padding:5px 8px;outline:none;width:100%;transition:border-color .15s;}
+.bc-input:focus{border-color:var(--accent);}
+.bc-input.found{border-color:var(--success);}
+.bc-input.notfound{border-color:var(--warn);}
+.bc-input.dup{border-color:var(--danger);}
+.date-smart{letter-spacing:.05em;text-align:center;}
+.date-smart.ok{border-color:var(--success);color:var(--success);}
+.date-smart.err{border-color:var(--danger);color:var(--danger);}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
 .reject-btn{background:none;border:1px solid rgba(248,113,113,.3);color:var(--danger);border-radius:5px;font-size:10px;padding:2px 7px;cursor:pointer;font-family:var(--font);}
 .reject-btn:hover{background:rgba(248,113,113,.1);}
 .restore-btn{background:none;border:1px solid rgba(148,163,184,.3);color:var(--muted);border-radius:5px;font-size:10px;padding:2px 7px;cursor:pointer;font-family:var(--font);}
@@ -686,7 +695,7 @@ function renderTable() {
     return '<tr class="'+rowCls+'" id="row-'+row.id+'">'+
       '<td style="color:var(--muted);">'+(i+1)+'</td>'+
       '<td><img src="'+(row.thumb||'')+'" style="width:36px;height:28px;object-fit:cover;border-radius:3px;"></td>'+
-      '<td><input class="edit-input mono" value="'+esc(row.barcode)+'" placeholder="scan..." '+
+      '<td><input class="bc-input '+(row.barcode&&!isDup&&inBatch===true?'found':row.barcode&&inBatch===false?'notfound':isDup?'dup':'')+'" value="'+esc(row.barcode)+'" placeholder="scan..." '+
         'oninput="onBcInput('+row.id+',this.value)" '+
         'onkeydown="if(event.key===\'Enter\'){onBcChange('+row.id+',this.value);}"></td>'+
       '<td>'+_statusBadge(st)+'</td>'+
@@ -697,7 +706,7 @@ function renderTable() {
       '<td><input class="edit-input mono" value="'+esc(ev.originAcc||doc['customer_start_code']||'')+'" onchange="onEditChange('+row.id+',\'originAcc\',this.value)" placeholder="Origin Acc."></td>'+
       '<td><input class="edit-input" value="'+esc(ev.to||doc['customer_destination_name']||'')+'" onchange="onEditChange('+row.id+',\'to\',this.value)" placeholder="โอนไป"></td>'+
       '<td><input class="edit-input mono" value="'+esc(ev.destAcc||doc['customer_destination_code']||'')+'" onchange="onEditChange('+row.id+',\'destAcc\',this.value)" placeholder="Dest Acc."></td>'+
-      '<td><input class="edit-input" type="date" value="'+esc(ev.receivedDate||'')+'" onchange="onEditChange('+row.id+',\'receivedDate\',this.value)"></td>'+
+      '<td><input class="edit-input date-smart" data-rid="'+row.id+'" value="'+esc(toDisplayDate(ev.receivedDate))+'" placeholder="ddmmyy" maxlength="10" style="font-family:var(--mono);"></td>'+
       '<td><input class="edit-input mono" value="'+esc(ev.recvQty||doc['total']||'')+'" style="width:46px;" onchange="onEditChange('+row.id+',\'recvQty\',this.value)"></td>'+
       '<td>'+
         (row.rejected
@@ -709,37 +718,198 @@ function renderTable() {
   }).join('');
 }
 
+// ── Date helpers ─────────────────────────────────────────
+function toInputDate(val) {
+  if (!val) return new Date().toISOString().split('T')[0];
+  try {
+    if (val.indexOf('/') > -1) {
+      var p = val.split('/');
+      if (p.length === 3) { var y = p[2].length===2 ? '20'+p[2] : p[2]; return y+'-'+p[1].padStart(2,'0')+'-'+p[0].padStart(2,'0'); }
+    }
+    return new Date(val).toISOString().split('T')[0];
+  } catch(e) { return ''; }
+}
+
+function toDisplayDate(isoVal) {
+  if (!isoVal) return '';
+  try { var p = isoVal.split('-'); if (p.length===3) return p[2]+'/'+p[1]+'/'+p[0]; } catch(e) {}
+  return isoVal;
+}
+
+function parseDateInput(raw) {
+  var s = raw.trim().replace(/[-\s]/g, '/');
+  if (s.indexOf('/') > -1) {
+    var p = s.split('/');
+    if (p.length === 3) {
+      var d = p[0].padStart(2,'0'), m = p[1].padStart(2,'0');
+      var y = p[2].length===2 ? '20'+p[2] : p[2];
+      return _validateDate(d, m, y);
+    }
+    return null;
+  }
+  var digits = s.replace(/\D/g,'');
+  if (digits.length===6) return _validateDate(digits.slice(0,2), digits.slice(2,4), '20'+digits.slice(4,6));
+  if (digits.length===8) return _validateDate(digits.slice(0,2), digits.slice(2,4), digits.slice(4,8));
+  return null;
+}
+function _validateDate(d, m, y) {
+  var dd=parseInt(d,10), mm=parseInt(m,10), yy=parseInt(y,10);
+  if (dd<1||dd>31||mm<1||mm>12||yy<2000||yy>2099) return null;
+  return y+'-'+m.padStart(2,'0')+'-'+d.padStart(2,'0');
+}
+
+function _applyDateEl(el) {
+  var raw = el.value.trim();
+  var rid = parseInt(el.getAttribute('data-rid'), 10);
+  if (!raw) { el.classList.remove('ok','err'); _setReceiveDate(rid, ''); return true; }
+  var iso = parseDateInput(raw);
+  if (iso) {
+    el.value = toDisplayDate(iso);
+    el.classList.add('ok'); el.classList.remove('err');
+    _setReceiveDate(rid, iso);
+    return true;
+  }
+  el.classList.add('err'); el.classList.remove('ok');
+  showToast('รูปแบบวันที่ไม่ถูกต้อง เช่น 010126 หรือ 01/01/26', 'error');
+  return false;
+}
+
+function _setReceiveDate(rid, iso) {
+  var row = _rows.find(function(r){ return r.id===rid; });
+  if (!row) return;
+  row.editVals.receivedDate = iso;
+  updateSummary();
+}
+
+// date-smart: Enter → apply + focus ถัดไป, blur → apply
+var _skipBlurR = false;
+document.addEventListener('keydown', function(e) {
+  if (!e.target.classList.contains('date-smart')) return;
+  if (e.key !== 'Enter') return;
+  e.preventDefault();
+  var ok = _applyDateEl(e.target);
+  if (!ok) return;
+  var all  = Array.from(document.querySelectorAll('#tableBody input.date-smart'));
+  var idx  = all.indexOf(e.target);
+  var next = all[idx + 1];
+  _skipBlurR = true;
+  setTimeout(function(){ _skipBlurR = false; }, 150);
+  if (next) { next.focus(); next.select(); }
+  else { showToast('กรอกวันที่รับครบทุกแถวแล้ว ✅', 'success'); }
+}, true);
+
+document.addEventListener('blur', function(e) {
+  if (!e.target.classList.contains('date-smart')) return;
+  if (_skipBlurR) return;
+  _applyDateEl(e.target);
+}, true);
+
+// ── Update row DOM (ไม่ re-render ทั้งตาราง) ─────────────
+function _updateRowDOM(row) {
+  var tr = document.getElementById('row-'+row.id);
+  if (!tr) return;
+  var ev  = row.editVals;
+  var doc = row.doc || {};
+  var st  = row.status;
+
+  // bc-input border class
+  var bcEl = tr.querySelector('.bc-input');
+  if (bcEl) {
+    bcEl.className = 'bc-input' +
+      (st==='found'||st==='ready' ? ' found' : st==='notfound' ? ' notfound' : st==='dup' ? ' dup' : '');
+  }
+  // status badge
+  var badge = tr.querySelector('.sb');
+  if (badge) {
+    var map = {idle:['sb sb-idle','รอ barcode'],found:['sb sb-found','พบข้อมูล'],
+               ready:['sb sb-ready','พร้อมส่ง'],nf:['sb sb-nf','ไม่พบ'],
+               dup:['sb sb-dup','ซ้ำ'],reject:['sb sb-reject','reject']};
+    var d = map[st]||map.idle;
+    badge.className  = d[0];
+    badge.textContent = d[1];
+  }
+  if (!row.doc) return;
+  // fill inputs
+  var inputs = tr.querySelectorAll('input.edit-input:not(.date-smart)');
+  var fields = [
+    ev.ref||doc['ref_no']||'',
+    ev.itemName||doc['item_name']||'',
+    ev.from||doc['customer_start_name']||'',
+    ev.originAcc||doc['customer_start_code']||'',
+    ev.to||doc['customer_destination_name']||'',
+    ev.destAcc||doc['customer_destination_code']||'',
+    ev.recvQty||doc['total']||''
+  ];
+  fields.forEach(function(val, i){ if (inputs[i]) inputs[i].value = val; });
+  // date-smart
+  var dateEl = tr.querySelector('.date-smart');
+  if (dateEl) {
+    dateEl.value = toDisplayDate(ev.receivedDate);
+    dateEl.classList.remove('err');
+    dateEl.classList.toggle('ok', !!ev.receivedDate);
+  }
+}
+
 var _bcTimer = {};
 function onBcInput(id, value) {
   var row = _rows.find(function(r){return r.id===id;});
   if (!row) return;
   row.barcode = (value||'').trim().toUpperCase();
-  // debounce 300ms แล้ว lookup CSV ทันที ไม่ต้องรอ Enter
   clearTimeout(_bcTimer[id]);
-  _bcTimer[id] = setTimeout(function(){ onBcChange(id, row.barcode); }, 300);
+  _bcTimer[id] = setTimeout(function(){ onBcChange(id, row.barcode); }, 500);
 }
 
 function onBcChange(id, value) {
+  clearTimeout(_bcTimer[id]);
   var row = _rows.find(function(r){return r.id===id;});
   if (!row) return;
   row.barcode = (value||'').trim().toUpperCase();
-  if (row.barcode && csvLoaded) {
-    var doc = searchCSV(row.barcode);
-    console.log('lookup', row.barcode, '→', doc ? 'FOUND' : 'NOT FOUND', '| csvData.length='+csvData.length);
-    if (doc) {
-      row.doc = doc;
-      if (!row.editVals.ref)       row.editVals.ref       = doc['ref_no']||'';
-      if (!row.editVals.itemName)  row.editVals.itemName  = doc['item_name']||'';
-      if (!row.editVals.from)      row.editVals.from      = doc['customer_start_name']||'';
-      if (!row.editVals.originAcc) row.editVals.originAcc = doc['customer_start_code']||'';
-      if (!row.editVals.to)        row.editVals.to        = doc['customer_destination_name']||'';
-      if (!row.editVals.destAcc)   row.editVals.destAcc   = doc['customer_destination_code']||'';
-      if (!row.editVals.recvQty)   row.editVals.recvQty   = doc['total']||'';
-    }
-  } else {
-    console.log('lookup skip — csvLoaded:', csvLoaded, '| barcode:', row.barcode);
+
+  if (!row.barcode) {
+    row.status = 'idle'; row.doc = null;
+    _updateRowDOM(row); updateSummary(); return;
   }
-  renderTable(); updateRIP(); updateSummary();
+
+  // ตรวจซ้ำ
+  var isDup = _rows.some(function(r){ return r.id!==id && !r.rejected && r.barcode===row.barcode; });
+  if (isDup) {
+    row.status = 'dup';
+    _updateRowDOM(row);
+    showToast('⚠️ Barcode "'+row.barcode+'" ซ้ำ', 'error');
+    updateSummary(); return;
+  }
+
+  var doc = csvLoaded ? searchCSV(row.barcode) : null;
+  console.log('lookup', row.barcode, '→', doc?'FOUND':'NOT FOUND', '| csv:', csvData.length);
+  row.doc    = doc;
+  row.status = doc ? 'found' : 'nf';
+
+  if (doc) {
+    row.editVals.ref       = doc['ref_no']                    || '';
+    row.editVals.itemName  = doc['item_name']                 || '';
+    row.editVals.from      = doc['customer_start_name']       || '';
+    row.editVals.originAcc = doc['customer_start_code']       || '';
+    row.editVals.to        = doc['customer_destination_name'] || '';
+    row.editVals.destAcc   = doc['customer_destination_code'] || '';
+    row.editVals.recvQty   = doc['total']                     || '';
+    row.editVals.receivedDate = doc['real_recived_at']
+      ? toInputDate(doc['real_recived_at'])
+      : new Date().toISOString().split('T')[0];
+  }
+
+  _updateRowDOM(row);
+  updateRIP();
+  updateSummary();
+
+  // focus แถวถัดไป
+  var idx = _rows.indexOf(row);
+  var next = _rows[idx + 1];
+  if (next) {
+    var nextEl = document.querySelector('#row-'+next.id+' .bc-input');
+    if (nextEl) { nextEl.focus(); nextEl.select(); }
+  } else {
+    showToast('สแกน barcode ครบทุกแถวแล้ว ✅', 'success');
+  }
 }
 
 function onEditChange(id, field, value) {
