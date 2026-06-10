@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>DocScan — รับเอกสารจากจัดส่ง</title>
+<script src="config.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+:root{
+  --bg:#0f172a;--surface:#1e293b;--surface2:#263348;--border:#334155;
+  --accent:#38bdf8;--success:#34d399;--warn:#fbbf24;--danger:#f87171;
+  --text:#f1f5f9;--muted:#94a3b8;
+  --font:'IBM Plex Sans Thai',sans-serif;--mono:'IBM Plex Mono',monospace;
+  --r:12px;--rs:8px;--sidebar:240px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;display:flex;font-size:15px;}
+.sidebar{width:var(--sidebar);flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:200;}
+.sidebar-brand{padding:20px 20px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
+.brand-icon{width:36px;height:36px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.brand-name{font-size:14px;font-weight:600;}.brand-sub{font-size:10px;color:var(--muted);}
+.sidebar-user{padding:14px 16px;border-bottom:1px solid var(--border);background:var(--surface2);}
+.user-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.user-role{font-size:11px;color:var(--accent);margin-top:2px;}
+.sidebar-nav{flex:1;padding:12px 8px;display:flex;flex-direction:column;gap:4px;}
+.nav-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;padding:8px 8px 4px;font-weight:500;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--rs);text-decoration:none;color:var(--muted);font-size:13px;font-weight:500;transition:background .15s,color .15s;}
+.nav-item:hover{background:var(--surface2);color:var(--text);}
+.nav-item.active{background:rgba(56,189,248,.1);color:var(--accent);border:1px solid rgba(56,189,248,.2);}
+.sidebar-footer{padding:12px 8px;border-top:1px solid var(--border);}
+.logout-btn{display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:var(--rs);cursor:pointer;color:var(--muted);font-size:13px;background:none;border:none;width:100%;font-family:var(--font);}
+.logout-btn:hover{color:var(--danger);}
+.page-wrap{margin-left:var(--sidebar);flex:1;display:flex;flex-direction:column;}
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.topbar-title{font-size:15px;font-weight:600;}
+.topbar-sub{font-size:11px;color:var(--muted);margin-top:2px;}
+.content{padding:24px;flex:1;}
+/* list */
+.list-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.list-title{font-size:13px;font-weight:500;display:flex;align-items:center;gap:8px;}
+.count-badge{background:var(--accent);color:#0f172a;font-size:11px;font-weight:700;padding:1px 8px;border-radius:20px;font-family:var(--mono);}
+.refresh-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:var(--rs);padding:6px 14px;font-family:var(--font);font-size:12px;cursor:pointer;}
+.refresh-btn:hover{border-color:var(--accent);color:var(--accent);}
+.table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;}
+table{width:100%;border-collapse:collapse;}
+th{background:var(--surface2);padding:9px 16px;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;text-align:left;border-bottom:1px solid var(--border);}
+td{padding:11px 16px;font-size:12px;border-bottom:1px solid var(--border);vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:rgba(255,255,255,.02);}
+.mono{font-family:var(--mono);}
+.receive-btn{background:var(--accent);border:none;color:#0f172a;border-radius:var(--rs);padding:7px 18px;font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;}
+.receive-btn:hover{opacity:.85;}
+.empty{text-align:center;padding:56px;color:var(--muted);font-size:13px;}
+.empty .icon{font-size:36px;margin-bottom:10px;}
+.spinner{width:16px;height:16px;border:2px solid rgba(56,189,248,.3);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:8px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-icon">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0f172a" stroke-width="2.5">
+        <rect x="3" y="4" width="3" height="16" rx="1"/><rect x="8" y="4" width="1.5" height="16" rx="0.5"/>
+        <rect x="11" y="4" width="3" height="16" rx="1"/><rect x="16" y="4" width="1.5" height="16" rx="0.5"/>
+        <rect x="19" y="4" width="2" height="16" rx="1"/>
+      </svg>
+    </div>
+    <div><div class="brand-name">DocScan</div><div class="brand-sub">Pallet Tracking</div></div>
+  </div>
+  <div class="sidebar-user">
+    <div class="user-name" id="sidebarName">—</div>
+    <div class="user-role">🏭 ทีมคลังพาเลท</div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-label">เมนู</div>
+    <a class="nav-item" href="dashboard.html">📊 Dashboard</a>
+    <a class="nav-item active" href="incoming.html">📥 รับเอกสาร</a>
+    <a class="nav-item" href="batch.html">📦 Batch Scan ปกติ</a>
+  </nav>
+  <div class="sidebar-footer">
+    <button class="logout-btn" onclick="DocScanAuth.clear();location.href='login.html';">↩ ออกจากระบบ</button>
+  </div>
+</aside>
+
+<div class="page-wrap">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title">รับเอกสารจากจัดส่ง</div>
+      <div class="topbar-sub" id="topbarSub">—</div>
+    </div>
+    <button class="refresh-btn" onclick="loadList()">↻ รีเฟรช</button>
+  </div>
+
+  <div class="content">
+    <div class="list-head">
+      <div class="list-title">
+        รายการรอรับ
+        <span class="count-badge" id="countBadge">—</span>
+      </div>
+    </div>
+    <div id="listWrap" class="table-wrap">
+      <div class="empty"><span class="spinner"></span> กำลังโหลด...</div>
+    </div>
+  </div>
+</div>
+
+<script>
+var DocScanAuth=(function(){
+  var KEY='docScanSession';
+  function load(){try{var r=localStorage.getItem(KEY);if(!r)return null;var s=JSON.parse(r);return(s.empId&&s.site)?s:null;}catch(e){return null;}}
+  function clear(){localStorage.removeItem(KEY);}
+  function requireAuth(){var s=load();if(!s){location.href='login.html';return null;}return s;}
+  return{load:load,clear:clear,requireAuth:requireAuth};
+})();
+
+var API_URL = DOCSCAN_CONFIG.API_URL;
+var session;
+
+window.onload = function() {
+  session = DocScanAuth.requireAuth();
+  if (!session) return;
+  document.getElementById('sidebarName').textContent = session.empName+' ('+session.empId+')';
+  document.getElementById('topbarSub').textContent   = session.site;
+  loadList();
+};
+
+function loadList() {
+  var sf  = session.site_filter ? session.site_filter.join('|') : session.site;
+  var wrap = document.getElementById('listWrap');
+  wrap.innerHTML = '<div class="empty"><span class="spinner"></span> กำลังโหลด...</div>';
+
+  fetch(API_URL+'?action=getIncoming&site_filter='+encodeURIComponent(sf))
+    .then(function(r){ return r.json(); })
+    .then(function(data) {
+      var batches = data.batches || [];
+      document.getElementById('countBadge').textContent = batches.length;
+
+      if (!batches.length) {
+        wrap.innerHTML = '<div class="empty"><div class="icon">✅</div>ไม่มีรายการรอรับ</div>';
+        return;
+      }
+
+      var dt = function(iso) {
+        return iso ? new Date(iso).toLocaleString('th-TH',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
+      };
+
+      wrap.innerHTML = '<table><thead><tr>'+
+        '<th>Batch No.</th><th>วันที่ส่ง</th><th>ส่งจาก</th>'+
+        '<th style="text-align:right;">จำนวน</th><th style="text-align:center;">ดำเนินการ</th>'+
+        '</tr></thead><tbody>'+
+        batches.map(function(b){
+          return '<tr>'+
+            '<td class="mono" style="color:var(--accent);">'+b.batch_id+'</td>'+
+            '<td class="mono" style="font-size:11px;">'+dt(b.sent_date||b.scan_date)+'</td>'+
+            '<td style="font-size:11px;">'+(b.site||'—')+'</td>'+
+            '<td class="mono" style="text-align:right;">'+b.barcode_count+' ใบ</td>'+
+            '<td style="text-align:center;">'+
+              '<button class="receive-btn" onclick="location.href=\'receive.html?batch_id='+encodeURIComponent(b.batch_id)+'\'">'+
+              '📥 รับเอกสาร</button>'+
+            '</td></tr>';
+        }).join('')+
+        '</tbody></table>';
+    })
+    .catch(function(err){
+      wrap.innerHTML = '<div class="empty" style="color:var(--danger);">โหลดไม่สำเร็จ: '+err.message+'</div>';
+    });
+}
+</script>
+</body>
+</html>
