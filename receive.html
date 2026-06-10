@@ -80,11 +80,29 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .rip-chip.extra{background:rgba(248,113,113,.1);border-color:rgba(248,113,113,.3);color:var(--danger);}
 .rip-chip.rejected{background:rgba(148,163,184,.08);border-color:var(--border);color:var(--muted);text-decoration:line-through;}
 /* upload zone */
-.upload-zone{border:1.5px dashed var(--border);border-radius:var(--r);padding:20px;text-align:center;cursor:pointer;transition:border-color .15s;margin-bottom:12px;}
-.upload-zone:hover{border-color:var(--accent);}
+.upload-zone{border:1.5px dashed var(--border);border-radius:var(--r);padding:20px;text-align:center;cursor:pointer;transition:border-color .15s,background .15s;margin-bottom:8px;}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--accent);background:rgba(56,189,248,.03);}
 .upload-zone .icon{font-size:28px;margin-bottom:6px;}
 .upload-zone .label{font-size:13px;font-weight:500;margin-bottom:2px;}
 .upload-zone .sub{font-size:11px;color:var(--muted);}
+.upload-counter{display:flex;align-items:center;gap:10px;margin-bottom:10px;font-size:12px;color:var(--muted);}
+.upload-counter-bar{flex:1;height:4px;background:var(--surface2);border-radius:10px;overflow:hidden;}
+.upload-counter-fill{height:100%;background:var(--accent);border-radius:10px;transition:width .3s;}
+.upload-counter-fill.warn{background:var(--warn);}
+.upload-counter-fill.full{background:var(--danger);}
+.limit-banner{display:none;background:rgba(251,191,36,.07);border:1px solid rgba(251,191,36,.3);border-radius:var(--rs);padding:7px 14px;font-size:12px;color:var(--warn);margin-bottom:10px;align-items:center;gap:8px;}
+.limit-banner.show{display:flex;}
+.limit-banner.danger{background:rgba(248,113,113,.07);border-color:rgba(248,113,113,.3);color:var(--danger);}
+/* status badge ในตาราง */
+.sb{font-size:10px;font-weight:600;padding:1px 7px;border-radius:20px;white-space:nowrap;}
+.sb-idle   {background:var(--surface2);color:var(--muted);border:1px solid var(--border);}
+.sb-found  {background:rgba(56,189,248,.1);color:var(--accent);border:1px solid rgba(56,189,248,.25);}
+.sb-ready  {background:rgba(52,211,153,.1);color:var(--success);border:1px solid rgba(52,211,153,.25);}
+.sb-nf     {background:rgba(248,113,113,.1);color:var(--danger);border:1px solid rgba(248,113,113,.25);}
+.sb-dup    {background:rgba(251,191,36,.1);color:var(--warn);border:1px solid rgba(251,191,36,.25);}
+.sb-reject {background:rgba(148,163,184,.1);color:var(--muted);border:1px solid var(--border);}
+/* row ซ้ำ */
+.batch-table-wrap tr.row-dup td{background:rgba(251,191,36,.05);}
 /* table */
 .batch-table-wrap{border:1px solid var(--border);border-radius:var(--rs);overflow:auto;}
 .batch-table-wrap table{width:100%;border-collapse:collapse;table-layout:fixed;}
@@ -231,31 +249,47 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
         </div>
 
         <!-- upload zone -->
-        <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+        <div class="upload-zone" id="uploadZone"
+          ondragover="event.preventDefault();this.classList.add('drag')"
+          ondragleave="this.classList.remove('drag')"
+          ondrop="handleDrop(event)">
           <div class="icon">📂</div>
-          <div class="label">Upload PDF หรือรูปภาพ</div>
-          <div class="sub">JPG, PNG, PDF — เลือกได้หลายไฟล์</div>
+          <div class="label">ลากไฟล์มาวางที่นี่ หรือคลิกเพื่อเลือกไฟล์</div>
+          <div class="sub">JPG, PNG, PDF (สูงสุด 40 หน้า/ไฟล์) — Upload เพิ่มได้เรื่อยๆ</div>
         </div>
         <input type="file" id="fileInput" accept="image/*,application/pdf" multiple
-          onchange="handleFiles(this.files)" style="display:none;">
+          onchange="handleFiles(this.files);this.value='';" style="display:none;">
+        <!-- counter + limit banner -->
+        <div class="upload-counter" id="uploadCounter" style="display:none;">
+          <span id="counterText">0 / 200</span>
+          <div class="upload-counter-bar">
+            <div class="upload-counter-fill" id="counterFill" style="width:0%;"></div>
+          </div>
+        </div>
+        <div class="limit-banner" id="limitBanner">
+          <span id="limitBannerText">⚠️ ใกล้เต็มแล้ว</span>
+        </div>
 
         <!-- table -->
         <div id="tableWrap" style="display:none;">
           <div class="batch-table-wrap">
             <table>
               <thead><tr>
-                <th style="width:4%;">#</th>
-                <th style="width:6%;">ไฟล์</th>
-                <th style="width:12%;">Barcode</th>
-                <th style="width:6%;">Match</th>
-                <th style="width:10%;">Reference</th>
-                <th style="width:9%;">ประเภท</th>
-                <th style="width:13%;">โอนจาก</th>
-                <th style="width:13%;">โอนไป</th>
-                <th style="width:9%;">วันที่รับ</th>
-                <th style="width:5%;">QTY รับ</th>
-                <th style="width:8%;">สถานะ</th>
-                <th style="width:5%;"></th>
+                <th style="width:3%;">#</th>
+                <th style="width:5%;">ไฟล์</th>
+                <th style="width:11%;">Barcode</th>
+                <th style="width:7%;">สถานะ</th>
+                <th style="width:5%;">Match</th>
+                <th style="width:9%;">Reference</th>
+                <th style="width:8%;">ประเภท</th>
+                <th style="width:10%;">โอนจาก</th>
+                <th style="width:9%;">Origin Acc.</th>
+                <th style="width:10%;">โอนไป</th>
+                <th style="width:9%;">Dest Acc.</th>
+                <th style="width:8%;">วันที่รับ</th>
+                <th style="width:4%;">QTY</th>
+                <th style="width:4%;"></th>
+                <th style="width:4%;"></th>
               </tr></thead>
               <tbody id="tableBody"></tbody>
             </table>
@@ -329,10 +363,113 @@ var DocScanAuth=(function(){
 
 var API_URL = DOCSCAN_CONFIG.API_URL;
 var session, csvData=[], csvLoaded=false;
-var _batch    = null;   // batch detail จาก GAS
-var _rows     = [];     // scan rows
+var _batch    = null;
+var _rows     = [];
 var _rowId    = 0;
-var _verified = false;  // step 1 ผ่านแล้ว
+var _verified = false;
+var MAX_ROWS      = 200;
+var MAX_PDF_PAGES = 40;
+var WARN_ROWS     = 160;
+
+document.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('uploadZone').addEventListener('click', function() {
+    document.getElementById('fileInput').click();
+  });
+});
+
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('uploadZone').classList.remove('drag');
+  handleFiles(e.dataTransfer.files);
+}
+
+function handleFiles(files) {
+  Array.from(files).forEach(function(file) {
+    if (file.type === 'application/pdf') handlePDF(file);
+    else handleImage(file);
+  });
+}
+
+function handleImage(file) {
+  // ต้องมีพื้นที่อย่างน้อย 1 slot
+  if (_rows.length >= MAX_ROWS) {
+    showToast('เต็มแล้ว — ไม่สามารถเพิ่ม "'+file.name+'" ได้', 'error');
+    return;
+  }
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    addRow({file:file, fileName:file.name, thumb:e.target.result, photoData:e.target.result});
+  };
+  reader.readAsDataURL(file);
+}
+
+function handlePDF(file) {
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var arr = new Uint8Array(e.target.result);
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    pdfjsLib.getDocument({data:arr}).promise.then(function(pdf) {
+      var total = pdf.numPages;
+      var pages = Math.min(total, MAX_PDF_PAGES);
+      if (total > MAX_PDF_PAGES) {
+        showToast(file.name+' มี '+total+' หน้า — ตัดเหลือ '+MAX_PDF_PAGES+' หน้า', 'error');
+      }
+      // ตรวจว่ามีพื้นที่พอรับทั้งไฟล์ไหม
+      var available = MAX_ROWS - _rows.length;
+      if (available < pages) {
+        showToast('พื้นที่เหลือ '+available+' — "'+file.name+'" ต้องการ '+pages+' หน้า ไม่รับเข้า', 'error');
+        return;
+      }
+      for (var p = 1; p <= pages; p++) {
+        (function(pageNum) {
+          pdf.getPage(pageNum).then(function(page) {
+            var vp = page.getViewport({scale:0.4});
+            var canvas = document.createElement('canvas');
+            canvas.width = vp.width; canvas.height = vp.height;
+            page.render({canvasContext:canvas.getContext('2d'),viewport:vp}).promise.then(function() {
+              addRow({file:file, fileName:file.name+'[p'+pageNum+']', thumb:canvas.toDataURL(), photoData:canvas.toDataURL()});
+            });
+          });
+        })(p);
+      }
+    });
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function addRow(opts) {
+  if (_rows.length >= MAX_ROWS) return;
+  var id = ++_rowId;
+  _rows.push({
+    id:id, file:opts.file, fileName:opts.fileName, thumb:opts.thumb,
+    barcode:'', status:'idle', doc:null, rejected:false, rejectNote:'',
+    editVals:{ref:'',itemName:'',from:'',originAcc:'',to:'',destAcc:'',receivedDate:'',recvQty:''},
+    photoData:opts.photoData
+  });
+  renderTable();
+  document.getElementById('tableWrap').style.display = 'block';
+  updateCounter();
+  updateSummary();
+}
+
+function updateCounter() {
+  var n   = _rows.length;
+  var pct = Math.min(100, n / MAX_ROWS * 100);
+  var counterEl = document.getElementById('uploadCounter');
+  var fillEl    = document.getElementById('counterFill');
+  var textEl    = document.getElementById('counterText');
+  var banner    = document.getElementById('limitBanner');
+  var bannerTxt = document.getElementById('limitBannerText');
+
+  counterEl.style.display = n > 0 ? 'flex' : 'none';
+  textEl.textContent = n + ' / ' + MAX_ROWS;
+  fillEl.style.width = pct + '%';
+  fillEl.className   = 'upload-counter-fill' + (n >= MAX_ROWS ? ' full' : n >= WARN_ROWS ? ' warn' : '');
+  banner.className   = 'limit-banner' + (n >= MAX_ROWS ? ' danger show' : n >= WARN_ROWS ? ' show' : '');
+  bannerTxt.textContent = n >= MAX_ROWS
+    ? '🚫 ครบ '+MAX_ROWS+' รายการแล้ว — ไม่สามารถเพิ่มไฟล์ใหม่ได้'
+    : '⚠️ ใกล้เต็ม — เหลืออีก '+(MAX_ROWS-n)+' รายการ';
+}
 
 // ── Init ─────────────────────────────────────────────────
 window.onload = function() {
@@ -471,91 +608,84 @@ function updateRIP() {
 }
 
 // ── File handling ─────────────────────────────────────────
-function handleFiles(files) {
-  Array.from(files).forEach(function(file) {
-    if (file.type === 'application/pdf') handlePDF(file);
-    else handleImage(file);
-  });
-}
-
-function handleImage(file) {
-  var reader = new FileReader();
-  reader.onload = function(e) {
-    addRow({file:file, fileName:file.name, thumb:e.target.result, barcode:'', photoData:e.target.result});
-  };
-  reader.readAsDataURL(file);
-}
-
-function handlePDF(file) {
-  var reader = new FileReader();
-  reader.onload = function(e) {
-    var arr = new Uint8Array(e.target.result);
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-    pdfjsLib.getDocument({data: arr}).promise.then(function(pdf) {
-      for(var p=1;p<=pdf.numPages;p++){
-        (function(pageNum){
-          pdf.getPage(pageNum).then(function(page){
-            var vp=page.getViewport({scale:0.4});
-            var canvas=document.createElement('canvas');
-            canvas.width=vp.width; canvas.height=vp.height;
-            page.render({canvasContext:canvas.getContext('2d'),viewport:vp}).promise.then(function(){
-              addRow({file:file, fileName:file.name+'[p'+pageNum+']', thumb:canvas.toDataURL(), barcode:'', photoData:canvas.toDataURL()});
-            });
-          });
-        })(p);
-      }
-    });
-  };
-  reader.readAsArrayBuffer(file);
-}
-
-function addRow(opts) {
-  var id = ++_rowId;
-  _rows.push({
-    id:id, file:opts.file, fileName:opts.fileName, thumb:opts.thumb,
-    barcode:'', status:'idle', doc:null, rejected:false, rejectNote:'',
-    editVals:{ref:'',itemName:'',from:'',to:'',receivedDate:'',recvQty:''},
-    photoData:opts.photoData
-  });
-  renderTable();
-  document.getElementById('tableWrap').style.display = 'block';
-  document.getElementById('uploadZone').style.display = 'none';
-  updateSummary();
-}
-
 // ── Render Table ─────────────────────────────────────────
+function _getDupSet() {
+  var seen = {}, dups = {};
+  _rows.forEach(function(r) {
+    if (!r.barcode || r.rejected) return;
+    var bc = r.barcode.toUpperCase();
+    if (seen[bc]) dups[bc] = true;
+    seen[bc] = true;
+  });
+  return dups;
+}
+
+function _rowStatus(row, inBatch, isDup) {
+  if (row.rejected) return 'reject';
+  if (isDup)        return 'dup';
+  if (!row.barcode) return 'idle';
+  var ev = row.editVals;
+  var hasRequired = ev.from && ev.to && ev.receivedDate && ev.recvQty;
+  if (inBatch === false) return 'nf';
+  if (row.doc || inBatch === true) return hasRequired ? 'ready' : 'found';
+  return 'found';
+}
+
+function _statusBadge(st) {
+  var map = {
+    idle   : ['sb sb-idle',   'รอ barcode'],
+    found  : ['sb sb-found',  'พบข้อมูล'],
+    ready  : ['sb sb-ready',  'พร้อมส่ง'],
+    nf     : ['sb sb-nf',     'ไม่พบ'],
+    dup    : ['sb sb-dup',    'ซ้ำ'],
+    reject : ['sb sb-reject', 'reject']
+  };
+  var d = map[st] || map.idle;
+  return '<span class="'+d[0]+'">'+d[1]+'</span>';
+}
+
 function renderTable() {
   var tbody = document.getElementById('tableBody');
   if (!_rows.length) {
     tbody.innerHTML = '';
     document.getElementById('tableWrap').style.display = 'none';
-    document.getElementById('uploadZone').style.display = 'block';
     return;
   }
   var batchBarcodes = _batch ? (_batch.barcodes||[]).map(function(b){return b.barcode.toUpperCase();}) : [];
+  var dups = _getDupSet();
   tbody.innerHTML = _rows.map(function(row, i) {
-    var inBatch   = row.barcode ? batchBarcodes.indexOf(row.barcode.toUpperCase())!==-1 : null;
-    var matchCls  = row.rejected ? 'row-rejected' : row.barcode && inBatch===true ? 'row-matched' : row.barcode && inBatch===false ? 'row-extra' : '';
-    var matchBadge = row.rejected
-      ? '<span style="font-size:10px;color:var(--muted);">❌ reject</span>'
-      : !row.barcode ? '<span style="font-size:10px;color:var(--muted);">—</span>'
-      : inBatch ? '<span style="font-size:10px;color:var(--success);">✅</span>'
-      : '<span style="font-size:10px;color:var(--danger);">⚠️ ไม่ตรง</span>';
+    var bc       = (row.barcode||'').toUpperCase();
+    var inBatch  = bc ? batchBarcodes.indexOf(bc) !== -1 : null;
+    var isDup    = bc && !row.rejected && !!dups[bc];
+    var st       = _rowStatus(row, inBatch, isDup);
+    var rowCls   = st === 'reject' ? 'row-rejected'
+                 : st === 'dup'    ? 'row-dup'
+                 : inBatch === true ? 'row-matched'
+                 : bc && inBatch === false ? 'row-extra' : '';
+    var matchBadge = !bc ? '<span style="font-size:10px;color:var(--muted);">—</span>'
+                 : row.rejected ? '<span style="font-size:10px;color:var(--muted);">—</span>'
+                 : inBatch === true  ? '<span style="font-size:10px;color:var(--success);">✅</span>'
+                 : inBatch === false ? '<span style="font-size:10px;color:var(--danger);">⚠️</span>'
+                 : '<span style="font-size:10px;color:var(--muted);">—</span>';
     var doc = row.doc || {};
-    return '<tr class="'+matchCls+'" id="row-'+row.id+'">'+
+    var ev  = row.editVals;
+    return '<tr class="'+rowCls+'" id="row-'+row.id+'">'+
       '<td style="color:var(--muted);">'+(i+1)+'</td>'+
       '<td><img src="'+(row.thumb||'')+'" style="width:36px;height:28px;object-fit:cover;border-radius:3px;"></td>'+
       '<td><input class="edit-input mono" value="'+esc(row.barcode)+'" placeholder="scan..." '+
-        'onchange="onBcChange('+row.id+',this.value)" '+
+        'oninput="onBcInput('+row.id+',this.value)" '+
         'onkeydown="if(event.key===\'Enter\'){onBcChange('+row.id+',this.value);}"></td>'+
+      '<td>'+_statusBadge(st)+'</td>'+
       '<td style="text-align:center;">'+matchBadge+'</td>'+
-      '<td><input class="edit-input" value="'+esc(row.editVals.ref||doc['ref_no']||'')+'" onchange="onEditChange('+row.id+',\'ref\',this.value)"></td>'+
-      '<td><input class="edit-input" value="'+esc(row.editVals.itemName||doc['item_name']||'')+'" onchange="onEditChange('+row.id+',\'itemName\',this.value)"></td>'+
-      '<td><input class="edit-input" value="'+esc(row.editVals.from||doc['customer_start_name']||'')+'" onchange="onEditChange('+row.id+',\'from\',this.value)"></td>'+
-      '<td><input class="edit-input" value="'+esc(row.editVals.to||doc['customer_destination_name']||'')+'" onchange="onEditChange('+row.id+',\'to\',this.value)"></td>'+
-      '<td><input class="edit-input" type="date" value="'+esc(row.editVals.receivedDate||'')+'" onchange="onEditChange('+row.id+',\'receivedDate\',this.value)"></td>'+
-      '<td><input class="edit-input mono" value="'+esc(row.editVals.recvQty||doc['total']||'')+'" style="width:50px;" onchange="onEditChange('+row.id+',\'recvQty\',this.value)"></td>'+
-      '<td style="text-align:center;">'+
+      '<td><input class="edit-input" value="'+esc(ev.ref||doc['ref_no']||'')+'" onchange="onEditChange('+row.id+',\'ref\',this.value)" placeholder="Ref No."></td>'+
+      '<td><input class="edit-input" value="'+esc(ev.itemName||doc['item_name']||'')+'" onchange="onEditChange('+row.id+',\'itemName\',this.value)" placeholder="ประเภท"></td>'+
+      '<td><input class="edit-input" value="'+esc(ev.from||doc['customer_start_name']||'')+'" onchange="onEditChange('+row.id+',\'from\',this.value)" placeholder="โอนจาก"></td>'+
+      '<td><input class="edit-input mono" value="'+esc(ev.originAcc||doc['customer_start_code']||'')+'" onchange="onEditChange('+row.id+',\'originAcc\',this.value)" placeholder="Origin Acc."></td>'+
+      '<td><input class="edit-input" value="'+esc(ev.to||doc['customer_destination_name']||'')+'" onchange="onEditChange('+row.id+',\'to\',this.value)" placeholder="โอนไป"></td>'+
+      '<td><input class="edit-input mono" value="'+esc(ev.destAcc||doc['customer_destination_code']||'')+'" onchange="onEditChange('+row.id+',\'destAcc\',this.value)" placeholder="Dest Acc."></td>'+
+      '<td><input class="edit-input" type="date" value="'+esc(ev.receivedDate||'')+'" onchange="onEditChange('+row.id+',\'receivedDate\',this.value)"></td>'+
+      '<td><input class="edit-input mono" value="'+esc(ev.recvQty||doc['total']||'')+'" style="width:46px;" onchange="onEditChange('+row.id+',\'recvQty\',this.value)"></td>'+
+      '<td>'+
         (row.rejected
           ? '<button class="restore-btn" onclick="restoreRow('+row.id+')">↩ คืน</button>'
           : '<button class="reject-btn" onclick="rejectRowInline('+row.id+')">reject</button>')+
@@ -565,20 +695,26 @@ function renderTable() {
   }).join('');
 }
 
+function onBcInput(id, value) {
+  var row = _rows.find(function(r){return r.id===id;});
+  if (row) { row.barcode = (value||'').trim().toUpperCase(); }
+}
+
 function onBcChange(id, value) {
   var row = _rows.find(function(r){return r.id===id;});
   if (!row) return;
   row.barcode = (value||'').trim().toUpperCase();
-  // auto-fill จาก CSV
   if (row.barcode && csvLoaded) {
     var doc = searchCSV(row.barcode);
     if (doc) {
       row.doc = doc;
-      if (!row.editVals.ref)      row.editVals.ref      = doc['ref_no']||'';
-      if (!row.editVals.itemName) row.editVals.itemName = doc['item_name']||'';
-      if (!row.editVals.from)     row.editVals.from     = doc['customer_start_name']||'';
-      if (!row.editVals.to)       row.editVals.to       = doc['customer_destination_name']||'';
-      if (!row.editVals.recvQty)  row.editVals.recvQty  = doc['total']||'';
+      if (!row.editVals.ref)       row.editVals.ref       = doc['ref_no']||'';
+      if (!row.editVals.itemName)  row.editVals.itemName  = doc['item_name']||'';
+      if (!row.editVals.from)      row.editVals.from      = doc['customer_start_name']||'';
+      if (!row.editVals.originAcc) row.editVals.originAcc = doc['customer_start_code']||'';
+      if (!row.editVals.to)        row.editVals.to        = doc['customer_destination_name']||'';
+      if (!row.editVals.destAcc)   row.editVals.destAcc   = doc['customer_destination_code']||'';
+      if (!row.editVals.recvQty)   row.editVals.recvQty   = doc['total']||'';
     }
   }
   renderTable(); updateRIP(); updateSummary();
@@ -586,7 +722,7 @@ function onBcChange(id, value) {
 
 function onEditChange(id, field, value) {
   var row = _rows.find(function(r){return r.id===id;});
-  if (row) row.editVals[field] = value;
+  if (row) { row.editVals[field] = value; renderTable(); updateSummary(); }
 }
 
 function rejectRowInline(id) {
@@ -601,7 +737,7 @@ function restoreRow(id) {
 
 function removeRow(id) {
   _rows = _rows.filter(function(r){return r.id!==id;});
-  renderTable(); updateRIP(); updateSummary();
+  renderTable(); updateRIP(); updateCounter(); updateSummary();
 }
 
 // ── Summary ───────────────────────────────────────────────
@@ -692,7 +828,8 @@ async function confirmReceive() {
         item_name:row.editVals.itemName||row.doc&&row.doc['item_name']||'',
         transfer_from:row.editVals.from||row.doc&&row.doc['customer_start_name']||'',
         transfer_to:row.editVals.to||row.doc&&row.doc['customer_destination_name']||'',
-        origin_acc:'', dest_acc:'',
+        origin_acc:row.editVals.originAcc||row.doc&&row.doc['customer_start_code']||'',
+        dest_acc:row.editVals.destAcc||row.doc&&row.doc['customer_destination_code']||'',
         despatch_date:'', received_date:row.editVals.receivedDate,
         sent_qty:row.doc&&row.doc['total']||'', received_qty:row.editVals.recvQty||'',
         not_found:!row.doc, site:session.site, emp_id:session.empId,
