@@ -9,9 +9,9 @@
 <script>pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
-:root{--bg:#0f172a;--surface:#1e293b;--surface2:#263348;--border:#334155;--accent:#38bdf8;--success:#34d399;--warn:#fbbf24;--danger:#f87171;--text:#f1f5f9;--muted:#94a3b8;--font:'IBM Plex Sans Thai',sans-serif;--mono:'IBM Plex Mono',monospace;--r:12px;--rs:8px;--sidebar:240px;}
+:root{--bg:#0f172a;--surface:#1e293b;--surface2:#263348;--border:#334155;--accent:#38bdf8;--success:#34d399;--warn:#fbbf24;--danger:#f87171;--text:#f1f5f9;--muted:#94a3b8;--font:'IBM Plex Sans Thai',sans-serif;--mono:'IBM Plex Mono',monospace;--r:12px;--rs:8px;}
 *{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;display:flex;font-size:15px;}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;font-size:15px;}
 .sidebar{width:var(--sidebar);flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:200;}
 .sidebar-brand{padding:20px 20px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
 .brand-icon{width:36px;height:36px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
@@ -29,7 +29,22 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .sidebar-footer{padding:12px 8px;border-top:1px solid var(--border);}
 .logout-btn2{display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:var(--rs);cursor:pointer;color:var(--muted);font-size:13px;background:none;border:none;width:100%;font-family:var(--font);transition:color 0.15s,background 0.15s;}
 .logout-btn2:hover{color:var(--danger);background:rgba(248,113,113,0.08);}
-.page-wrap{margin-left:var(--sidebar);flex:1;display:flex;flex-direction:column;min-height:100vh;}
+/* ── Top Navbar ── */
+.nav-bar{position:fixed;top:0;left:0;right:0;height:52px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:0;z-index:1000;}
+.nav-brand{display:flex;align-items:center;gap:10px;margin-right:24px;text-decoration:none;}
+.nav-brand-icon{width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.nav-brand-name{font-size:14px;font-weight:700;color:var(--text);}
+.nav-brand-sub{font-size:10px;color:var(--muted);margin-top:1px;}
+.nav-pages{display:flex;gap:0;flex:1;}
+.nav-link{display:flex;align-items:center;gap:6px;padding:0 16px;height:52px;background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-family:var(--font);font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap;transition:all .15s;text-decoration:none;}
+.nav-link:hover{color:var(--text);}
+.nav-link.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:600;}
+.nav-user{display:flex;align-items:center;gap:8px;margin-left:auto;padding-left:16px;border-left:1px solid var(--border);}
+.nav-user-name{font-size:12px;color:var(--text);font-weight:500;}
+.nav-user-site{font-size:11px;color:var(--muted);}
+.nav-logout{background:none;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:5px 10px;font-family:var(--font);font-size:11px;cursor:pointer;margin-left:8px;}
+.nav-logout:hover{border-color:var(--danger);color:var(--danger);}
+.page-wrap{margin-top:52px;flex:1;display:flex;flex-direction:column;min-height:100vh;}
 header{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
 .logo{display:flex;align-items:center;gap:10px;}
 .logo-icon{width:34px;height:34px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;}
@@ -219,69 +234,31 @@ main{width:100%;max-width:100%;padding:20px 24px 100px;}
 <body>
 
 <!-- Site Overlay (สำหรับเปลี่ยน site เท่านั้น — ซ่อนถ้า session มีแล้ว) -->
-<div class="site-overlay" id="siteOverlay">
-  <div class="site-box">
-    <div class="site-box-header">
-      <div class="site-box-title">DocScan — Batch Mode</div>
-      <div class="site-box-sub">กรอกข้อมูลก่อนเริ่มงาน</div>
-    </div>
-    <div class="site-box-body">
-      <label class="site-label">รหัสพนักงาน</label>
-      <input class="site-input" id="empId" type="text" placeholder="กรอกรหัสพนักงาน" oninput="checkSite()">
-      <label class="site-label">ชื่อผู้กรอก</label>
-      <input class="site-input" id="empName" type="text" placeholder="กรอกชื่อ-นามสกุล" oninput="checkSite()">
-      <label class="site-label">Email</label>
-      <input class="site-input" id="empEmail" type="email" placeholder="กรอก Email" oninput="checkSite()">
-      <label class="site-label">Site / คลังสินค้า</label>
-      <select class="site-select" id="siteSelect" onchange="checkSite()">
-        <option value="">— กรุณาเลือก —</option>
-        <optgroup label="โรงงาน">
-          <option>โรงงานเชียงใหม่</option><option>โรงงานบางเลน</option>
-          <option>โรงงานปทุมธานี</option><option>โรงงานมหาสารคาม</option>
-          <option>โรงงานวังน้อย</option><option>โรงงานสิงห์บุรี</option>
-          <option>โรงงานสุราษฎร์ธานี</option><option>โรงงานขอนแก่น</option>
-        </optgroup>
-        <optgroup label="คลังสินค้า">
-          <option>RDC-ขอนแก่น</option><option>RDC-ลำพูน</option>
-          <option>RDC-สุราษฎร์ธานี</option><option>คลังชลบุรี</option>
-          <option>คลังทวีวัฒนา</option><option>คลังบางบัวทอง</option>
-          <option>คลังบางบัวทอง 2</option><option>คลังพิษณุโลก</option>
-          <option>คลังมีนบุรี</option><option>NDC-วังน้อย</option>
-          <option>คลังหาดใหญ่</option><option>คลังอุบลราชธานี</option>
-          <option>คลังลาดหลุมแก้ว</option><option>คลังลำไทร (Over Flow)</option>
-        </optgroup>
-      </select>
-      <button class="site-confirm-btn" id="siteConfirmBtn" onclick="confirmSite()" disabled>เริ่มต้น Batch</button>
-    </div>
-  </div>
-</div>
-
 <!-- Sidebar -->
-<aside class="sidebar">
-  <div class="sidebar-brand">
-    <div class="brand-icon">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0f172a" stroke-width="2.5">
-        <rect x="3" y="4" width="3" height="16" rx="1"/><rect x="8" y="4" width="1.5" height="16" rx="0.5"/>
-        <rect x="11" y="4" width="3" height="16" rx="1"/><rect x="16" y="4" width="1.5" height="16" rx="0.5"/>
+<nav class="nav-bar">
+  <a class="nav-brand" href="dashboard.html">
+    <div class="nav-brand-icon">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0f172a" stroke-width="2.5">
+        <rect x="3" y="4" width="3" height="16" rx="1"/><rect x="8" y="4" width="1.5" height="16" rx=".5"/>
+        <rect x="11" y="4" width="3" height="16" rx="1"/><rect x="16" y="4" width="1.5" height="16" rx=".5"/>
         <rect x="19" y="4" width="2" height="16" rx="1"/>
       </svg>
     </div>
-    <div><div class="brand-name">DocScan</div><div class="brand-sub">Pallet Tracking</div></div>
+    <div><div class="nav-brand-name">DocScan</div><div class="nav-brand-sub">Pallet Tracking</div></div>
+  </a>
+  <div class="nav-pages">
+  <a class="nav-link" href="dashboard.html">📊 Dashboard</a>
+  <a class="nav-link" href="incoming.html">📥 รับเอกสาร</a>
+  <a class="nav-link active" href="batch.html">📦 Batch Scan</a>
   </div>
-  <div class="sidebar-user">
-    <div class="user-name" id="sidebarName">—</div>
-    <div class="user-site" id="sidebarSite">—</div>
+  <div class="nav-user">
+    <div>
+      <div class="nav-user-name" id="sidebarName">—</div>
+      <div class="nav-user-site" id="sidebarSite">—</div>
+    </div>
+    <button class="nav-logout" onclick="logout()">↩ ออก</button>
   </div>
-  <nav class="sidebar-nav">
-    <div class="nav-label">เมนูหลัก</div>
-    <a class="nav-item" href="dashboard.html"><span class="nav-icon">📊</span> Dashboard</a>
-    <div class="nav-label" style="margin-top:8px;">เอกสาร</div>
-    <a class="nav-item" href="incoming.html">📥 รับเอกสาร</a>
-  </nav>
-  <div class="sidebar-footer">
-    <button class="logout-btn2" onclick="DocScanAuth.clear();window.location.href='login.html';">↩ ออกจากระบบ</button>
-  </div>
-</aside>
+</nav>
 
 <div class="page-wrap">
 <!-- Topbar -->
@@ -293,19 +270,6 @@ main{width:100%;max-width:100%;padding:20px 24px 100px;}
 </header>
 
 <main>
-  <!-- Tab Bar -->
-  <div class="tab-bar">
-    <button class="tab-btn active" id="tabBatchBtn" onclick="switchTab('batch')">
-      📦 Batch Scan
-    </button>
-    <button class="tab-btn" id="tabIncomingBtn" onclick="switchTab('incoming')">
-      📥 รับจากจัดส่ง
-      <span class="tab-badge" id="incomingBadge">—</span>
-    </button>
-  </div>
-
-  <!-- ── Tab: Batch Scan (เดิม) ── -->
-  <div id="tabBatch">
   <div class="upload-zone" id="uploadZone"
     ondragover="event.preventDefault();this.classList.add('drag')"
     ondragleave="this.classList.remove('drag')"
@@ -355,96 +319,7 @@ main{width:100%;max-width:100%;padding:20px 24px 100px;}
       </table>
     </div>
   </div>
-  </div><!-- end tabBatch -->
-
-  <!-- ── Tab: รับจากจัดส่ง ── -->
-  <div id="tabIncoming" style="display:none;">
-    <div class="incoming-wrap">
-
-      <!-- Search box -->
-      <div class="incoming-search">
-        <div class="incoming-search-title">🔍 สแกน QR หรือพิมพ์ Batch ID จาก Handover Sheet</div>
-        <div class="qr-input-row">
-          <input class="qr-input" id="batchIdInput" type="text"
-            placeholder="DEL-20260605-001 หรือ scan QR Code"
-            onkeydown="if(event.key==='Enter'){event.preventDefault();loadIncoming(this.value);}">
-          <button class="qr-btn" onclick="loadIncoming(document.getElementById('batchIdInput').value)">
-            🔎 ค้นหา
-          </button>
-        </div>
-        <!-- รายการ batch รอรับ -->
-        <div id="pendingBatchList" style="margin-top:4px;"></div>
-      </div>
-
-      <!-- Batch Info Card -->
-      <div class="batch-info-card" id="batchInfoCard">
-        <div class="bic-head">
-          <span class="bic-badge" id="bicBatchId">—</span>
-          <span class="bic-status ok" id="bicStatus">—</span>
-        </div>
-        <div class="bic-meta">
-          <div class="bic-meta-item">
-            <div class="bic-meta-label">วันที่ส่ง</div>
-            <div class="bic-meta-value" id="bicDate">—</div>
-          </div>
-          <div class="bic-meta-item">
-            <div class="bic-meta-label">ส่งจาก</div>
-            <div class="bic-meta-value" id="bicSite">—</div>
-          </div>
-          <div class="bic-meta-item">
-            <div class="bic-meta-label">จำนวนที่ส่งมา</div>
-            <div class="bic-meta-value"><span id="bicCount" style="font-family:var(--mono);font-size:16px;font-weight:700;color:var(--accent);">—</span> ฉบับ</div>
-          </div>
-        </div>
-
-        <!-- Barcode list with match status -->
-        <div class="bc-list-wrap">
-          <div class="bc-list-title">
-            <span>รายการ Barcode ที่ส่งมา</span>
-            <span id="matchProgress" style="font-size:11px;color:var(--muted);">scan barcode เพื่อ match</span>
-          </div>
-          <div class="bc-list" id="bicBarcodeList"></div>
-        </div>
-
-        <!-- Scan input สำหรับ match -->
-        <div style="padding:14px 20px;border-top:1px solid var(--border);">
-          <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">สแกน Barcode เพื่อยืนยัน (scan ผ่าน scanner หรือพิมพ์แล้วกด Enter)</div>
-          <div class="qr-input-row">
-            <input class="qr-input" id="matchScanInput" type="text"
-              placeholder="สแกน barcode..."
-              onkeydown="if(event.key==='Enter'){event.preventDefault();handleMatchScan(this.value);}">
-          </div>
-        </div>
-
-        <!-- Validation summary -->
-        <div class="val-summary">
-          <div class="val-card matched">
-            <div class="val-num" id="valMatched">0</div>
-            <div class="val-label">✅ ตรงกัน</div>
-          </div>
-          <div class="val-card pending">
-            <div class="val-num" id="valPending">0</div>
-            <div class="val-label">⏳ ยังไม่ได้ scan</div>
-          </div>
-          <div class="val-card extra">
-            <div class="val-num" id="valExtra">0</div>
-            <div class="val-label">⚠️ ไม่อยู่ใน batch</div>
-          </div>
-        </div>
-
-        <!-- Actions -->
-        <div class="incoming-actions">
-          <button class="btn-dispute" id="btnDispute" onclick="openDisputeModal()" disabled>
-            ⚠️ แจ้งปัญหา
-          </button>
-          <button class="btn-receive" id="btnReceive" onclick="confirmReceive()" disabled>
-            ✅ ยืนยันรับครบ — ส่งเข้า Batch Scan
-          </button>
-        </div>
-      </div>
-
-    </div>
-  </div><!-- end tabIncoming -->
+  
 
 </main>
 
@@ -487,20 +362,12 @@ main{width:100%;max-width:100%;padding:20px 24px 100px;}
 // ── DocScan Shared Auth (inline) ──────────────────────────
 var DocScanAuth = (function () {
   var KEY = 'docScanSession';
-  function save(empId, empName, empEmail, site) {
-    localStorage.setItem(KEY, JSON.stringify({ empId:empId, empName:empName, empEmail:empEmail, site:site }));
-  }
   function load() {
-    try {
-      var raw = localStorage.getItem(KEY);
-      if (!raw) return null;
-      var s = JSON.parse(raw);
-      return (s.empId && s.empName && s.empEmail && s.site) ? s : null;
-    } catch(e) { return null; }
+    try { var r=localStorage.getItem(KEY); if(!r)return null; var s=JSON.parse(r); return (s.empId && s.site) ? s : null; } catch(e){return null;}
   }
   function clear() { localStorage.removeItem(KEY); }
   function requireAuth() { var s=load(); if(!s){window.location.href='login.html';return null;} return s; }
-  return { save:save, load:load, clear:clear, requireAuth:requireAuth };
+  return { load:load, clear:clear, requireAuth:requireAuth };
 })();
 
 var API_URL = DOCSCAN_CONFIG.API_URL;
@@ -515,14 +382,14 @@ window.onload = function () {
   if (!s) return;
   selectedSite = s.site; selectedEmpId = s.empId;
   selectedEmpName = s.empName; selectedEmpEmail = s.empEmail;
-  document.getElementById('siteOverlay').style.display = 'none';
+  
   document.getElementById('sidebarName').textContent = s.empName + ' (' + s.empId + ')';
   document.getElementById('sidebarSite').textContent = s.site;
   document.getElementById('userInfo').textContent = s.empId + ' — ' + s.site;
-  document.getElementById('empId').value = s.empId;
-  document.getElementById('empName').value = s.empName;
-  document.getElementById('empEmail').value = s.empEmail;
-  document.getElementById('siteSelect').value = s.site;
+  
+  
+  
+  
   loadCSV();
 };
 
@@ -544,22 +411,7 @@ function searchCSV(barcode) {
 }
 
 // ── Site ──────────────────────────────────────────────────
-function checkSite() {
-  var ok = document.getElementById('empId').value.trim() && document.getElementById('empName').value.trim() &&
-           document.getElementById('empEmail').value.trim() && document.getElementById('siteSelect').value;
-  document.getElementById('siteConfirmBtn').disabled = !ok;
-}
 
-function confirmSite() {
-  selectedEmpId = document.getElementById('empId').value.trim();
-  selectedEmpName = document.getElementById('empName').value.trim();
-  selectedEmpEmail = document.getElementById('empEmail').value.trim();
-  selectedSite = document.getElementById('siteSelect').value;
-  DocScanAuth.save(selectedEmpId, selectedEmpName, selectedEmpEmail, selectedSite);
-  document.getElementById('siteBadge').textContent = selectedEmpName + ' · ' + selectedSite;
-  document.getElementById('userInfo').textContent = selectedEmpId + ' — ' + selectedEmpName;
-  document.getElementById('siteOverlay').style.display = 'none';
-}
 
 var _rowIdCounter = 0;
 
