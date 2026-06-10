@@ -695,9 +695,14 @@ function renderTable() {
   }).join('');
 }
 
+var _bcTimer = {};
 function onBcInput(id, value) {
   var row = _rows.find(function(r){return r.id===id;});
-  if (row) { row.barcode = (value||'').trim().toUpperCase(); }
+  if (!row) return;
+  row.barcode = (value||'').trim().toUpperCase();
+  // debounce 300ms แล้ว lookup CSV ทันที ไม่ต้องรอ Enter
+  clearTimeout(_bcTimer[id]);
+  _bcTimer[id] = setTimeout(function(){ onBcChange(id, row.barcode); }, 300);
 }
 
 function onBcChange(id, value) {
