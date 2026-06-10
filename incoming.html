@@ -42,6 +42,13 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .count-badge{background:var(--accent);color:#0f172a;font-size:11px;font-weight:700;padding:1px 8px;border-radius:20px;font-family:var(--mono);}
 .refresh-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:var(--rs);padding:6px 14px;font-family:var(--font);font-size:12px;cursor:pointer;}
 .refresh-btn:hover{border-color:var(--accent);color:var(--accent);}
+.tab-bar{display:flex;border-bottom:1px solid var(--border);background:var(--surface);padding:0 24px;gap:0;}
+.tab-btn{display:flex;align-items:center;gap:7px;padding:12px 20px;background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-family:var(--font);font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;white-space:nowrap;margin-bottom:-1px;}
+.tab-btn.active{border-bottom-color:var(--accent);color:var(--accent);font-weight:600;}
+.tab-btn:hover:not(.active){color:var(--text);}
+.tab-badge{font-size:11px;font-weight:700;padding:1px 7px;border-radius:20px;font-family:var(--mono);}
+.tab-badge.pending{background:rgba(56,189,248,.15);border:1px solid rgba(56,189,248,.3);color:var(--accent);}
+.tab-badge.done{background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.25);color:var(--success);}
 .table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;}
 table{width:100%;border-collapse:collapse;}
 th{background:var(--surface2);padding:9px 16px;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;text-align:left;border-bottom:1px solid var(--border);}
@@ -93,15 +100,38 @@ tr:hover td{background:rgba(255,255,255,.02);}
     <div style="display:flex;gap:8px;align-items:center;"><a href="batch.html" style="display:flex;align-items:center;gap:7px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:var(--rs);padding:7px 16px;font-family:var(--font);font-size:13px;font-weight:600;text-decoration:none;transition:border-color .15s;" onmouseenter="this.style.borderColor='var(--accent)'" onmouseleave="this.style.borderColor='var(--border)'">📦 Batch Scan ปกติ</a><button class="refresh-btn" onclick="loadList()">↻ รีเฟรช</button></div>
   </div>
 
+  <div class="tab-bar">
+    <button class="tab-btn active" id="tabPendingBtn" onclick="switchTab('pending')">
+      📥 รอรับ
+      <span class="tab-badge pending" id="badgePending">—</span>
+    </button>
+    <button class="tab-btn" id="tabDoneBtn" onclick="switchTab('done')">
+      ✅ รับแล้ว
+      <span class="tab-badge done" id="badgeDone">—</span>
+    </button>
+  </div>
+
   <div class="content">
     <div class="list-head">
-      <div class="list-title">
+      <div class="list-title" id="listTitle">
         รายการรอรับ
         <span class="count-badge" id="countBadge">—</span>
       </div>
+      <button class="refresh-btn" onclick="loadCurrent()">↻ รีเฟรช</button>
     </div>
-    <div id="listWrap" class="table-wrap">
-      <div class="empty"><span class="spinner"></span> กำลังโหลด...</div>
+
+    <!-- Tab: รอรับ -->
+    <div id="panelPending">
+      <div id="listWrap" class="table-wrap">
+        <div class="empty"><span class="spinner"></span> กำลังโหลด...</div>
+      </div>
+    </div>
+
+    <!-- Tab: รับแล้ว -->
+    <div id="panelDone" style="display:none;">
+      <div id="doneWrap" class="table-wrap">
+        <div class="empty"><span class="spinner"></span> กำลังโหลด...</div>
+      </div>
     </div>
   </div>
 </div>
@@ -117,56 +147,118 @@ var DocScanAuth=(function(){
 
 var API_URL = DOCSCAN_CONFIG.API_URL;
 var session;
+var _activeTab = 'pending';
+var _doneLoaded = false;
 
 window.onload = function() {
   session = DocScanAuth.requireAuth();
   if (!session) return;
   document.getElementById('sidebarName').textContent = session.empName+' ('+session.empId+')';
   document.getElementById('topbarSub').textContent   = session.site;
-  loadList();
+  loadPending();
 };
 
-function loadList() {
-  var sf  = session.site_filter ? session.site_filter.join('|') : session.site;
+function switchTab(tab) {
+  _activeTab = tab;
+  document.getElementById('tabPendingBtn').classList.toggle('active', tab==='pending');
+  document.getElementById('tabDoneBtn').classList.toggle('active',    tab==='done');
+  document.getElementById('panelPending').style.display = tab==='pending' ? 'block' : 'none';
+  document.getElementById('panelDone').style.display    = tab==='done'    ? 'block' : 'none';
+  document.getElementById('listTitle').textContent      = tab==='pending' ? 'รายการรอรับ' : 'รายการที่รับแล้ว';
+
+  if (tab==='done' && !_doneLoaded) loadDone();
+}
+
+function loadCurrent() {
+  if (_activeTab==='pending') loadPending();
+  else { _doneLoaded=false; loadDone(); }
+}
+
+function loadPending() {
+  var sf   = session.site_filter ? session.site_filter.join('|') : session.site;
   var wrap = document.getElementById('listWrap');
   wrap.innerHTML = '<div class="empty"><span class="spinner"></span> กำลังโหลด...</div>';
 
-  fetch(API_URL+'?action=getIncoming&site_filter='+encodeURIComponent(sf))
+  fetch(API_URL+'?action=getIncoming&tab=pending&site_filter='+encodeURIComponent(sf))
     .then(function(r){ return r.json(); })
     .then(function(data) {
-      var batches = data.batches || [];
-      document.getElementById('countBadge').textContent = batches.length;
+      var batches  = data.batches || [];
+      var doneCount = data.done_count || 0;
+      document.getElementById('badgePending').textContent = batches.length  || '0';
+      document.getElementById('badgeDone').textContent    = doneCount       || '0';
+      document.getElementById('countBadge').textContent   = batches.length  || '0';
 
       if (!batches.length) {
         wrap.innerHTML = '<div class="empty"><div class="icon">✅</div>ไม่มีรายการรอรับ</div>';
         return;
       }
-
-      var dt = function(iso) {
-        return iso ? new Date(iso).toLocaleString('th-TH',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
-      };
-
-      wrap.innerHTML = '<table><thead><tr>'+
-        '<th>Batch No.</th><th>วันที่ส่ง</th><th>ส่งจาก</th>'+
-        '<th style="text-align:right;">จำนวน</th><th style="text-align:center;">ดำเนินการ</th>'+
-        '</tr></thead><tbody>'+
-        batches.map(function(b){
-          return '<tr>'+
-            '<td class="mono" style="color:var(--accent);">'+b.batch_id+'</td>'+
-            '<td class="mono" style="font-size:11px;">'+dt(b.sent_date||b.scan_date)+'</td>'+
-            '<td style="font-size:11px;">'+(b.site||'—')+'</td>'+
-            '<td class="mono" style="text-align:right;">'+b.barcode_count+' ใบ</td>'+
-            '<td style="text-align:center;">'+
-              '<button class="receive-btn" onclick="location.href=\'receive.html?batch_id='+encodeURIComponent(b.batch_id)+'\'">'+
-              '📥 รับเอกสาร</button>'+
-            '</td></tr>';
-        }).join('')+
-        '</tbody></table>';
+      wrap.innerHTML = _renderTable(batches, 'pending');
     })
     .catch(function(err){
       wrap.innerHTML = '<div class="empty" style="color:var(--danger);">โหลดไม่สำเร็จ: '+err.message+'</div>';
     });
 }
+
+function loadDone() {
+  _doneLoaded = true;
+  var sf   = session.site_filter ? session.site_filter.join('|') : session.site;
+  var wrap = document.getElementById('doneWrap');
+  wrap.innerHTML = '<div class="empty"><span class="spinner"></span> กำลังโหลด...</div>';
+
+  fetch(API_URL+'?action=getIncoming&tab=done&site_filter='+encodeURIComponent(sf))
+    .then(function(r){ return r.json(); })
+    .then(function(data) {
+      var batches = data.batches || [];
+      document.getElementById('badgeDone').textContent  = batches.length || '0';
+      document.getElementById('countBadge').textContent = batches.length || '0';
+
+      if (!batches.length) {
+        wrap.innerHTML = '<div class="empty"><div class="icon">📭</div>ยังไม่มีรายการที่รับแล้ว</div>';
+        return;
+      }
+      wrap.innerHTML = _renderTable(batches, 'done');
+    })
+    .catch(function(err){
+      wrap.innerHTML = '<div class="empty" style="color:var(--danger);">โหลดไม่สำเร็จ: '+err.message+'</div>';
+    });
+}
+
+function _renderTable(batches, tab) {
+  var dt = function(iso) {
+    return iso ? new Date(iso).toLocaleString('th-TH',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
+  };
+  var statusLabel = {
+    'with_warehouse'     : '<span style="font-size:10px;background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.3);color:var(--warn);padding:1px 7px;border-radius:20px;">⏳ รอรับ</span>',
+    'received_warehouse' : '<span style="font-size:10px;background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.3);color:var(--success);padding:1px 7px;border-radius:20px;">✅ รับแล้ว</span>',
+    'scanned'            : '<span style="font-size:10px;background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.3);color:var(--success);padding:1px 7px;border-radius:20px;">✅ scanned</span>',
+    'batch_closed'       : '<span style="font-size:10px;background:rgba(52,211,153,.15);border:1px solid rgba(52,211,153,.4);color:var(--success);padding:1px 7px;border-radius:20px;font-weight:600;">🎉 ปิดแล้ว</span>'
+  };
+
+  var actionCol = tab === 'pending'
+    ? '<th style="text-align:center;width:120px;">ดำเนินการ</th>'
+    : '<th style="text-align:center;width:80px;">สถานะ</th>';
+
+  var rows = batches.map(function(b) {
+    var action = tab === 'pending'
+      ? '<button class="receive-btn" onclick="location.href=\'receive.html?batch_id='+encodeURIComponent(b.batch_id)+'\'">📥 รับเอกสาร</button>'
+      : (statusLabel[b.status] || '<span style="font-size:10px;color:var(--muted);">'+b.status+'</span>');
+    return '<tr>'+
+      '<td class="mono" style="color:var(--accent);">'+b.batch_id+'</td>'+
+      '<td class="mono" style="font-size:11px;">'+dt(b.sent_date||b.scan_date)+'</td>'+
+      '<td style="font-size:11px;">'+(b.site||b.from_site||'—')+'</td>'+
+      '<td class="mono" style="text-align:right;">'+b.barcode_count+' ใบ</td>'+
+      '<td style="text-align:center;">'+action+'</td>'+
+    '</tr>';
+  }).join('');
+
+  return '<table><thead><tr>'+
+    '<th>Batch No.</th><th>วันที่ส่ง</th><th>ส่งจาก</th>'+
+    '<th style="text-align:right;">จำนวน</th>'+actionCol+
+    '</tr></thead><tbody>'+rows+'</tbody></table>';
+}
+
+// compat alias
+function loadList() { loadPending(); }
 </script>
 </body>
 </html>
