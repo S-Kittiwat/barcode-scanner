@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>DocScan — รับเอกสาร</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="config.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+:root{
+  --bg:#0f172a;--surface:#1e293b;--surface2:#263348;--border:#334155;
+  --accent:#38bdf8;--success:#34d399;--warn:#fbbf24;--danger:#f87171;
+  --text:#f1f5f9;--muted:#94a3b8;
+  --font:'IBM Plex Sans Thai',sans-serif;--mono:'IBM Plex Mono',monospace;
+  --r:12px;--rs:8px;--sidebar:240px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;display:flex;font-size:15px;}
+/* ── Sidebar ── */
+.sidebar{width:var(--sidebar);flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:200;}
+.sidebar-brand{padding:20px 20px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
+.brand-icon{width:36px;height:36px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.brand-name{font-size:14px;font-weight:600;}.brand-sub{font-size:10px;color:var(--muted);}
+.sidebar-user{padding:14px 16px;border-bottom:1px solid var(--border);background:var(--surface2);}
+.user-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.user-role{font-size:11px;color:var(--accent);margin-top:2px;}
+.sidebar-nav{flex:1;padding:12px 8px;display:flex;flex-direction:column;gap:4px;}
+.nav-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;padding:8px 8px 4px;font-weight:500;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--rs);text-decoration:none;color:var(--muted);font-size:13px;font-weight:500;transition:background .15s,color .15s;}
+.nav-item:hover{background:var(--surface2);color:var(--text);}
+.nav-item.active{background:rgba(56,189,248,.1);color:var(--accent);border:1px solid rgba(56,189,248,.2);}
+.sidebar-footer{padding:12px 8px;border-top:1px solid var(--border);}
+.logout-btn{display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:var(--rs);cursor:pointer;color:var(--muted);font-size:13px;background:none;border:none;width:100%;font-family:var(--font);transition:color .15s;}
+.logout-btn:hover{color:var(--danger);}
+/* ── Page ── */
+.page-wrap{margin-left:var(--sidebar);flex:1;display:flex;flex-direction:column;min-height:100vh;}
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.back-btn{background:none;border:1px solid var(--border);color:var(--muted);border-radius:var(--rs);padding:5px 12px;font-family:var(--font);font-size:12px;cursor:pointer;margin-right:10px;}
+.back-btn:hover{border-color:var(--accent);color:var(--accent);}
+.topbar-title{font-size:15px;font-weight:600;}
+.topbar-sub{font-size:11px;color:var(--muted);margin-top:2px;}
+.status-badge{font-size:11px;padding:3px 12px;border-radius:20px;font-weight:500;}
+.badge-wait{background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.3);color:var(--warn);}
+.badge-ok{background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.3);color:var(--success);}
+.badge-partial{background:rgba(248,113,113,.12);border:1px solid rgba(248,113,113,.3);color:var(--danger);}
+/* ── Content ── */
+.content{padding:20px 24px 100px;display:flex;flex-direction:column;gap:16px;}
+/* ── Step card ── */
+.step-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;transition:border-color .2s;}
+.step-card.active{border-color:var(--accent);}
+.step-card.done{border-color:var(--success);}
+.step-card.locked{opacity:.45;pointer-events:none;}
+.step-head{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;}
+.step-num{font-size:11px;font-weight:500;padding:2px 9px;border-radius:20px;}
+.step-num.active{background:rgba(56,189,248,.15);border:1px solid rgba(56,189,248,.3);color:var(--accent);}
+.step-num.done{background:rgba(52,211,153,.15);border:1px solid rgba(52,211,153,.3);color:var(--success);}
+.step-num.locked{background:var(--surface2);border:1px solid var(--border);color:var(--muted);}
+.step-title{font-size:13px;font-weight:500;}
+.step-hint{font-size:11px;color:var(--muted);margin-left:auto;}
+.step-body{padding:14px 16px;}
+/* ── Step 1: Scan input ── */
+.scan-row{display:flex;gap:8px;margin-bottom:10px;}
+.scan-input{flex:1;background:var(--surface2);border:2px solid var(--border);border-radius:var(--rs);color:var(--text);font-family:var(--mono);font-size:14px;padding:10px 14px;outline:none;transition:border-color .15s;}
+.scan-input:focus{border-color:var(--accent);}
+.scan-input.verified{border-color:var(--success);}
+.scan-input.error{border-color:var(--danger);}
+.scan-btn{background:var(--accent);border:none;color:#0f172a;border-radius:var(--rs);padding:10px 18px;font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer;}
+.verify-result{border-radius:var(--rs);padding:10px 12px;font-size:12px;display:none;}
+.verify-result.ok{background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.25);color:var(--success);display:block;}
+.verify-result.err{background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.25);color:var(--danger);display:block;}
+/* ── Step 2: batch info + upload ── */
+.rip-bar-wrap{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.rip-bar{flex:1;height:6px;background:var(--surface2);border-radius:10px;overflow:hidden;}
+.rip-bar-fill{height:100%;background:var(--success);border-radius:10px;transition:width .3s;}
+.rip-chips{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px;max-height:72px;overflow-y:auto;}
+.rip-chip{font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:20px;background:var(--surface2);border:1px solid var(--border);color:var(--muted);transition:all .15s;}
+.rip-chip.hit{background:rgba(52,211,153,.12);border-color:rgba(52,211,153,.35);color:var(--success);}
+.rip-chip.extra{background:rgba(248,113,113,.1);border-color:rgba(248,113,113,.3);color:var(--danger);}
+.rip-chip.rejected{background:rgba(148,163,184,.08);border-color:var(--border);color:var(--muted);text-decoration:line-through;}
+/* upload zone */
+.upload-zone{border:1.5px dashed var(--border);border-radius:var(--r);padding:20px;text-align:center;cursor:pointer;transition:border-color .15s;margin-bottom:12px;}
+.upload-zone:hover{border-color:var(--accent);}
+.upload-zone .icon{font-size:28px;margin-bottom:6px;}
+.upload-zone .label{font-size:13px;font-weight:500;margin-bottom:2px;}
+.upload-zone .sub{font-size:11px;color:var(--muted);}
+/* table */
+.batch-table-wrap{border:1px solid var(--border);border-radius:var(--rs);overflow:auto;}
+.batch-table-wrap table{width:100%;border-collapse:collapse;table-layout:fixed;}
+.batch-table-wrap th{background:var(--surface2);padding:7px 10px;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;}
+.batch-table-wrap td{padding:7px 10px;font-size:11px;border-bottom:1px solid var(--border);vertical-align:middle;}
+.batch-table-wrap tr:last-child td{border-bottom:none;}
+.batch-table-wrap tr.row-matched td{background:rgba(52,211,153,.04);}
+.batch-table-wrap tr.row-extra td{background:rgba(248,113,113,.04);}
+.batch-table-wrap tr.row-rejected td{background:rgba(148,163,184,.04);opacity:.6;}
+.edit-input{background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--text);font-family:var(--font);font-size:11px;padding:3px 7px;width:100%;outline:none;}
+.edit-input:focus{border-color:var(--accent);}
+.reject-btn{background:none;border:1px solid rgba(248,113,113,.3);color:var(--danger);border-radius:5px;font-size:10px;padding:2px 7px;cursor:pointer;font-family:var(--font);}
+.reject-btn:hover{background:rgba(248,113,113,.1);}
+.restore-btn{background:none;border:1px solid rgba(148,163,184,.3);color:var(--muted);border-radius:5px;font-size:10px;padding:2px 7px;cursor:pointer;font-family:var(--font);}
+/* ── Step 3: summary ── */
+.sum-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;}
+.sum-card{border-radius:var(--rs);padding:12px 14px;text-align:center;}
+.sum-card.matched{background:rgba(52,211,153,.07);border:1px solid rgba(52,211,153,.2);}
+.sum-card.pending{background:rgba(251,191,36,.07);border:1px solid rgba(251,191,36,.2);}
+.sum-card.rejected{background:rgba(248,113,113,.07);border:1px solid rgba(248,113,113,.2);}
+.sum-num{font-size:26px;font-weight:700;font-family:var(--mono);}
+.sum-card.matched .sum-num{color:var(--success);}
+.sum-card.pending .sum-num{color:var(--warn);}
+.sum-card.rejected .sum-num{color:var(--danger);}
+.sum-lbl{font-size:11px;color:var(--muted);margin-top:3px;}
+.action-row{display:flex;gap:8px;}
+.btn-confirm{flex:1;background:var(--success);border:none;color:#0f172a;border-radius:var(--rs);padding:11px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;}
+.btn-confirm:disabled{opacity:.35;cursor:not-allowed;}
+.btn-dispute{background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.3);color:var(--danger);border-radius:var(--rs);padding:11px 16px;font-family:var(--font);font-size:12px;font-weight:500;cursor:pointer;}
+.btn-dispute:disabled{opacity:.35;cursor:not-allowed;}
+/* ── Reject modal ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:500;display:none;align-items:center;justify-content:center;padding:20px;}
+.modal-overlay.open{display:flex;}
+.modal-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);width:100%;max-width:460px;}
+.modal-head{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.modal-title{font-size:14px;font-weight:600;}
+.modal-close{background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;}
+.modal-body{padding:16px 18px;display:flex;flex-direction:column;gap:12px;}
+.m-label{font-size:12px;color:var(--muted);margin-bottom:4px;font-weight:500;}
+.m-radio-group{display:flex;flex-direction:column;gap:7px;}
+.m-radio{display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;}
+.m-textarea{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);color:var(--text);font-family:var(--font);font-size:13px;padding:9px 11px;outline:none;resize:vertical;min-height:72px;}
+.m-textarea:focus{border-color:var(--danger);}
+.modal-foot{padding:12px 18px;border-top:1px solid var(--border);display:flex;gap:8px;}
+.m-cancel{flex:1;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:var(--rs);padding:9px;font-family:var(--font);font-size:13px;cursor:pointer;}
+.m-confirm{flex:2;background:var(--danger);border:none;color:#fff;border-radius:var(--rs);padding:9px;font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer;}
+/* ── misc ── */
+.spinner{width:14px;height:14px;border:2px solid rgba(56,189,248,.3);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.mono{font-family:var(--mono);}
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-80px);background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);padding:10px 18px;font-size:13px;transition:transform .3s;z-index:600;white-space:nowrap;box-shadow:0 8px 24px rgba(0,0,0,.4);}
+.toast.show{transform:translateX(-50%) translateY(0);}
+.toast.success{border-color:rgba(52,211,153,.4);color:var(--success);}
+.toast.error{border-color:rgba(248,113,113,.4);color:var(--danger);}
+.toast.info{border-color:rgba(56,189,248,.4);color:var(--accent);}
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<aside class="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-icon">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0f172a" stroke-width="2.5">
+        <rect x="3" y="4" width="3" height="16" rx="1"/><rect x="8" y="4" width="1.5" height="16" rx="0.5"/>
+        <rect x="11" y="4" width="3" height="16" rx="1"/><rect x="16" y="4" width="1.5" height="16" rx="0.5"/>
+        <rect x="19" y="4" width="2" height="16" rx="1"/>
+      </svg>
+    </div>
+    <div><div class="brand-name">DocScan</div><div class="brand-sub">Pallet Tracking</div></div>
+  </div>
+  <div class="sidebar-user">
+    <div class="user-name" id="sidebarName">—</div>
+    <div class="user-role">🏭 ทีมคลังพาเลท</div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-label">เมนู</div>
+    <a class="nav-item" href="dashboard.html">📊 Dashboard</a>
+    <a class="nav-item active" href="batch.html">📦 Batch Scan</a>
+  </nav>
+  <div class="sidebar-footer">
+    <button class="logout-btn" onclick="DocScanAuth.clear();location.href='login.html';">↩ ออกจากระบบ</button>
+  </div>
+</aside>
+
+<!-- Page -->
+<div class="page-wrap">
+  <div class="topbar">
+    <div style="display:flex;align-items:center;">
+      <button class="back-btn" onclick="history.back()">← กลับ</button>
+      <div>
+        <div class="topbar-title" id="topbarTitle">รับเอกสาร</div>
+        <div class="topbar-sub" id="topbarSub">—</div>
+      </div>
+    </div>
+    <span class="status-badge badge-wait" id="statusBadge">⏳ รอยืนยัน</span>
+  </div>
+
+  <div class="content">
+
+    <!-- ══ STEP 1: Scan ยืนยัน ══ -->
+    <div class="step-card active" id="step1Card">
+      <div class="step-head">
+        <span class="step-num active">Step 1</span>
+        <span class="step-title">Scan Barcode จากใบส่งมอบเอกสาร</span>
+        <span class="step-hint">บังคับ — ต้องมีใบจริง</span>
+      </div>
+      <div class="step-body">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">
+          Scan Barcode ที่อยู่บนใบส่งมอบ หรือพิมพ์ Batch ID แล้วกด Enter
+        </div>
+        <div class="scan-row">
+          <input class="scan-input" id="step1Input" type="text"
+            placeholder="DEL-20260609-001"
+            autocomplete="off"
+            onkeydown="if(event.key==='Enter'){event.preventDefault();verifyBatch(this.value);}">
+          <button class="scan-btn" onclick="verifyBatch(document.getElementById('step1Input').value)">
+            ✓ ยืนยัน
+          </button>
+        </div>
+        <div class="verify-result" id="verifyResult"></div>
+      </div>
+    </div>
+
+    <!-- ══ STEP 2: Upload + Scan ══ -->
+    <div class="step-card locked" id="step2Card">
+      <div class="step-head">
+        <span class="step-num locked" id="step2Num">Step 2</span>
+        <span class="step-title">Upload ไฟล์ + Scan Barcode เอกสาร</span>
+        <span class="step-hint" id="step2Hint">🔒 ต้องผ่าน Step 1 ก่อน</span>
+      </div>
+      <div class="step-body">
+        <!-- batch info mini -->
+        <div id="ripSection" style="margin-bottom:12px;display:none;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+            <span style="font-size:12px;color:var(--muted);">รายการจากจัดส่ง</span>
+            <span style="font-size:12px;font-family:var(--mono);" id="ripProgText">0 / 0</span>
+          </div>
+          <div class="rip-bar-wrap">
+            <div class="rip-bar"><div class="rip-bar-fill" id="ripFill" style="width:0%;"></div></div>
+          </div>
+          <div class="rip-chips" id="ripChips"></div>
+        </div>
+
+        <!-- upload zone -->
+        <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+          <div class="icon">📂</div>
+          <div class="label">Upload PDF หรือรูปภาพ</div>
+          <div class="sub">JPG, PNG, PDF — เลือกได้หลายไฟล์</div>
+        </div>
+        <input type="file" id="fileInput" accept="image/*,application/pdf" multiple
+          onchange="handleFiles(this.files)" style="display:none;">
+
+        <!-- table -->
+        <div id="tableWrap" style="display:none;">
+          <div class="batch-table-wrap">
+            <table>
+              <thead><tr>
+                <th style="width:4%;">#</th>
+                <th style="width:6%;">ไฟล์</th>
+                <th style="width:12%;">Barcode</th>
+                <th style="width:6%;">Match</th>
+                <th style="width:10%;">Reference</th>
+                <th style="width:9%;">ประเภท</th>
+                <th style="width:13%;">โอนจาก</th>
+                <th style="width:13%;">โอนไป</th>
+                <th style="width:9%;">วันที่รับ</th>
+                <th style="width:5%;">QTY รับ</th>
+                <th style="width:8%;">สถานะ</th>
+                <th style="width:5%;"></th>
+              </tr></thead>
+              <tbody id="tableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ STEP 3: ตรวจสอบ + ยืนยัน ══ -->
+    <div class="step-card locked" id="step3Card">
+      <div class="step-head">
+        <span class="step-num locked" id="step3Num">Step 3</span>
+        <span class="step-title">ตรวจสอบและยืนยัน</span>
+      </div>
+      <div class="step-body">
+        <div class="sum-grid">
+          <div class="sum-card matched"><div class="sum-num" id="sumMatched">0</div><div class="sum-lbl">✅ ตรงกัน</div></div>
+          <div class="sum-card pending"><div class="sum-num" id="sumPending">0</div><div class="sum-lbl">⏳ รอ scan</div></div>
+          <div class="sum-card rejected"><div class="sum-num" id="sumRejected">0</div><div class="sum-lbl">❌ Reject</div></div>
+        </div>
+        <div class="action-row">
+          <button class="btn-confirm" id="btnConfirm" onclick="confirmReceive()" disabled>✅ ยืนยันรับ</button>
+          <button class="btn-dispute" id="btnDispute" onclick="openRejectModal()" disabled>⚠️ Reject / แจ้งปัญหา</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Reject Modal -->
+<div class="modal-overlay" id="rejectModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <div class="modal-title">⚠️ Reject เอกสาร</div>
+      <button class="modal-close" onclick="closeRejectModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div id="rejectSummary" style="font-size:12px;background:var(--surface2);border-radius:var(--rs);padding:10px 12px;line-height:1.7;"></div>
+      <div>
+        <div class="m-label">ประเภทปัญหา</div>
+        <div class="m-radio-group">
+          <label class="m-radio"><input type="radio" name="rejectType" value="missing" checked> เอกสารขาด (อยู่ใน Batch แต่ไม่มีไฟล์)</label>
+          <label class="m-radio"><input type="radio" name="rejectType" value="mismatch"> บาร์โค้ดไม่ตรงกับ Batch</label>
+          <label class="m-radio"><input type="radio" name="rejectType" value="damaged"> เอกสารชำรุด / อ่านไม่ได้</label>
+        </div>
+      </div>
+      <div>
+        <div class="m-label">หมายเหตุ</div>
+        <textarea class="m-textarea" id="rejectNote" placeholder="ระบุรายละเอียดเพิ่มเติม..."></textarea>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="m-cancel" onclick="closeRejectModal()">ยกเลิก</button>
+      <button class="m-confirm" onclick="submitReject()">📩 ส่งแจ้งปัญหา + Submit ที่ตรง</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+// ── Auth ─────────────────────────────────────────────────
+var DocScanAuth=(function(){
+  var KEY='docScanSession';
+  function load(){try{var r=localStorage.getItem(KEY);if(!r)return null;var s=JSON.parse(r);return(s.empId&&s.site)?s:null;}catch(e){return null;}}
+  function clear(){localStorage.removeItem(KEY);}
+  function requireAuth(){var s=load();if(!s){window.location.href='login.html';return null;}return s;}
+  return{load:load,clear:clear,requireAuth:requireAuth};
+})();
+
+var API_URL = DOCSCAN_CONFIG.API_URL;
+var session, csvData=[], csvLoaded=false;
+var _batch    = null;   // batch detail จาก GAS
+var _rows     = [];     // scan rows
+var _rowId    = 0;
+var _verified = false;  // step 1 ผ่านแล้ว
+
+// ── Init ─────────────────────────────────────────────────
+window.onload = function() {
+  session = DocScanAuth.requireAuth();
+  if (!session) return;
+  document.getElementById('sidebarName').textContent = session.empName+' ('+session.empId+')';
+  document.getElementById('topbarSub').textContent   = session.site;
+  loadCSV();
+  // รับ batchId จาก query string
+  var batchId = new URLSearchParams(window.location.search).get('batch_id');
+  if (batchId) {
+    document.getElementById('step1Input').value = batchId;
+    document.getElementById('step1Input').focus();
+  } else {
+    setTimeout(function(){ document.getElementById('step1Input').focus(); }, 200);
+  }
+};
+
+// ── CSV ───────────────────────────────────────────────────
+function loadCSV() {
+  fetch(API_URL+'?action=getCSV',{method:'GET',redirect:'follow'})
+    .then(function(r){return r.text();})
+    .then(function(t){
+      var lines=t.replace(/\r/g,'').split('\n').filter(function(l){return l.trim();});
+      if(lines.length<2)return;
+      var h=lines[0].replace(/^\uFEFF/,'').split(',');
+      csvData=[];
+      for(var i=1;i<lines.length;i++){
+        var v=lines[i].split(',');var o={};
+        h.forEach(function(k,idx){o[k.trim()]=(v[idx]||'').trim();});
+        csvData.push(o);
+      }
+      csvLoaded=true;
+    }).catch(function(){});
+}
+
+function searchCSV(barcode){
+  barcode=(barcode||'').trim().toUpperCase();
+  return csvData.find(function(r){return(r['barcode']||'').trim().toUpperCase()===barcode;})||null;
+}
+
+// ── STEP 1: Verify Batch ─────────────────────────────────
+function verifyBatch(rawId) {
+  var batchId = (rawId||'').trim();
+  if (!batchId) return;
+  var input   = document.getElementById('step1Input');
+  var result  = document.getElementById('verifyResult');
+  input.disabled = true;
+  result.className = 'verify-result';
+  result.innerHTML = '<span class="spinner"></span> กำลังตรวจสอบ...';
+  result.style.display = 'block';
+  result.style.background = 'var(--surface2)';
+  result.style.border = '1px solid var(--border)';
+  result.style.color = 'var(--muted)';
+
+  fetch(API_URL+'?action=getBatchDetail&batch_id='+encodeURIComponent(batchId))
+    .then(function(r){return r.json();})
+    .then(function(data){
+      if (data.status !== 'ok') throw new Error('ไม่พบ Batch "'+batchId+'" ในระบบ');
+      _batch    = data;
+      _verified = true;
+      input.classList.add('verified');
+      result.className = 'verify-result ok';
+      result.innerHTML = '✅ พบ Batch: <strong>'+batchId+'</strong> — '+
+        (data.barcodes||[]).length+' ใบ · ส่งจาก: '+(data.site||'—')+' · '+
+        (data.scan_date ? new Date(data.scan_date).toLocaleDateString('th-TH') : '—');
+      document.getElementById('topbarTitle').textContent = 'รับเอกสาร — '+batchId;
+      // mark step 1 done
+      var s1 = document.getElementById('step1Card');
+      s1.classList.remove('active'); s1.classList.add('done');
+      document.querySelector('#step1Card .step-num').className = 'step-num done';
+      // unlock step 2
+      unlockStep2();
+    })
+    .catch(function(err){
+      input.disabled = false;
+      input.classList.add('error');
+      result.className = 'verify-result err';
+      result.innerHTML = '❌ '+err.message;
+      setTimeout(function(){input.classList.remove('error');},1500);
+    });
+}
+
+// ── STEP 2: Unlock ───────────────────────────────────────
+function unlockStep2() {
+  var card = document.getElementById('step2Card');
+  card.classList.remove('locked');
+  card.classList.add('active');
+  document.getElementById('step2Num').className = 'step-num active';
+  document.getElementById('step2Hint').textContent = '';
+  // render RIP panel
+  renderRIP();
+  // unlock step 3
+  var s3 = document.getElementById('step3Card');
+  s3.classList.remove('locked');
+  document.getElementById('step3Num').className = 'step-num active';
+  updateSummary();
+}
+
+// ── RIP Panel ────────────────────────────────────────────
+function renderRIP() {
+  if (!_batch) return;
+  document.getElementById('ripSection').style.display = 'block';
+  updateRIP();
+}
+
+function updateRIP() {
+  if (!_batch) return;
+  var barcodes = _batch.barcodes||[];
+  var scanned  = {};
+  _rows.forEach(function(r){ if(r.barcode) scanned[r.barcode.toUpperCase()]=true; });
+  var matched = 0;
+  document.getElementById('ripChips').innerHTML = barcodes.map(function(item){
+    var bc   = item.barcode.toUpperCase();
+    var hit  = !!scanned[bc];
+    var rej  = _rows.some(function(r){ return r.barcode&&r.barcode.toUpperCase()===bc&&r.rejected; });
+    if(hit&&!rej) matched++;
+    var cls  = rej ? 'rejected' : hit ? 'hit' : '';
+    return '<span class="rip-chip '+cls+'" id="chip-'+item.barcode+'">'+item.barcode+'</span>';
+  }).join('');
+  // extra chips
+  _rows.forEach(function(r){
+    if(!r.barcode)return;
+    var inBatch = barcodes.some(function(b){return b.barcode.toUpperCase()===r.barcode.toUpperCase();});
+    if(!inBatch&&!document.getElementById('chip-extra-'+r.barcode)){
+      var sp=document.createElement('span');
+      sp.id='chip-extra-'+r.barcode; sp.className='rip-chip extra';
+      sp.textContent=r.barcode+' ⚠️';
+      document.getElementById('ripChips').appendChild(sp);
+    }
+  });
+  var total = barcodes.length;
+  var pct   = total>0?Math.round(matched/total*100):0;
+  document.getElementById('ripFill').style.width   = pct+'%';
+  document.getElementById('ripProgText').textContent = matched+' / '+total;
+}
+
+// ── File handling ─────────────────────────────────────────
+function handleFiles(files) {
+  Array.from(files).forEach(function(file) {
+    if (file.type === 'application/pdf') handlePDF(file);
+    else handleImage(file);
+  });
+}
+
+function handleImage(file) {
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    addRow({file:file, fileName:file.name, thumb:e.target.result, barcode:'', photoData:e.target.result});
+  };
+  reader.readAsDataURL(file);
+}
+
+function handlePDF(file) {
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var arr = new Uint8Array(e.target.result);
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    pdfjsLib.getDocument({data: arr}).promise.then(function(pdf) {
+      for(var p=1;p<=pdf.numPages;p++){
+        (function(pageNum){
+          pdf.getPage(pageNum).then(function(page){
+            var vp=page.getViewport({scale:0.4});
+            var canvas=document.createElement('canvas');
+            canvas.width=vp.width; canvas.height=vp.height;
+            page.render({canvasContext:canvas.getContext('2d'),viewport:vp}).promise.then(function(){
+              addRow({file:file, fileName:file.name+'[p'+pageNum+']', thumb:canvas.toDataURL(), barcode:'', photoData:canvas.toDataURL()});
+            });
+          });
+        })(p);
+      }
+    });
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function addRow(opts) {
+  var id = ++_rowId;
+  _rows.push({
+    id:id, file:opts.file, fileName:opts.fileName, thumb:opts.thumb,
+    barcode:'', status:'idle', doc:null, rejected:false, rejectNote:'',
+    editVals:{ref:'',itemName:'',from:'',to:'',receivedDate:'',recvQty:''},
+    photoData:opts.photoData
+  });
+  renderTable();
+  document.getElementById('tableWrap').style.display = 'block';
+  document.getElementById('uploadZone').style.display = 'none';
+  updateSummary();
+}
+
+// ── Render Table ─────────────────────────────────────────
+function renderTable() {
+  var tbody = document.getElementById('tableBody');
+  if (!_rows.length) {
+    tbody.innerHTML = '';
+    document.getElementById('tableWrap').style.display = 'none';
+    document.getElementById('uploadZone').style.display = 'block';
+    return;
+  }
+  var batchBarcodes = _batch ? (_batch.barcodes||[]).map(function(b){return b.barcode.toUpperCase();}) : [];
+  tbody.innerHTML = _rows.map(function(row, i) {
+    var inBatch   = row.barcode ? batchBarcodes.indexOf(row.barcode.toUpperCase())!==-1 : null;
+    var matchCls  = row.rejected ? 'row-rejected' : row.barcode && inBatch===true ? 'row-matched' : row.barcode && inBatch===false ? 'row-extra' : '';
+    var matchBadge = row.rejected
+      ? '<span style="font-size:10px;color:var(--muted);">❌ reject</span>'
+      : !row.barcode ? '<span style="font-size:10px;color:var(--muted);">—</span>'
+      : inBatch ? '<span style="font-size:10px;color:var(--success);">✅</span>'
+      : '<span style="font-size:10px;color:var(--danger);">⚠️ ไม่ตรง</span>';
+    var doc = row.doc || {};
+    return '<tr class="'+matchCls+'" id="row-'+row.id+'">'+
+      '<td style="color:var(--muted);">'+(i+1)+'</td>'+
+      '<td><img src="'+(row.thumb||'')+'" style="width:36px;height:28px;object-fit:cover;border-radius:3px;"></td>'+
+      '<td><input class="edit-input mono" value="'+esc(row.barcode)+'" placeholder="scan..." '+
+        'onchange="onBcChange('+row.id+',this.value)" '+
+        'onkeydown="if(event.key===\'Enter\'){onBcChange('+row.id+',this.value);}"></td>'+
+      '<td style="text-align:center;">'+matchBadge+'</td>'+
+      '<td><input class="edit-input" value="'+esc(row.editVals.ref||doc['ref_no']||'')+'" onchange="onEditChange('+row.id+',\'ref\',this.value)"></td>'+
+      '<td><input class="edit-input" value="'+esc(row.editVals.itemName||doc['item_name']||'')+'" onchange="onEditChange('+row.id+',\'itemName\',this.value)"></td>'+
+      '<td><input class="edit-input" value="'+esc(row.editVals.from||doc['customer_start_name']||'')+'" onchange="onEditChange('+row.id+',\'from\',this.value)"></td>'+
+      '<td><input class="edit-input" value="'+esc(row.editVals.to||doc['customer_destination_name']||'')+'" onchange="onEditChange('+row.id+',\'to\',this.value)"></td>'+
+      '<td><input class="edit-input" type="date" value="'+esc(row.editVals.receivedDate||'')+'" onchange="onEditChange('+row.id+',\'receivedDate\',this.value)"></td>'+
+      '<td><input class="edit-input mono" value="'+esc(row.editVals.recvQty||doc['total']||'')+'" style="width:50px;" onchange="onEditChange('+row.id+',\'recvQty\',this.value)"></td>'+
+      '<td style="text-align:center;">'+
+        (row.rejected
+          ? '<button class="restore-btn" onclick="restoreRow('+row.id+')">↩ คืน</button>'
+          : '<button class="reject-btn" onclick="rejectRowInline('+row.id+')">reject</button>')+
+      '</td>'+
+      '<td><button onclick="removeRow('+row.id+')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;">✕</button></td>'+
+    '</tr>';
+  }).join('');
+}
+
+function onBcChange(id, value) {
+  var row = _rows.find(function(r){return r.id===id;});
+  if (!row) return;
+  row.barcode = (value||'').trim().toUpperCase();
+  // auto-fill จาก CSV
+  if (row.barcode && csvLoaded) {
+    var doc = searchCSV(row.barcode);
+    if (doc) {
+      row.doc = doc;
+      if (!row.editVals.ref)      row.editVals.ref      = doc['ref_no']||'';
+      if (!row.editVals.itemName) row.editVals.itemName = doc['item_name']||'';
+      if (!row.editVals.from)     row.editVals.from     = doc['customer_start_name']||'';
+      if (!row.editVals.to)       row.editVals.to       = doc['customer_destination_name']||'';
+      if (!row.editVals.recvQty)  row.editVals.recvQty  = doc['total']||'';
+    }
+  }
+  renderTable(); updateRIP(); updateSummary();
+}
+
+function onEditChange(id, field, value) {
+  var row = _rows.find(function(r){return r.id===id;});
+  if (row) row.editVals[field] = value;
+}
+
+function rejectRowInline(id) {
+  var row = _rows.find(function(r){return r.id===id;});
+  if (row) { row.rejected=true; row.rejectNote='reject'; renderTable(); updateRIP(); updateSummary(); }
+}
+
+function restoreRow(id) {
+  var row = _rows.find(function(r){return r.id===id;});
+  if (row) { row.rejected=false; row.rejectNote=''; renderTable(); updateRIP(); updateSummary(); }
+}
+
+function removeRow(id) {
+  _rows = _rows.filter(function(r){return r.id!==id;});
+  renderTable(); updateRIP(); updateSummary();
+}
+
+// ── Summary ───────────────────────────────────────────────
+function updateSummary() {
+  if (!_batch) return;
+  var barcodes = _batch.barcodes||[];
+  var bSet = {}; barcodes.forEach(function(b){bSet[b.barcode.toUpperCase()]=true;});
+  var scannedSet = {};
+  _rows.forEach(function(r){ if(r.barcode&&!r.rejected) scannedSet[r.barcode.toUpperCase()]=true; });
+  var matched  = barcodes.filter(function(b){return scannedSet[b.barcode.toUpperCase()];}).length;
+  var pending  = barcodes.filter(function(b){return !scannedSet[b.barcode.toUpperCase()];}).length;
+  var rejected = _rows.filter(function(r){return r.rejected;}).length;
+  document.getElementById('sumMatched').textContent  = matched;
+  document.getElementById('sumPending').textContent  = pending;
+  document.getElementById('sumRejected').textContent = rejected;
+  // unlock confirm
+  var canConfirm = _rows.filter(function(r){return !r.rejected&&r.barcode&&r.editVals.receivedDate&&r.editVals.recvQty;}).length > 0;
+  document.getElementById('btnConfirm').disabled = !canConfirm;
+  document.getElementById('btnDispute').disabled = !_verified;
+  // badge
+  var badge = document.getElementById('statusBadge');
+  if (pending===0 && rejected===0 && matched>0) {
+    badge.textContent='✅ ครบถ้วน'; badge.className='status-badge badge-ok';
+  } else if (rejected>0 || pending<barcodes.length) {
+    badge.textContent='⚠️ ไม่ครบ/มีปัญหา'; badge.className='status-badge badge-partial';
+  } else {
+    badge.textContent='⏳ รอดำเนินการ'; badge.className='status-badge badge-wait';
+  }
+}
+
+// ── Reject Modal ─────────────────────────────────────────
+function openRejectModal() {
+  if (!_batch) return;
+  var barcodes = _batch.barcodes||[];
+  var bSet = {}; barcodes.forEach(function(b){bSet[b.barcode.toUpperCase()]=true;});
+  var scannedSet = {};
+  _rows.forEach(function(r){if(r.barcode&&!r.rejected)scannedSet[r.barcode.toUpperCase()]=true;});
+  var missing = barcodes.filter(function(b){return !scannedSet[b.barcode.toUpperCase()];});
+  var extra   = _rows.filter(function(r){return r.barcode&&!bSet[r.barcode.toUpperCase()]&&!r.rejected;});
+  var rejected= _rows.filter(function(r){return r.rejected;});
+  var html = '';
+  if (missing.length) html += '<div style="color:var(--warn);font-weight:500;margin-bottom:3px;">ขาด '+missing.length+' ใบ:</div>'+
+    missing.map(function(b){return '<div style="font-family:var(--mono);font-size:11px;">'+b.barcode+'</div>';}).join('');
+  if (extra.length)   html += '<div style="color:var(--danger);font-weight:500;margin:6px 0 3px;">เกิน '+extra.length+' ใบ:</div>'+
+    extra.map(function(r){return '<div style="font-family:var(--mono);font-size:11px;">'+r.barcode+'</div>';}).join('');
+  if (rejected.length)html += '<div style="color:var(--muted);font-weight:500;margin:6px 0 3px;">Reject แล้ว '+rejected.length+' ใบ</div>';
+  document.getElementById('rejectSummary').innerHTML = html || '<div style="color:var(--success);">ไม่มีรายการที่มีปัญหา</div>';
+  document.getElementById('rejectNote').value = '';
+  document.getElementById('rejectModal').classList.add('open');
+}
+
+function closeRejectModal() { document.getElementById('rejectModal').classList.remove('open'); }
+
+// ── Confirm Receive ───────────────────────────────────────
+async function confirmReceive() {
+  var ready = _rows.filter(function(r){
+    return !r.rejected && r.barcode && r.editVals.receivedDate && r.editVals.recvQty;
+  });
+  if (!ready.length) { showToast('ไม่มีรายการพร้อม submit','error'); return; }
+  var barcodes = _batch ? (_batch.barcodes||[]).map(function(b){return b.barcode.toUpperCase();}) : [];
+  var scanned  = ready.map(function(r){return r.barcode.toUpperCase();});
+  var scSet    = {}; scanned.forEach(function(b){scSet[b]=true;});
+  var missing  = barcodes.filter(function(b){return !scSet[b];});
+  var extra    = scanned.filter(function(b){return barcodes.indexOf(b)===-1;});
+  if (missing.length>0 || extra.length>0) {
+    var msg = '';
+    if (missing.length) msg += 'ขาด '+missing.length+' ใบ\n';
+    if (extra.length)   msg += 'เกิน '+extra.length+' ใบ (ไม่อยู่ใน Batch)\n';
+    if (!confirm(msg+'ยืนยันที่จะ submit เฉพาะที่ตรงกัน?')) return;
+  }
+  var btn = document.getElementById('btnConfirm');
+  btn.disabled = true; btn.textContent = 'กำลังบันทึก...';
+  try {
+    // upload photos + submit items
+    var items = [];
+    for (var i=0;i<ready.length;i++) {
+      var row = ready[i];
+      var photoUrl = '';
+      if (row.photoData) {
+        var pr = await fetch(API_URL, {method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain'},
+          body:JSON.stringify({action:'uploadPhoto',barcode:row.barcode,image:row.photoData,ref_no:row.editVals.ref||''})});
+        var pd = await pr.json();
+        if (pd.status==='ok') photoUrl = pd.url;
+      }
+      items.push({
+        barcode:row.barcode, ref_no:row.editVals.ref||row.doc&&row.doc['ref_no']||'',
+        item_name:row.editVals.itemName||row.doc&&row.doc['item_name']||'',
+        transfer_from:row.editVals.from||row.doc&&row.doc['customer_start_name']||'',
+        transfer_to:row.editVals.to||row.doc&&row.doc['customer_destination_name']||'',
+        origin_acc:'', dest_acc:'',
+        despatch_date:'', received_date:row.editVals.receivedDate,
+        sent_qty:row.doc&&row.doc['total']||'', received_qty:row.editVals.recvQty||'',
+        not_found:!row.doc, site:session.site, emp_id:session.empId,
+        emp_name:session.empName, emp_email:session.empEmail||'', photo_url:photoUrl
+      });
+    }
+    var res  = await fetch(API_URL,{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain'},
+      body:JSON.stringify({action:'updateItems',items:items})});
+    var data = await res.json();
+    if (data.status!=='ok') throw new Error(data.message);
+    // receiveItems
+    var recItems = ready.map(function(r){
+      return {barcode:r.barcode,batch_id:_batch.batch_id,emp_id:session.empId,
+              emp_name:session.empName,site:session.site,note:'คลังรับแล้ว',dest_warehouse:session.site};
+    });
+    await fetch(API_URL,{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain'},
+      body:JSON.stringify({action:'receiveItems',items:recItems})});
+    // dispute missing/rejected
+    var rejectItems = _rows.filter(function(r){return r.rejected;});
+    if (missing.length||rejectItems.length) {
+      var disputeNote = document.getElementById('rejectNote').value || 'แจ้งปัญหาจากคลัง';
+      var dItems = missing.map(function(bc){
+        return {barcode:bc,batch_id:_batch.batch_id+'-PEND',emp_id:session.empId,
+                emp_name:session.empName,site:session.site,note:disputeNote,
+                dispute_type:'missing',dest_warehouse:session.site};
+      }).concat(rejectItems.map(function(r){
+        return {barcode:r.barcode,batch_id:_batch.batch_id+'-PEND',emp_id:session.empId,
+                emp_name:session.empName,site:session.site,note:r.rejectNote||'reject',
+                dispute_type:'mismatch',dest_warehouse:session.site};
+      }));
+      if (dItems.length) await fetch(API_URL,{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain'},
+        body:JSON.stringify({action:'disputeItems',items:dItems})});
+    }
+    showToast('✅ บันทึก '+ready.length+' รายการเรียบร้อย','success');
+    setTimeout(function(){ window.location.href='batch.html'; },1500);
+  } catch(err) {
+    showToast('เกิดข้อผิดพลาด: '+err.message,'error');
+    btn.disabled=false; btn.textContent='✅ ยืนยันรับ';
+  }
+}
+
+// ── Submit Reject ─────────────────────────────────────────
+async function submitReject() {
+  var type = document.querySelector('input[name="rejectType"]:checked').value;
+  var note = document.getElementById('rejectNote').value||'แจ้งปัญหาจากคลัง';
+  var barcodes = _batch ? (_batch.barcodes||[]).map(function(b){return b.barcode.toUpperCase();}) : [];
+  var scanned  = _rows.filter(function(r){return !r.rejected&&r.barcode;}).map(function(r){return r.barcode.toUpperCase();});
+  var scSet    = {}; scanned.forEach(function(b){scSet[b]=true;});
+  var missing  = barcodes.filter(function(b){return !scSet[b];});
+  var extra    = scanned.filter(function(b){return barcodes.indexOf(b)===-1;});
+  var dItems   = missing.map(function(bc){
+    return {barcode:bc,batch_id:_batch.batch_id+'-PEND',emp_id:session.empId,
+            emp_name:session.empName,site:session.site,note:note,dispute_type:'missing',dest_warehouse:session.site};
+  }).concat(extra.map(function(bc){
+    return {barcode:bc,batch_id:_batch.batch_id+'-PEND',emp_id:session.empId,
+            emp_name:session.empName,site:session.site,note:note,dispute_type:type,dest_warehouse:session.site};
+  }));
+  if (dItems.length) {
+    try {
+      await fetch(API_URL,{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain'},
+        body:JSON.stringify({action:'disputeItems',items:dItems})});
+      showToast('📩 แจ้งปัญหา '+dItems.length+' รายการแล้ว','info');
+    } catch(e){}
+  }
+  closeRejectModal();
+  confirmReceive();
+}
+
+document.addEventListener('click',function(e){if(e.target.id==='rejectModal')closeRejectModal();});
+
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');}
+var toastTimer;
+function showToast(msg,type){var t=document.getElementById('toast');t.textContent=msg;t.className='toast '+(type||'info')+' show';clearTimeout(toastTimer);toastTimer=setTimeout(function(){t.classList.remove('show');},3500);}
+</script>
+</body>
+</html>
