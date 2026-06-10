@@ -192,6 +192,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 <div class="page-wrap">
   <div class="topbar">
     <div style="display:flex;align-items:center;gap:12px;">
+      <a href="incoming.html" class="back-btn" onclick="return confirmBack()">← กลับ</a>
       <div>
         <div class="topbar-title" id="topbarTitle">รับเอกสารจากจัดส่ง</div>
         <div class="topbar-sub" id="topbarSub">—</div>
@@ -490,20 +491,33 @@ window.onload = function() {
 
 // ── CSV ───────────────────────────────────────────────────
 function loadCSV() {
-  fetch(API_URL+'?action=getCSV',{method:'GET',redirect:'follow'})
-    .then(function(r){return r.text();})
-    .then(function(t){
-      var lines=t.replace(/\r/g,'').split('\n').filter(function(l){return l.trim();});
-      if(lines.length<2)return;
-      var h=lines[0].replace(/^\uFEFF/,'').split(',');
-      csvData=[];
-      for(var i=1;i<lines.length;i++){
-        var v=lines[i].split(',');var o={};
-        h.forEach(function(k,idx){o[k.trim()]=(v[idx]||'').trim();});
+  fetch(API_URL+'?action=getCSV', {method:'GET', redirect:'follow'})
+    .then(function(r) {
+      if (!r.ok) throw new Error('HTTP '+r.status);
+      return r.text();
+    })
+    .then(function(t) {
+      // ถ้า GAS return JSON error ให้จับไว้
+      if (t.trim().startsWith('{')) {
+        var j = JSON.parse(t);
+        throw new Error(j.message || 'GAS error');
+      }
+      var lines = t.replace(/\r/g,'').split('\n').filter(function(l){return l.trim();});
+      if (lines.length < 2) throw new Error('CSV ว่างเปล่า ('+lines.length+' lines)');
+      var h = lines[0].replace(/^\uFEFF/,'').split(',');
+      csvData = [];
+      for (var i = 1; i < lines.length; i++) {
+        var v = lines[i].split(','); var o = {};
+        h.forEach(function(k,idx){ o[k.trim()] = (v[idx]||'').trim(); });
         csvData.push(o);
       }
-      csvLoaded=true;
-    }).catch(function(){});
+      csvLoaded = true;
+      console.log('✅ CSV loaded:', csvData.length, 'rows, headers:', h.slice(0,5));
+    })
+    .catch(function(err) {
+      console.error('❌ loadCSV error:', err.message);
+      showToast('โหลด CSV ไม่สำเร็จ: '+err.message, 'error');
+    });
 }
 
 function searchCSV(barcode){
@@ -711,6 +725,7 @@ function onBcChange(id, value) {
   row.barcode = (value||'').trim().toUpperCase();
   if (row.barcode && csvLoaded) {
     var doc = searchCSV(row.barcode);
+    console.log('lookup', row.barcode, '→', doc ? 'FOUND' : 'NOT FOUND', '| csvData.length='+csvData.length);
     if (doc) {
       row.doc = doc;
       if (!row.editVals.ref)       row.editVals.ref       = doc['ref_no']||'';
@@ -721,6 +736,8 @@ function onBcChange(id, value) {
       if (!row.editVals.destAcc)   row.editVals.destAcc   = doc['customer_destination_code']||'';
       if (!row.editVals.recvQty)   row.editVals.recvQty   = doc['total']||'';
     }
+  } else {
+    console.log('lookup skip — csvLoaded:', csvLoaded, '| barcode:', row.barcode);
   }
   renderTable(); updateRIP(); updateSummary();
 }
@@ -904,6 +921,13 @@ async function submitReject() {
 }
 
 document.addEventListener('click',function(e){if(e.target.id==='rejectModal')closeRejectModal();});
+
+function confirmBack() {
+  if (_rows.length > 0) {
+    return confirm('มีรายการที่ยังไม่ได้ Submit อยู่ ' + _rows.length + ' รายการ\nต้องการกลับโดยไม่บันทึกใช่ไหม?');
+  }
+  return true;
+}
 
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');}
 var toastTimer;
