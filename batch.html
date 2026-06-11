@@ -393,8 +393,40 @@ window.onload = function () {
   loadCSV();
 };
 
+var CSV_CACHE_KEY = 'docScanCSV';
+var CSV_CACHE_TTL = 30 * 60 * 1000; // 30 นาที
+
 function loadCSV() {
-  fetch(CSV_URL).then(function(r){return r.text();}).then(function(text){csvData=parseCSV(text);csvLoaded=true;}).catch(function(){showToast('โหลด CSV ไม่สำเร็จ','error');});
+  // เช็ค cache ก่อน
+  try {
+    var cached = localStorage.getItem(CSV_CACHE_KEY);
+    if (cached) {
+      var obj = JSON.parse(cached);
+      if (Date.now() - obj.ts < CSV_CACHE_TTL) {
+        csvData = obj.data;
+        csvLoaded = true;
+        console.log('[CSV] loaded from cache (' + csvData.length + ' rows)');
+        return;
+      }
+    }
+  } catch(e) {}
+
+  // fetch ใหม่
+  fetch(CSV_URL).then(function(r){ return r.text(); }).then(function(text) {
+    csvData   = parseCSV(text);
+    csvLoaded = true;
+    try {
+      localStorage.setItem(CSV_CACHE_KEY, JSON.stringify({ ts: Date.now(), data: csvData }));
+    } catch(e) {}
+    console.log('[CSV] fetched & cached (' + csvData.length + ' rows)');
+  }).catch(function() { showToast('โหลด CSV ไม่สำเร็จ','error'); });
+}
+
+function clearCSVCache() {
+  localStorage.removeItem(CSV_CACHE_KEY);
+  csvData = []; csvLoaded = false;
+  loadCSV();
+  showToast('รีโหลด CSV แล้ว','info');
 }
 
 function parseCSV(text) {
@@ -947,23 +979,32 @@ async function submitBatch(){
   if(!ready.length)return;
   var btn=document.getElementById('submitBtn');btn.disabled=true;
   try{
-    for(var i=0;i<ready.length;i++){
-      var row=ready[i];
-      // ใช้ pdfPageData (extracted single page) ถ้ามี, ไม่งั้นใช้ photoData
+    // ── Parallel upload แบ่งเป็น chunks of 5 ──────────────
+    var CHUNK = 5;
+    var total = ready.filter(function(r){ return r.pdfPageData||r.photoData; }).length;
+    var done  = 0;
+
+    async function uploadRow(row) {
       var uploadData = row.pdfPageData || row.photoData;
-      if(uploadData){
-        btn.textContent='อัปโหลดไฟล์ '+(i+1)+'/'+ready.length+'...';
-        var refNo=row.editVals.refNo||row.barcode;
-        // แปลง Uint8Array → base64 ถ้าเป็น PDF split
-        var uploadStr = uploadData;
-        if (uploadData instanceof Uint8Array) {
-          var binary = ''; var bytes = new Uint8Array(uploadData);
-          for (var b=0;b<bytes.byteLength;b++) binary += String.fromCharCode(bytes[b]);
-          uploadStr = 'data:application/pdf;base64,' + btoa(binary);
-        }
-        row.photoUrl=await uploadPhoto(uploadStr,row.barcode,refNo);
+      if (!uploadData) return;
+      var refNo     = row.editVals.refNo || row.barcode;
+      var uploadStr = uploadData;
+      if (uploadData instanceof Uint8Array) {
+        var binary=''; var bytes=new Uint8Array(uploadData);
+        for(var b=0;b<bytes.byteLength;b++) binary+=String.fromCharCode(bytes[b]);
+        uploadStr = 'data:application/pdf;base64,'+btoa(binary);
       }
+      row.photoUrl = await uploadPhoto(uploadStr, row.barcode, refNo);
+      done++;
+      btn.textContent = 'อัปโหลด '+done+'/'+total+'...';
     }
+
+    // แบ่ง ready เป็น chunks แล้ว upload พร้อมกันทีละ chunk
+    for (var i=0; i<ready.length; i+=CHUNK) {
+      var chunk = ready.slice(i, i+CHUNK);
+      await Promise.all(chunk.map(uploadRow));
+    }
+
     btn.textContent='กำลังบันทึกข้อมูล...';
     var items=ready.map(function(row){
       var ev=row.editVals;
@@ -989,9 +1030,13 @@ async function submitBatch(){
     });
     var res=await fetch(API_URL,{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action:'updateItems',items:items})});
     var data=await res.json();
-    if(data.status==='ok'){var submittedIds=ready.map(function(r){return r.id;});rows=rows.filter(function(r){return submittedIds.indexOf(r.id)===-1;});renderTable();showToast('บันทึก '+ready.length+' รายการเรียบร้อย','success');}
-    else{showToast(data.message||'Error','error');}
-  }catch(err){showToast('เกิดข้อผิดพลาด: '+err.message,'error');}
+    if(data.status==='ok'){
+      var submittedIds=ready.map(function(r){return r.id;});
+      rows=rows.filter(function(r){return submittedIds.indexOf(r.id)===-1;});
+      renderTable();
+      showToast('บันทึก '+ready.length+' รายการเรียบร้อย','success');
+    } else { showToast(data.message||'Error','error'); }
+  }catch(err){ showToast('เกิดข้อผิดพลาด: '+err.message,'error'); }
   updateSubmitBtn();
 }
 
