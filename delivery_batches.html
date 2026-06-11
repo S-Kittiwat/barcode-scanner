@@ -327,9 +327,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
       <div class="hs-title">ใบส่งมอบเอกสาร (Handover Sheet)</div>
       <div class="hs-sub">DocScan — Pallet Tracking System</div>
     </div>
-    <div id="hsQR" style="text-align:right;">
-      <svg id="hsBarcodesvg"></svg>
-      <div style="font-size:9px;color:#555;margin-top:2px;" id="hsBatchIdBarcode"></div>
+    <div id="hsQR" style="text-align:center;min-width:120px;">
+      <svg id="hsBarcodesvg" style="max-width:160px;"></svg>
     </div>
   </div>
   <div class="hs-meta">
@@ -949,31 +948,39 @@ async function printHandover(batchId, destOverride) {
     '</tr>';
   }).join('');
 
-  // แสดง printArea — ใช้ body class เพื่อ trigger @media print CSS
+  // แสดง printArea
   var pa = document.getElementById('printArea');
   pa.style.display = 'block';
   pa.style.background = '#fff';
   pa.style.color = '#000';
 
-  // Barcode 1D (Code128)
-  document.getElementById('hsBatchIdBarcode').textContent = batchId;
+  // Barcode 1D (Code128) — render ก่อน print
+  var svg = document.getElementById('hsBarcodesvg');
+  svg.innerHTML = ''; // clear เดิม
   if (typeof JsBarcode !== 'undefined') {
     try {
-      JsBarcode('#hsBarcodesvg', batchId, {
-        format:'CODE128', width:2, height:50,
-        displayValue:true, fontSize:12, margin:4,
-        lineColor:'#000', background:'#fff'
+      JsBarcode(svg, batchId, {
+        format      : 'CODE128',
+        width       : 1.8,
+        height      : 55,
+        displayValue: true,
+        fontSize    : 11,
+        margin      : 2,
+        lineColor   : '#000',
+        background  : '#ffffff'
       });
-    } catch(e) {}
+    } catch(e) { svg.innerHTML = '<text y="20" font-size="12">'+batchId+'</text>'; }
   }
 
-  // รอให้ render เสร็จแล้วค่อย print
+  // รอ 2 frames ให้ browser repaint แล้วค่อย print
   requestAnimationFrame(function(){
     requestAnimationFrame(function(){
       window.print();
-      setTimeout(function(){
-        pa.style.display = 'none';
-      }, 1500);
+      // ซ่อนกลับหลัง print dialog ปิด
+      var hide = function(){ pa.style.display = 'none'; window.removeEventListener('afterprint', hide); };
+      window.addEventListener('afterprint', hide);
+      // fallback ถ้า afterprint ไม่ fire
+      setTimeout(function(){ if(pa.style.display!=='none') pa.style.display='none'; }, 3000);
     });
   });
 }
