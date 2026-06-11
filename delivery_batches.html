@@ -401,7 +401,7 @@ window.onload = function(){
   if(!session) return;
   if(session.role && session.role!=='delivery'){ window.location.href='dashboard.html'; return; }
   document.getElementById('sidebarName').textContent = session.empName+' ('+session.empId+')';
-  document.getElementById('topbarSub').textContent   = session.site;
+  document.getElementById('sidebarSite').textContent = session.site;
   loadTab1();
   // highlight จาก query string
   var hl = new URLSearchParams(window.location.search).get('highlight');
@@ -1066,6 +1066,8 @@ async function confirmResolve(pendBatchId) {
 document.addEventListener('click',function(e){
   if(e.target.id==='resendOverlay') closeResendModal();
 });
+
+function logout(){ DocScanAuth.clear(); location.href='login.html'; }
 
 var toastTimer;
 function showToast(msg,type){var t=document.getElementById('toast');t.textContent=msg;t.className='toast '+(type||'info')+' show';clearTimeout(toastTimer);toastTimer=setTimeout(function(){t.classList.remove('show');},4000);}
