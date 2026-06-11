@@ -534,6 +534,8 @@ function getSiteFilterParam(s){
   if(f&&f.length)return "&site_filter="+encodeURIComponent(f.join("|"));
   return "&site="+encodeURIComponent(s.site||"");
 }
+function logout(){ DocScanAuth.clear(); location.href="login.html"; }
+
 var toastTimer;
 function showToast(msg,type){var t=document.getElementById('toast');t.textContent=msg;t.className='toast '+(type||'info')+' show';clearTimeout(toastTimer);toastTimer=setTimeout(function(){t.classList.remove('show');},3000);}
 </script>
