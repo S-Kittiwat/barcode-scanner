@@ -964,15 +964,15 @@ async function printHandover(batchId, destOverride) {
     '*{box-sizing:border-box;margin:0;padding:0;}'+
     'body{font-family:"IBM Plex Sans Thai","Sarabun",sans-serif;color:#000;background:#fff;font-size:11px;}'+
 
-    /* Header: title ซ้าย + meta กลาง + barcode ขวา — แถวเดียว */
-    '.hdr{display:grid;grid-template-columns:auto 1fr auto;gap:8px 16px;align-items:center;'+
-      'border-bottom:2px solid #000;padding-bottom:8px;margin-bottom:8px;}'+
-    '.ttl{font-size:14px;font-weight:700;line-height:1.2;}'+
+    /* Header: title ซ้าย + barcode ขวา */
+    '.hdr{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #000;padding-bottom:8px;margin-bottom:6px;}'+
+    '.ttl{font-size:15px;font-weight:700;line-height:1.2;}'+
     '.sub{font-size:9px;color:#555;margin-top:2px;}'+
-    '.meta-row{display:grid;grid-template-columns:repeat(6,1fr);gap:3px 8px;font-size:9px;}'+
+    '.bc-box{text-align:right;}'+
+    /* Meta: แถวใต้ header ก่อน table */
+    '.meta-row{display:grid;grid-template-columns:repeat(3,1fr);gap:4px 16px;font-size:9px;border:1px solid #ddd;border-radius:3px;padding:6px 10px;background:#fafafa;margin-bottom:8px;}'+
     '.ml{color:#666;font-weight:500;text-transform:uppercase;font-size:8px;letter-spacing:.03em;}'+
     '.mv{font-size:10px;font-weight:600;margin-top:1px;}'+
-    '.bc-box{text-align:right;}'+
 
     /* Table เล็กมาก รองรับ 200 rows */
     'table{width:100%;border-collapse:collapse;font-size:8.5px;margin-bottom:10px;}'+
@@ -987,18 +987,20 @@ async function printHandover(batchId, destOverride) {
     '.ft{font-size:8px;color:#888;text-align:center;margin-top:10px;border-top:1px solid #ccc;padding-top:4px;}'+
     '</style></head><body>'+
 
-    /* Header 3 คอลัมน์ */
+    /* Header: title + barcode */
     '<div class="hdr">'+
-      '<div><div class="ttl">ใบส่งมอบเอกสาร (Handover Sheet)</div><div class="sub">DocScan — Pallet Tracking System</div></div>'+
-      '<div class="meta-row">'+
-        '<div><div class="ml">Batch ID</div><div class="mv">'+batchId+'</div></div>'+
-        '<div><div class="ml">วันที่ส่ง</div><div class="mv">'+scanDate+'</div></div>'+
-        '<div><div class="ml">จำนวน</div><div class="mv">'+barcodes.length+' ฉบับ</div></div>'+
-        '<div><div class="ml">ส่งจาก</div><div class="mv">'+site+'</div></div>'+
-        '<div><div class="ml">คลังปลายทาง</div><div class="mv">'+dest+'</div></div>'+
-        '<div><div class="ml">ผู้ส่ง</div><div class="mv">'+empName+'</div></div>'+
-      '</div>'+
+      '<div><div class="ttl">ใบส่งมอบเอกสาร (Handover Sheet)</div>'+
+      '<div class="sub">DocScan — Pallet Tracking System</div></div>'+
       '<div class="bc-box">'+barcodeSVGStr+'</div>'+
+    '</div>'+
+    /* Meta ใต้ header */
+    '<div class="meta-row">'+
+      '<div><div class="ml">Batch ID</div><div class="mv">'+batchId+'</div></div>'+
+      '<div><div class="ml">วันที่ส่ง</div><div class="mv">'+scanDate+'</div></div>'+
+      '<div><div class="ml">จำนวน</div><div class="mv">'+barcodes.length+' ฉบับ</div></div>'+
+      '<div><div class="ml">ส่งจาก</div><div class="mv">'+site+'</div></div>'+
+      '<div><div class="ml">คลังปลายทาง</div><div class="mv">'+dest+'</div></div>'+
+      '<div><div class="ml">ผู้ส่ง</div><div class="mv">'+empName+'</div></div>'+
     '</div>'+
 
     /* Table */
