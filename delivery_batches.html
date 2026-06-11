@@ -957,21 +957,19 @@ async function printHandover(batchId, destOverride) {
     } catch(e) {}
   }
 
-  // แสดง printArea (inline style ไม่มีแล้ว — CSS จัดการ)
+  // ใช้ onbeforeprint/onafterprint — reliable ที่สุด
   var pa = document.getElementById('printArea');
-  pa.style.display = 'block';
 
-  // print
-  setTimeout(function(){
-    window.print();
-    // ซ่อนกลับ
-    var done = function(){
-      pa.style.display = 'none';
-      window.removeEventListener('afterprint', done);
-    };
-    window.addEventListener('afterprint', done);
-    setTimeout(function(){ pa.style.display = 'none'; }, 5000);
-  }, 200);
+  window.onbeforeprint = function() {
+    pa.style.display = 'block';
+  };
+  window.onafterprint = function() {
+    pa.style.display = 'none';
+    window.onbeforeprint = null;
+    window.onafterprint  = null;
+  };
+
+  window.print();
 }
 
 function fmtDT(iso){
