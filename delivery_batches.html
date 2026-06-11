@@ -9,24 +9,27 @@
 <style>
 /* ── Print Handover Sheet ── */
 @media print {
+  * { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
   body > *:not(#printArea){ display:none !important; }
   #printArea{ display:block !important; }
   .no-print{ display:none !important; }
+  @page { size: A4 portrait; margin: 10mm 12mm; }
 }
-#printArea{ display:none; font-family:'IBM Plex Sans Thai',sans-serif; color:#000; padding:24px; }
-.hs-header{ display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px; border-bottom:2px solid #000; padding-bottom:12px; }
-.hs-title{ font-size:20px; font-weight:700; }
-.hs-sub{ font-size:12px; color:#555; margin-top:4px; }
-.hs-meta{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:16px; font-size:13px; }
-.hs-meta-item{ display:flex; gap:6px; }
-.hs-meta-label{ font-weight:600; min-width:80px; }
-.hs-table{ width:100%; border-collapse:collapse; font-size:12px; margin-bottom:16px; }
-.hs-table th{ background:#f0f0f0; padding:6px 10px; text-align:left; border:1px solid #ccc; }
-.hs-table td{ padding:6px 10px; border:1px solid #ccc; }
-.hs-sign{ display:grid; grid-template-columns:1fr 1fr; gap:32px; margin-top:24px; }
-.hs-sign-box{ border-top:1px solid #000; padding-top:8px; font-size:12px; }
-.hs-sign-label{ font-weight:600; margin-bottom:24px; }
-.hs-footer{ font-size:10px; color:#777; text-align:center; margin-top:16px; border-top:1px solid #ccc; padding-top:8px; }
+#printArea{ display:none; font-family:'IBM Plex Sans Thai','Sarabun',sans-serif; color:#000; padding:0; width:100%; }
+.hs-header{ display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px; border-bottom:2px solid #000; padding-bottom:8px; }
+.hs-title{ font-size:17px; font-weight:700; }
+.hs-sub{ font-size:11px; color:#555; margin-top:3px; }
+.hs-meta{ display:grid; grid-template-columns:repeat(3,1fr); gap:5px 14px; margin-bottom:10px; font-size:12px; }
+.hs-meta-item{ display:flex; gap:5px; }
+.hs-meta-label{ font-weight:600; min-width:90px; }
+.hs-table{ width:100%; border-collapse:collapse; font-size:10.5px; margin-bottom:10px; }
+.hs-table th{ background:#e8e8e8; padding:4px 7px; text-align:left; border:1px solid #bbb; font-size:10px; }
+.hs-table td{ padding:3px 7px; border:1px solid #ccc; vertical-align:top; }
+.hs-table tbody tr:nth-child(even) td{ background:#f7f7f7; }
+.hs-sign{ display:grid; grid-template-columns:1fr 1fr; gap:24px; margin-top:16px; }
+.hs-sign-box{ border-top:1px solid #000; padding-top:6px; font-size:12px; }
+.hs-sign-label{ font-weight:600; margin-bottom:18px; }
+.hs-footer{ font-size:9px; color:#777; text-align:center; margin-top:12px; border-top:1px solid #ccc; padding-top:6px; }
 </style>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
@@ -803,23 +806,33 @@ async function confirmSend(){
   if(!dest||!_sendBatchId) return;
   var b=_allReceived.find(function(x){return x.batch_id===_sendBatchId;});
   var count=b?b.barcode_count:0;
-  if(!confirm('ยืนยันส่ง '+count+' barcode\nBatch: '+_sendBatchId+'\nไปคลัง: '+dest)) return;
-  var btn=document.getElementById('modalConfirmBtn');btn.disabled=true;btn.textContent='กำลังส่ง...';
+  var btn=document.getElementById('modalConfirmBtn');
+  btn.disabled=true; btn.textContent='กำลังส่ง...';
   try{
     var detail=_detailCache[_sendBatchId];
-    if(!detail){ var r=await fetch(API_URL+'?action=getBatchDetail&batch_id='+encodeURIComponent(_sendBatchId)); detail=await r.json(); _detailCache[_sendBatchId]=detail; }
+    if(!detail){
+      var r=await fetch(API_URL+'?action=getBatchDetail&batch_id='+encodeURIComponent(_sendBatchId));
+      detail=await r.json();
+      _detailCache[_sendBatchId]=detail;
+    }
     var items=(detail.barcodes||[]).map(function(item){
-      return{barcode:item.barcode,status:'with_warehouse',emp_id:session.empId,emp_name:session.empName,site:session.site,note:'ส่งให้คลังพาเลท',batch_id:_sendBatchId,dest_warehouse:dest};
+      return{barcode:item.barcode,status:'with_warehouse',emp_id:session.empId,
+             emp_name:session.empName,site:session.site,
+             note:'ส่งให้คลังพาเลท',batch_id:_sendBatchId,dest_warehouse:dest};
     });
-    var res=await fetch(API_URL,{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action:'updateStatus',items:items})});
+    var res=await fetch(API_URL,{method:'POST',redirect:'follow',
+      headers:{'Content-Type':'text/plain'},
+      body:JSON.stringify({action:'updateStatus',items:items})});
     var data=await res.json();
     if(data.status==='ok'){
-      showToast('📦 ส่ง '+count+' barcode ไป '+dest+' แล้ว','success');
-      closeModal(); _detailCache={}; _tab2Loaded=false;
-      loadTab1(); // refresh tab 1
+      closeModal();
+      _detailCache={}; _tab2Loaded=false;
+      loadTab1();
+      // พิมพ์ใบส่งมอบทันที
+      await printHandover(_sendBatchId, dest);
     } else { showToast(data.message||'Error','error'); }
   }catch(err){showToast('เกิดข้อผิดพลาด: '+err.message,'error');}
-  btn.disabled=false;btn.textContent='📦 ยืนยันส่ง';
+  btn.disabled=false; btn.textContent='📦 ยืนยันส่ง';
 }
 
 // ── Export CSV ────────────────────────────────────────────
@@ -879,7 +892,7 @@ async function exportCSV(){
 
 // ── Helpers ───────────────────────────────────────────────
 // ── Print Handover Sheet ─────────────────────────────────
-async function printHandover(batchId) {
+async function printHandover(batchId, destOverride) {
   if (!_detailCache[batchId]) {
     try {
       var r = await fetch(API_URL+'?action=getBatchDetail&batch_id='+encodeURIComponent(batchId));
@@ -890,38 +903,47 @@ async function printHandover(batchId) {
   }
   var detail = _detailCache[batchId];
   var b = (_allReceived.concat(_allSent)).find(function(x){ return x.batch_id===batchId; }) || {};
+  var dest = destOverride || b.dest_warehouse || detail.dest_warehouse || '—';
 
   document.getElementById('hsBatchId').textContent  = batchId;
   document.getElementById('hsDate').textContent     = fmtDT(b.scan_date||detail.scan_date||'');
   document.getElementById('hsSite').textContent     = b.site||detail.site||'—';
-  document.getElementById('hsDest').textContent     = b.dest_warehouse||detail.dest_warehouse||'—';
-  document.getElementById('hsEmp').textContent      = b.emp_name||detail.emp_name||'—';
+  document.getElementById('hsDest').textContent     = dest;
+  document.getElementById('hsEmp').textContent      = session.empName||b.emp_name||detail.emp_name||'—';
   document.getElementById('hsCount').textContent    = (detail.barcodes||[]).length;
   document.getElementById('hsFooterBatch').textContent = batchId;
   document.getElementById('hsFooterDate').textContent  = new Date().toLocaleString('th-TH');
 
-  document.getElementById('hsTableBody').innerHTML = (detail.barcodes||[]).map(function(item,i){
+  // รองรับสูงสุด 200 รายการ
+  var barcodes = (detail.barcodes||[]).slice(0, 200);
+  document.getElementById('hsTableBody').innerHTML = barcodes.map(function(item,i){
     return '<tr>'+
-      '<td>'+(i+1)+'</td>'+
-      '<td style="font-family:monospace;">'+esc(item.barcode)+'</td>'+
-      '<td>'+esc(item.ref_no||'—')+'</td>'+
-      '<td>'+esc(item.item_name||'—')+'</td>'+
-      '<td style="font-size:11px;">'+esc(item.transfer_from||'—')+' → '+esc(item.transfer_to||'—')+'</td>'+
-      '<td>'+esc(item.sent_qty||'—')+'</td></tr>';
+      '<td style="text-align:center;">'+(i+1)+'</td>'+
+      '<td style="font-family:monospace;font-size:11px;">'+esc(item.barcode)+'</td>'+
+      '<td style="font-size:11px;">'+esc(item.ref_no||'—')+'</td>'+
+      '<td style="font-size:11px;">'+esc(item.item_name||'—')+'</td>'+
+      '<td style="font-size:10px;">'+esc(item.transfer_from||'—')+' → '+esc(item.transfer_to||'—')+'</td>'+
+      '<td style="text-align:center;font-size:11px;">'+esc(item.sent_qty||'—')+'</td>'+
+    '</tr>';
   }).join('');
+
+  // แสดง printArea ก่อนเพื่อให้ JsBarcode คำนวณ width ได้ถูกต้อง
+  document.getElementById('printArea').style.display = 'block';
 
   // Barcode 1D (Code128)
   document.getElementById('hsBatchIdBarcode').textContent = batchId;
   if (typeof JsBarcode !== 'undefined') {
     JsBarcode('#hsBarcodesvg', batchId, {
-      format   : 'CODE128',
-      width    : 1.5,
-      height   : 40,
-      displayValue: false,
-      margin   : 0
+      format:'CODE128', width:2, height:50,
+      displayValue:true, fontSize:12, margin:4,
+      lineColor:'#000', background:'#fff'
     });
   }
-  setTimeout(function(){ window.print(); }, 300);
+  setTimeout(function(){
+    window.print();
+    // ซ่อนกลับหลังพิมพ์
+    setTimeout(function(){ document.getElementById('printArea').style.display = 'none'; }, 1000);
+  }, 400);
 }
 
 function fmtDT(iso){
