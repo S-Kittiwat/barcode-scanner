@@ -10,14 +10,30 @@
 /* ── Print Handover Sheet ── */
 @media print {
   @page { size: A4 portrait; margin: 10mm 12mm; }
-  * { -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important;
-      color: #000 !important; background: #fff !important;
-      border-color: #ccc !important; }
-  body { background: #fff !important; color: #000 !important; }
-  body > *:not(#printArea){ display:none !important; }
-  #printArea{ display:block !important; background:#fff !important; color:#000 !important; }
-  .no-print{ display:none !important; }
-  nav, header, .topbar, .tab-wrap, .content, .modal-overlay { display:none !important; }
+  html, body {
+    background: #fff !important;
+    color: #000 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  /* ซ่อนทุกอย่างยกเว้น printArea */
+  body > * { display:none !important; }
+  body > #printArea { display:block !important; }
+  /* reset CSS variables เป็น light */
+  #printArea, #printArea * {
+    --bg:#fff; --surface:#fff; --surface2:#f5f5f5; --border:#ccc;
+    --text:#000; --muted:#555; --accent:#000;
+    background: transparent !important;
+    color: #000 !important;
+    border-color: #ccc !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  /* ยกเว้น barcode ที่ต้องการสีดำจริงๆ */
+  #printArea svg rect, #printArea svg path { fill: #000 !important; }
+  /* table zebra */
+  #printArea .hs-table th { background: #e8e8e8 !important; }
+  #printArea .hs-table tbody tr:nth-child(even) td { background: #f5f5f5 !important; }
 }
 #printArea{ display:none; font-family:'IBM Plex Sans Thai','Sarabun',sans-serif; color:#000 !important; background:#fff !important; padding:0; width:100%; }
 .hs-header{ display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px; border-bottom:2px solid #000; padding-bottom:8px; }
@@ -933,23 +949,33 @@ async function printHandover(batchId, destOverride) {
     '</tr>';
   }).join('');
 
-  // แสดง printArea ก่อนเพื่อให้ JsBarcode คำนวณ width ได้ถูกต้อง
-  document.getElementById('printArea').style.display = 'block';
+  // แสดง printArea — ใช้ body class เพื่อ trigger @media print CSS
+  var pa = document.getElementById('printArea');
+  pa.style.display = 'block';
+  pa.style.background = '#fff';
+  pa.style.color = '#000';
 
   // Barcode 1D (Code128)
   document.getElementById('hsBatchIdBarcode').textContent = batchId;
   if (typeof JsBarcode !== 'undefined') {
-    JsBarcode('#hsBarcodesvg', batchId, {
-      format:'CODE128', width:2, height:50,
-      displayValue:true, fontSize:12, margin:4,
-      lineColor:'#000', background:'#fff'
-    });
+    try {
+      JsBarcode('#hsBarcodesvg', batchId, {
+        format:'CODE128', width:2, height:50,
+        displayValue:true, fontSize:12, margin:4,
+        lineColor:'#000', background:'#fff'
+      });
+    } catch(e) {}
   }
-  setTimeout(function(){
-    window.print();
-    // ซ่อนกลับหลังพิมพ์
-    setTimeout(function(){ document.getElementById('printArea').style.display = 'none'; }, 1000);
-  }, 400);
+
+  // รอให้ render เสร็จแล้วค่อย print
+  requestAnimationFrame(function(){
+    requestAnimationFrame(function(){
+      window.print();
+      setTimeout(function(){
+        pa.style.display = 'none';
+      }, 1500);
+    });
+  });
 }
 
 function fmtDT(iso){
