@@ -928,26 +928,31 @@ async function printHandover(batchId, destOverride) {
   var scanDate = fmtDT(b.scan_date||detail.scan_date||'');
   var now      = new Date().toLocaleString('th-TH');
 
-  // render barcode SVG
+  // render barcode SVG — เล็กลง scan ง่าย
   var tempSvg = document.createElementNS('http://www.w3.org/2000/svg','svg');
   document.body.appendChild(tempSvg);
   var barcodeSVGStr = '';
   if (typeof JsBarcode !== 'undefined') {
     try {
-      JsBarcode(tempSvg, batchId, {format:'CODE128',width:1.8,height:50,displayValue:true,fontSize:11,margin:2,lineColor:'#000',background:'#ffffff'});
+      JsBarcode(tempSvg, batchId, {
+        format:'CODE128', width:1.4, height:36,
+        displayValue:true, fontSize:9, margin:1,
+        lineColor:'#000', background:'#ffffff'
+      });
       barcodeSVGStr = tempSvg.outerHTML;
     } catch(e) { barcodeSVGStr = '<b>'+batchId+'</b>'; }
   }
   document.body.removeChild(tempSvg);
 
+  // rows ขนาดเล็ก รองรับ 200 รายการ
   var rows = barcodes.map(function(item,i){
-    return '<tr style="background:'+(i%2===0?'#fff':'#f7f7f7')+'">'+
-      '<td style="text-align:center;width:28px;">'+(i+1)+'</td>'+
-      '<td style="font-family:monospace;font-size:11px;">'+(item.barcode||'—')+'</td>'+
-      '<td style="font-size:11px;">'+(item.ref_no||'—')+'</td>'+
-      '<td style="font-size:11px;">'+(item.item_name||'—')+'</td>'+
-      '<td style="font-size:10px;">'+(item.transfer_from||'—')+' → '+(item.transfer_to||'—')+'</td>'+
-      '<td style="text-align:center;font-size:11px;">'+(item.sent_qty||'—')+'</td>'+
+    return '<tr style="background:'+(i%2===0?'#fff':'#f5f5f5')+'">'+
+      '<td style="text-align:center;">'+(i+1)+'</td>'+
+      '<td style="font-family:monospace;">'+(item.barcode||'—')+'</td>'+
+      '<td>'+(item.ref_no||'—')+'</td>'+
+      '<td>'+(item.item_name||'—')+'</td>'+
+      '<td>'+(item.transfer_from||'—')+' → '+(item.transfer_to||'—')+'</td>'+
+      '<td style="text-align:center;">'+(item.sent_qty||'—')+'</td>'+
     '</tr>';
   }).join('');
 
@@ -955,40 +960,58 @@ async function printHandover(batchId, destOverride) {
     '<title>ใบส่งมอบ — '+batchId+'</title>'+
     '<style>'+
     '@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;600&display=swap");'+
-    '@page{size:A4 portrait;margin:12mm 14mm;}'+
+    '@page{size:A4 portrait;margin:8mm 10mm;}'+
     '*{box-sizing:border-box;margin:0;padding:0;}'+
-    'body{font-family:"IBM Plex Sans Thai","Sarabun",sans-serif;color:#000;background:#fff;font-size:13px;}'+
-    '.hdr{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #000;padding-bottom:10px;margin-bottom:12px;}'+
-    '.ttl{font-size:18px;font-weight:700;}.sub{font-size:11px;color:#555;margin-top:3px;}'+
-    '.meta{display:grid;grid-template-columns:repeat(3,1fr);gap:6px 16px;margin-bottom:14px;font-size:12px;border:1px solid #ddd;border-radius:4px;padding:10px 12px;background:#fafafa;}'+
-    '.ml{font-size:10px;color:#666;font-weight:500;text-transform:uppercase;letter-spacing:.04em;}'+
-    '.mv{font-size:13px;font-weight:600;margin-top:2px;}'+
-    'table{width:100%;border-collapse:collapse;font-size:11px;margin-bottom:14px;}'+
-    'th{background:#e8e8e8;padding:5px 8px;text-align:left;border:1px solid #bbb;font-size:10px;font-weight:600;}'+
-    'td{padding:4px 8px;border:1px solid #ccc;vertical-align:top;}'+
-    '.sign{display:grid;grid-template-columns:1fr 1fr;gap:32px;margin-top:20px;}'+
-    '.sb{border-top:2px solid #000;padding-top:8px;}'+
-    '.st{font-weight:600;font-size:12px;margin-bottom:22px;}'+
-    '.sl{font-size:12px;margin-bottom:10px;}'+
-    '.ft{font-size:9px;color:#888;text-align:center;margin-top:14px;border-top:1px solid #ccc;padding-top:6px;}'+
+    'body{font-family:"IBM Plex Sans Thai","Sarabun",sans-serif;color:#000;background:#fff;font-size:11px;}'+
+
+    /* Header: title ซ้าย + meta กลาง + barcode ขวา — แถวเดียว */
+    '.hdr{display:grid;grid-template-columns:auto 1fr auto;gap:8px 16px;align-items:center;'+
+      'border-bottom:2px solid #000;padding-bottom:8px;margin-bottom:8px;}'+
+    '.ttl{font-size:14px;font-weight:700;line-height:1.2;}'+
+    '.sub{font-size:9px;color:#555;margin-top:2px;}'+
+    '.meta-row{display:grid;grid-template-columns:repeat(6,1fr);gap:3px 8px;font-size:9px;}'+
+    '.ml{color:#666;font-weight:500;text-transform:uppercase;font-size:8px;letter-spacing:.03em;}'+
+    '.mv{font-size:10px;font-weight:600;margin-top:1px;}'+
+    '.bc-box{text-align:right;}'+
+
+    /* Table เล็กมาก รองรับ 200 rows */
+    'table{width:100%;border-collapse:collapse;font-size:8.5px;margin-bottom:10px;}'+
+    'th{background:#e0e0e0;padding:3px 5px;text-align:left;border:1px solid #bbb;font-size:8px;font-weight:600;}'+
+    'td{padding:2px 5px;border:1px solid #d0d0d0;vertical-align:middle;line-height:1.3;}'+
+
+    /* Sign */
+    '.sign{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:12px;}'+
+    '.sb{border-top:1.5px solid #000;padding-top:6px;}'+
+    '.st{font-weight:600;font-size:10px;margin-bottom:16px;}'+
+    '.sl{font-size:10px;margin-bottom:8px;color:#333;}'+
+    '.ft{font-size:8px;color:#888;text-align:center;margin-top:10px;border-top:1px solid #ccc;padding-top:4px;}'+
     '</style></head><body>'+
+
+    /* Header 3 คอลัมน์ */
     '<div class="hdr">'+
       '<div><div class="ttl">ใบส่งมอบเอกสาร (Handover Sheet)</div><div class="sub">DocScan — Pallet Tracking System</div></div>'+
-      '<div style="text-align:center;">'+barcodeSVGStr+'</div>'+
+      '<div class="meta-row">'+
+        '<div><div class="ml">Batch ID</div><div class="mv">'+batchId+'</div></div>'+
+        '<div><div class="ml">วันที่ส่ง</div><div class="mv">'+scanDate+'</div></div>'+
+        '<div><div class="ml">จำนวน</div><div class="mv">'+barcodes.length+' ฉบับ</div></div>'+
+        '<div><div class="ml">ส่งจาก</div><div class="mv">'+site+'</div></div>'+
+        '<div><div class="ml">คลังปลายทาง</div><div class="mv">'+dest+'</div></div>'+
+        '<div><div class="ml">ผู้ส่ง</div><div class="mv">'+empName+'</div></div>'+
+      '</div>'+
+      '<div class="bc-box">'+barcodeSVGStr+'</div>'+
     '</div>'+
-    '<div class="meta">'+
-      '<div><div class="ml">Batch ID</div><div class="mv">'+batchId+'</div></div>'+
-      '<div><div class="ml">วันที่ส่ง</div><div class="mv">'+scanDate+'</div></div>'+
-      '<div><div class="ml">จำนวน</div><div class="mv">'+barcodes.length+' ฉบับ</div></div>'+
-      '<div><div class="ml">ส่งจาก</div><div class="mv">'+site+'</div></div>'+
-      '<div><div class="ml">คลังปลายทาง</div><div class="mv">'+dest+'</div></div>'+
-      '<div><div class="ml">ผู้ส่ง</div><div class="mv">'+empName+'</div></div>'+
-    '</div>'+
+
+    /* Table */
     '<table><thead><tr>'+
-      '<th style="width:28px;">#</th><th style="width:90px;">Barcode</th>'+
-      '<th style="width:90px;">Reference</th><th>ประเภทเอกสาร</th>'+
-      '<th>โอนจาก → โอนไป</th><th style="width:40px;text-align:center;">QTY</th>'+
+      '<th style="width:22px;">#</th>'+
+      '<th style="width:72px;">Barcode</th>'+
+      '<th style="width:70px;">Reference</th>'+
+      '<th style="width:100px;">ประเภทเอกสาร</th>'+
+      '<th>โอนจาก → โอนไป</th>'+
+      '<th style="width:32px;text-align:center;">QTY</th>'+
     '</tr></thead><tbody>'+rows+'</tbody></table>'+
+
+    /* Sign */
     '<div class="sign">'+
       '<div class="sb"><div class="st">ผู้ส่ง (ทีมจัดส่ง)</div>'+
         '<div class="sl">ชื่อ: ............................................</div>'+
@@ -1013,6 +1036,7 @@ async function printHandover(batchId, destOverride) {
     }, 500);
   });
 }
+
 
 
 function fmtDT(iso){
