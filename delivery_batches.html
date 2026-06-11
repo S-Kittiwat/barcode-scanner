@@ -9,13 +9,17 @@
 <style>
 /* ── Print Handover Sheet ── */
 @media print {
-  * { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
-  body > *:not(#printArea){ display:none !important; }
-  #printArea{ display:block !important; }
-  .no-print{ display:none !important; }
   @page { size: A4 portrait; margin: 10mm 12mm; }
+  * { -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important;
+      color: #000 !important; background: #fff !important;
+      border-color: #ccc !important; }
+  body { background: #fff !important; color: #000 !important; }
+  body > *:not(#printArea){ display:none !important; }
+  #printArea{ display:block !important; background:#fff !important; color:#000 !important; }
+  .no-print{ display:none !important; }
+  nav, header, .topbar, .tab-wrap, .content, .modal-overlay { display:none !important; }
 }
-#printArea{ display:none; font-family:'IBM Plex Sans Thai','Sarabun',sans-serif; color:#000; padding:0; width:100%; }
+#printArea{ display:none; font-family:'IBM Plex Sans Thai','Sarabun',sans-serif; color:#000 !important; background:#fff !important; padding:0; width:100%; }
 .hs-header{ display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px; border-bottom:2px solid #000; padding-bottom:8px; }
 .hs-title{ font-size:17px; font-weight:700; }
 .hs-sub{ font-size:11px; color:#555; margin-top:3px; }
@@ -301,7 +305,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 </div>
 
 <!-- Print Area (hidden ยกเว้นตอน print) -->
-<div id="printArea">
+<div id="printArea" style="display:none;background:#fff;color:#000;padding:0;font-family:'IBM Plex Sans Thai','Sarabun',sans-serif;">
   <div class="hs-header">
     <div>
       <div class="hs-title">ใบส่งมอบเอกสาร (Handover Sheet)</div>
@@ -825,11 +829,13 @@ async function confirmSend(){
       body:JSON.stringify({action:'updateStatus',items:items})});
     var data=await res.json();
     if(data.status==='ok'){
-      closeModal();
-      _detailCache={}; _tab2Loaded=false;
-      loadTab1();
-      // พิมพ์ใบส่งมอบทันที
+      // พิมพ์ใบส่งมอบก่อน clear cache
       await printHandover(_sendBatchId, dest);
+      showToast('📦 ส่งเอกสารไป ' + dest + ' แล้ว', 'success');
+      closeModal();
+      _tab2Loaded=false;
+      _detailCache={};
+      loadTab1();
     } else { showToast(data.message||'Error','error'); }
   }catch(err){showToast('เกิดข้อผิดพลาด: '+err.message,'error');}
   btn.disabled=false; btn.textContent='📦 ยืนยันส่ง';
