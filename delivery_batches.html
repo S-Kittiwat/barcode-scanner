@@ -10,30 +10,17 @@
 /* ── Print Handover Sheet ── */
 @media print {
   @page { size: A4 portrait; margin: 10mm 12mm; }
-  html, body {
-    background: #fff !important;
-    color: #000 !important;
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
+  body.printing > *                { display:none !important; }
+  body.printing > #printArea       { display:block !important; }
+  body.printing                    { background:#fff !important; }
+  body.printing #printArea         {
+    background:#fff !important; color:#000 !important;
+    -webkit-print-color-adjust:exact !important;
+    print-color-adjust:exact !important;
   }
-  /* ซ่อนทุกอย่างยกเว้น printArea */
-  body > * { display:none !important; }
-  body > #printArea { display:block !important; }
-  /* reset CSS variables เป็น light */
-  #printArea, #printArea * {
-    --bg:#fff; --surface:#fff; --surface2:#f5f5f5; --border:#ccc;
-    --text:#000; --muted:#555; --accent:#000;
-    background: transparent !important;
-    color: #000 !important;
-    border-color: #ccc !important;
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-  }
-  /* ยกเว้น barcode ที่ต้องการสีดำจริงๆ */
-  #printArea svg rect, #printArea svg path { fill: #000 !important; }
-  /* table zebra */
-  #printArea .hs-table th { background: #e8e8e8 !important; }
-  #printArea .hs-table tbody tr:nth-child(even) td { background: #f5f5f5 !important; }
+  body.printing #printArea *       { color:#000 !important; }
+  body.printing #printArea .hs-table th { background:#e8e8e8 !important; }
+  body.printing #printArea .hs-table tbody tr:nth-child(even) td { background:#f5f5f5 !important; }
 }
 #printArea{ display:none; font-family:'IBM Plex Sans Thai','Sarabun',sans-serif; color:#000 !important; background:#fff !important; padding:0; width:100%; }
 .hs-header{ display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px; border-bottom:2px solid #000; padding-bottom:8px; }
@@ -948,41 +935,32 @@ async function printHandover(batchId, destOverride) {
     '</tr>';
   }).join('');
 
-  // แสดง printArea
-  var pa = document.getElementById('printArea');
-  pa.style.display = 'block';
-  pa.style.background = '#fff';
-  pa.style.color = '#000';
-
-  // Barcode 1D (Code128) — render ก่อน print
+  // Barcode 1D — render ก่อน
   var svg = document.getElementById('hsBarcodesvg');
-  svg.innerHTML = ''; // clear เดิม
+  svg.innerHTML = '';
   if (typeof JsBarcode !== 'undefined') {
     try {
       JsBarcode(svg, batchId, {
-        format      : 'CODE128',
-        width       : 1.8,
-        height      : 55,
-        displayValue: true,
-        fontSize    : 11,
-        margin      : 2,
-        lineColor   : '#000',
-        background  : '#ffffff'
+        format:'CODE128', width:1.8, height:55,
+        displayValue:true, fontSize:11, margin:2,
+        lineColor:'#000', background:'#ffffff'
       });
-    } catch(e) { svg.innerHTML = '<text y="20" font-size="12">'+batchId+'</text>'; }
+    } catch(e) {}
   }
 
-  // รอ 2 frames ให้ browser repaint แล้วค่อย print
-  requestAnimationFrame(function(){
-    requestAnimationFrame(function(){
-      window.print();
-      // ซ่อนกลับหลัง print dialog ปิด
-      var hide = function(){ pa.style.display = 'none'; window.removeEventListener('afterprint', hide); };
-      window.addEventListener('afterprint', hide);
-      // fallback ถ้า afterprint ไม่ fire
-      setTimeout(function(){ if(pa.style.display!=='none') pa.style.display='none'; }, 3000);
-    });
-  });
+  // เพิ่ม class body.printing → trigger @media print CSS
+  document.body.classList.add('printing');
+
+  window.print();
+
+  // ลบ class หลัง print dialog ปิด
+  var done = function(){
+    document.body.classList.remove('printing');
+    window.removeEventListener('afterprint', done);
+  };
+  window.addEventListener('afterprint', done);
+  // fallback
+  setTimeout(function(){ document.body.classList.remove('printing'); }, 5000);
 }
 
 function fmtDT(iso){
