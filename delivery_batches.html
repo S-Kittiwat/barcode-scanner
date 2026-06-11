@@ -911,6 +911,7 @@ async function exportCSV(){
 // ── Print Handover Sheet ─────────────────────────────────
 async function printHandover(batchId, destOverride) {
   if (!_detailCache[batchId]) {
+    showToast('กำลังโหลดข้อมูล...','info');
     try {
       var r = await fetch(API_URL+'?action=getBatchDetail&batch_id='+encodeURIComponent(batchId));
       var d = await r.json();
@@ -918,59 +919,101 @@ async function printHandover(batchId, destOverride) {
       else { showToast('โหลดข้อมูลไม่สำเร็จ','error'); return; }
     } catch(err) { showToast('โหลดข้อมูลไม่สำเร็จ','error'); return; }
   }
-  var detail = _detailCache[batchId];
-  var b = (_allReceived.concat(_allSent)).find(function(x){ return x.batch_id===batchId; }) || {};
-  var dest = destOverride || b.dest_warehouse || detail.dest_warehouse || '—';
+  var detail   = _detailCache[batchId];
+  var b        = (_allReceived.concat(_allSent)).find(function(x){return x.batch_id===batchId;})||{};
+  var dest     = destOverride||b.dest_warehouse||detail.dest_warehouse||'—';
+  var barcodes = (detail.barcodes||[]).slice(0,200);
+  var empName  = session.empName||b.emp_name||detail.emp_name||'—';
+  var site     = b.site||detail.site||'—';
+  var scanDate = fmtDT(b.scan_date||detail.scan_date||'');
+  var now      = new Date().toLocaleString('th-TH');
 
-  document.getElementById('hsBatchId').textContent  = batchId;
-  document.getElementById('hsDate').textContent     = fmtDT(b.scan_date||detail.scan_date||'');
-  document.getElementById('hsSite').textContent     = b.site||detail.site||'—';
-  document.getElementById('hsDest').textContent     = dest;
-  document.getElementById('hsEmp').textContent      = session.empName||b.emp_name||detail.emp_name||'—';
-  document.getElementById('hsCount').textContent    = (detail.barcodes||[]).length;
-  document.getElementById('hsFooterBatch').textContent = batchId;
-  document.getElementById('hsFooterDate').textContent  = new Date().toLocaleString('th-TH');
+  // render barcode SVG
+  var tempSvg = document.createElementNS('http://www.w3.org/2000/svg','svg');
+  document.body.appendChild(tempSvg);
+  var barcodeSVGStr = '';
+  if (typeof JsBarcode !== 'undefined') {
+    try {
+      JsBarcode(tempSvg, batchId, {format:'CODE128',width:1.8,height:50,displayValue:true,fontSize:11,margin:2,lineColor:'#000',background:'#ffffff'});
+      barcodeSVGStr = tempSvg.outerHTML;
+    } catch(e) { barcodeSVGStr = '<b>'+batchId+'</b>'; }
+  }
+  document.body.removeChild(tempSvg);
 
-  // รองรับสูงสุด 200 รายการ
-  var barcodes = (detail.barcodes||[]).slice(0, 200);
-  document.getElementById('hsTableBody').innerHTML = barcodes.map(function(item,i){
-    return '<tr>'+
-      '<td style="text-align:center;">'+(i+1)+'</td>'+
-      '<td style="font-family:monospace;font-size:11px;">'+esc(item.barcode)+'</td>'+
-      '<td style="font-size:11px;">'+esc(item.ref_no||'—')+'</td>'+
-      '<td style="font-size:11px;">'+esc(item.item_name||'—')+'</td>'+
-      '<td style="font-size:10px;">'+esc(item.transfer_from||'—')+' → '+esc(item.transfer_to||'—')+'</td>'+
-      '<td style="text-align:center;font-size:11px;">'+esc(item.sent_qty||'—')+'</td>'+
+  var rows = barcodes.map(function(item,i){
+    return '<tr style="background:'+(i%2===0?'#fff':'#f7f7f7')+'">'+
+      '<td style="text-align:center;width:28px;">'+(i+1)+'</td>'+
+      '<td style="font-family:monospace;font-size:11px;">'+(item.barcode||'—')+'</td>'+
+      '<td style="font-size:11px;">'+(item.ref_no||'—')+'</td>'+
+      '<td style="font-size:11px;">'+(item.item_name||'—')+'</td>'+
+      '<td style="font-size:10px;">'+(item.transfer_from||'—')+' → '+(item.transfer_to||'—')+'</td>'+
+      '<td style="text-align:center;font-size:11px;">'+(item.sent_qty||'—')+'</td>'+
     '</tr>';
   }).join('');
 
-  // Barcode 1D — render ลง SVG
-  var svg = document.getElementById('hsBarcodesvg');
-  svg.innerHTML = '';
-  if (typeof JsBarcode !== 'undefined') {
-    try {
-      JsBarcode(svg, batchId, {
-        format:'CODE128', width:1.8, height:55,
-        displayValue:true, fontSize:11, margin:2,
-        lineColor:'#000', background:'#ffffff'
-      });
-    } catch(e) {}
-  }
+  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8">'+
+    '<title>ใบส่งมอบ — '+batchId+'</title>'+
+    '<style>'+
+    '@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;600&display=swap");'+
+    '@page{size:A4 portrait;margin:12mm 14mm;}'+
+    '*{box-sizing:border-box;margin:0;padding:0;}'+
+    'body{font-family:"IBM Plex Sans Thai","Sarabun",sans-serif;color:#000;background:#fff;font-size:13px;}'+
+    '.hdr{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #000;padding-bottom:10px;margin-bottom:12px;}'+
+    '.ttl{font-size:18px;font-weight:700;}.sub{font-size:11px;color:#555;margin-top:3px;}'+
+    '.meta{display:grid;grid-template-columns:repeat(3,1fr);gap:6px 16px;margin-bottom:14px;font-size:12px;border:1px solid #ddd;border-radius:4px;padding:10px 12px;background:#fafafa;}'+
+    '.ml{font-size:10px;color:#666;font-weight:500;text-transform:uppercase;letter-spacing:.04em;}'+
+    '.mv{font-size:13px;font-weight:600;margin-top:2px;}'+
+    'table{width:100%;border-collapse:collapse;font-size:11px;margin-bottom:14px;}'+
+    'th{background:#e8e8e8;padding:5px 8px;text-align:left;border:1px solid #bbb;font-size:10px;font-weight:600;}'+
+    'td{padding:4px 8px;border:1px solid #ccc;vertical-align:top;}'+
+    '.sign{display:grid;grid-template-columns:1fr 1fr;gap:32px;margin-top:20px;}'+
+    '.sb{border-top:2px solid #000;padding-top:8px;}'+
+    '.st{font-weight:600;font-size:12px;margin-bottom:22px;}'+
+    '.sl{font-size:12px;margin-bottom:10px;}'+
+    '.ft{font-size:9px;color:#888;text-align:center;margin-top:14px;border-top:1px solid #ccc;padding-top:6px;}'+
+    '</style></head><body>'+
+    '<div class="hdr">'+
+      '<div><div class="ttl">ใบส่งมอบเอกสาร (Handover Sheet)</div><div class="sub">DocScan — Pallet Tracking System</div></div>'+
+      '<div style="text-align:center;">'+barcodeSVGStr+'</div>'+
+    '</div>'+
+    '<div class="meta">'+
+      '<div><div class="ml">Batch ID</div><div class="mv">'+batchId+'</div></div>'+
+      '<div><div class="ml">วันที่ส่ง</div><div class="mv">'+scanDate+'</div></div>'+
+      '<div><div class="ml">จำนวน</div><div class="mv">'+barcodes.length+' ฉบับ</div></div>'+
+      '<div><div class="ml">ส่งจาก</div><div class="mv">'+site+'</div></div>'+
+      '<div><div class="ml">คลังปลายทาง</div><div class="mv">'+dest+'</div></div>'+
+      '<div><div class="ml">ผู้ส่ง</div><div class="mv">'+empName+'</div></div>'+
+    '</div>'+
+    '<table><thead><tr>'+
+      '<th style="width:28px;">#</th><th style="width:90px;">Barcode</th>'+
+      '<th style="width:90px;">Reference</th><th>ประเภทเอกสาร</th>'+
+      '<th>โอนจาก → โอนไป</th><th style="width:40px;text-align:center;">QTY</th>'+
+    '</tr></thead><tbody>'+rows+'</tbody></table>'+
+    '<div class="sign">'+
+      '<div class="sb"><div class="st">ผู้ส่ง (ทีมจัดส่ง)</div>'+
+        '<div class="sl">ชื่อ: ............................................</div>'+
+        '<div class="sl">วันที่: ..........................................</div></div>'+
+      '<div class="sb"><div class="st">ผู้รับ (ทีมคลังพาเลท)</div>'+
+        '<div class="sl">ชื่อ: ............................................</div>'+
+        '<div class="sl">วันที่: ..........................................</div></div>'+
+    '</div>'+
+    '<div class="ft">พิมพ์จากระบบ DocScan — Batch: '+batchId+' — '+now+'</div>'+
+    '</body></html>';
 
-  // ใช้ onbeforeprint/onafterprint — reliable ที่สุด
-  var pa = document.getElementById('printArea');
-
-  window.onbeforeprint = function() {
-    pa.style.display = 'block';
-  };
-  window.onafterprint = function() {
-    pa.style.display = 'none';
-    window.onbeforeprint = null;
-    window.onafterprint  = null;
-  };
-
-  window.print();
+  var pw = window.open('','_blank','width=820,height=1160');
+  if (!pw) { showToast('กรุณาอนุญาต Popup แล้วลองใหม่','error'); return; }
+  pw.document.open();
+  pw.document.write(html);
+  pw.document.close();
+  pw.addEventListener('load', function(){
+    setTimeout(function(){
+      pw.focus();
+      pw.print();
+      pw.addEventListener('afterprint', function(){ pw.close(); });
+    }, 500);
+  });
 }
+
 
 function fmtDT(iso){
   if(!iso) return '—';
