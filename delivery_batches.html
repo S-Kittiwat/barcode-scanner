@@ -552,40 +552,6 @@ function clearFilter4(){
   document.getElementById('f4Result').textContent='';
   renderTable4();
 }
-    .then(function(r){return r.json();})
-    .then(function(data){
-      if(data.status!=='ok') throw new Error(data.message||'Error');
-      _allDisputed = (data.batches||[]).filter(function(b){
-        return !session.site || b.site===session.site;
-      });
-      _filteredD = _allDisputed.slice();
-      document.getElementById('tab4Count').textContent = _allDisputed.length;
-      renderTable4();
-    })
-    .catch(function(err){
-      document.getElementById('table3Wrap').innerHTML='<div class="empty" style="color:var(--danger);">โหลดไม่สำเร็จ: '+err.message+'</div>';
-    });
-}
-
-function applyFilter4(){
-  var fBatch = document.getElementById('f4BatchId').value.trim().toLowerCase();
-  var fDate  = document.getElementById('f4Date').value;
-  _filteredD = _allDisputed.filter(function(b){
-    if(fBatch && b.batch_id.toLowerCase().indexOf(fBatch)===-1) return false;
-    if(fDate  && toDateStr(b.scan_date)!==fDate) return false;
-    return true;
-  });
-  document.getElementById('f4Result').textContent = fBatch||fDate ? 'พบ '+_filteredD.length+' batch' : '';
-  renderTable4();
-}
-
-function clearFilter4(){
-  document.getElementById('f4BatchId').value='';
-  document.getElementById('f4Date').value='';
-  _filteredD=_allDisputed.slice();
-  document.getElementById('f4Result').textContent='';
-  renderTable4();
-}
 
 function renderTable4(){
   var wrap = document.getElementById('table4Wrap');
