@@ -73,9 +73,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
     <div class="field">
       <label class="label">ทีม / Role</label>
       <select class="select" id="roleSelect" onchange="check()">
-        <option value="">— กรุณาเลือกทีม —</option>
         <option value="warehouse">🏭 ทีมคลังพาเลท</option>
-        <option value="delivery">🚚 ทีมจัดส่ง</option>
       </select>
     </div>
 
@@ -109,7 +107,7 @@ window.onload = function() {
   try {
     var s = JSON.parse(localStorage.getItem('docScanSession'));
     if (s && s.empId && s.site) {
-      window.location.replace(s.role==='delivery' ? 'delivery.html' : 'dashboard.html');
+      window.location.replace('batch.html');
       return;
     }
   } catch(e) {}
@@ -234,7 +232,7 @@ function login() {
     role       : role
   }));
 
-  window.location.href = role === 'delivery' ? 'delivery.html' : 'dashboard.html';
+  window.location.href = 'batch.html';
 }
 </script>
 </body>
