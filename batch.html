@@ -248,7 +248,7 @@ main{width:100%;max-width:100%;padding:20px 24px 100px;}
   </a>
   <div class="nav-pages">
   <a class="nav-link" href="dashboard.html">📊 Dashboard</a>
-  <a class="nav-link" href="incoming.html">📥 รับเอกสาร</a>
+  
   <a class="nav-link active" href="batch.html">📦 Batch Scan</a>
   </div>
   <div class="nav-user">
@@ -1043,6 +1043,8 @@ async function submitBatch(){
 async function uploadPhoto(base64,barcode,refNo){
   try{var res=await fetch(API_URL,{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action:'uploadPhoto',barcode:barcode,image:base64,ref_no:refNo||barcode})});var data=await res.json();return data.url||'';}catch(e){return '';}
 }
+
+function logout(){ DocScanAuth.clear(); location.href="login.html"; }
 
 var toastTimer;
 function showToast(msg,type){var t=document.getElementById('toast');t.textContent=msg;t.className='toast '+(type||'info')+' show';clearTimeout(toastTimer);toastTimer=setTimeout(function(){t.classList.remove('show');},3000);}
