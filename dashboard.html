@@ -178,9 +178,10 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 
     <!-- Top Filter: Month only -->
     <div class="top-filter">
-      <span class="top-filter-label">กรองข้อมูล:</span>
-      <input class="f-select" type="month" id="filterMonth" onchange="onMonthChange()" title="Created Date (เดือน/ปี)" style="width:148px;">
-      <button class="refresh-btn" onclick="loadData()">↻ รีเฟรช</button>
+      <span class="top-filter-label">ดูข้อมูลเดือน:</span>
+      <input class="f-select" type="month" id="filterMonth" onchange="onMonthChange()" title="เดือนที่สร้างเอกสาร" style="width:148px;">
+      <span style="font-size:11px;color:var(--muted);">→ อัปเดต Cards และ Pipeline</span>
+      <button class="refresh-btn" onclick="loadData()" style="margin-left:auto;">↻ รีเฟรช</button>
     </div>
 
     <!-- Summary Cards: 3 cards -->
@@ -312,25 +313,54 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
     </div>
 
     <!-- Filter Bar (table filters) -->
-    <div class="filter-bar">
-      <input class="f-select" type="date" id="filterDate" onchange="applyFilters()" title="วันที่รับ" style="width:140px;">
-      <select class="f-select" id="filterStatus" onchange="applyFilters()">
-        <option value="all">ทุกสถานะ</option>
-        <option value="done">รับแล้ว</option>
-        <option value="pending">ยังไม่รับ</option>
-      </select>
-      <select class="f-select" id="filterTier" onchange="applyFilters()">
-        <option value="all">ทุก Tier</option>
-        <option value="t1">🟢 On Track (≤15 วัน)</option>
-        <option value="t2">🟡 Over SLA (15-30 วัน)</option>
-        <option value="t3">🟠 Business Impact (30-60 วัน)</option>
-        <option value="t4">🔴 Critical (&gt;60 วัน)</option>
-      </select>
-      <select class="f-select" id="filterItemName" onchange="applyFilters()" style="max-width:160px;">
-        <option value="">— ทุกประเภท —</option>
-      </select>
-      <input class="f-input" type="text" id="filterRef" placeholder="Reference..." oninput="applyFilters()">
-      <button class="export-btn" onclick="exportCSV()">⬇ Export CSV</button>
+    <div class="filter-bar" style="flex-direction:column;align-items:stretch;gap:10px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <span style="font-size:12px;font-weight:500;color:var(--text);">กรองรายการ</span>
+        <button class="f-clear" onclick="clearTableFilters()">✕ ล้างทั้งหมด</button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;">
+        <!-- 1. สถานะ -->
+        <div>
+          <div style="font-size:10px;color:var(--muted);font-weight:500;margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em;">สถานะ</div>
+          <select class="f-select" id="filterStatus" onchange="applyFilters()" style="width:100%;">
+            <option value="all">ทั้งหมด</option>
+            <option value="done">รับแล้ว</option>
+            <option value="pending">ยังไม่รับ</option>
+          </select>
+        </div>
+        <!-- 2. SLA Tier -->
+        <div>
+          <div style="font-size:10px;color:var(--muted);font-weight:500;margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em;">SLA Tier</div>
+          <select class="f-select" id="filterTier" onchange="applyFilters()" style="width:100%;">
+            <option value="all">ทั้งหมด</option>
+            <option value="t1">T1 ≤15 วัน</option>
+            <option value="t2">T2 15-30 วัน</option>
+            <option value="t3">T3 30-60 วัน</option>
+            <option value="t4">T4 &gt;60 วัน</option>
+          </select>
+        </div>
+        <!-- 3. ประเภทพาเลท -->
+        <div>
+          <div style="font-size:10px;color:var(--muted);font-weight:500;margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em;">ประเภทพาเลท</div>
+          <select class="f-select" id="filterItemName" onchange="applyFilters()" style="width:100%;">
+            <option value="">ทั้งหมด</option>
+          </select>
+        </div>
+        <!-- 4. วันที่รับ (คลัง) -->
+        <div>
+          <div style="font-size:10px;color:var(--muted);font-weight:500;margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em;">วันที่รับ (คลัง)</div>
+          <input class="f-select" type="date" id="filterDate" onchange="applyFilters()" style="width:100%;">
+        </div>
+        <!-- 5. Reference / Barcode -->
+        <div>
+          <div style="font-size:10px;color:var(--muted);font-weight:500;margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em;">Reference / Barcode</div>
+          <input class="f-input" type="text" id="filterRef" placeholder="พิมพ์เพื่อค้นหา..." oninput="applyFilters()" style="width:100%;">
+        </div>
+      </div>
+      <!-- Export -->
+      <div style="display:flex;justify-content:flex-end;">
+        <button class="export-btn" onclick="exportCSV()">⬇ Export CSV</button>
+      </div>
     </div>
 
     <!-- Done Table -->
@@ -720,6 +750,14 @@ function updatePipelineFromFiltered(filtered) {
 }
 
 // ── applyFilters() — orchestrate ─────────────────────────
+function clearTableFilters(){
+  document.getElementById('filterStatus').value  = 'all';
+  document.getElementById('filterTier').value    = 'all';
+  document.getElementById('filterItemName').value= '';
+  document.getElementById('filterDate').value    = '';
+  document.getElementById('filterRef').value     = '';
+  applyFilters();
+}
 function applyFilters() {
   _pageDone = 1; _pagePend = 1; // รีเซ็ต pagination เมื่อ filter เปลี่ยน
   var filtered = getFilteredData();
