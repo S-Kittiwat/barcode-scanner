@@ -220,6 +220,27 @@ main{width:100%;max-width:100%;padding:20px 24px 100px;}
 .limit-banner.show{display:flex;}
 .limit-banner.danger{background:rgba(248,113,113,0.08);border-color:rgba(248,113,113,0.3);color:var(--danger);}
 /* ── PDF Split Progress ── */
+/* ── Preview Modal ── */
+.preview-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:600;display:none;align-items:center;justify-content:center;padding:20px;}
+.preview-overlay.open{display:flex;}
+.preview-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);max-width:90vw;max-height:90vh;overflow:hidden;display:flex;flex-direction:column;}
+.preview-head{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-shrink:0;}
+.preview-title{font-size:13px;font-weight:500;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.preview-close{background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;flex-shrink:0;line-height:1;}
+.preview-close:hover{color:var(--danger);}
+.preview-body{overflow:auto;display:flex;align-items:center;justify-content:center;padding:12px;flex:1;}
+.preview-body img{max-width:80vw;max-height:75vh;border-radius:var(--rs);display:block;}
+.preview-body canvas{max-width:80vw;max-height:75vh;border-radius:var(--rs);display:block;}
+.preview-nav{display:flex;align-items:center;gap:8px;padding:10px 16px;border-top:1px solid var(--border);justify-content:center;flex-shrink:0;}
+.preview-nav-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:var(--rs);padding:6px 14px;font-family:var(--font);font-size:12px;cursor:pointer;}
+.preview-nav-btn:hover{border-color:var(--accent);color:var(--accent);}
+.preview-nav-btn:disabled{opacity:.35;cursor:not-allowed;}
+.preview-nav-info{font-size:12px;color:var(--muted);font-family:var(--mono);min-width:60px;text-align:center;}
+/* thumb คลิกได้ */
+.file-thumb{cursor:pointer;transition:opacity .15s;}
+.file-thumb:hover{opacity:.75;}
+.pdf-thumb{cursor:pointer;transition:opacity .15s;}
+.pdf-thumb:hover{opacity:.75;}
 .split-overlay{position:fixed;inset:0;background:rgba(15,23,42,0.85);z-index:400;display:none;align-items:center;justify-content:center;}
 .split-overlay.show{display:flex;}
 .split-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:32px 40px;text-align:center;min-width:320px;}
@@ -773,8 +794,10 @@ function renderTable() {
   var tbody=document.getElementById('batchBody');
   tbody.innerHTML=rows.map(function(row,i){
     var thumbHtml = row.photoData
-      ? '<img class="file-thumb" src="'+row.photoData+'">'
-      : '<div class="pdf-thumb">🖼</div>';
+      ? '<img class="file-thumb" src="'+row.photoData+'" onclick="openPreview('+row.id+')" title="คลิกดูรูป">'
+      : (row.pdfPageData
+          ? '<div class="pdf-thumb" onclick="openPreview('+row.id+')" title="คลิกดู PDF">📄</div>'
+          : '<div class="pdf-thumb">🖼</div>');
     var fileLabel = row.pageNum
       ? esc(row.sourceFile).replace(/\.pdf$/i,'')+'<br><span style="color:var(--accent);font-size:10px;">หน้า '+row.pageNum+'/'+row.totalPages+'</span>'
       : esc(row.file.name);    var statusHtml={
@@ -1044,12 +1067,115 @@ async function uploadPhoto(base64,barcode,refNo){
   try{var res=await fetch(API_URL,{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action:'uploadPhoto',barcode:barcode,image:base64,ref_no:refNo||barcode})});var data=await res.json();return data.url||'';}catch(e){return '';}
 }
 
+// ── Preview Modal ─────────────────────────────────────────
+var _previewRowId = null;
+
+async function openPreview(rowId) {
+  var row = rows.find(function(r){ return r.id === rowId; });
+  if (!row) return;
+  _previewRowId = rowId;
+
+  var overlay = document.getElementById('previewOverlay');
+  var body    = document.getElementById('previewBody');
+  var title   = document.getElementById('previewTitle');
+  var nav     = document.getElementById('previewNav');
+
+  // ตั้งชื่อ
+  if (row.pageNum) {
+    title.textContent = row.sourceFile + ' — หน้า ' + row.pageNum + '/' + row.totalPages;
+  } else {
+    title.textContent = row.file ? row.file.name : 'Preview';
+  }
+
+  body.innerHTML = '<div style="color:var(--muted);font-size:13px;">กำลังโหลด...</div>';
+  overlay.classList.add('open');
+
+  if (row.photoData) {
+    // รูปภาพ
+    body.innerHTML = '<img src="'+row.photoData+'" style="max-width:80vw;max-height:75vh;border-radius:var(--rs);display:block;">';
+    nav.style.display = 'none';
+
+  } else if (row.pdfPageData) {
+    // PDF page data (Uint8Array)
+    try {
+      var pdfData = row.pdfPageData;
+      var loadingTask = pdfjsLib.getDocument({ data: pdfData });
+      var pdf = await loadingTask.promise;
+      var page = await pdf.getPage(1);
+      var viewport = page.getViewport({ scale: 1.5 });
+      var canvas = document.createElement('canvas');
+      canvas.width  = viewport.width;
+      canvas.height = viewport.height;
+      canvas.style.maxWidth  = '80vw';
+      canvas.style.maxHeight = '75vh';
+      canvas.style.borderRadius = 'var(--rs)';
+      await page.render({ canvasContext: canvas.getContext('2d'), viewport: viewport }).promise;
+      body.innerHTML = '';
+      body.appendChild(canvas);
+    } catch(e) {
+      body.innerHTML = '<div style="color:var(--danger);">โหลด PDF ไม่สำเร็จ</div>';
+    }
+    nav.style.display = 'none';
+
+  } else {
+    body.innerHTML = '<div style="color:var(--muted);">ไม่มีไฟล์ preview</div>';
+    nav.style.display = 'none';
+  }
+
+  // ปุ่ม nav ถ้ามีหลายแถว
+  var idx = rows.findIndex(function(r){ return r.id === rowId; });
+  if (rows.length > 1) {
+    nav.style.display = 'flex';
+    document.getElementById('previewNavInfo').textContent = (idx+1) + ' / ' + rows.length;
+    document.getElementById('prevBtn').disabled = idx === 0;
+    document.getElementById('nextBtn').disabled = idx === rows.length - 1;
+  } else {
+    nav.style.display = 'none';
+  }
+}
+
+function closePreview(e) {
+  if (e && e.target !== document.getElementById('previewOverlay')) return;
+  document.getElementById('previewOverlay').classList.remove('open');
+  _previewRowId = null;
+}
+
+function navigatePreview(dir) {
+  if (_previewRowId === null) return;
+  var idx = rows.findIndex(function(r){ return r.id === _previewRowId; });
+  var next = rows[idx + dir];
+  if (next) openPreview(next.id);
+}
+
+// ปิดด้วย Escape
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') document.getElementById('previewOverlay').classList.remove('open');
+});
+
 function logout(){ DocScanAuth.clear(); location.href="login.html"; }
 
 var toastTimer;
 function showToast(msg,type){var t=document.getElementById('toast');t.textContent=msg;t.className='toast '+(type||'info')+' show';clearTimeout(toastTimer);toastTimer=setTimeout(function(){t.classList.remove('show');},3000);}
 </script>
 </div><!-- /page-wrap -->
+
+<!-- Preview Modal -->
+<div class="preview-overlay" id="previewOverlay" onclick="closePreview(event)">
+  <div class="preview-box" onclick="event.stopPropagation()">
+    <div class="preview-head">
+      <span class="preview-title" id="previewTitle">—</span>
+      <button class="preview-close" onclick="closePreview()">✕</button>
+    </div>
+    <div class="preview-body" id="previewBody">
+      <canvas id="previewCanvas"></canvas>
+    </div>
+    <div class="preview-nav" id="previewNav" style="display:none;">
+      <button class="preview-nav-btn" id="prevBtn" onclick="navigatePreview(-1)">‹ ก่อนหน้า</button>
+      <span class="preview-nav-info" id="previewNavInfo">—</span>
+      <button class="preview-nav-btn" id="nextBtn" onclick="navigatePreview(1)">ถัดไป ›</button>
+    </div>
+  </div>
+</div>
 
 <!-- PDF Split Progress Overlay -->
 <div class="split-overlay" id="splitOverlay">
