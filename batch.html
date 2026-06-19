@@ -231,7 +231,7 @@ main{width:100%;max-width:100%;padding:20px 24px 100px;}
 .preview-body{position:relative;flex:1;min-height:0;overflow:hidden;background:#000;display:flex;align-items:center;justify-content:center;}
 .preview-img-wrap{display:flex;align-items:center;justify-content:center;width:100%;height:100%;transition:transform .3s ease;}
 .preview-img-wrap img{max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;display:block;}
-.preview-img-wrap canvas{display:block;max-width:100%;max-height:100%;}
+.preview-img-wrap canvas{display:block;}
 .preview-nav{display:flex;align-items:center;gap:8px;padding:10px 16px;border-top:1px solid var(--border);justify-content:center;flex-shrink:0;flex-wrap:wrap;}
 .preview-nav-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:var(--rs);padding:6px 14px;font-family:var(--font);font-size:12px;cursor:pointer;}
 .preview-nav-btn:hover{border-color:var(--accent);color:var(--accent);}
@@ -598,9 +598,10 @@ async function processPDF(file, skippedFiles) {
         skippedFiles.push(file.name); return;
       }
       var row = _makeRow(file, 'pdf');
-      // render thumbnail หน้า 1
-      row.photoData = await _renderPDFPage(pdfJs, 1, 200);
-      row.pdfPageData = await _extractPDFPage(arrayBuf, 1); // เก็บ PDF 1 หน้า
+      row.photoData    = await _renderPDFPage(pdfJs, 1, 200);
+      row.pdfPageData  = await _extractPDFPage(arrayBuf, 1);
+      row.originalPdf  = arrayBuf.slice(0); // ← เก็บ original ไว้ preview
+      row.originalPage = 1;
       rows.push(row);
       return;
     }
@@ -614,27 +615,28 @@ async function processPDF(file, skippedFiles) {
       showToast('PDF '+numPages+' หน้า รับได้อีก '+remaining+' หน้า (ตัดเหลือ '+pagesToProcess+' หน้า)', 'error');
     }
 
+    // เก็บ arrayBuffer ร่วมกันทุกหน้าของไฟล์นี้ (ไม่ copy ซ้ำ)
+    var sharedBuf = arrayBuf.slice(0);
+
     for (var p = 1; p <= pagesToProcess; p++) {
       var pct = Math.round((p / pagesToProcess) * 100);
       barFill.style.width = pct + '%';
       detail.textContent = p + ' / ' + pagesToProcess + ' หน้า';
 
       var pageName = file.name.replace(/\.pdf$/i, '') + '_p' + String(p).padStart(3,'0') + '.pdf';
-      // ตรวจซ้ำ
       var existNames = rows.map(function(r){ return r.file.name.toLowerCase(); });
       if (existNames.indexOf(pageName.toLowerCase()) !== -1) { skippedFiles.push(pageName); continue; }
 
-      // สร้าง virtual file object สำหรับแถวนี้
       var virtualFile = { name: pageName, type: 'application/pdf', size: 0, _virtual: true };
       var row = _makeRow(virtualFile, 'pdf');
 
-      // render thumbnail
-      row.photoData = await _renderPDFPage(pdfJs, p, 200);
-      // extract หน้าเดี่ยวเป็น PDF bytes
-      row.pdfPageData = await _extractPDFPage(arrayBuf, p);
-      row.pageNum = p;
-      row.totalPages = numPages;
-      row.sourceFile = file.name;
+      row.photoData    = await _renderPDFPage(pdfJs, p, 200);
+      row.pdfPageData  = await _extractPDFPage(arrayBuf, p);
+      row.originalPdf  = sharedBuf; // ← ชี้ไป original เดียวกัน
+      row.originalPage = p;         // ← หน้าที่ต้องการ
+      row.pageNum      = p;
+      row.totalPages   = numPages;
+      row.sourceFile   = file.name;
 
       rows.push(row);
     }
@@ -1098,26 +1100,26 @@ async function openPreview(rowId) {
   if (row.photoData) {
     wrap.innerHTML = '<img src="'+row.photoData+'" draggable="false">';
 
-  } else if (row.pdfPageData) {
+  } else if (row.originalPdf) {
+    // render จาก original PDF โดยตรง — คมชัดกว่า pdfPageData ที่ re-compress แล้ว
     try {
-      var loadingTask = pdfjsLib.getDocument({ data: row.pdfPageData });
+      var loadingTask = pdfjsLib.getDocument({ data: row.originalPdf.slice(0) });
       var pdf  = await loadingTask.promise;
-      var page = await pdf.getPage(1);
+      var page = await pdf.getPage(row.originalPage || 1);
 
-      // คำนวณ scale ให้พอดีกับ container จริง
-      var body      = document.getElementById('previewBody');
-      var maxW      = body.offsetWidth  - 32;
-      var maxH      = body.offsetHeight - 32;
-      var vpBase    = page.getViewport({ scale: 1 });
-      var scale     = Math.min(maxW / vpBase.width, maxH / vpBase.height);
-      // คูณ devicePixelRatio เพื่อให้คมบน Retina
-      var dpr       = window.devicePixelRatio || 1;
-      var viewport  = page.getViewport({ scale: scale * dpr });
+      await new Promise(function(r){ setTimeout(r, 50); });
+      var body   = document.getElementById('previewBody');
+      var maxW   = body.offsetWidth;
+      var maxH   = body.offsetHeight;
 
-      var canvas    = document.createElement('canvas');
+      var vpBase = page.getViewport({ scale: 1 });
+      var scale  = Math.min(maxW / vpBase.width, maxH / vpBase.height);
+      var dpr    = window.devicePixelRatio || 1;
+      var viewport = page.getViewport({ scale: scale * dpr });
+
+      var canvas = document.createElement('canvas');
       canvas.width  = viewport.width;
       canvas.height = viewport.height;
-      // แสดงผลที่ขนาด CSS จริง (ไม่ยืด)
       canvas.style.width  = Math.floor(vpBase.width  * scale) + 'px';
       canvas.style.height = Math.floor(vpBase.height * scale) + 'px';
       canvas.style.display = 'block';
@@ -1125,6 +1127,37 @@ async function openPreview(rowId) {
       await page.render({ canvasContext: canvas.getContext('2d'), viewport: viewport }).promise;
       wrap.innerHTML = '';
       wrap.appendChild(canvas);
+    } catch(e) {
+      wrap.innerHTML = '<div style="color:var(--danger);">โหลด PDF ไม่สำเร็จ: '+e.message+'</div>';
+    }
+
+  } else if (row.pdfPageData) {
+    // fallback: ใช้ pdfPageData ถ้าไม่มี original
+    try {
+      var loadingTask2 = pdfjsLib.getDocument({ data: row.pdfPageData });
+      var pdf2  = await loadingTask2.promise;
+      var page2 = await pdf2.getPage(1);
+
+      await new Promise(function(r){ setTimeout(r, 50); });
+      var body2  = document.getElementById('previewBody');
+      var maxW2  = body2.offsetWidth;
+      var maxH2  = body2.offsetHeight;
+
+      var vpBase2  = page2.getViewport({ scale: 1 });
+      var scale2   = Math.min(maxW2 / vpBase2.width, maxH2 / vpBase2.height);
+      var dpr2     = window.devicePixelRatio || 1;
+      var viewport2 = page2.getViewport({ scale: scale2 * dpr2 });
+
+      var canvas2 = document.createElement('canvas');
+      canvas2.width  = viewport2.width;
+      canvas2.height = viewport2.height;
+      canvas2.style.width  = Math.floor(vpBase2.width  * scale2) + 'px';
+      canvas2.style.height = Math.floor(vpBase2.height * scale2) + 'px';
+      canvas2.style.display = 'block';
+
+      await page2.render({ canvasContext: canvas2.getContext('2d'), viewport: viewport2 }).promise;
+      wrap.innerHTML = '';
+      wrap.appendChild(canvas2);
     } catch(e) {
       wrap.innerHTML = '<div style="color:var(--danger);">โหลด PDF ไม่สำเร็จ: '+e.message+'</div>';
     }
