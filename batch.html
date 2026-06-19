@@ -228,10 +228,11 @@ main{width:100%;max-width:100%;padding:20px 24px 100px;}
 .preview-title{font-size:13px;font-weight:500;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .preview-close{background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;flex-shrink:0;line-height:1;}
 .preview-close:hover{color:var(--danger);}
-.preview-body{position:relative;flex:1;min-height:0;overflow:hidden;background:#000;display:flex;align-items:center;justify-content:center;}
-.preview-img-wrap{display:flex;align-items:center;justify-content:center;width:100%;height:100%;transition:transform .3s ease;}
-.preview-img-wrap img{max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;display:block;}
-.preview-img-wrap canvas{display:block;}
+.preview-body{position:relative;flex:1;min-height:0;overflow:auto;background:#000;display:flex;align-items:center;justify-content:center;}
+.preview-img-wrap{display:flex;align-items:center;justify-content:center;width:100%;height:100%;transition:transform .25s ease;transform-origin:center center;cursor:grab;}
+.preview-img-wrap:active{cursor:grabbing;}
+.preview-img-wrap img{max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;display:block;user-select:none;}
+.preview-img-wrap canvas{display:block;user-select:none;}
 .preview-nav{display:flex;align-items:center;gap:8px;padding:10px 16px;border-top:1px solid var(--border);justify-content:center;flex-shrink:0;flex-wrap:wrap;}
 .preview-nav-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:var(--rs);padding:6px 14px;font-family:var(--font);font-size:12px;cursor:pointer;}
 .preview-nav-btn:hover{border-color:var(--accent);color:var(--accent);}
@@ -303,10 +304,6 @@ main{width:100%;max-width:100%;padding:20px 24px 100px;}
     <div>
       <div class="label">ลากไฟล์มาวางที่นี่ หรือคลิกเพื่อเลือกไฟล์</div>
       <div class="sub">รองรับรูปภาพ (JPG, PNG) และ PDF — เลือกได้หลายไฟล์พร้อมกัน</div>
-    </div>
-    <div class="batch-counter" id="batchCounter">
-      <span id="batchCountNum">0</span> / 50
-      <div class="batch-counter-bar"><div class="batch-counter-fill" id="batchCountFill"></div></div>
     </div>
     <input type="file" id="fileInput" accept="image/*,application/pdf" multiple onchange="handleFiles(event)">
   </div>
@@ -473,34 +470,23 @@ function searchCSV(barcode) {
 var _rowIdCounter = 0;
 
 // ── File Handling ─────────────────────────────────────────
-var BATCH_WARN  = 30;
+var BATCH_WARN  = 40;
 var BATCH_LIMIT = 50;
 
 function updateBatchCounter() {
-  var n    = rows.length;
-  var pct  = Math.min(100, (n / BATCH_LIMIT) * 100);
-  var numEl  = document.getElementById('batchCountNum');
-  var fillEl = document.getElementById('batchCountFill');
-  var cntEl  = document.getElementById('batchCounter');
+  var n      = rows.length;
   var zoneEl = document.getElementById('uploadZone');
   var banner = document.getElementById('limitBanner');
   var bannerText = document.getElementById('limitBannerText');
 
-  numEl.textContent = n;
-  fillEl.style.width = pct + '%';
-
-  // reset
-  cntEl.classList.remove('warn','full');
   zoneEl.classList.remove('blocked');
   banner.classList.remove('show','danger');
 
   if (n >= BATCH_LIMIT) {
-    cntEl.classList.add('full');
     zoneEl.classList.add('blocked');
     banner.classList.add('show','danger');
     bannerText.textContent = '🚫 ครบ ' + BATCH_LIMIT + ' รายการแล้ว — กรุณา Submit ก่อนเพิ่มไฟล์ใหม่';
   } else if (n >= BATCH_WARN) {
-    cntEl.classList.add('warn');
     banner.classList.add('show');
     bannerText.textContent = '⚠️ ' + n + ' รายการ (เกิน ' + BATCH_WARN + ') — ระบบอาจทำงานช้า แนะนำให้แบ่ง batch';
   }
@@ -1076,12 +1062,14 @@ async function uploadPhoto(base64,barcode,refNo){
 // ── Preview Modal ─────────────────────────────────────────
 var _previewRowId = null;
 var _previewRotation = 0;
+var _previewZoom = 1;
 
 async function openPreview(rowId) {
   var row = rows.find(function(r){ return r.id === rowId; });
   if (!row) return;
-  _previewRowId  = rowId;
+  _previewRowId    = rowId;
   _previewRotation = 0;
+  _previewZoom     = 1;
 
   var overlay = document.getElementById('previewOverlay');
   var wrap    = document.getElementById('previewImgWrap');
@@ -1174,25 +1162,47 @@ async function openPreview(rowId) {
   document.getElementById('nextBtn').disabled = idx === rows.length - 1;
 }
 
+function _applyTransform() {
+  var wrap = document.getElementById('previewImgWrap');
+  var t = 'rotate('+_previewRotation+'deg) scale('+_previewZoom+')';
+  wrap.style.transform = t;
+  document.getElementById('zoomLabel').textContent = Math.round(_previewZoom * 100) + '%';
+}
+
 function rotatePreview(deg) {
   _previewRotation = (_previewRotation + deg + 360) % 360;
-  var wrap = document.getElementById('previewImgWrap');
-  // สลับ width/height เมื่อหมุน 90/270 องศา
-  if (_previewRotation === 90 || _previewRotation === 270) {
-    var bodyH = document.getElementById('previewBody').offsetHeight;
-    var bodyW = document.getElementById('previewBody').offsetWidth;
-    var scale = Math.min(bodyH / bodyW, bodyW / bodyH);
-    wrap.style.transform = 'rotate('+_previewRotation+'deg) scale('+scale+')';
-  } else {
-    wrap.style.transform = 'rotate('+_previewRotation+'deg)';
-  }
+  _applyTransform();
 }
+
+function zoomPreview(delta) {
+  _previewZoom = Math.min(5, Math.max(0.25, _previewZoom + delta));
+  _applyTransform();
+}
+
+function zoomReset() {
+  _previewZoom     = 1;
+  _previewRotation = 0;
+  _applyTransform();
+}
+
+// Scroll wheel zoom
+document.addEventListener('wheel', function(e) {
+  if (!document.getElementById('previewOverlay').classList.contains('open')) return;
+  if (!document.getElementById('previewBody').contains(e.target)) return;
+  e.preventDefault();
+  var delta = e.deltaY < 0 ? 0.1 : -0.1;
+  _previewZoom = Math.min(5, Math.max(0.25, _previewZoom + delta));
+  // transition สั้นลงตอน scroll
+  document.getElementById('previewImgWrap').style.transition = 'transform .1s ease';
+  _applyTransform();
+}, { passive: false });
 
 function closePreview(e) {
   if (e && e.target !== document.getElementById('previewOverlay')) return;
   document.getElementById('previewOverlay').classList.remove('open');
   _previewRowId    = null;
   _previewRotation = 0;
+  _previewZoom     = 1;
 }
 
 function navigatePreview(dir) {
@@ -1208,6 +1218,9 @@ document.addEventListener('keydown', function(e) {
   if (e.key === 'ArrowRight')  navigatePreview(1);
   if (e.key === 'ArrowLeft')   navigatePreview(-1);
   if (e.key === 'r' || e.key === 'R') rotatePreview(e.shiftKey ? -90 : 90);
+  if (e.key === '+' || e.key === '=') zoomPreview(0.25);
+  if (e.key === '-')                  zoomPreview(-0.25);
+  if (e.key === '0')                  zoomReset();
 });
 
 function logout(){ DocScanAuth.clear(); location.href="login.html"; }
@@ -1234,6 +1247,11 @@ function showToast(msg,type){var t=document.getElementById('toast');t.textConten
       <div class="preview-divider"></div>
       <button class="preview-rotate-btn" onclick="rotatePreview(-90)">↺ หมุนซ้าย</button>
       <button class="preview-rotate-btn" onclick="rotatePreview(90)">↻ หมุนขวา</button>
+      <div class="preview-divider"></div>
+      <button class="preview-rotate-btn" onclick="zoomPreview(-0.25)" title="ย่อ">－</button>
+      <span id="zoomLabel" style="font-size:12px;color:var(--muted);font-family:var(--mono);min-width:44px;text-align:center;">100%</span>
+      <button class="preview-rotate-btn" onclick="zoomPreview(0.25)" title="ขยาย">＋</button>
+      <button class="preview-rotate-btn" onclick="zoomReset()" title="รีเซ็ต">⊙ Reset</button>
     </div>
   </div>
 </div>
