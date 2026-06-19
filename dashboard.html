@@ -165,7 +165,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
     <div class="top-filter">
       <span class="top-filter-label">ดูข้อมูลเดือน:</span>
       <input class="f-select" type="month" id="filterMonth" onchange="onMonthChange()" title="เดือนที่สร้างเอกสาร" style="width:148px;">
-      <span style="font-size:11px;color:var(--muted);">→ อัปเดต Cards และ Pipeline</span>
+      <span style="font-size:11px;color:var(--muted);">→ กรองข้อมูลทั้งหน้า</span>
       <button class="refresh-btn" onclick="loadData()" style="margin-left:auto;">↻ รีเฟรช</button>
     </div>
 
@@ -287,7 +287,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
     <!-- Filter Bar (กระทบเฉพาะตาราง ไม่แตะ Cards/Pipeline) -->
     <div class="filter-bar" style="flex-direction:column;align-items:stretch;gap:10px;">
       <div style="display:flex;align-items:center;justify-content:space-between;">
-        <span style="font-size:12px;font-weight:500;color:var(--text);">กรองรายการ <span style="font-size:11px;color:var(--muted);font-weight:400;">(ไม่กระทบ Cards และ Pipeline)</span></span>
+        <span style="font-size:12px;font-weight:500;color:var(--text);">กรองรายการ</span>
         <button class="f-clear" onclick="clearTableFilters()">✕ ล้างทั้งหมด</button>
       </div>
       <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;">
@@ -585,11 +585,11 @@ function pipeMiniHTML(tiers, total) {
   }).join('');
 }
 
-// ── onMonthChange: อัปเฉพาะ Cards+Pipeline+Chart ──────────
+// ── onMonthChange: อัปทั้งหน้า Cards+Pipeline+Chart+ตาราง ──
 function onMonthChange() {
   applyMonthToSummary();
   drawChart();
-  // ตาราง: ไม่ยุ่งเลย
+  applyTableFilters();
 }
 
 // ── Table Filters: แยกจาก Cards/Pipeline โดยสิ้นเชิง ──────
@@ -599,9 +599,10 @@ function getTableFilteredData() {
   var fDate     = (document.getElementById('filterDate').value     || '');
   var fTier     = (document.getElementById('filterTier').value     || 'all');
   var fItemName = (document.getElementById('filterItemName').value || '');
+  var fMonth    = (document.getElementById('filterMonth').value    || ''); // ← เพิ่ม filterMonth
 
-  // ตาราง filter จาก _cachedDone/_cachedPending ทั้งหมด (ไม่สนใจ filterMonth)
   var done = _cachedDone.filter(function(item) {
+    if (fMonth    && toYM(item.doc_date) !== fMonth)                          return false;
     if (fRef      && (item.ref_no||'').toLowerCase().indexOf(fRef)===-1 &&
                      (item.barcode||'').toLowerCase().indexOf(fRef)===-1) return false;
     if (fDate     && (item.received_date||'') !== fDate)   return false;
@@ -610,6 +611,7 @@ function getTableFilteredData() {
   });
 
   var pend = _cachedPending.filter(function(item) {
+    if (fMonth    && toYM(item.doc_date) !== fMonth)                          return false;
     if (fRef      && (item.ref_no||'').toLowerCase().indexOf(fRef)===-1 &&
                      (item.barcode||'').toLowerCase().indexOf(fRef)===-1) return false;
     if (fDate     && normalizeDate(item.doc_date) !== fDate) return false;
