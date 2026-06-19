@@ -230,8 +230,8 @@ main{width:100%;max-width:100%;padding:20px 24px 100px;}
 .preview-close:hover{color:var(--danger);}
 .preview-body{position:relative;flex:1;min-height:0;overflow:hidden;background:#000;display:flex;align-items:center;justify-content:center;}
 .preview-img-wrap{display:flex;align-items:center;justify-content:center;width:100%;height:100%;transition:transform .3s ease;}
-.preview-img-wrap img{width:100%;height:100%;object-fit:contain;display:block;}
-.preview-img-wrap canvas{width:100%;height:100%;object-fit:contain;display:block;}
+.preview-img-wrap img{max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;display:block;}
+.preview-img-wrap canvas{display:block;max-width:100%;max-height:100%;}
 .preview-nav{display:flex;align-items:center;gap:8px;padding:10px 16px;border-top:1px solid var(--border);justify-content:center;flex-shrink:0;flex-wrap:wrap;}
 .preview-nav-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:var(--rs);padding:6px 14px;font-family:var(--font);font-size:12px;cursor:pointer;}
 .preview-nav-btn:hover{border-color:var(--accent);color:var(--accent);}
@@ -1104,11 +1104,24 @@ async function openPreview(rowId) {
       var pdf  = await loadingTask.promise;
       var page = await pdf.getPage(1);
 
-      // render ที่ scale สูงเพื่อคุณภาพ แต่แสดงด้วย CSS
-      var viewport = page.getViewport({ scale: 3.0 });
-      var canvas   = document.createElement('canvas');
+      // คำนวณ scale ให้พอดีกับ container จริง
+      var body      = document.getElementById('previewBody');
+      var maxW      = body.offsetWidth  - 32;
+      var maxH      = body.offsetHeight - 32;
+      var vpBase    = page.getViewport({ scale: 1 });
+      var scale     = Math.min(maxW / vpBase.width, maxH / vpBase.height);
+      // คูณ devicePixelRatio เพื่อให้คมบน Retina
+      var dpr       = window.devicePixelRatio || 1;
+      var viewport  = page.getViewport({ scale: scale * dpr });
+
+      var canvas    = document.createElement('canvas');
       canvas.width  = viewport.width;
       canvas.height = viewport.height;
+      // แสดงผลที่ขนาด CSS จริง (ไม่ยืด)
+      canvas.style.width  = Math.floor(vpBase.width  * scale) + 'px';
+      canvas.style.height = Math.floor(vpBase.height * scale) + 'px';
+      canvas.style.display = 'block';
+
       await page.render({ canvasContext: canvas.getContext('2d'), viewport: viewport }).promise;
       wrap.innerHTML = '';
       wrap.appendChild(canvas);
