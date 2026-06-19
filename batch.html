@@ -486,7 +486,7 @@ function updateBatchCounter() {
     zoneEl.classList.add('blocked');
     banner.classList.add('show','danger');
     bannerText.textContent = '🚫 ครบ ' + BATCH_LIMIT + ' รายการแล้ว — กรุณา Submit ก่อนเพิ่มไฟล์ใหม่';
-  } else if (n >= BATCH_WARN) {
+  } else if (n > BATCH_WARN) {
     banner.classList.add('show');
     bannerText.textContent = '⚠️ ' + n + ' รายการ (เกิน ' + BATCH_WARN + ') — ระบบอาจทำงานช้า แนะนำให้แบ่ง batch';
   }
