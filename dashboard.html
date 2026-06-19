@@ -459,43 +459,19 @@ function updateSummaryFromAPI(s, pt, pl) {
   _apiPipeline     = pl || {};
 }
 
-// ── applyMonthToSummary: กรอง filterMonth แล้วอัป Cards+Pipeline ──
+// ── applyMonthToSummary: คำนวณจาก cached data เสมอ กรอง filterMonth ถ้ามี ──
 function applyMonthToSummary() {
   var fMonth = (document.getElementById('filterMonth').value || '');
 
-  if (!fMonth) {
-    // ไม่มี filter → ใช้ข้อมูล API ตรงๆ
-    var s  = _apiSummary;
-    var pt = _apiPendingTiers;
-    var pl = _apiPipeline;
+  var done = fMonth
+    ? _cachedDone.filter(function(item){ return toYM(item.doc_date) === fMonth; })
+    : _cachedDone;
+  var pend = fMonth
+    ? _cachedPending.filter(function(item){ return toYM(item.doc_date) === fMonth; })
+    : _cachedPending;
 
-    document.getElementById('sumTotal').textContent   = (s.total||0).toLocaleString();
-    document.getElementById('sumDone').textContent    = (s.done||0).toLocaleString();
-    document.getElementById('sumDonePct').textContent = (s.pct||0) + '% ของทั้งหมด';
-    document.getElementById('sumPend').textContent    = (s.pending||0).toLocaleString();
-    document.getElementById('sumPendPct').textContent = s.total>0 ? Math.round((s.pending||0)/s.total*1000)/10+'% ของทั้งหมด' : '0%';
-    document.getElementById('ontimeFill').style.width = (s.ontime_pct||0)+'%';
-    document.getElementById('lateFill').style.width   = (s.late_pct||0)+'%';
-    document.getElementById('ontimePct').textContent  = (s.ontime_pct||0)+'%';
-    document.getElementById('latePct').textContent    = (s.late_pct||0)+'%';
-
-    var pendMax = Math.max(pt.t1||0, pt.t2||0, pt.t3||0, pt.t4||0) || 1;
-    ['t1','t2','t3','t4'].forEach(function(t){
-      var pct = Math.round((pt[t]||0)/pendMax*100);
-      document.getElementById('tier'+t.toUpperCase()+'Fill').style.width = pct+'%';
-      document.getElementById('tier'+t.toUpperCase()).textContent = (pt[t]||0).toLocaleString();
-    });
-
-    renderPipeline(pl, s.done||0);
-    _summaryDone    = _cachedDone;
-    _summaryPending = _cachedPending;
-
-  } else {
-    // มี filterMonth → คำนวณจาก cached data
-    var done = _cachedDone.filter(function(item){ return toYM(item.doc_date) === fMonth; });
-    var pend = _cachedPending.filter(function(item){ return toYM(item.doc_date) === fMonth; });
-    _summaryDone    = done;
-    _summaryPending = pend;
+  _summaryDone    = done;
+  _summaryPending = pend;
 
     var total   = done.length + pend.length;
     var doneCnt = done.length;
@@ -537,7 +513,6 @@ function applyMonthToSummary() {
 
     // Pipeline จาก filtered pending
     renderPipelineFromItems(pend, done.length);
-  }
 }
 
 function renderPipeline(pl, scannedTotal) {
