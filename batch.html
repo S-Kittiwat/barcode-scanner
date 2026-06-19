@@ -1097,11 +1097,8 @@ async function openPreview(rowId) {
   wrap.innerHTML = '<div style="color:var(--muted);font-size:13px;">กำลังโหลด...</div>';
   overlay.classList.add('open');
 
-  if (row.photoData) {
-    wrap.innerHTML = '<img src="'+row.photoData+'" draggable="false">';
-
-  } else if (row.originalPdf) {
-    // render จาก original PDF โดยตรง — คมชัดกว่า pdfPageData ที่ re-compress แล้ว
+  if (row.originalPdf) {
+    // PDF: render จาก original โดยตรง — คมชัดสุด
     try {
       var loadingTask = pdfjsLib.getDocument({ data: row.originalPdf.slice(0) });
       var pdf  = await loadingTask.promise;
@@ -1112,9 +1109,9 @@ async function openPreview(rowId) {
       var maxW   = body.offsetWidth;
       var maxH   = body.offsetHeight;
 
-      var vpBase = page.getViewport({ scale: 1 });
-      var scale  = Math.min(maxW / vpBase.width, maxH / vpBase.height);
-      var dpr    = window.devicePixelRatio || 1;
+      var vpBase   = page.getViewport({ scale: 1 });
+      var scale    = Math.min(maxW / vpBase.width, maxH / vpBase.height);
+      var dpr      = window.devicePixelRatio || 1;
       var viewport = page.getViewport({ scale: scale * dpr });
 
       var canvas = document.createElement('canvas');
@@ -1130,6 +1127,10 @@ async function openPreview(rowId) {
     } catch(e) {
       wrap.innerHTML = '<div style="color:var(--danger);">โหลด PDF ไม่สำเร็จ: '+e.message+'</div>';
     }
+
+  } else if (row.photoData) {
+    // รูปภาพ (image upload)
+    wrap.innerHTML = '<img src="'+row.photoData+'" draggable="false">';
 
   } else if (row.pdfPageData) {
     // fallback: ใช้ pdfPageData ถ้าไม่มี original
