@@ -74,6 +74,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
       <label class="label">ทีม / Role</label>
       <select class="select" id="roleSelect" onchange="check()">
         <option value="warehouse">🏭 ทีมคลังพาเลท</option>
+        <option value="delivery">🚚 ทีมจัดส่ง</option>
       </select>
     </div>
 
@@ -102,12 +103,17 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 var API_URL    = DOCSCAN_CONFIG.API_URL;
 var siteGroups = []; // [{ site_name, customer_start_names: [] }]
 
+// ── หน้าแรกตาม Role ──────────────────────────────────────
+function homeFor(role) {
+  return role === 'delivery' ? 'delivery.html' : 'batch.html';
+}
+
 // ── redirect ถ้ามี session แล้ว ───────────────────────────
 window.onload = function() {
   try {
     var s = JSON.parse(localStorage.getItem('docScanSession'));
     if (s && s.empId && s.site) {
-      window.location.replace('batch.html');
+      window.location.replace(homeFor(s.role));
       return;
     }
   } catch(e) {}
@@ -232,7 +238,7 @@ function login() {
     role       : role
   }));
 
-  window.location.href = 'batch.html';
+  window.location.href = homeFor(role);
 }
 </script>
 </body>
