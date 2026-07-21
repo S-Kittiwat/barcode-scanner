@@ -10,7 +10,7 @@
 try {
   var s = JSON.parse(localStorage.getItem('docScanSession'));
   if (s && s.empId && s.site) {
-    window.location.replace('batch.html');
+    window.location.replace(s.role === 'delivery' ? 'delivery.html' : 'batch.html');
   } else { window.location.replace('login.html'); }
 } catch(e) { window.location.replace('login.html'); }
 </script>
