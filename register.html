@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>DocScan — สมัครใช้งาน</title>
+<script src="config.js"></script>
+<link rel="stylesheet" href="css/auth.css">
+</head>
+<body>
+<div class="login-wrap">
+  <div class="brand">
+    <div class="brand-icon">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#0f172a" stroke-width="2.5">
+        <rect x="3" y="4" width="3" height="16" rx="1"/><rect x="8" y="4" width="1.5" height="16" rx="0.5"/>
+        <rect x="11" y="4" width="3" height="16" rx="1"/><rect x="16" y="4" width="1.5" height="16" rx="0.5"/>
+        <rect x="19" y="4" width="2" height="16" rx="1"/>
+      </svg>
+    </div>
+    <div>
+      <div class="brand-name">DocScan</div>
+      <div class="brand-sub">Pallet Tracking System</div>
+    </div>
+  </div>
+
+  <div class="box">
+    <div class="steps">
+      <div class="step on" id="s1"></div><div class="step" id="s2"></div><div class="step" id="s3"></div>
+    </div>
+    <div class="alert" id="alert"></div>
+
+    <!-- ขั้นที่ 1 — กรอกข้อมูล -->
+    <div class="stage on" id="stage1">
+      <div class="box-title">สมัครใช้งาน</div>
+      <div class="box-sub">กรอกข้อมูลและตั้งรหัสผ่าน จากนั้นยืนยันอีเมลบริษัท แล้วรอผู้ดูแลอนุมัติ</div>
+
+      <div class="field">
+        <label class="label" for="empId">รหัสพนักงาน</label>
+        <input class="input" id="empId" type="text" autocapitalize="characters" placeholder="เช่น E001">
+        <div class="err" id="e_empId"></div>
+      </div>
+      <div class="field">
+        <label class="label" for="empName">ชื่อ-นามสกุล</label>
+        <input class="input" id="empName" type="text" placeholder="ชื่อจริงตามทะเบียนพนักงาน">
+        <div class="err" id="e_empName"></div>
+      </div>
+      <div class="field">
+        <label class="label" for="empEmail">อีเมลบริษัท</label>
+        <input class="input" id="empEmail" type="email" autocapitalize="off"
+               placeholder="ชื่อ@company.com">
+        <div class="site-filter-info" id="emailHint"></div>
+        <div class="err" id="e_empEmail"></div>
+      </div>
+
+      <div class="field">
+        <label class="label" for="role">ทีม / Role</label>
+        <select class="select" id="role">
+          <option value="warehouse">🏭 ทีมคลังพาเลท</option>
+          <option value="delivery">🚚 ทีมจัดส่ง</option>
+        </select>
+        <div class="err" id="e_role"></div>
+      </div>
+
+      <div class="field">
+        <label class="label" for="site">Site / คลังสินค้า</label>
+        <div class="site-loading" id="siteLoading"><span class="spinner"></span> กำลังโหลด Site...</div>
+        <select class="select" id="site" style="display:none;">
+          <option value="">— กรุณาเลือก Site —</option>
+        </select>
+        <div class="site-filter-info" id="siteInfo"></div>
+        <div class="err" id="e_site"></div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="field">
+        <label class="label" for="password">ตั้งรหัสผ่าน</label>
+        <input class="input" id="password" type="password" autocomplete="new-password"
+               placeholder="อย่างน้อย 8 ตัว มีตัวอักษรและตัวเลข">
+        <div class="pw-meter" id="pwMeter"><i></i></div>
+        <div class="pw-hint" id="pwHint">ต้องยาวอย่างน้อย 8 ตัว มีทั้งตัวอักษรและตัวเลข</div>
+        <div class="err" id="e_password"></div>
+      </div>
+      <div class="field">
+        <label class="label" for="password2">ยืนยันรหัสผ่าน</label>
+        <input class="input" id="password2" type="password" autocomplete="new-password"
+               placeholder="พิมพ์รหัสผ่านอีกครั้ง">
+        <div class="err" id="e_passwordConfirm"></div>
+      </div>
+
+      <button class="submit-btn" id="btnRegister">ส่งคำขอสมัคร →</button>
+      <div class="links">
+        <a class="link" href="login.html">← กลับไปหน้าเข้าสู่ระบบ</a>
+      </div>
+    </div>
+
+    <!-- ขั้นที่ 2 — ยืนยันอีเมล -->
+    <div class="stage" id="stage2">
+      <div class="box-title">ยืนยันอีเมล</div>
+      <div class="code-sent" id="codeSent"></div>
+
+      <div class="field">
+        <label class="label" for="code">รหัสยืนยัน 6 หลัก</label>
+        <input class="input code-input" id="code" type="text" inputmode="numeric"
+               maxlength="6" autocomplete="one-time-code" placeholder="······">
+        <div class="err" id="e_code"></div>
+      </div>
+
+      <button class="submit-btn" id="btnConfirm" disabled>ยืนยันอีเมล →</button>
+      <button class="ghost-btn" id="btnResend">ส่งรหัสใหม่อีกครั้ง</button>
+      <div class="links">
+        <button class="link" id="btnBack">← แก้ไขข้อมูล</button>
+      </div>
+    </div>
+
+    <!-- ขั้นที่ 3 — รออนุมัติ -->
+    <div class="stage" id="stage3">
+      <div class="box-title">รอผู้ดูแลอนุมัติ</div>
+      <div class="box-sub">
+        ยืนยันอีเมลเรียบร้อยแล้ว คำขอของคุณอยู่ในคิวรอผู้ดูแลตรวจสอบ<br>
+        เมื่ออนุมัติแล้วจะมีอีเมลแจ้ง แล้วเข้าใช้งานได้ด้วย<b>รหัสผ่านที่ตั้งไว้</b>ได้เลย
+      </div>
+      <div class="alert info on" style="margin-bottom:18px">
+        ผู้ดูแลอาจต้องตรวจสอบกับทะเบียนพนักงานก่อน หากรอเกิน 1 วันทำการ
+        กรุณาติดต่อ Palletmanagement@brs-group.com
+      </div>
+      <a class="submit-btn" href="login.html" style="display:block;text-align:center;text-decoration:none;line-height:1.4">
+        กลับไปหน้าเข้าสู่ระบบ
+      </a>
+    </div>
+  </div>
+
+  <div class="footer">Palletmanagement@brs-group.com</div>
+</div>
+
+<script type="module">
+import { register, confirmEmail, validateRegistration,
+         checkPasswordStrength, isValidCode,
+         fetchAuthConfig, ALLOWED_EMAIL_DOMAINS } from './js/auth.js';
+
+const API_URL = DOCSCAN_CONFIG.API_URL;
+const $ = id => document.getElementById(id);
+let siteGroups = [];
+
+/* ---------- โหลดโดเมนที่อนุญาต จากเซิร์ฟเวอร์ ---------- */
+// ตั้งค่าที่ Script Property ที่เดียว หน้าเว็บดึงมาแสดง จะได้ไม่ตั้งซ้ำสองที่
+fetchAuthConfig(API_URL)
+  .then(() => showDomains())
+  .catch(() => showDomains());   // ดึงไม่ได้ก็ใช้ค่าสำรอง ตัวกันจริงอยู่ฝั่งเซิร์ฟเวอร์
+
+function showDomains() {
+  const list = ALLOWED_EMAIL_DOMAINS.map(d => d.replace(/^\./, ''));
+  $('empEmail').placeholder = 'ชื่อ@' + (list[0] || 'company.com');
+  const hint = document.getElementById('emailHint');
+  if (hint) {
+    hint.textContent = list.length > 1
+      ? 'ใช้ได้: ' + list.join(', ')
+      : '';
+  }
+}
+
+/* ---------- โหลดรายชื่อไซต์ (ใช้ endpoint เดิม) ---------- */
+fetch(API_URL + '?action=getSiteGroups')
+  .then(r => r.json())
+  .then(d => { if (d.status !== 'ok') throw new Error(d.message); siteGroups = d.groups || []; })
+  .catch(() => { siteGroups = []; })
+  .finally(buildSites);
+
+function buildSites() {
+  const sel = $('site');
+  sel.innerHTML = '<option value="">— กรุณาเลือก Site —</option>';
+
+  const wh = siteGroups.filter(g => (g.type || 'warehouse') !== 'plant');
+  const pl = siteGroups.filter(g => g.type === 'plant');
+  const addGroup = (label, list) => {
+    if (!list.length) return;
+    const og = document.createElement('optgroup');
+    og.label = label;
+    list.forEach(g => {
+      const o = document.createElement('option');
+      o.value = o.textContent = g.site_name;
+      og.appendChild(o);
+    });
+    sel.appendChild(og);
+  };
+  addGroup('🏭 คลังสินค้า / DC', wh);
+  addGroup('🏗️ โรงงาน (Plant)', pl);
+
+  if (!siteGroups.length) {
+    // โหลดไม่ได้ก็ยังกรอกเองได้ ดีกว่าสมัครไม่ได้เลย
+    sel.innerHTML = '<option value="">— โหลดรายชื่อไม่สำเร็จ กรุณาพิมพ์เอง —</option>';
+    const inp = document.createElement('input');
+    inp.className = 'input'; inp.id = 'siteText';
+    inp.placeholder = 'พิมพ์ชื่อไซต์';
+    sel.parentNode.insertBefore(inp, sel.nextSibling);
+    sel.style.display = 'none';
+  } else {
+    sel.style.display = 'block';
+  }
+  $('siteLoading').style.display = 'none';
+}
+
+$('site').addEventListener('change', () => {
+  const g = siteGroups.find(x => x.site_name === $('site').value);
+  $('siteInfo').innerHTML = (g && g.customer_start_names && g.customer_start_names.length > 1)
+    ? '<span style="color:var(--accent)">ครอบคลุม:</span> ' + g.customer_start_names.join(', ')
+    : '';
+});
+
+/* ---------- วัดความแข็งแรงรหัสผ่าน ---------- */
+$('password').addEventListener('input', () => {
+  const v = $('password').value;
+  const r = checkPasswordStrength(v);
+  const pct = Math.min(100, Math.round(v.length / 12 * 100));
+  $('pwMeter').className = 'pw-meter' + (r.ok ? ' ok' : '');
+  $('pwMeter').firstElementChild.style.width = (r.ok ? 100 : pct) + '%';
+  $('pwHint').textContent = v
+    ? (r.ok ? 'รหัสผ่านใช้ได้' : r.message)
+    : 'ต้องยาวอย่างน้อย 8 ตัว มีทั้งตัวอักษรและตัวเลข';
+});
+
+/* ---------- ตัวช่วยแสดงผล ---------- */
+function clearErrors() {
+  ['empId','empName','empEmail','password','passwordConfirm','site','role','code']
+    .forEach(k => { const e = $('e_' + k); if (e) e.textContent = ''; });
+  document.querySelectorAll('.input.bad').forEach(el => el.classList.remove('bad'));
+  $('alert').className = 'alert';
+}
+function showErrors(errors) {
+  for (const [k, msg] of Object.entries(errors)) {
+    const e = $('e_' + k);
+    if (e) e.textContent = msg;
+    const inp = $(k === 'passwordConfirm' ? 'password2' : k);
+    if (inp) inp.classList.add('bad');
+  }
+}
+function alertMsg(msg, kind = 'bad') {
+  const a = $('alert');
+  a.textContent = msg;
+  a.className = 'alert ' + kind + ' on';
+}
+function goStage(n) {
+  [1,2,3].forEach(i => {
+    $('stage' + i).classList.toggle('on', i === n);
+    $('s' + i).classList.toggle('on', i <= n);
+  });
+  window.scrollTo(0, 0);
+}
+
+function readForm() {
+  const siteText = $('siteText');
+  return {
+    empId: $('empId').value.trim(),
+    empName: $('empName').value.trim(),
+    empEmail: $('empEmail').value.trim(),
+    site: siteText ? siteText.value.trim() : $('site').value,
+    role: $('role').value,
+    password: $('password').value,
+    passwordConfirm: $('password2').value
+  };
+}
+
+/* ---------- ขั้นที่ 1 → 2 ---------- */
+async function doRegister() {
+  clearErrors();
+  const form = readForm();
+  const v = validateRegistration(form);
+  if (!v.ok) { showErrors(v.errors); return; }
+
+  const btn = $('btnRegister');
+  btn.disabled = true; btn.textContent = 'กำลังส่งคำขอ...';
+  try {
+    const res = await register(API_URL, form);
+    if (res.stage === 'pending_approval') { goStage(3); return; }
+    $('codeSent').innerHTML =
+      'ส่งรหัสยืนยัน 6 หลักไปที่<br><b>' + form.empEmail + '</b><br>' +
+      'รหัสใช้ได้ภายใน 15 นาที — หากไม่พบ กรุณาตรวจในโฟลเดอร์สแปมด้วย';
+    goStage(2);
+    $('code').focus();
+  } catch (err) {
+    if (err.errors) showErrors(err.errors);
+    else alertMsg(err.message || 'ส่งคำขอไม่สำเร็จ');
+  } finally {
+    btn.disabled = false; btn.textContent = 'ส่งคำขอสมัคร →';
+  }
+}
+
+/* ---------- ขั้นที่ 2 → 3 ---------- */
+$('code').addEventListener('input', e => {
+  e.target.value = e.target.value.replace(/\D/g, '').slice(0, 6);
+  $('btnConfirm').disabled = !isValidCode(e.target.value);
+});
+$('code').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && isValidCode($('code').value)) doConfirm();
+});
+
+async function doConfirm() {
+  clearErrors();
+  const btn = $('btnConfirm');
+  btn.disabled = true; btn.textContent = 'กำลังยืนยัน...';
+  try {
+    await confirmEmail(API_URL, $('empId').value.trim(), $('code').value);
+    goStage(3);
+  } catch (err) {
+    $('e_code').textContent = err.message || 'ยืนยันไม่สำเร็จ';
+    $('code').classList.add('bad');
+    $('code').value = '';
+    btn.disabled = true;
+  } finally {
+    btn.textContent = 'ยืนยันอีเมล →';
+  }
+}
+
+async function doResend() {
+  clearErrors();
+  const btn = $('btnResend');
+  btn.disabled = true; btn.textContent = 'กำลังส่ง...';
+  try {
+    await register(API_URL, readForm());
+    alertMsg('ส่งรหัสใหม่แล้ว กรุณาตรวจอีเมลอีกครั้ง', 'good');
+  } catch (err) {
+    alertMsg(err.message || 'ส่งรหัสใหม่ไม่สำเร็จ');
+  } finally {
+    btn.disabled = false; btn.textContent = 'ส่งรหัสใหม่อีกครั้ง';
+  }
+}
+
+$('btnRegister').addEventListener('click', doRegister);
+$('btnConfirm').addEventListener('click', doConfirm);
+$('btnResend').addEventListener('click', doResend);
+$('btnBack').addEventListener('click', () => { clearErrors(); goStage(1); });
+</script>
+</body>
+</html>

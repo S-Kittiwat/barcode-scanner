@@ -137,6 +137,26 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 @keyframes spin{to{transform:rotate(360deg);}}
 </style>
 <script src="config.js"></script>
+<script type="module">
+// ── โมดูลร่วม DocScan ────────────────────────────────────
+// module script ทำงานหลัง classic script แต่ก่อน window.onload
+// โค้ดเดิมเรียก requireAuth ใน window.onload จึงปลอดภัย
+import { apiFetch, uploadBatch, newClientId } from './js/api.js';
+import { parseCSV, buildIndex, searchCSV, classify } from './js/csv.js';
+import { parseDateInput, toDisplayDate, toInputDate, todayISO } from './js/date.js';
+import { requireAuth, authFetch, authGet, authGetText, logout, loadSession, daysLeft } from './js/auth.js';
+
+window.DocScan = {
+  apiFetch, authFetch, authGet, authGetText, uploadBatch, newClientId,
+  parseCSV, buildIndex, searchCSV, classify,
+  parseDateInput, toDisplayDate, toInputDate, todayISO,
+  requireAuth, logout, loadSession, daysLeft
+};
+// ประทับเลขเวอร์ชันไว้ให้หาเวลาผู้ใช้แจ้งปัญหา
+document.documentElement.setAttribute('data-docscan-version',
+  (window.DOCSCAN_CONFIG && DOCSCAN_CONFIG.VERSION) || '');
+window.dispatchEvent(new Event('docscan-ready'));
+</script>
 </head>
 <body>
 
@@ -274,13 +294,54 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 
 <script>
 // ── Auth ─────────────────────────────────────────────────
-var DocScanAuth = (function(){
-  var KEY='docScanSession';
-  function load(){try{var r=localStorage.getItem(KEY);if(!r)return null;var s=JSON.parse(r);return(s.empId&&s.site)?s:null;}catch(e){return null;}}
-  function clear(){localStorage.removeItem(KEY);}
-  function requireAuth(){var s=load();if(!s){window.location.href='login.html';return null;}return s;}
-  return{load:load,clear:clear,requireAuth:requireAuth};
-})();
+// ── สะพานไปยังโมดูลร่วม ──────────────────────────────────
+// เก็บชื่อเดิมไว้เพื่อไม่ต้องแก้โค้ดที่เรียกใช้ทั้งไฟล์
+var DocScanAuth = {
+  load: function () { return DocScan.loadSession(); },
+  clear: function () { DocScan.logout(DOCSCAN_CONFIG.API_URL); },
+  requireAuth: function () {
+    var s = DocScan.requireAuth();
+    if (!s) return null;
+    if (s.mustChangePassword) { location.href = 'change-password.html'; return null; }
+    if (["delivery", "admin"].indexOf(s.role) === -1) {
+      alert('บัญชีนี้ไม่มีสิทธิ์ใช้งานหน้านี้');
+      location.href = s.role === 'delivery' ? 'delivery.html' : 'batch.html';
+      return null;
+    }
+    return s;
+  }
+};
+
+/** ยิงคำขอแบบ POST พร้อม token, timeout, retry และกันข้อมูลซ้ำ */
+function apiPost(payload) { return DocScan.authFetch(API_URL, payload); }
+/** ยิงคำขอแบบ GET พร้อม token */
+function apiGetText(action, params) {
+  // getCSV คืนข้อความดิบ ไม่ใช่ JSON
+  return DocScan.authGetText(API_URL, action, params || {});
+}
+/** ยิงคำขอแบบ GET พร้อม token */
+function apiGetJson(action, params, extraQS) {
+  var p = params || {};
+  // getSiteFilterParam คืนสตริงแบบ "&site_filter=..." ต้องแตกกลับเป็น object
+  if (extraQS) {
+    String(extraQS).replace(/^&/, '').split('&').forEach(function (kv) {
+      if (!kv) return;
+      var i = kv.indexOf('=');
+      if (i > 0) p[kv.slice(0, i)] = decodeURIComponent(kv.slice(i + 1));
+    });
+  }
+  return DocScan.authGet(API_URL, action, p);
+}
+
+/** พาไปหน้าเข้าสู่ระบบเมื่อเซสชันหมดอายุกลางคัน โดยไม่ทิ้งงานที่ค้าง */
+function handleAuthError(err) {
+  if (err && err.code === 'auth_required') {
+    alert('เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่\n\nงานที่ค้างอยู่ยังอยู่ในเครื่อง ไม่หายไปไหน');
+    location.href = 'login.html';
+    return true;
+  }
+  return false;
+}
 
 var API_URL = DOCSCAN_CONFIG.API_URL;
 var session, csvData=[], csvLoaded=false;
@@ -304,8 +365,7 @@ window.onload = function() {
 
 // ── CSV ──────────────────────────────────────────────────
 function loadCSV() {
-  fetch(API_URL+'?action=getCSV',{method:'GET',redirect:'follow'})
-    .then(function(r){return r.text();})
+  apiGetText('getCSV')
     .then(function(t){
       csvData=parseCSV(t); csvLoaded=true;
       // ── อัป badge → พร้อมสแกน ──
@@ -345,8 +405,7 @@ function searchCSV(barcode){
 
 // ── Pipeline ─────────────────────────────────────────────
 function loadPipeline(){
-  fetch(API_URL+'?action=getDelivery'+getSiteFilterParam(session))
-    .then(function(r){return r.json();})
+  apiGetJson('getDelivery', {}, getSiteFilterParam(session))
     .then(function(d){
       if(d.status!=='ok')return;
       var s=d.summary||{};
@@ -515,9 +574,8 @@ async function submitReceive(){
         batch_id :batchId
       };
     });
-    var res=await fetch(API_URL,{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain'},
-      body:JSON.stringify({action:'updateStatus',items:items})});
-    var data=await res.json();
+    var res=await apiPost({action:'updateStatus',items:items});
+    var data = res;
     if(data.status==='ok'){
       // redirect ไปหน้า batches พร้อมไฮไลท์ batch ที่เพิ่งสร้าง
       window.location.href='delivery_batches.html?highlight='+encodeURIComponent(batchId);

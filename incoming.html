@@ -90,6 +90,26 @@ tr:hover td{background:rgba(255,255,255,.015);}
 .spinner{width:16px;height:16px;border:2px solid rgba(56,189,248,.3);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:6px;}
 @keyframes spin{to{transform:rotate(360deg);}}
 </style>
+<script type="module">
+// ── โมดูลร่วม DocScan ────────────────────────────────────
+// module script ทำงานหลัง classic script แต่ก่อน window.onload
+// โค้ดเดิมเรียก requireAuth ใน window.onload จึงปลอดภัย
+import { apiFetch, uploadBatch, newClientId } from './js/api.js';
+import { parseCSV, buildIndex, searchCSV, classify } from './js/csv.js';
+import { parseDateInput, toDisplayDate, toInputDate, todayISO } from './js/date.js';
+import { requireAuth, authFetch, authGet, authGetText, logout, loadSession, daysLeft } from './js/auth.js';
+
+window.DocScan = {
+  apiFetch, authFetch, authGet, authGetText, uploadBatch, newClientId,
+  parseCSV, buildIndex, searchCSV, classify,
+  parseDateInput, toDisplayDate, toInputDate, todayISO,
+  requireAuth, logout, loadSession, daysLeft
+};
+// ประทับเลขเวอร์ชันไว้ให้หาเวลาผู้ใช้แจ้งปัญหา
+document.documentElement.setAttribute('data-docscan-version',
+  (window.DOCSCAN_CONFIG && DOCSCAN_CONFIG.VERSION) || '');
+window.dispatchEvent(new Event('docscan-ready'));
+</script>
 </head>
 <body>
 
@@ -173,13 +193,54 @@ tr:hover td{background:rgba(255,255,255,.015);}
 </div>
 
 <script>
-var DocScanAuth=(function(){
-  var KEY='docScanSession';
-  function load(){try{var r=localStorage.getItem(KEY);if(!r)return null;var s=JSON.parse(r);return(s.empId&&s.site)?s:null;}catch(e){return null;}}
-  function clear(){localStorage.removeItem(KEY);}
-  function requireAuth(){var s=load();if(!s){location.href='login.html';return null;}return s;}
-  return{load:load,clear:clear,requireAuth:requireAuth};
-})();
+// ── สะพานไปยังโมดูลร่วม ──────────────────────────────────
+// เก็บชื่อเดิมไว้เพื่อไม่ต้องแก้โค้ดที่เรียกใช้ทั้งไฟล์
+var DocScanAuth = {
+  load: function () { return DocScan.loadSession(); },
+  clear: function () { DocScan.logout(DOCSCAN_CONFIG.API_URL); },
+  requireAuth: function () {
+    var s = DocScan.requireAuth();
+    if (!s) return null;
+    if (s.mustChangePassword) { location.href = 'change-password.html'; return null; }
+    if (["warehouse", "admin"].indexOf(s.role) === -1) {
+      alert('บัญชีนี้ไม่มีสิทธิ์ใช้งานหน้านี้');
+      location.href = s.role === 'delivery' ? 'delivery.html' : 'batch.html';
+      return null;
+    }
+    return s;
+  }
+};
+
+/** ยิงคำขอแบบ POST พร้อม token, timeout, retry และกันข้อมูลซ้ำ */
+function apiPost(payload) { return DocScan.authFetch(API_URL, payload); }
+/** ยิงคำขอแบบ GET พร้อม token */
+function apiGetText(action, params) {
+  // getCSV คืนข้อความดิบ ไม่ใช่ JSON
+  return DocScan.authGetText(API_URL, action, params || {});
+}
+/** ยิงคำขอแบบ GET พร้อม token */
+function apiGetJson(action, params, extraQS) {
+  var p = params || {};
+  // getSiteFilterParam คืนสตริงแบบ "&site_filter=..." ต้องแตกกลับเป็น object
+  if (extraQS) {
+    String(extraQS).replace(/^&/, '').split('&').forEach(function (kv) {
+      if (!kv) return;
+      var i = kv.indexOf('=');
+      if (i > 0) p[kv.slice(0, i)] = decodeURIComponent(kv.slice(i + 1));
+    });
+  }
+  return DocScan.authGet(API_URL, action, p);
+}
+
+/** พาไปหน้าเข้าสู่ระบบเมื่อเซสชันหมดอายุกลางคัน โดยไม่ทิ้งงานที่ค้าง */
+function handleAuthError(err) {
+  if (err && err.code === 'auth_required') {
+    alert('เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่\n\nงานที่ค้างอยู่ยังอยู่ในเครื่อง ไม่หายไปไหน');
+    location.href = 'login.html';
+    return true;
+  }
+  return false;
+}
 
 var API_URL = DOCSCAN_CONFIG.API_URL;
 var session;
@@ -231,8 +292,7 @@ function loadPending() {
   var wrap = document.getElementById('wrap1');
   wrap.innerHTML = '<div class="empty"><span class="spinner"></span> กำลังโหลด...</div>';
 
-  fetch(API_URL + '?action=getIncoming&tab=pending&site_filter=' + encodeURIComponent(sf))
-    .then(function(r){ return r.json(); })
+  apiGetJson('getIncoming', {site_filter: sf})
     .then(function(data) {
       var batches = data.batches || [];
       document.getElementById('count1').textContent = batches.length;
@@ -271,8 +331,7 @@ function loadDone() {
   var wrap = document.getElementById('wrap2');
   wrap.innerHTML = '<div class="empty"><span class="spinner"></span> กำลังโหลด...</div>';
 
-  fetch(API_URL + '?action=getIncoming&tab=done&site_filter=' + encodeURIComponent(sf))
-    .then(function(r){ return r.json(); })
+  apiGetJson('getIncoming', {site_filter: sf})
     .then(function(data) {
       var batches = data.batches || [];
       document.getElementById('count2').textContent = batches.length;
@@ -313,8 +372,7 @@ function loadDisputed() {
   var wrap = document.getElementById('wrap3');
   wrap.innerHTML = '<div class="empty"><span class="spinner"></span> กำลังโหลด...</div>';
 
-  fetch(API_URL + '?action=getBatches&status_filter=disputed&site_filter=' + encodeURIComponent(sf))
-    .then(function(r){ return r.json(); })
+  apiGetJson('getBatches', {site_filter: sf})
     .then(function(data) {
       // กรองเฉพาะ PEND batches ที่ dest ตรงกับ site คลัง
       var batches = (data.batches||[]).filter(function(b) {

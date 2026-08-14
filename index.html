@@ -2,17 +2,21 @@
 <html lang="th">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="refresh" content="0; url=login.html">
 <title>DocScan</title>
 </head>
 <body>
-<script>
-try {
-  var s = JSON.parse(localStorage.getItem('docScanSession'));
-  if (s && s.empId && s.site) {
-    window.location.replace(s.role === 'delivery' ? 'delivery.html' : 'batch.html');
-  } else { window.location.replace('login.html'); }
-} catch(e) { window.location.replace('login.html'); }
+<script type="module">
+// เช็ค token ไม่ใช่แค่ empId + site เหมือนเดิม
+// และเช็ควันหมดอายุด้วย ไม่งั้นคนที่ session หมดแล้วจะถูกพาไปหน้าที่ใช้งานไม่ได้
+import { loadSession } from './js/auth.js';
+const s = loadSession();
+if (s) {
+  if (s.mustChangePassword) location.replace('change-password.html');
+  else location.replace(s.role === 'delivery' ? 'delivery.html' : 'batch.html');
+} else {
+  location.replace('login.html');
+}
 </script>
+<noscript><meta http-equiv="refresh" content="0; url=login.html"></noscript>
 </body>
 </html>

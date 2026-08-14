@@ -256,6 +256,26 @@ main{width:100%;max-width:100%;padding:20px 24px 100px;}
 .split-detail{font-size:11px;color:var(--muted);font-family:var(--mono);}
 </style>
 <script src="config.js"></script>
+<script type="module">
+// ── โมดูลร่วม DocScan ────────────────────────────────────
+// module script ทำงานหลัง classic script แต่ก่อน window.onload
+// โค้ดเดิมเรียก requireAuth ใน window.onload จึงปลอดภัย
+import { apiFetch, uploadBatch, newClientId } from './js/api.js';
+import { parseCSV, buildIndex, searchCSV, classify } from './js/csv.js';
+import { parseDateInput, toDisplayDate, toInputDate, todayISO } from './js/date.js';
+import { requireAuth, authFetch, authGet, authGetText, logout, loadSession, daysLeft } from './js/auth.js';
+
+window.DocScan = {
+  apiFetch, authFetch, authGet, authGetText, uploadBatch, newClientId,
+  parseCSV, buildIndex, searchCSV, classify,
+  parseDateInput, toDisplayDate, toInputDate, todayISO,
+  requireAuth, logout, loadSession, daysLeft
+};
+// ประทับเลขเวอร์ชันไว้ให้หาเวลาผู้ใช้แจ้งปัญหา
+document.documentElement.setAttribute('data-docscan-version',
+  (window.DOCSCAN_CONFIG && DOCSCAN_CONFIG.VERSION) || '');
+window.dispatchEvent(new Event('docscan-ready'));
+</script>
 </head>
 <body>
 
@@ -382,20 +402,59 @@ main{width:100%;max-width:100%;padding:20px 24px 100px;}
 
 <script>
 // ── DocScan Shared Auth (inline) ──────────────────────────
-var DocScanAuth = (function () {
-  var KEY = 'docScanSession';
-  function load() {
-    try { var r=localStorage.getItem(KEY); if(!r)return null; var s=JSON.parse(r); return (s.empId && s.site) ? s : null; } catch(e){return null;}
+// ── สะพานไปยังโมดูลร่วม ──────────────────────────────────
+// เก็บชื่อเดิมไว้เพื่อไม่ต้องแก้โค้ดที่เรียกใช้ทั้งไฟล์
+var DocScanAuth = {
+  load: function () { return DocScan.loadSession(); },
+  clear: function () { DocScan.logout(DOCSCAN_CONFIG.API_URL); },
+  requireAuth: function () {
+    var s = DocScan.requireAuth();
+    if (!s) return null;
+    if (s.mustChangePassword) { location.href = 'change-password.html'; return null; }
+    if (["warehouse", "admin"].indexOf(s.role) === -1) {
+      alert('บัญชีนี้ไม่มีสิทธิ์ใช้งานหน้านี้');
+      location.href = s.role === 'delivery' ? 'delivery.html' : 'batch.html';
+      return null;
+    }
+    return s;
   }
-  function clear() { localStorage.removeItem(KEY); }
-  function requireAuth() { var s=load(); if(!s){window.location.href='login.html';return null;} return s; }
-  return { load:load, clear:clear, requireAuth:requireAuth };
-})();
+};
+
+/** ยิงคำขอแบบ POST พร้อม token, timeout, retry และกันข้อมูลซ้ำ */
+function apiPost(payload) { return DocScan.authFetch(API_URL, payload); }
+/** ยิงคำขอแบบ GET พร้อม token */
+function apiGetText(action, params) {
+  // getCSV คืนข้อความดิบ ไม่ใช่ JSON
+  return DocScan.authGetText(API_URL, action, params || {});
+}
+/** ยิงคำขอแบบ GET พร้อม token */
+function apiGetJson(action, params, extraQS) {
+  var p = params || {};
+  // getSiteFilterParam คืนสตริงแบบ "&site_filter=..." ต้องแตกกลับเป็น object
+  if (extraQS) {
+    String(extraQS).replace(/^&/, '').split('&').forEach(function (kv) {
+      if (!kv) return;
+      var i = kv.indexOf('=');
+      if (i > 0) p[kv.slice(0, i)] = decodeURIComponent(kv.slice(i + 1));
+    });
+  }
+  return DocScan.authGet(API_URL, action, p);
+}
+
+/** พาไปหน้าเข้าสู่ระบบเมื่อเซสชันหมดอายุกลางคัน โดยไม่ทิ้งงานที่ค้าง */
+function handleAuthError(err) {
+  if (err && err.code === 'auth_required') {
+    alert('เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่\n\nงานที่ค้างอยู่ยังอยู่ในเครื่อง ไม่หายไปไหน');
+    location.href = 'login.html';
+    return true;
+  }
+  return false;
+}
 
 var API_URL = DOCSCAN_CONFIG.API_URL;
 var CSV_URL = API_URL + '?action=getCSV';
 var selectedSite = ''; var selectedEmpId = ''; var selectedEmpName = ''; var selectedEmpEmail = '';
-var csvData = []; var csvLoaded = false;
+var csvData = []; var csvLoaded = false; var _csvIndex = null;
 var rows = [];
 
 // ── Init ──────────────────────────────────────────────────
@@ -434,7 +493,7 @@ function loadCSV() {
   } catch(e) {}
 
   // fetch ใหม่
-  fetch(CSV_URL).then(function(r){ return r.text(); }).then(function(text) {
+  apiGetText('getCSV').then(function(text) {
     csvData   = parseCSV(text);
     csvLoaded = true;
     try {
@@ -452,16 +511,22 @@ function clearCSVCache() {
 }
 
 function parseCSV(text) {
-  var lines = text.replace(/\r/g,'').split('\n').filter(function(l){return l.trim();});
-  if (lines.length<2) return [];
-  var headers = lines[0].replace(/^\uFEFF/,'').split(','); var result=[];
-  for (var i=1;i<lines.length;i++){var vals=lines[i].split(',');var obj={};headers.forEach(function(h,idx){obj[h.trim()]=(vals[idx]||'').trim();});result.push(obj);}
-  return result;
+  // ตัวอ่านเดิม split(',') ตรง ๆ ทำให้แถวที่มี comma ในชื่อลูกค้าเลื่อนคอลัมน์
+  var rows = DocScan.parseCSV(text);
+  _csvIndex = DocScan.buildIndex(rows);
+  return rows;
 }
 
 function searchCSV(barcode) {
-  barcode = barcode.trim().toUpperCase();
-  return csvData.find(function(r){return (r['barcode']||'').trim().toUpperCase()===barcode;}) || null;
+  if (!_csvIndex) _csvIndex = DocScan.buildIndex(csvData);
+  return DocScan.searchCSV(_csvIndex, barcode);
+}
+
+/** หารายการที่ใกล้เคียง เผื่อกรอกผิดหนึ่งตัว */
+function suggestCSV(barcode) {
+  if (!_csvIndex) _csvIndex = DocScan.buildIndex(csvData);
+  var n = DocScan.classify({ value: barcode, source: 'manual' }, _csvIndex);
+  return n && n.suggestion ? n.suggestion : null;
 }
 
 // ── Site ──────────────────────────────────────────────────
@@ -659,7 +724,8 @@ async function _extractPDFPage(arrayBuf, pageNum) {
 // สร้าง row object มาตรฐาน
 function _makeRow(file, photoType) {
   return {
-    id: ++_rowIdCounter, file: file, photoData: null, pdfPageData: null,
+    id: ++_rowIdCounter, client_id: DocScan.newClientId(),
+    file: file, photoData: null, pdfPageData: null,
     photoType: photoType, barcode: '', doc: null, status: 'idle',
     editVals: { refNo:'', itemName:'', transferFrom:'', originAcc:'', transferTo:'', destAcc:'', despatch:'', receivedDate:'', sentQty:'', receivedQty:'' }
   };
@@ -667,46 +733,11 @@ function _makeRow(file, photoType) {
 
 // ── Smart Date Input ──────────────────────────────────────
 // แปลง YYYY-MM-DD → DD/MM/YYYY สำหรับแสดงผลใน input
-function toDisplayDate(isoVal) {
-  if (!isoVal) return '';
-  try {
-    var p = isoVal.split('-');
-    if (p.length === 3) return p[2] + '/' + p[1] + '/' + p[0];
-  } catch(e) {}
-  return isoVal;
-}
+function toDisplayDate(v) { return DocScan.toDisplayDate(v); }
 
 // parse input หลากหลาย format → YYYY-MM-DD
 // รับ: ddmmyy, ddmmyyyy, dd/mm/yy, dd/mm/yyyy, ddmmyy (6 ตัว), ฯลฯ
-function parseDateInput(raw) {
-  var s = raw.trim().replace(/[-\s]/g, '/');
-  // มี / แล้ว
-  if (s.indexOf('/') > -1) {
-    var p = s.split('/');
-    if (p.length === 3) {
-      var d = p[0].padStart(2,'0');
-      var m = p[1].padStart(2,'0');
-      var y = p[2].length === 2 ? '20' + p[2] : p[2];
-      return validate(d, m, y);
-    }
-    return null;
-  }
-  // ตัวเลขล้วน
-  var digits = s.replace(/\D/g, '');
-  if (digits.length === 6) { // ddmmyy
-    return validate(digits.slice(0,2), digits.slice(2,4), '20'+digits.slice(4,6));
-  }
-  if (digits.length === 8) { // ddmmyyyy
-    return validate(digits.slice(0,2), digits.slice(2,4), digits.slice(4,8));
-  }
-  return null;
-
-  function validate(d, m, y) {
-    var dd = parseInt(d,10), mm = parseInt(m,10), yy = parseInt(y,10);
-    if (dd < 1 || dd > 31 || mm < 1 || mm > 12 || yy < 2000 || yy > 2099) return null;
-    return y + '-' + m.padStart(2,'0') + '-' + d.padStart(2,'0');
-  }
-}
+function parseDateInput(v) { return DocScan.parseDateInput(v); }
 
 // flag ป้องกัน blur ทำงานหลัง Enter
 var _skipBlur = false;
@@ -945,9 +976,9 @@ function _setInputInRow(tr, field, val, nth) {
   if (inputs[nth]) inputs[nth].value = val || '';
 }
 
-function toInputDate(val){
-  if(!val)return new Date().toISOString().split('T')[0];
-  try{if(val.indexOf('/')>-1){var p=val.split('/');if(p.length===3){var y=p[2].length===2?'20'+p[2]:p[2];return y+'-'+p[1].padStart(2,'0')+'-'+p[0].padStart(2,'0');}}return new Date(val).toISOString().split('T')[0];}catch(e){return '';}
+function toInputDate(v) {
+  // ของเดิมคืนวันนี้เมื่อไม่มีค่า คงพฤติกรรมเดิมไว้เพื่อไม่ให้ฟอร์มเปลี่ยนไป
+  return DocScan.toInputDate(v) || DocScan.todayISO();
 }
 
 function updateEdit(id, field, value) {
@@ -994,36 +1025,49 @@ async function submitBatch(){
   if(!ready.length)return;
   var btn=document.getElementById('submitBtn');btn.disabled=true;
   try{
-    // ── Parallel upload แบ่งเป็น chunks of 5 ──────────────
-    var CHUNK = 5;
-    var total = ready.filter(function(r){ return r.pdfPageData||r.photoData; }).length;
-    var done  = 0;
-
-    async function uploadRow(row) {
-      var uploadData = row.pdfPageData || row.photoData;
-      if (!uploadData) return;
-      var refNo     = row.editVals.refNo || row.barcode;
-      var uploadStr = uploadData;
-      if (uploadData instanceof Uint8Array) {
-        var binary=''; var bytes=new Uint8Array(uploadData);
-        for(var b=0;b<bytes.byteLength;b++) binary+=String.fromCharCode(bytes[b]);
-        uploadStr = 'data:application/pdf;base64,'+btoa(binary);
+    // ── อัปโหลดเป็นชุด ชุดละ 5 ไฟล์ ────────────────────
+    // เดิมยิงหนึ่งคำขอต่อหนึ่งไฟล์ 50 หน้า = 50 คำขอ
+    // ตอนนี้เหลือ 10 คำขอ และมี client_id กันไฟล์ซ้ำเมื่อ retry
+    var uploadList = ready.filter(function (r) {
+      return r.pdfPageData || r.photoData;
+    }).map(function (r) {
+      var d = r.pdfPageData || r.photoData;
+      var str = d;
+      if (d instanceof Uint8Array) {
+        var binary = '';
+        for (var b = 0; b < d.byteLength; b++) binary += String.fromCharCode(d[b]);
+        str = 'data:application/pdf;base64,' + btoa(binary);
       }
-      row.photoUrl = await uploadPhoto(uploadStr, row.barcode, refNo);
-      done++;
-      btn.textContent = 'อัปโหลด '+done+'/'+total+'...';
-    }
+      return {
+        client_id: r.client_id,
+        barcode: r.barcode,
+        ref_no: r.editVals.refNo || r.barcode,
+        image: str
+      };
+    });
 
-    // แบ่ง ready เป็น chunks แล้ว upload พร้อมกันทีละ chunk
-    for (var i=0; i<ready.length; i+=CHUNK) {
-      var chunk = ready.slice(i, i+CHUNK);
-      await Promise.all(chunk.map(uploadRow));
+    if (uploadList.length) {
+      var results = await DocScan.uploadBatch(API_URL, uploadList, {
+        onProgress: function (d, t) { btn.textContent = 'อัปโหลด ' + d + '/' + t + '...'; }
+      });
+      var failed = 0;
+      ready.forEach(function (r) {
+        var x = results.get(r.client_id);
+        r.photoUrl = (x && x.ok) ? x.url : '';
+        if (x && !x.ok) failed++;
+      });
+      if (failed) {
+        // ไม่หยุดทั้งชุด แต่ต้องบอกให้รู้ว่าบางไฟล์ไม่ขึ้น
+        alert('อัปโหลดไฟล์ไม่สำเร็จ ' + failed + ' รายการ\\n' +
+              'ข้อมูลจะยังถูกบันทึก แต่ไม่มีไฟล์แนบ กรุณาตรวจสอบภายหลัง');
+      }
     }
 
     btn.textContent='กำลังบันทึกข้อมูล...';
     var items=ready.map(function(row){
       var ev=row.editVals;
       return{
+        client_id: row.client_id,
         barcode      : row.barcode,
         ref_no       : ev.refNo        || '',
         item_name    : ev.itemName     || '',
@@ -1043,8 +1087,8 @@ async function submitBatch(){
         photo_url    : row.photoUrl    || ''
       };
     });
-    var res=await fetch(API_URL,{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action:'updateItems',items:items})});
-    var data=await res.json();
+    var res=await apiPost({action:'updateItems',items:items});
+    var data = res;
     if(data.status==='ok'){
       var submittedIds=ready.map(function(r){return r.id;});
       rows=rows.filter(function(r){return submittedIds.indexOf(r.id)===-1;});
@@ -1055,8 +1099,15 @@ async function submitBatch(){
   updateSubmitBtn();
 }
 
-async function uploadPhoto(base64,barcode,refNo){
-  try{var res=await fetch(API_URL,{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action:'uploadPhoto',barcode:barcode,image:base64,ref_no:refNo||barcode})});var data=await res.json();return data.url||'';}catch(e){return '';}
+// uploadPhoto เดิมถูกแทนด้วย DocScan.uploadBatch แล้ว
+// คงชื่อไว้เผื่อมีที่อื่นเรียก แต่ให้ผ่านเส้นทางใหม่ที่มี token และ client_id
+async function uploadPhoto(base64, barcode, refNo) {
+  var r = await DocScan.uploadBatch(API_URL, [{
+    client_id: DocScan.newClientId(), barcode: barcode,
+    ref_no: refNo || barcode, image: base64
+  }]);
+  var first = r.values().next().value;
+  return (first && first.ok) ? first.url : '';
 }
 
 // ── Preview Modal ─────────────────────────────────────────
