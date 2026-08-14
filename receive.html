@@ -357,7 +357,10 @@ window.dispatchEvent(new Event('docscan-ready'));
 // เก็บชื่อเดิมไว้เพื่อไม่ต้องแก้โค้ดที่เรียกใช้ทั้งไฟล์
 var DocScanAuth = {
   load: function () { return DocScan.loadSession(); },
-  clear: function () { DocScan.logout(DOCSCAN_CONFIG.API_URL); },
+  clear: function () {
+    // ล้างในเครื่องทันที ไม่ต้องรอเซิร์ฟเวอร์ เพราะผู้เรียกมักเปลี่ยนหน้าต่อทันที
+    return DocScan.logout(DOCSCAN_CONFIG.API_URL);
+  },
   requireAuth: function () {
     var s = DocScan.requireAuth();
     if (!s) return null;
@@ -393,6 +396,13 @@ function apiGetJson(action, params, extraQS) {
 }
 
 /** พาไปหน้าเข้าสู่ระบบเมื่อเซสชันหมดอายุกลางคัน โดยไม่ทิ้งงานที่ค้าง */
+/** ออกจากระบบ — ล้าง session ในเครื่องก่อน แล้วค่อยเปลี่ยนหน้า */
+function logout() {
+  if (!confirm('ออกจากระบบ?')) return;
+  DocScanAuth.clear();
+  location.href = 'login.html';
+}
+
 function handleAuthError(err) {
   if (err && err.code === 'auth_required') {
     alert('เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่\n\nงานที่ค้างอยู่ยังอยู่ในเครื่อง ไม่หายไปไหน');

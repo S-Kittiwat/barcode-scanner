@@ -404,7 +404,10 @@ window.dispatchEvent(new Event('docscan-ready'));
 // เก็บชื่อเดิมไว้เพื่อไม่ต้องแก้โค้ดที่เรียกใช้ทั้งไฟล์
 var DocScanAuth = {
   load: function () { return DocScan.loadSession(); },
-  clear: function () { DocScan.logout(DOCSCAN_CONFIG.API_URL); },
+  clear: function () {
+    // ล้างในเครื่องทันที ไม่ต้องรอเซิร์ฟเวอร์ เพราะผู้เรียกมักเปลี่ยนหน้าต่อทันที
+    return DocScan.logout(DOCSCAN_CONFIG.API_URL);
+  },
   requireAuth: function () {
     var s = DocScan.requireAuth();
     if (!s) return null;
