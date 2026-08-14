@@ -78,6 +78,14 @@
         </select>
       </div>
       <div class="field">
+        <label class="label" for="site">ไซต์</label>
+        <input class="input" id="site" type="text" value="ALL"
+               placeholder="เช่น NDC-วังน้อย">
+        <div class="pw-hint" id="siteHint">admin ใส่ ALL ได้ = เห็นทุกไซต์</div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="field">
         <label class="label" for="mustChange">บังคับเปลี่ยนรหัสตอนล็อกอินแรก</label>
         <select class="select" id="mustChange">
           <option value="false">ไม่บังคับ (ตั้งรหัสให้ตัวเอง)</option>
@@ -107,7 +115,9 @@ const $ = id => document.getElementById(id);
 let lastHash = '';
 
 function check() {
-  const ok = $('empId').value.trim() && $('password').value;
+  const isAdmin = $('role').value === 'admin';
+  const siteOk = isAdmin || $('site').value.trim().length > 0;
+  const ok = $('empId').value.trim() && $('password').value && siteOk;
   $('btnCalc').disabled = !ok;
   const pw = $('password').value;
   if (pw) {
@@ -121,6 +131,19 @@ function check() {
 }
 ['empId', 'password'].forEach(id => $(id).addEventListener('input', check));
 ['role', 'mustChange'].forEach(id => $(id).addEventListener('change', render));
+$('site').addEventListener('input', render);
+
+// admin ไม่ผูกกับไซต์ ส่วน role อื่นต้องระบุไซต์เสมอ
+// ถ้าปล่อยว่าง ค่าว่างจะกลายเป็น "ไม่กรอง" = เห็นข้อมูลทุกไซต์
+$('role').addEventListener('change', () => {
+  const isAdmin = $('role').value === 'admin';
+  if (isAdmin && !$('site').value.trim()) $('site').value = 'ALL';
+  if (!isAdmin && /^(ALL|\*|ทุกไซต์)$/i.test($('site').value.trim())) $('site').value = '';
+  $('siteHint').textContent = isAdmin
+    ? 'admin ใส่ ALL ได้ = เห็นทุกไซต์'
+    : 'ต้องระบุไซต์จริง — เว้นว่างไม่ได้ เพราะจะกลายเป็นเห็นทุกไซต์';
+  render();
+});
 
 async function calc() {
   const empId = $('empId').value.trim();
@@ -152,7 +175,7 @@ function render() {
     "  '" + empId + "',\n" +
     "  'ชื่อ-นามสกุล',\n" +
     "  'อีเมล@brs-group.com',\n" +
-    "  'NDC-วังน้อย',\n" +
+    "  '" + ($('site').value.trim() || 'ALL') + "',\n" +
     "  '" + $('role').value + "',\n" +
     "  '" + lastHash + "',\n" +
     "  " + $('mustChange').value + "\n" +

@@ -154,6 +154,26 @@ main{max-width:900px;margin:0 auto;padding:20px 16px 100px;}
 .logout-btn:hover{border-color:var(--danger);color:var(--danger);}
 </style>
 <script src="config.js"></script>
+<script type="module">
+// ── โมดูลร่วม DocScan ────────────────────────────────────
+// module script ทำงานหลัง classic script แต่ก่อน window.onload
+// โค้ดเดิมเรียก requireAuth ใน window.onload จึงปลอดภัย
+import { apiFetch, uploadBatch, newClientId } from './js/api.js';
+import { parseCSV, buildIndex, searchCSV, classify } from './js/csv.js';
+import { parseDateInput, toDisplayDate, toInputDate, todayISO } from './js/date.js';
+import { requireAuth, authFetch, authGet, authGetText, logout, loadSession, daysLeft } from './js/auth.js';
+
+window.DocScan = {
+  apiFetch, authFetch, authGet, authGetText, uploadBatch, newClientId,
+  parseCSV, buildIndex, searchCSV, classify,
+  parseDateInput, toDisplayDate, toInputDate, todayISO,
+  requireAuth, logout, loadSession, daysLeft
+};
+// ประทับเลขเวอร์ชันไว้ให้หาเวลาผู้ใช้แจ้งปัญหา
+document.documentElement.setAttribute('data-docscan-version',
+  (window.DOCSCAN_CONFIG && DOCSCAN_CONFIG.VERSION) || '');
+window.dispatchEvent(new Event('docscan-ready'));
+</script>
 </head>
 <body>
 
@@ -442,23 +462,54 @@ main{max-width:900px;margin:0 auto;padding:20px 16px 100px;}
 
 <script>
 // ── DocScan Shared Auth (inline) ──────────────────────────
-var DocScanAuth = (function () {
-  var KEY = 'docScanSession';
-  function save(empId, empName, empEmail, site) {
-    localStorage.setItem(KEY, JSON.stringify({ empId:empId, empName:empName, empEmail:empEmail, site:site }));
+// ── สะพานไปยังโมดูลร่วม ──────────────────────────────────
+// เก็บชื่อเดิมไว้เพื่อไม่ต้องแก้โค้ดที่เรียกใช้ทั้งไฟล์
+var DocScanAuth = {
+  load: function () { return DocScan.loadSession(); },
+  clear: function () { DocScan.logout(DOCSCAN_CONFIG.API_URL); },
+  requireAuth: function () {
+    var s = DocScan.requireAuth();
+    if (!s) return null;
+    if (s.mustChangePassword) { location.href = 'change-password.html'; return null; }
+    if (["warehouse", "admin"].indexOf(s.role) === -1) {
+      alert('บัญชีนี้ไม่มีสิทธิ์ใช้งานหน้านี้');
+      location.href = s.role === 'delivery' ? 'delivery.html' : 'batch.html';
+      return null;
+    }
+    return s;
   }
-  function load() {
-    try {
-      var raw = localStorage.getItem(KEY);
-      if (!raw) return null;
-      var s = JSON.parse(raw);
-      return (s.empId && s.empName && s.empEmail && s.site) ? s : null;
-    } catch(e) { return null; }
+};
+
+/** ยิงคำขอแบบ POST พร้อม token, timeout, retry และกันข้อมูลซ้ำ */
+function apiPost(payload) { return DocScan.authFetch(API_URL, payload); }
+/** ยิงคำขอแบบ GET พร้อม token */
+function apiGetText(action, params) {
+  // getCSV คืนข้อความดิบ ไม่ใช่ JSON
+  return DocScan.authGetText(API_URL, action, params || {});
+}
+/** ยิงคำขอแบบ GET พร้อม token */
+function apiGetJson(action, params, extraQS) {
+  var p = params || {};
+  // getSiteFilterParam คืนสตริงแบบ "&site_filter=..." ต้องแตกกลับเป็น object
+  if (extraQS) {
+    String(extraQS).replace(/^&/, '').split('&').forEach(function (kv) {
+      if (!kv) return;
+      var i = kv.indexOf('=');
+      if (i > 0) p[kv.slice(0, i)] = decodeURIComponent(kv.slice(i + 1));
+    });
   }
-  function clear() { localStorage.removeItem(KEY); }
-  function requireAuth() { var s=load(); if(!s){window.location.href='login.html';return null;} return s; }
-  return { save:save, load:load, clear:clear, requireAuth:requireAuth };
-})();
+  return DocScan.authGet(API_URL, action, p);
+}
+
+/** พาไปหน้าเข้าสู่ระบบเมื่อเซสชันหมดอายุกลางคัน โดยไม่ทิ้งงานที่ค้าง */
+function handleAuthError(err) {
+  if (err && err.code === 'auth_required') {
+    alert('เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่\n\nงานที่ค้างอยู่ยังอยู่ในเครื่อง ไม่หายไปไหน');
+    location.href = 'login.html';
+    return true;
+  }
+  return false;
+}
 
 // ── App Variables ─────────────────────────────────────────
 var queue = [];
@@ -504,8 +555,7 @@ window.onload = function () {
 
 // ── CSV ───────────────────────────────────────────────────
 function loadCSV() {
-  fetch(CSV_URL, { method: 'GET', redirect: 'follow' })
-    .then(function(r) { return r.text(); })
+  apiGetText('getCSV')
     .then(function(text) {
       csvData = parseCSV(text); csvLoaded = true;
       // ── แสดง ready + enable input ──
@@ -839,8 +889,8 @@ async function submitAll() {
       }
     }
     btn.textContent = 'กำลังบันทึกข้อมูล...';
-    var res = await fetch(API_URL, {method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action:'updateItems',items:queue})});
-    var data = await res.json();
+    var res = await apiPost({action:'updateItems',items:queue});
+    var data = res;
     if (data.status==='ok') { var count=queue.length; queue=[]; renderQueue(); showToast('บันทึก '+count+' รายการเรียบร้อย','success'); }
     else { showToast(data.message||'Error','error'); }
   } catch(err) { showToast('เกิดข้อผิดพลาด: '+err.message,'error'); }
@@ -848,11 +898,15 @@ async function submitAll() {
   btn.textContent = 'ยืนยัน '+queue.length+' รายการ สู่ Google Sheet';
 }
 
+// uploadPhoto เดิมถูกแทนด้วย DocScan.uploadBatch แล้ว
+// คงชื่อไว้เผื่อมีที่อื่นเรียก แต่ให้ผ่านเส้นทางใหม่ที่มี token และ client_id
 async function uploadPhoto(base64, barcode, refNo) {
-  try {
-    var res = await fetch(API_URL,{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action:'uploadPhoto',barcode:barcode,image:base64,ref_no:refNo||barcode})});
-    var data = await res.json(); return data.url||'';
-  } catch(e) { return ''; }
+  var r = await DocScan.uploadBatch(API_URL, [{
+    client_id: DocScan.newClientId(), barcode: barcode,
+    ref_no: refNo || barcode, image: base64
+  }]);
+  var first = r.values().next().value;
+  return (first && first.ok) ? first.url : '';
 }
 
 var toastTimer;
