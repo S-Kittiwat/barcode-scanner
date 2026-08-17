@@ -6,7 +6,7 @@
 <title>DocScan — รับเอกสาร</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<script src="config.js"></script>
+<script src="config.js?v=2.0.1"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
 :root{
@@ -160,16 +160,16 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 // ── โมดูลร่วม DocScan ────────────────────────────────────
 // module script ทำงานหลัง classic script แต่ก่อน window.onload
 // โค้ดเดิมเรียก requireAuth ใน window.onload จึงปลอดภัย
-import { apiFetch, uploadBatch, newClientId } from './js/api.js';
-import { parseCSV, buildIndex, searchCSV, classify } from './js/csv.js';
-import { parseDateInput, toDisplayDate, toInputDate, todayISO } from './js/date.js';
-import { requireAuth, authFetch, authGet, authGetText, logout, loadSession, daysLeft } from './js/auth.js';
+import { apiFetch, uploadBatch, newClientId } from './js/api.js?v=2.0.1';
+import { parseCSV, buildIndex, searchCSV, classify } from './js/csv.js?v=2.0.1';
+import { parseDateInput, toDisplayDate, toInputDate, todayISO } from './js/date.js?v=2.0.1';
+import { requireAuth, authFetch, authGet, authGetText, logout, loadSession, daysLeft, AUTH_JS_VERSION } from './js/auth.js?v=2.0.1';
 
 window.DocScan = {
   apiFetch, authFetch, authGet, authGetText, uploadBatch, newClientId,
   parseCSV, buildIndex, searchCSV, classify,
   parseDateInput, toDisplayDate, toInputDate, todayISO,
-  requireAuth, logout, loadSession, daysLeft
+  requireAuth, logout, loadSession, daysLeft, AUTH_JS_VERSION
 };
 // ประทับเลขเวอร์ชันไว้ให้หาเวลาผู้ใช้แจ้งปัญหา
 document.documentElement.setAttribute('data-docscan-version',
@@ -399,8 +399,12 @@ function apiGetJson(action, params, extraQS) {
 /** ออกจากระบบ — ล้าง session ในเครื่องก่อน แล้วค่อยเปลี่ยนหน้า */
 function logout() {
   if (!confirm('ออกจากระบบ?')) return;
-  DocScanAuth.clear();
-  location.href = 'login.html';
+  // ล้างตรง ๆ ก่อนเป็นอันดับแรก ไม่พึ่งโมดูล
+  // เผื่อกรณีเบราว์เซอร์ยังใช้ js/auth.js ตัวเก่าจากแคช
+  try { localStorage.removeItem('docScanSession'); } catch (e) {}
+  try { DocScanAuth.clear(); } catch (e) {}
+  // replace เพื่อไม่ให้กดย้อนกลับเข้าหน้าเดิมได้
+  location.replace('login.html');
 }
 
 function handleAuthError(err) {

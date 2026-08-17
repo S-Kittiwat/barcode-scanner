@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DocScan — เครื่องมือผู้ดูแล</title>
-<script src="config.js"></script>
-<link rel="stylesheet" href="css/auth.css">
+<script src="config.js?v=2.0.1"></script>
+<link rel="stylesheet" href="css/auth.css?v=2.0.1">
 <style>
   .login-wrap{max-width:560px}
   .out{background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);
@@ -109,7 +109,7 @@
 </div>
 
 <script type="module">
-import { derivePassword, checkPasswordStrength } from './js/auth.js';
+import { derivePassword, checkPasswordStrength } from './js/auth.js?v=2.0.1';
 
 const $ = id => document.getElementById(id);
 let lastHash = '';

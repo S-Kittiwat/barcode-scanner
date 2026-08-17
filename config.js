@@ -5,5 +5,5 @@
 var DOCSCAN_CONFIG = {
   API_URL: 'https://script.google.com/macros/s/AKfycbwLLuKrYYnKp-xwqZX5A-kBQjPkgfQfxjKeZQ2QTARAZrK4a0TFJzKHqY2yLxcJcGRqhA/exec',
   APP_NAME: 'DocScan',
-  VERSION: '2.0.0'
+  VERSION: '2.0.1'
 };

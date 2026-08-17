@@ -136,21 +136,21 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .spinner{width:14px;height:14px;border:2px solid rgba(251,191,36,.3);border-top-color:var(--warn);border-radius:50%;animation:spin .7s linear infinite;display:inline-block;}
 @keyframes spin{to{transform:rotate(360deg);}}
 </style>
-<script src="config.js"></script>
+<script src="config.js?v=2.0.1"></script>
 <script type="module">
 // ── โมดูลร่วม DocScan ────────────────────────────────────
 // module script ทำงานหลัง classic script แต่ก่อน window.onload
 // โค้ดเดิมเรียก requireAuth ใน window.onload จึงปลอดภัย
-import { apiFetch, uploadBatch, newClientId } from './js/api.js';
-import { parseCSV, buildIndex, searchCSV, classify } from './js/csv.js';
-import { parseDateInput, toDisplayDate, toInputDate, todayISO } from './js/date.js';
-import { requireAuth, authFetch, authGet, authGetText, logout, loadSession, daysLeft } from './js/auth.js';
+import { apiFetch, uploadBatch, newClientId } from './js/api.js?v=2.0.1';
+import { parseCSV, buildIndex, searchCSV, classify } from './js/csv.js?v=2.0.1';
+import { parseDateInput, toDisplayDate, toInputDate, todayISO } from './js/date.js?v=2.0.1';
+import { requireAuth, authFetch, authGet, authGetText, logout, loadSession, daysLeft, AUTH_JS_VERSION } from './js/auth.js?v=2.0.1';
 
 window.DocScan = {
   apiFetch, authFetch, authGet, authGetText, uploadBatch, newClientId,
   parseCSV, buildIndex, searchCSV, classify,
   parseDateInput, toDisplayDate, toInputDate, todayISO,
-  requireAuth, logout, loadSession, daysLeft
+  requireAuth, logout, loadSession, daysLeft, AUTH_JS_VERSION
 };
 // ประทับเลขเวอร์ชันไว้ให้หาเวลาผู้ใช้แจ้งปัญหา
 document.documentElement.setAttribute('data-docscan-version',
@@ -595,7 +595,15 @@ function getSiteFilterParam(s){
   if(f&&f.length)return "&site_filter="+encodeURIComponent(f.join("|"));
   return "&site="+encodeURIComponent(s.site||"");
 }
-function logout(){ DocScanAuth.clear(); location.href="login.html"; }
+function logout() {
+  if (!confirm('ออกจากระบบ?')) return;
+  // ล้างตรง ๆ ก่อนเป็นอันดับแรก ไม่พึ่งโมดูล
+  // เผื่อกรณีเบราว์เซอร์ยังใช้ js/auth.js ตัวเก่าจากแคช
+  try { localStorage.removeItem('docScanSession'); } catch (e) {}
+  try { DocScanAuth.clear(); } catch (e) {}
+  // replace เพื่อไม่ให้กดย้อนกลับเข้าหน้าเดิมได้
+  location.replace('login.html');
+}
 
 var toastTimer;
 function showToast(msg,type){var t=document.getElementById('toast');t.textContent=msg;t.className='toast '+(type||'info')+' show';clearTimeout(toastTimer);toastTimer=setTimeout(function(){t.classList.remove('show');},3000);}
