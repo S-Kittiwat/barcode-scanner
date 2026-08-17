@@ -11,6 +11,9 @@
 
 import { apiFetch, apiGet } from './api.js';
 
+/** ใช้เช็คใน console ว่าเบราว์เซอร์โหลดไฟล์เวอร์ชันไหนอยู่ */
+export const AUTH_JS_VERSION = '2.0.1';
+
 const SESSION_KEY = 'docScanSession';
 const PBKDF2_ITER = 150000;
 
@@ -132,14 +135,28 @@ export async function changePassword(apiUrl, empId, oldPassword, newPassword) {
   return res;
 }
 
+/**
+ * ออกจากระบบ
+ *
+ * ล้าง session ในเครื่องก่อนเป็นอันดับแรก แล้วค่อยแจ้งเซิร์ฟเวอร์
+ *
+ * ลำดับนี้สำคัญ: ผู้เรียกมักเปลี่ยนหน้าทันทีโดยไม่รอ Promise
+ * ถ้าล้างทีหลัง หน้าจะถูกเปลี่ยนไปก่อนแล้วโค้ดส่วนนั้นไม่ได้ทำงาน
+ * ผลคือกดออกจากระบบแล้วเด้งกลับเข้าไปใหม่
+ *
+ * และถ้าออฟไลน์อยู่ก็ยังออกจากระบบได้ ส่วน token ที่ค้างบนเซิร์ฟเวอร์
+ * จะหมดอายุเองตามกำหนด
+ */
 export async function logout(apiUrl) {
   const s = loadSession();
-  if (s && s.token) {
-    // ถ้าออฟไลน์อยู่ก็ล้างฝั่งเครื่องไปก่อน token จะหมดอายุเองที่เซิร์ฟเวอร์
-    try { await apiFetch(apiUrl, { action: 'logout', token: s.token }, { retries: 0 }); }
-    catch {}
-  }
   clearSession();
+
+  if (s && s.token) {
+    try {
+      await apiFetch(apiUrl, { action: 'logout', token: s.token },
+                     { retries: 0, timeoutMs: 5000 });
+    } catch { /* ออกจากระบบฝั่งเครื่องสำเร็จแล้ว ที่เหลือไม่สำคัญ */ }
+  }
 }
 
 /**
