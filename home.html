@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DocScan</title>
+<script src="config.js?v=2.7.1"></script>
+<link rel="stylesheet" href="css/auth.css?v=2.7.1">
+<style>
+  body{display:block;padding:0;align-items:stretch}
+  .wrap{max-width:900px;margin:0 auto;padding:26px 20px 100px}
+  .top{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:8px}
+  .top .brand{margin-bottom:0}
+  .who{margin-left:auto;font-size:12.5px;color:var(--muted);text-align:right;line-height:1.7}
+  .who b{color:var(--text)}
+
+  .quick{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+    padding:16px 18px;margin:22px 0 8px;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+  .quick .n{font-family:var(--mono);font-size:24px;font-weight:600}
+  .quick .k{font-size:12.5px;color:var(--muted)}
+  .quick .sep{width:1px;height:34px;background:var(--border)}
+  .quick.bad{border-color:rgba(248,113,113,.5)}
+  .quick .n.bad{color:var(--danger)}
+
+  .gp{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);
+    margin:26px 0 12px;font-family:var(--mono)}
+  .grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(250px,1fr))}
+  .card{display:flex;gap:14px;align-items:flex-start;padding:18px;border-radius:var(--r);
+    background:var(--surface);border:1px solid var(--border);text-decoration:none;
+    color:var(--text);transition:border-color .15s,transform .1s}
+  .card:hover{border-color:var(--accent);transform:translateY(-1px)}
+  .card.off{opacity:.38;cursor:not-allowed;background:#172033}
+  .card.off:hover{border-color:var(--border);transform:none}
+  .card .lk{display:block;font-size:11.5px;color:var(--muted);margin-top:6px;
+    font-family:var(--mono)}
+  .card .ic{font-size:24px;line-height:1}
+  .card .tt{font-size:15px;font-weight:600}
+  .card .dd{font-size:12.5px;color:var(--muted);margin-top:4px;line-height:1.6}
+  .note2{font-size:12.5px;color:var(--muted);margin-top:22px;line-height:1.8}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div class="brand" style="margin-bottom:0">
+      <div class="brand-icon">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#0f172a" stroke-width="2.5">
+          <rect x="3" y="4" width="3" height="16" rx="1"/><rect x="8" y="4" width="1.5" height="16" rx="0.5"/>
+          <rect x="11" y="4" width="3" height="16" rx="1"/><rect x="16" y="4" width="1.5" height="16" rx="0.5"/>
+          <rect x="19" y="4" width="2" height="16" rx="1"/>
+        </svg>
+      </div>
+      <div>
+        <div class="brand-name">DocScan</div>
+        <div class="brand-sub">Pallet Tracking System</div>
+      </div>
+    </div>
+    <div class="who" id="who"></div>
+  </div>
+
+  <div class="quick" id="quick" style="display:none"></div>
+
+  <div id="menu"></div>
+
+  <div class="note2" id="hint"></div>
+</div>
+
+<script type="module">
+import { requireAuth, authFetch, logout } from './js/auth.js?v=2.7.1';
+import { menuFor, installNav, ROLE_LABEL } from './js/nav.js?v=2.7.1';
+
+const API = DOCSCAN_CONFIG.API_URL;
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s)
+  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+const session = requireAuth();
+if (session) {
+  $('who').innerHTML = '<b>' + esc(session.empName || session.empId) + '</b><br>' +
+    esc(ROLE_LABEL[session.role] || session.role) + ' · ' + esc(session.site || '');
+
+  $('menu').innerHTML = menuFor(session.role).map(g => `
+    <div class="gp">${esc(g.group)}</div>
+    <div class="grid">
+      ${g.items.map(it => it.allowed ? `
+        <a class="card" href="${it.file}">
+          <span class="ic">${it.icon}</span>
+          <span><span class="tt">${esc(it.title)}</span>
+            ${it.desc ? `<span class="dd">${esc(it.desc)}</span>` : ''}</span>
+        </a>` : `
+        <span class="card off" title="สำหรับ${esc(it.forRoles)}">
+          <span class="ic">${it.icon}</span>
+          <span><span class="tt">${esc(it.title)}</span>
+            ${it.desc ? `<span class="dd">${esc(it.desc)}</span>` : ''}
+            <span class="lk">สำหรับ${esc(it.forRoles)}</span></span>
+        </span>`).join('')}
+    </div>`).join('');
+
+  $('hint').innerHTML =
+    'งานที่เป็นสีจางคือส่วนที่บัญชีของคุณไม่มีสิทธิ์ใช้ — ' +
+    'หากต้องใช้งานให้ติดต่อผู้ดูแลระบบ<br>' +
+    'กดปุ่ม ☰ มุมขวาล่างเพื่อเปิดเมนูนี้ได้จากทุกหน้า';
+
+  installNav(session, { onLogout: doLogout });
+  loadQuick();
+}
+
+/** ตัวเลขที่ต้องรีบดู ดึงจากแคชของ dashboard จึงไม่หนัก */
+async function loadQuick() {
+  try {
+    const r = await authFetch(API, { action: 'docsDashboard' });
+    const s = r.summary || {};
+    const urgent = (s.pdf_over_sla || 0) + (s.ocr_mismatch || 0);
+    $('quick').className = 'quick' + (urgent ? ' bad' : '');
+    $('quick').style.display = 'flex';
+    $('quick').innerHTML =
+      `<div><div class="n">${s.total || 0}</div><div class="k">เอกสารที่ยังไม่ปิด</div></div>
+       <div class="sep"></div>
+       <div><div class="n ${s.pdf_over_sla ? 'bad' : ''}">${s.pdf_over_sla || 0}</div>
+            <div class="k">PDF เกิน SLA</div></div>
+       <div class="sep"></div>
+       <div><div class="n ${s.ocr_mismatch ? 'bad' : ''}">${s.ocr_mismatch || 0}</div>
+            <div class="k">ข้อมูลไม่ตรง</div></div>
+       <div style="margin-left:auto">
+         <a class="link" href="tracking.html">ดูรายการที่ต้องดำเนินการ →</a></div>`;
+  } catch (err) {
+    // ไม่ต้องรบกวนผู้ใช้ หน้าหลักยังใช้งานได้แม้ตัวเลขโหลดไม่ขึ้น
+    $('quick').style.display = 'none';
+  }
+}
+
+function doLogout() {
+  try { localStorage.removeItem('docScanSession'); } catch (e) {}
+  try { logout(API); } catch (e) {}
+  location.replace('login.html');
+}
+</script>
+</body>
+</html>
