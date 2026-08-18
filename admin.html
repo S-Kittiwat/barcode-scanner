@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DocScan — ผู้ดูแลระบบ</title>
+<script src="config.js?v=2.1.0"></script>
+<link rel="stylesheet" href="css/auth.css?v=2.1.0">
+<style>
+  body{display:block;padding:0;align-items:stretch}
+  .wrap{max-width:1000px;margin:0 auto;padding:22px 20px 60px}
+  .top{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:22px}
+  .top .brand{margin-bottom:0}
+  .who{margin-left:auto;font-size:12.5px;color:var(--muted);text-align:right;line-height:1.6}
+  .tabs{display:flex;gap:4px;border-bottom:1px solid var(--border);margin-bottom:20px}
+  .tab{background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);
+    font-family:var(--font);font-size:14px;padding:10px 16px;cursor:pointer}
+  .tab.on{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
+  .tab .badge{display:inline-block;background:var(--danger);color:#fff;border-radius:9px;
+    font-size:11px;padding:1px 7px;margin-left:6px;font-family:var(--mono)}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+    padding:18px 20px;margin-bottom:14px}
+  .card.wait{border-left:3px solid var(--warn)}
+  .card h3{font-size:15px;margin:0 0 4px}
+  .meta{font-size:12.5px;color:var(--muted);line-height:1.8;font-family:var(--mono)}
+  .ctrls{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-top:14px}
+  .ctrls .field{margin-bottom:0;min-width:150px}
+  .btn{border:none;border-radius:var(--rs);padding:9px 16px;font-family:var(--font);
+    font-size:13.5px;font-weight:600;cursor:pointer;white-space:nowrap}
+  .btn.ok{background:var(--success);color:#0f172a}
+  .btn.no{background:transparent;border:1px solid var(--danger);color:var(--danger)}
+  .btn.mini{background:transparent;border:1px solid var(--border);color:var(--text);
+    font-weight:400;padding:6px 12px;font-size:12.5px}
+  .btn.mini:hover{border-color:var(--accent);color:var(--accent)}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+  table{width:100%;border-collapse:collapse;font-size:13px;background:var(--surface);
+    border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+  th{text-align:left;font-size:11px;font-family:var(--mono);letter-spacing:.08em;
+    text-transform:uppercase;color:var(--muted);padding:10px 12px;
+    border-bottom:1px solid var(--border);background:var(--surface2);white-space:nowrap}
+  td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
+  tbody tr:last-child td{border-bottom:none}
+  .pill{display:inline-block;font-size:11px;font-family:var(--mono);padding:2px 8px;
+    border-radius:10px;border:1px solid;white-space:nowrap}
+  .p-admin{color:var(--accent);border-color:var(--accent)}
+  .p-wh{color:var(--success);border-color:var(--success)}
+  .p-dl{color:var(--warn);border-color:var(--warn)}
+  .p-off{color:var(--danger);border-color:var(--danger)}
+  .p-lock{color:var(--danger);border-color:var(--danger)}
+  .empty{color:var(--muted);font-size:13.5px;padding:28px;text-align:center;
+    border:1px dashed var(--border);border-radius:var(--r)}
+  .acts{display:flex;gap:6px;flex-wrap:wrap}
+  .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);z-index:60;
+    padding:12px 20px;border-radius:var(--rs);font-size:13.5px;max-width:90vw;display:none}
+  .toast.on{display:block}
+  .toast.good{background:var(--success);color:#0f172a}
+  .toast.bad{background:var(--danger);color:#fff}
+  @media (max-width:640px){ th:nth-child(4),td:nth-child(4){display:none} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div class="brand" style="margin-bottom:0">
+      <div class="brand-icon">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#0f172a" stroke-width="2.5">
+          <rect x="3" y="4" width="3" height="16" rx="1"/><rect x="8" y="4" width="1.5" height="16" rx="0.5"/>
+          <rect x="11" y="4" width="3" height="16" rx="1"/><rect x="16" y="4" width="1.5" height="16" rx="0.5"/>
+          <rect x="19" y="4" width="2" height="16" rx="1"/>
+        </svg>
+      </div>
+      <div>
+        <div class="brand-name">ผู้ดูแลระบบ</div>
+        <div class="brand-sub">อนุมัติผู้ใช้และจัดการสิทธิ์</div>
+      </div>
+    </div>
+    <div class="who" id="who"></div>
+  </div>
+
+  <div class="alert bad" id="alert"></div>
+
+  <div class="tabs">
+    <button class="tab on" data-tab="pending">รออนุมัติ<span class="badge" id="cnt" style="display:none">0</span></button>
+    <button class="tab" data-tab="users">ผู้ใช้ทั้งหมด</button>
+    <button class="tab" data-tab="history">ประวัติคำขอ</button>
+  </div>
+
+  <div id="viewPending"></div>
+  <div id="viewUsers" style="display:none"></div>
+  <div id="viewHistory" style="display:none"></div>
+
+  <div class="actions" style="margin-top:20px">
+    <button class="btn mini" id="btnReload">รีเฟรช</button>
+    <a class="link" href="batch.html" style="margin-left:12px">← กลับหน้าหลัก</a>
+    <button class="link" id="btnLogout" style="margin-left:12px">ออกจากระบบ</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { requireAuth, authFetch, logout, derivePassword,
+         checkPasswordStrength } from './js/auth.js?v=2.1.0';
+
+const API = DOCSCAN_CONFIG.API_URL;
+const $ = id => document.getElementById(id);
+let sites = [], data = { pending: [], history: [], users: [] };
+
+const session = requireAuth();
+if (session) {
+  if (session.role !== 'admin') {
+    alert('หน้านี้สำหรับผู้ดูแลระบบเท่านั้น');
+    location.replace(session.role === 'delivery' ? 'delivery.html' : 'batch.html');
+  } else {
+    $('who').innerHTML = session.empName + '<br>' + session.empId + ' · ' + session.role;
+    loadAll();
+  }
+}
+
+/* ---------- ตัวช่วย ---------- */
+const esc = s => String(s == null ? '' : s)
+  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+function toast(msg, kind = 'good') {
+  const t = $('toast');
+  t.textContent = msg;
+  t.className = 'toast on ' + kind;
+  setTimeout(() => { t.className = 'toast ' + kind; }, 4000);
+}
+function showError(msg) {
+  const a = $('alert');
+  a.textContent = msg;
+  a.className = 'alert bad on';
+}
+function fmt(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return isNaN(d) ? '—' : d.toLocaleString('th-TH',
+    { day: '2-digit', month: 'short', year: '2-digit', hour: '2-digit', minute: '2-digit' });
+}
+function rolePill(r) {
+  const cls = r === 'admin' ? 'p-admin' : r === 'delivery' ? 'p-dl' : 'p-wh';
+  return `<span class="pill ${cls}">${esc(r)}</span>`;
+}
+function siteOptions(sel) {
+  const list = sites.length ? sites : (sel ? [sel] : []);
+  return ['ALL'].concat(list).map(s =>
+    `<option value="${esc(s)}"${s === sel ? ' selected' : ''}>${esc(s)}</option>`).join('');
+}
+
+async function call(action, payload = {}) {
+  try {
+    return await authFetch(API, { action, ...payload });
+  } catch (err) {
+    if (err.code === 'auth_required') {
+      alert('เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่');
+      location.href = 'login.html';
+    }
+    throw err;
+  }
+}
+
+/* ---------- โหลดข้อมูล ---------- */
+async function loadAll() {
+  $('alert').className = 'alert bad';
+  $('viewPending').innerHTML = '<div class="empty">กำลังโหลด…</div>';
+  try {
+    const [p, u] = await Promise.all([
+      call('adminListPending'), call('adminListUsers')
+    ]);
+    sites = p.sites && p.sites.length ? p.sites : (u.sites || []);
+    data = { pending: p.pending || [], history: p.history || [], users: u.users || [] };
+    render();
+  } catch (err) {
+    $('viewPending').innerHTML = '';
+    showError('โหลดข้อมูลไม่สำเร็จ: ' + (err.message || err));
+  }
+}
+$('btnReload').addEventListener('click', loadAll);
+
+/* ---------- แสดงผล ---------- */
+function render() {
+  const n = data.pending.length;
+  $('cnt').textContent = n;
+  $('cnt').style.display = n ? 'inline-block' : 'none';
+
+  $('viewPending').innerHTML = n ? data.pending.map((p, i) => `
+    <div class="card wait">
+      <h3>${esc(p.emp_name)} <span style="color:var(--muted);font-weight:400">(${esc(p.emp_id)})</span></h3>
+      <div class="meta">
+        ${esc(p.emp_email)}<br>
+        ขอสิทธิ์ ${esc(p.role)} · ${esc(p.site)}<br>
+        ยืนยันอีเมลเมื่อ ${fmt(p.email_verified_at)}
+      </div>
+      <div class="ctrls">
+        <div class="field">
+          <label class="label">ให้สิทธิ์เป็น</label>
+          <select class="select" id="r${i}">
+            <option value="warehouse"${p.role === 'warehouse' ? ' selected' : ''}>ทีมคลังพาเลท</option>
+            <option value="delivery"${p.role === 'delivery' ? ' selected' : ''}>ทีมจัดส่ง</option>
+            <option value="admin">ผู้ดูแลระบบ</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="label">ไซต์</label>
+          <select class="select" id="s${i}">${siteOptions(p.site)}</select>
+        </div>
+        <button class="btn ok" data-approve="${i}">อนุมัติ</button>
+        <button class="btn no" data-reject="${i}">ปฏิเสธ</button>
+      </div>
+    </div>`).join('')
+    : `<div class="empty">ไม่มีคำขอรออนุมัติ<br>
+       <span style="font-size:12px">คำขอที่ยังไม่ยืนยันอีเมลจะยังไม่ขึ้นที่นี่ — ดูในแท็บประวัติคำขอ</span></div>`;
+
+  $('viewUsers').innerHTML = data.users.length ? `
+    <table><thead><tr>
+      <th>รหัส / ชื่อ</th><th>สิทธิ์</th><th>ไซต์</th><th>ล็อกอินล่าสุด</th><th>จัดการ</th>
+    </tr></thead><tbody>
+    ${data.users.map((u, i) => `<tr>
+      <td><b>${esc(u.emp_id)}</b><br><span class="meta">${esc(u.emp_name)}</span></td>
+      <td>${rolePill(u.role)}
+        ${u.active ? '' : '<br><span class="pill p-off">ปิดใช้งาน</span>'}
+        ${u.locked ? '<br><span class="pill p-lock">ถูกล็อก</span>' : ''}</td>
+      <td class="meta">${esc(u.site)}</td>
+      <td class="meta">${fmt(u.last_login)}</td>
+      <td><div class="acts">
+        ${u.locked ? `<button class="btn mini" data-unlock="${i}">ปลดล็อก</button>` : ''}
+        <button class="btn mini" data-pw="${i}">ตั้งรหัสใหม่</button>
+        <button class="btn mini" data-role="${i}">เปลี่ยนสิทธิ์</button>
+        <button class="btn mini" data-active="${i}">${u.active ? 'ปิดใช้งาน' : 'เปิดใช้งาน'}</button>
+      </div></td>
+    </tr>`).join('')}
+    </tbody></table>` : '<div class="empty">ยังไม่มีผู้ใช้</div>';
+
+  $('viewHistory').innerHTML = data.history.length ? `
+    <table><thead><tr>
+      <th>รหัส / ชื่อ</th><th>สถานะ</th><th>ขอเมื่อ</th><th>ตัดสินโดย</th><th>หมายเหตุ</th>
+    </tr></thead><tbody>
+    ${data.history.map(p => `<tr>
+      <td><b>${esc(p.emp_id)}</b><br><span class="meta">${esc(p.emp_name)}</span></td>
+      <td><span class="pill ${p.status === 'approved' ? 'p-wh' : p.status === 'rejected' ? 'p-off' : ''}">${esc(p.status)}</span>
+        ${p.status === 'pending_email' ? '<br><span class="meta">ยังไม่ใส่รหัสจากอีเมล</span>' : ''}</td>
+      <td class="meta">${fmt(p.requested_at)}</td>
+      <td class="meta">${esc(p.decided_by) || '—'}</td>
+      <td class="meta">${esc(p.note) || '—'}</td>
+    </tr>`).join('')}
+    </tbody></table>` : '<div class="empty">ยังไม่มีประวัติ</div>';
+}
+
+/* ---------- แท็บ ---------- */
+document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
+  document.querySelectorAll('.tab').forEach(x => x.classList.toggle('on', x === t));
+  const v = t.dataset.tab;
+  $('viewPending').style.display = v === 'pending' ? 'block' : 'none';
+  $('viewUsers').style.display = v === 'users' ? 'block' : 'none';
+  $('viewHistory').style.display = v === 'history' ? 'block' : 'none';
+}));
+
+/* ---------- การกระทำ ---------- */
+document.addEventListener('click', async e => {
+  const btn = e.target.closest('button[data-approve],button[data-reject],button[data-unlock],' +
+                               'button[data-pw],button[data-role],button[data-active]');
+  if (!btn) return;
+  const d = btn.dataset;
+  btn.disabled = true;
+
+  try {
+    if (d.approve !== undefined) {
+      const i = +d.approve, p = data.pending[i];
+      const role = $('r' + i).value, site = $('s' + i).value;
+      if (role !== 'admin' && (site === 'ALL' || !site)) {
+        toast('บัญชีที่ไม่ใช่ผู้ดูแลต้องระบุไซต์', 'bad'); return;
+      }
+      if (!confirm(`อนุมัติ ${p.emp_name} (${p.emp_id})\nสิทธิ์ ${role} · ไซต์ ${site}\n\n` +
+                   'ตรวจตัวตนกับทะเบียนพนักงานแล้วใช่ไหม')) return;
+      const r = await call('adminApprove', { emp_id: p.emp_id, role, site });
+      toast(r.message || 'อนุมัติแล้ว'); await loadAll();
+
+    } else if (d.reject !== undefined) {
+      const p = data.pending[+d.reject];
+      const reason = prompt('เหตุผลที่ปฏิเสธ (จะถูกส่งไปทางอีเมล)', 'ไม่พบชื่อในทะเบียนพนักงาน');
+      if (reason === null) return;
+      const r = await call('adminReject', { emp_id: p.emp_id, reason });
+      toast(r.message || 'ปฏิเสธแล้ว'); await loadAll();
+
+    } else if (d.unlock !== undefined) {
+      const u = data.users[+d.unlock];
+      const r = await call('adminUnlock', { emp_id: u.emp_id });
+      toast(r.message || 'ปลดล็อกแล้ว'); await loadAll();
+
+    } else if (d.active !== undefined) {
+      const u = data.users[+d.active];
+      const turnOn = !u.active;
+      if (!confirm((turnOn ? 'เปิด' : 'ปิด') + `ใช้งานบัญชี ${u.emp_id}?` +
+                   (turnOn ? '' : '\nเซสชันทั้งหมดของเขาจะถูกตัดทันที'))) return;
+      const r = await call('adminSetActive', { emp_id: u.emp_id, active: turnOn });
+      toast(r.message); await loadAll();
+
+    } else if (d.role !== undefined) {
+      const u = data.users[+d.role];
+      const role = prompt(`เปลี่ยนสิทธิ์ของ ${u.emp_id}\nพิมพ์: admin / warehouse / delivery`, u.role);
+      if (!role) return;
+      let site = u.site;
+      if (role !== 'admin') {
+        site = prompt('ไซต์', u.site === 'ALL' ? '' : u.site);
+        if (!site) { toast('ต้องระบุไซต์', 'bad'); return; }
+      } else site = 'ALL';
+      const r = await call('adminSetRole', { emp_id: u.emp_id, role, site });
+      toast(r.message); await loadAll();
+
+    } else if (d.pw !== undefined) {
+      const u = data.users[+d.pw];
+      const pw = prompt(`ตั้งรหัสผ่านใหม่ให้ ${u.emp_id} (${u.emp_name})\n` +
+                        'อย่างน้อย 8 ตัว มีตัวอักษรและตัวเลข\n' +
+                        'ส่งให้เจ้าตัวทางช่องทางส่วนตัว ไม่ใช่กลุ่มแชท');
+      if (!pw) return;
+      const chk = checkPasswordStrength(pw);
+      if (!chk.ok) { toast(chk.message, 'bad'); return; }
+      // คำนวณ hash ในเบราว์เซอร์ รหัสจริงไม่ออกจากเครื่อง
+      const hash = await derivePassword(u.emp_id, pw);
+      const r = await call('adminResetPassword',
+                           { emp_id: u.emp_id, pw_hash: hash, must_change: true });
+      toast(r.message + ' — เจ้าตัวต้องเปลี่ยนรหัสตอนล็อกอินครั้งแรก');
+      await loadAll();
+    }
+  } catch (err) {
+    toast(err.message || 'ทำรายการไม่สำเร็จ', 'bad');
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+$('btnLogout').addEventListener('click', () => {
+  if (!confirm('ออกจากระบบ?')) return;
+  try { localStorage.removeItem('docScanSession'); } catch (e) {}
+  try { logout(API); } catch (e) {}
+  location.replace('login.html');
+});
+</script>
+</body>
+</html>
