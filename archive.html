@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DocScan — จัดเก็บเอกสารเข้ากล่อง</title>
+<script src="config.js?v=2.6.0"></script>
+<link rel="stylesheet" href="css/auth.css?v=2.6.0">
+<style>
+  body{display:block;padding:0;align-items:stretch}
+  .wrap{max-width:1000px;margin:0 auto;padding:20px 20px 60px}
+  .top{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:18px}
+  .top .brand{margin-bottom:0}
+  .who{margin-left:auto;font-size:12.5px;color:var(--muted);text-align:right;line-height:1.6}
+
+  .boxbar{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+    padding:16px 20px;margin-bottom:16px;display:flex;gap:20px;align-items:center;flex-wrap:wrap}
+  .boxid{font-family:var(--mono);font-size:20px;font-weight:600;letter-spacing:.03em}
+  .fill{flex:1;min-width:200px}
+  .bar{height:8px;background:var(--surface2);border-radius:4px;overflow:hidden;margin-top:6px}
+  .bar i{display:block;height:100%;width:0;background:var(--success);transition:width .25s}
+  .bar.warn i{background:var(--warn)} .bar.full i{background:var(--danger)}
+  .cap{font-size:12.5px;color:var(--muted);font-family:var(--mono)}
+  .thumb{width:84px;height:84px;object-fit:cover;border-radius:var(--rs);
+    border:1px solid var(--border);cursor:zoom-in;flex-shrink:0}
+  .pick{display:flex;gap:12px;align-items:center;padding:12px;border:1px solid var(--border);
+    border-radius:var(--rs);margin-bottom:8px;cursor:pointer;background:var(--surface2)}
+  .pick:hover{border-color:var(--accent)}
+  .pick img{width:54px;height:54px;object-fit:cover;border-radius:6px;flex-shrink:0}
+  .pick .ph{width:54px;height:54px;border-radius:6px;background:var(--bg);flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:11px}
+  .pick .nm{flex:1;font-size:14px}
+  .pick .sub{font-size:12px;color:var(--muted);font-family:var(--mono)}
+  .drop{border:1.5px dashed var(--border);border-radius:var(--rs);padding:18px;text-align:center;
+    cursor:pointer;font-size:13px;color:var(--muted)}
+  .drop:hover{border-color:var(--accent);color:var(--accent)}
+  .drop img{max-width:100%;max-height:180px;border-radius:6px;display:block;margin:0 auto}
+
+  .scanbox{background:var(--surface);border:2px solid var(--accent);border-radius:var(--r);
+    padding:20px;margin-bottom:16px}
+  .scanbox.idle{border-color:var(--border)}
+  #scan{width:100%;background:var(--surface2);border:1px solid var(--border);
+    border-radius:var(--rs);color:var(--text);font-family:var(--mono);font-size:26px;
+    letter-spacing:.1em;padding:16px;outline:none;text-align:center}
+  #scan:focus{border-color:var(--accent)}
+  .hint{font-size:12.5px;color:var(--muted);text-align:center;margin-top:10px;line-height:1.7}
+  .hint b{color:var(--accent)}
+
+  .stats{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+  .stat{flex:1;min-width:110px;background:var(--surface);border:1px solid var(--border);
+    border-radius:var(--rs);padding:12px 14px}
+  .stat .n{font-family:var(--mono);font-size:24px;font-weight:600;line-height:1.1}
+  .stat .k{font-size:12px;color:var(--muted);margin-top:2px}
+  .stat.ok .n{color:var(--success)} .stat.dup .n{color:var(--warn)} .stat.bad .n{color:var(--danger)}
+
+  .feed{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+    max-height:340px;overflow-y:auto}
+  .row{display:flex;gap:12px;align-items:center;padding:10px 16px;border-bottom:1px solid var(--border);
+    font-family:var(--mono);font-size:14px;animation:in .18s ease-out}
+  .row:last-child{border-bottom:none}
+  @keyframes in{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+  .row .ic{width:22px;text-align:center;font-size:15px}
+  .row.ok .ic{color:var(--success)} .row.dup .ic{color:var(--warn)}
+  .row.bad .ic{color:var(--danger)} .row.pend .ic{color:var(--muted)}
+  .row .bc{flex:1}
+  .row .msg{font-family:var(--font);font-size:12.5px;color:var(--muted)}
+  .row.bad .msg{color:var(--danger)}
+
+  .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+  .btn{border:none;border-radius:var(--rs);padding:11px 20px;font-family:var(--font);
+    font-size:14px;font-weight:600;cursor:pointer}
+  .btn.main{background:var(--accent);color:#0f172a}
+  .btn.ghost{background:transparent;border:1px solid var(--border);color:var(--text);font-weight:400}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+
+  dialog{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+    color:var(--text);padding:24px;max-width:440px;width:92vw}
+  dialog::backdrop{background:rgba(15,23,42,.75)}
+  .empty{color:var(--muted);font-size:13.5px;padding:26px;text-align:center}
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:60;
+    padding:12px 22px;border-radius:var(--rs);font-size:14px;display:none}
+  .toast.on{display:block}
+  .toast.good{background:var(--success);color:#0f172a}
+  .toast.bad{background:var(--danger);color:#fff}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div class="brand" style="margin-bottom:0">
+      <div class="brand-icon">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#0f172a" stroke-width="2.5">
+          <rect x="3" y="4" width="3" height="16" rx="1"/><rect x="8" y="4" width="1.5" height="16" rx="0.5"/>
+          <rect x="11" y="4" width="3" height="16" rx="1"/><rect x="16" y="4" width="1.5" height="16" rx="0.5"/>
+          <rect x="19" y="4" width="2" height="16" rx="1"/>
+        </svg>
+      </div>
+      <div>
+        <div class="brand-name">จัดเก็บเข้ากล่อง</div>
+        <div class="brand-sub">เอกสารตัวจริงหลังสแกนแล้ว</div>
+      </div>
+    </div>
+    <div class="who" id="who"></div>
+  </div>
+
+  <div class="alert bad" id="alert"></div>
+
+  <div class="boxbar">
+    <img id="boxPhoto" class="thumb" alt="รูปตำแหน่งจัดเก็บ" style="display:none">
+    <div style="min-width:180px">
+      <div class="cap">กล่องที่ใช้อยู่</div>
+      <div class="boxid" id="boxName">—</div>
+      <div class="cap" id="boxId"></div>
+      <div class="cap" id="locText"></div>
+    </div>
+    <div class="fill">
+      <div class="cap" id="capText">—</div>
+      <div class="bar" id="bar"><i></i></div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn ghost" id="btnSwitch">เปลี่ยนกล่อง</button>
+      <button class="btn ghost" id="btnEdit">แก้ไข</button>
+    </div>
+  </div>
+
+  <div class="scanbox" id="scanbox">
+    <input id="scan" type="text" autocomplete="off" spellcheck="false"
+           placeholder="ยิงบาร์โค้ดได้เลย" autocapitalize="characters">
+    <div class="hint">
+      ยิงต่อเนื่องได้ไม่ต้องกดอะไร · ระบบบันทึกให้อัตโนมัติ<br>
+      กด <b>Esc</b> เพื่อล้างช่อง · ยิงซ้ำใบเดิมไม่เป็นไร ระบบข้ามให้
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat ok"><div class="n" id="nOk">0</div><div class="k">เข้ากล่องแล้ว</div></div>
+    <div class="stat dup"><div class="n" id="nDup">0</div><div class="k">ยิงซ้ำ</div></div>
+    <div class="stat bad"><div class="n" id="nBad">0</div><div class="k">มีปัญหา</div></div>
+    <div class="stat"><div class="n" id="nRate">0</div><div class="k">ใบ/นาที</div></div>
+  </div>
+
+  <div class="feed" id="feed"><div class="empty">ยังไม่ได้ยิงบาร์โค้ด</div></div>
+
+  <div class="actions">
+    <button class="btn main" id="btnClose">ปิดกล่องนี้</button>
+    <button class="btn ghost" id="btnNew">เปิดกล่องใหม่</button>
+    <button class="btn ghost" id="btnFind">ค้นหาเอกสาร</button>
+    <button class="btn ghost" id="btnList">ดูรายการกล่อง</button>
+    <a class="link" href="receive.html" style="margin-left:8px;align-self:center">← กลับหน้ารับเอกสาร</a>
+  </div>
+</div>
+
+<dialog id="dlgClose">
+  <div class="box-title">ปิดกล่อง</div>
+  <div class="box-sub" id="closeInfo"></div>
+  <div class="field">
+    <label class="label" for="loc">ตำแหน่งจัดเก็บ</label>
+    <input class="input" id="loc" placeholder="เช่น A-02-03  (ห้อง-ตู้-ชั้น)">
+    <div class="pw-hint">ระบุให้ชัดพอที่คนอื่นจะหากล่องเจอโดยไม่ต้องถามคุณ</div>
+  </div>
+  <div class="field">
+    <label class="label" for="closeNote">หมายเหตุ</label>
+    <input class="input" id="closeNote" placeholder="ไม่บังคับ">
+  </div>
+  <div class="pw-hint">ถ้าย้ายกล่องไปเก็บที่ใหม่ อย่าลืมแก้ไขรูปด้วยปุ่ม "แก้ไข"</div>
+  <div class="actions">
+    <button class="btn main" id="btnCloseOk">ยืนยันปิดกล่อง</button>
+    <button class="btn ghost" id="btnCloseCancel">ยกเลิก</button>
+  </div>
+</dialog>
+
+<dialog id="dlgBox">
+  <div class="box-title" id="dlgBoxTitle">ลงทะเบียนกล่องใหม่</div>
+  <div class="box-sub">ตั้งชื่อที่คนในไซต์เรียกกันจริง จะได้หาเจอง่าย</div>
+
+  <div class="field">
+    <label class="label" for="bName">ชื่อกล่อง</label>
+    <input class="input" id="bName" placeholder="เช่น กล่องแดง ชั้น 2 ซ้ายมือ">
+    <div class="pw-hint">ระบบจะสร้างรหัสกล่องให้อัตโนมัติสำหรับติด QR</div>
+  </div>
+  <div class="field">
+    <label class="label" for="bLoc">ตำแหน่งจัดเก็บ</label>
+    <input class="input" id="bLoc" placeholder="เช่น ห้องเอกสาร ตู้ A ชั้น 2">
+  </div>
+  <div class="field">
+    <label class="label" for="bCap">จุได้กี่ใบ</label>
+    <input class="input" id="bCap" type="number" min="1" step="1" value="200">
+    <div class="pw-hint">ลองแพ็คจริงหนึ่งกล่องแล้วนับก่อนตั้งค่านี้</div>
+  </div>
+  <div class="field">
+    <label class="label">รูปตำแหน่งจัดเก็บ</label>
+    <div class="drop" id="bDrop">แตะเพื่อถ่ายรูปหรือเลือกไฟล์<br>
+      <span style="font-size:11.5px">ช่วยให้คนอื่นหากล่องเจอโดยไม่ต้องถาม</span></div>
+    <input type="file" id="bFile" accept="image/*" capture="environment" hidden>
+    <div class="pw-hint" id="bPhotoInfo"></div>
+  </div>
+
+  <div class="actions">
+    <button class="btn main" id="btnBoxSave">บันทึก</button>
+    <button class="btn ghost" id="btnBoxCancel">ยกเลิก</button>
+  </div>
+</dialog>
+
+<dialog id="dlgPick">
+  <div class="box-title">เลือกกล่องที่จะใช้</div>
+  <div class="box-sub">แสดงเฉพาะกล่องที่ยังเปิดอยู่ของไซต์คุณ</div>
+  <div id="pickBody" style="max-height:56vh;overflow:auto"></div>
+  <div class="actions">
+    <button class="btn main" id="btnPickNew">+ ลงทะเบียนกล่องใหม่</button>
+    <button class="btn ghost" id="btnPickClose">ปิด</button>
+  </div>
+</dialog>
+
+<dialog id="dlgFind">
+  <div class="box-title">ค้นหาเอกสารตัวจริง</div>
+  <div class="box-sub">ยิงหรือพิมพ์บาร์โค้ดเพื่อดูว่าอยู่กล่องไหน</div>
+  <div class="field">
+    <input class="input" id="findBc" placeholder="บาร์โค้ด" autocapitalize="characters">
+  </div>
+  <div id="findResult" class="meta" style="min-height:60px;font-size:13.5px;line-height:1.9"></div>
+  <div class="actions">
+    <button class="btn main" id="btnFindGo">ค้นหา</button>
+    <button class="btn ghost" id="btnFindClose">ปิด</button>
+  </div>
+</dialog>
+
+<dialog id="dlgList">
+  <div class="box-title">รายการกล่องของไซต์</div>
+  <div id="listBody" class="meta" style="max-height:60vh;overflow:auto;font-size:13px;line-height:2"></div>
+  <div class="actions"><button class="btn ghost" id="btnListClose">ปิด</button></div>
+</dialog>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { requireAuth, authFetch } from './js/auth.js?v=2.6.0';
+import { compressPhoto, dataUrlBytes } from './js/pdf.js?v=2.6.0';
+
+const API = DOCSCAN_CONFIG.API_URL;
+const $ = id => document.getElementById(id);
+let box = null, queue = [], sending = false, seen = new Set();
+let count = { ok: 0, dup: 0, bad: 0 };
+let startedAt = null;
+
+const session = requireAuth();
+if (session) {
+  if (session.role !== 'warehouse' && session.role !== 'admin') {
+    alert('การจัดเก็บเอกสารเป็นหน้าที่ของทีมคลัง');
+    location.replace(session.role === 'delivery' ? 'delivery.html' : 'batch.html');
+  } else {
+    $('who').innerHTML = session.empName + '<br>' + session.site;
+    loadBox();
+  }
+}
+
+const esc = s => String(s == null ? '' : s)
+  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+function toast(msg, kind = 'good') {
+  const t = $('toast'); t.textContent = msg; t.className = 'toast on ' + kind;
+  setTimeout(() => { t.className = 'toast ' + kind; }, 3000);
+}
+async function call(action, payload = {}) {
+  try { return await authFetch(API, { action, ...payload }); }
+  catch (err) {
+    if (err.code === 'auth_required') { alert('เซสชันหมดอายุ'); location.href = 'login.html'; }
+    throw err;
+  }
+}
+
+/* ---------- กล่อง ---------- */
+async function loadBox() {
+  try {
+    const r = await call('archiveCurrentBox');
+    box = r.box; renderBox();
+    $('scan').focus();
+  } catch (err) {
+    $('alert').textContent = 'เปิดกล่องไม่สำเร็จ: ' + (err.message || err);
+    $('alert').className = 'alert bad on';
+  }
+}
+
+function renderBox() {
+  if (!box) return;
+  $('boxName').textContent = box.box_name || box.box_id;
+  $('boxId').textContent = box.box_id;
+  const ph = $('boxPhoto');
+  if (box.photo_url) {
+    ph.src = drivePreview(box.photo_url); ph.style.display = 'block';
+    ph.onclick = () => window.open(box.photo_url, '_blank');
+  } else ph.style.display = 'none';
+  const pct = box.capacity ? Math.min(100, box.item_count / box.capacity * 100) : 0;
+  $('capText').textContent = box.item_count + ' / ' + box.capacity + ' ใบ';
+  const bar = $('bar');
+  bar.className = 'bar' + (pct >= 100 ? ' full' : pct >= 85 ? ' warn' : '');
+  bar.firstElementChild.style.width = pct + '%';
+  $('locText').textContent = box.location || (box.period + ' · ' + box.site);
+  if (pct >= 100) toast('กล่องเต็มแล้ว — ปิดกล่องแล้วเปิดใบใหม่', 'bad');
+}
+
+/* ---------- รับบาร์โค้ด ----------
+   เครื่องสแกน USB ทำงานเหมือนคีย์บอร์ด: พิมพ์เร็วมากแล้วจบด้วย Enter
+   จึงรับที่ Enter อย่างเดียว ไม่ใช้ debounce แบบ batch.html
+   เพราะที่นี่คนยิงรัวติดกัน debounce จะทำให้ค่าปนกัน            */
+$('scan').addEventListener('keydown', e => {
+  if (e.key === 'Escape') { e.target.value = ''; return; }
+  if (e.key !== 'Enter') return;
+  e.preventDefault();
+  const v = e.target.value.trim().toUpperCase();
+  e.target.value = '';
+  if (v) accept(v);
+});
+
+// ให้โฟกัสอยู่ที่ช่องสแกนเสมอ คนจะได้ไม่ต้องคลิกกลับมาเอง
+setInterval(() => {
+  const a = document.activeElement;
+  const inDialog = a && a.closest && a.closest('dialog');
+  if (!inDialog && a !== $('scan') && !document.querySelector('dialog[open]')) $('scan').focus();
+}, 1200);
+
+function accept(bc) {
+  if (!startedAt) startedAt = Date.now();
+
+  if (seen.has(bc)) {
+    count.dup++; addRow(bc, 'dup', '⟳', 'ยิงซ้ำในรอบนี้'); updateStats(); return;
+  }
+  seen.add(bc);
+  addRow(bc, 'pend', '⋯', 'กำลังบันทึก');
+  queue.push(bc);
+  flush();
+}
+
+/* ส่งเป็นชุด ไม่ยิง API ทีละใบ — คนยิงได้เร็วกว่าเครือข่ายตอบกลับมาก */
+let flushTimer = null;
+function flush() {
+  clearTimeout(flushTimer);
+  if (queue.length >= 25) { doFlush(); return; }
+  flushTimer = setTimeout(doFlush, 900);
+}
+
+async function doFlush() {
+  if (sending || !queue.length || !box) return;
+  sending = true;
+  const batch = queue.splice(0, 50);
+  try {
+    const r = await call('archiveAddItems', { box_id: box.box_id, barcodes: batch });
+    (r.results || []).forEach(x => {
+      const el = document.querySelector('[data-bc="' + cssEscape(x.barcode) + '"]');
+      if (x.status === 'added') { count.ok++; mark(el, 'ok', '✓', 'เข้ากล่องแล้ว'); }
+      else if (x.status === 'duplicate') { count.dup++; mark(el, 'dup', '⟳', 'อยู่ในกล่องนี้แล้ว'); }
+      else if (x.status === 'other_box') { count.bad++; mark(el, 'bad', '!', 'อยู่ในกล่อง ' + x.box_id + ' แล้ว'); }
+      else if (x.status === 'box_full') { count.bad++; mark(el, 'bad', '!', 'กล่องเต็ม — ยังไม่ได้บันทึก'); seen.delete(x.barcode); }
+    });
+    if (r.box) { box = r.box; renderBox(); }
+    updateStats();
+    if (r.full) toast('กล่องเต็มแล้ว — ปิดกล่องแล้วเปิดใบใหม่', 'bad');
+  } catch (err) {
+    batch.forEach(bc => {
+      const el = document.querySelector('[data-bc="' + cssEscape(bc) + '"]');
+      mark(el, 'bad', '!', 'ส่งไม่สำเร็จ — ยิงใหม่อีกครั้ง');
+      seen.delete(bc);
+      count.bad++;
+    });
+    updateStats();
+    toast('บันทึกไม่สำเร็จ: ' + (err.message || err), 'bad');
+  } finally {
+    sending = false;
+    if (queue.length) flush();
+  }
+}
+
+function cssEscape(s) { return String(s).replace(/["\\]/g, '\\$&'); }
+
+function addRow(bc, cls, ic, msg) {
+  const feed = $('feed');
+  if (feed.querySelector('.empty')) feed.innerHTML = '';
+  const div = document.createElement('div');
+  div.className = 'row ' + cls;
+  div.dataset.bc = bc;
+  div.innerHTML = `<span class="ic">${ic}</span><span class="bc">${esc(bc)}</span>` +
+                  `<span class="msg">${esc(msg)}</span>`;
+  feed.insertBefore(div, feed.firstChild);
+  while (feed.children.length > 200) feed.removeChild(feed.lastChild);
+}
+function mark(el, cls, ic, msg) {
+  if (!el) return;
+  el.className = 'row ' + cls;
+  el.querySelector('.ic').textContent = ic;
+  el.querySelector('.msg').textContent = msg;
+}
+function updateStats() {
+  $('nOk').textContent = count.ok;
+  $('nDup').textContent = count.dup;
+  $('nBad').textContent = count.bad;
+  const mins = startedAt ? (Date.now() - startedAt) / 60000 : 0;
+  $('nRate').textContent = mins > 0.2 ? Math.round(count.ok / mins) : 0;
+}
+
+/** ลิงก์ Drive แบบ /file/d/ID/view ใช้แสดงรูปตรง ๆ ไม่ได้ ต้องแปลงก่อน */
+function drivePreview(url) {
+  const m = String(url).match(/[-\w]{25,}/);
+  return m ? 'https://drive.google.com/thumbnail?id=' + m[0] + '&sz=w400' : url;
+}
+
+/* ---------- ลงทะเบียน / แก้ไขกล่อง ---------- */
+let photoData = null, editing = null;
+
+$('bDrop').addEventListener('click', () => $('bFile').click());
+$('bFile').addEventListener('change', async e => {
+  const f = e.target.files && e.target.files[0];
+  if (!f) return;
+  $('bPhotoInfo').textContent = 'กำลังย่อรูป…';
+  try {
+    photoData = await compressPhoto(f);
+    $('bDrop').innerHTML = '<img src="' + photoData + '" alt="รูปที่เลือก">';
+    $('bPhotoInfo').textContent = 'ขนาดหลังย่อ ' + Math.round(dataUrlBytes(photoData) / 1024) + ' KB';
+  } catch (err) {
+    photoData = null;
+    $('bPhotoInfo').textContent = 'ใช้รูปนี้ไม่ได้: ' + err.message;
+  }
+  e.target.value = '';
+});
+
+function openBoxDialog(mode, b) {
+  editing = mode === 'edit' ? b : null;
+  photoData = null;
+  $('dlgBoxTitle').textContent = editing ? 'แก้ไขกล่อง' : 'ลงทะเบียนกล่องใหม่';
+  $('bName').value = editing ? (editing.box_name || '') : '';
+  $('bLoc').value = editing ? (editing.location || '') : '';
+  $('bCap').value = editing ? editing.capacity : 200;
+  $('bDrop').innerHTML = editing && editing.photo_url
+    ? '<img src="' + drivePreview(editing.photo_url) + '" alt="รูปปัจจุบัน">'
+    : 'แตะเพื่อถ่ายรูปหรือเลือกไฟล์<br><span style="font-size:11.5px">ช่วยให้คนอื่นหากล่องเจอโดยไม่ต้องถาม</span>';
+  $('bPhotoInfo').textContent = '';
+  $('dlgBox').showModal();
+  $('bName').focus();
+}
+
+$('btnBoxCancel').addEventListener('click', () => { $('dlgBox').close(); $('scan').focus(); });
+$('btnEdit').addEventListener('click', () => { if (box) openBoxDialog('edit', box); });
+
+$('btnBoxSave').addEventListener('click', async () => {
+  const payload = {
+    box_name: $('bName').value.trim(),
+    location: $('bLoc').value.trim(),
+    capacity: parseInt($('bCap').value, 10) || 200
+  };
+  if (photoData) payload.photo = photoData;
+
+  const btn = $('btnBoxSave');
+  btn.disabled = true; btn.textContent = 'กำลังบันทึก…';
+  try {
+    if (editing) {
+      const r = await call('archiveUpdateBox', { box_id: editing.box_id, ...payload });
+      if (r.box && box && r.box.box_id === box.box_id) { box = r.box; renderBox(); }
+      toast(r.message || 'บันทึกแล้ว');
+    } else {
+      const r = await call('archiveOpenBox', payload);
+      box = r.box; renderBox();
+      toast('ลงทะเบียนกล่อง ' + (box.box_name || box.box_id) + ' แล้ว');
+    }
+    $('dlgBox').close();
+    $('scan').focus();
+  } catch (err) {
+    toast(err.message || 'บันทึกไม่สำเร็จ', 'bad');
+  } finally {
+    btn.disabled = false; btn.textContent = 'บันทึก';
+  }
+});
+
+/* ---------- เลือกกล่อง ---------- */
+$('btnSwitch').addEventListener('click', async () => {
+  await doFlush();
+  $('pickBody').innerHTML = '<div class="empty">กำลังโหลด…</div>';
+  $('dlgPick').showModal();
+  try {
+    const r = await call('archiveListBoxes');
+    const open = (r.boxes || []).filter(b => b.status === 'open');
+    $('pickBody').innerHTML = open.length ? open.map((b, i) =>
+      `<div class="pick" data-pick="${i}">
+        ${b.photo_url ? `<img src="${drivePreview(b.photo_url)}" alt="">`
+                      : '<div class="ph">ไม่มีรูป</div>'}
+        <div class="nm">${esc(b.box_name || b.box_id)}
+          <div class="sub">${esc(b.box_id)} · ${b.item_count}/${b.capacity} ใบ</div>
+          <div class="sub">${esc(b.location) || 'ยังไม่ระบุตำแหน่ง'}</div>
+        </div>
+      </div>`).join('') : '<div class="empty">ยังไม่มีกล่องที่เปิดอยู่</div>';
+    $('pickBody').querySelectorAll('[data-pick]').forEach(el => {
+      el.addEventListener('click', async () => {
+        const b = open[+el.dataset.pick];
+        try {
+          const res = await call('archiveSelectBox', { box_id: b.box_id });
+          box = res.box; renderBox(); $('dlgPick').close(); $('scan').focus();
+          toast('ใช้กล่อง ' + (box.box_name || box.box_id));
+        } catch (err) { toast(err.message, 'bad'); }
+      });
+    });
+  } catch (err) { $('pickBody').innerHTML = '<div class="empty">' + esc(err.message) + '</div>'; }
+});
+$('btnPickClose').addEventListener('click', () => { $('dlgPick').close(); $('scan').focus(); });
+$('btnPickNew').addEventListener('click', () => { $('dlgPick').close(); openBoxDialog('new'); });
+
+/* ---------- ปิด / เปิดกล่อง ---------- */
+$('btnClose').addEventListener('click', async () => {
+  await doFlush();
+  if (!box) return;
+  $('closeInfo').textContent = (box.box_name || box.box_id) + ' · ' + box.item_count + ' ใบ';
+  $('loc').value = box.location || '';
+  $('dlgClose').showModal();
+  $('loc').focus();
+});
+$('btnCloseCancel').addEventListener('click', () => { $('dlgClose').close(); $('scan').focus(); });
+$('btnCloseOk').addEventListener('click', async () => {
+  const loc = $('loc').value.trim();
+  if (!loc) { toast('ต้องระบุตำแหน่งจัดเก็บ', 'bad'); return; }
+  try {
+    const r = await call('archiveCloseBox',
+      { box_id: box.box_id, location: loc, note: $('closeNote').value.trim() });
+    $('dlgClose').close();
+    toast(r.message);
+    count = { ok: 0, dup: 0, bad: 0 }; seen.clear(); startedAt = null;
+    $('feed').innerHTML = '<div class="empty">ยังไม่ได้ยิงบาร์โค้ด</div>';
+    updateStats();
+    await loadBox();
+  } catch (err) { toast(err.message || 'ปิดกล่องไม่สำเร็จ', 'bad'); }
+});
+
+$('btnNew').addEventListener('click', async () => {
+  await doFlush();
+  openBoxDialog('new');
+});
+
+/* ---------- ค้นหา ---------- */
+$('btnFind').addEventListener('click', () => {
+  $('findResult').innerHTML = ''; $('findBc').value = '';
+  $('dlgFind').showModal(); $('findBc').focus();
+});
+$('btnFindClose').addEventListener('click', () => { $('dlgFind').close(); $('scan').focus(); });
+$('findBc').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); doFind(); } });
+$('btnFindGo').addEventListener('click', doFind);
+
+async function doFind() {
+  const bc = $('findBc').value.trim().toUpperCase();
+  if (!bc) return;
+  $('findResult').textContent = 'กำลังค้นหา…';
+  try {
+    const r = await call('archiveFind', { barcode: bc });
+    $('findResult').innerHTML = r.found
+      ? `<b>${esc(r.barcode)}</b><br>` +
+        `กล่อง <b>${esc(r.box_name || r.box_id)}</b><br>` +
+        `<span style="color:var(--muted)">${esc(r.box_id)}</span><br>` +
+        `ไซต์ ${esc(r.site)}<br>ตำแหน่ง ${esc(r.location) || '— ยังไม่ระบุ'}<br>` +
+        `เก็บเมื่อ ${r.boxed_at ? new Date(r.boxed_at).toLocaleDateString('th-TH') : '—'}` +
+        (r.photo_url ? `<br><img src="${drivePreview(r.photo_url)}" style="max-width:100%;border-radius:6px;margin-top:8px">` : '')
+      : `<b>${esc(bc)}</b><br>ยังไม่ได้เข้ากล่อง — อาจยังอยู่ระหว่างขนส่ง`;
+  } catch (err) { $('findResult').textContent = err.message || 'ค้นหาไม่สำเร็จ'; }
+}
+
+/* ---------- รายการกล่อง ---------- */
+$('btnList').addEventListener('click', async () => {
+  $('listBody').textContent = 'กำลังโหลด…';
+  $('dlgList').showModal();
+  try {
+    const r = await call('archiveListBoxes');
+    $('listBody').innerHTML = (r.boxes || []).length
+      ? r.boxes.map(b =>
+          `<b>${esc(b.box_name || b.box_id)}</b> · ${b.item_count}/${b.capacity} ใบ<br>` +
+          `<span style="color:var(--muted)">${esc(b.box_id)} · ` +
+          (b.status === 'open' ? '<span style="color:var(--warn)">เปิดอยู่</span>'
+                               : 'ปิดแล้ว') + ' · ' + (esc(b.location) || '—') + '</span>').join('<hr style="border:0;border-top:1px solid var(--border);margin:8px 0">')
+      : 'ยังไม่มีกล่อง';
+  } catch (err) { $('listBody').textContent = err.message; }
+});
+$('btnListClose').addEventListener('click', () => { $('dlgList').close(); $('scan').focus(); });
+
+// กันปิดหน้าขณะยังส่งไม่หมด
+window.addEventListener('beforeunload', e => {
+  if (queue.length || sending) { e.preventDefault(); e.returnValue = ''; }
+});
+</script>
+</body>
+</html>
