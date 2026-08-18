@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DocScan — ติดตามเอกสาร</title>
+<script src="config.js?v=2.6.0"></script>
+<link rel="stylesheet" href="css/auth.css?v=2.6.0">
+<style>
+  body{display:block;padding:0;align-items:stretch}
+  .wrap{max-width:1180px;margin:0 auto;padding:20px 20px 60px}
+  .top{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:18px}
+  .top .brand{margin-bottom:0}
+  .who{margin-left:auto;font-size:12.5px;color:var(--muted);text-align:right;line-height:1.6}
+
+  .kpis{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));margin-bottom:16px}
+  .kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px}
+  .kpi .n{font-family:var(--mono);font-size:26px;font-weight:600;line-height:1.1}
+  .kpi .k{font-size:12px;color:var(--muted);margin-top:3px;line-height:1.4}
+  .kpi.bad{border-color:rgba(248,113,113,.5)} .kpi.bad .n{color:var(--danger)}
+  .kpi.warn .n{color:var(--warn)} .kpi.ok .n{color:var(--success)}
+
+  .lane{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+    padding:16px 18px;margin-bottom:14px}
+  .lane h3{font-size:14px;margin:0 0 12px;display:flex;gap:10px;align-items:center}
+  .lane h3 .tag{font-family:var(--mono);font-size:11px;color:var(--muted);font-weight:400}
+  .steps2{display:flex;gap:6px;flex-wrap:wrap}
+  .step2{flex:1;min-width:96px;background:var(--surface2);border-radius:var(--rs);padding:10px 12px}
+  .step2 .n{font-family:var(--mono);font-size:19px;font-weight:600}
+  .step2 .k{font-size:11.5px;color:var(--muted);margin-top:2px}
+
+  .tabs{display:flex;gap:4px;border-bottom:1px solid var(--border);margin:22px 0 16px}
+  .tab{background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);
+    font-family:var(--font);font-size:14px;padding:10px 16px;cursor:pointer}
+  .tab.on{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
+  .tab .badge{display:inline-block;background:var(--danger);color:#fff;border-radius:9px;
+    font-size:11px;padding:1px 7px;margin-left:6px;font-family:var(--mono)}
+
+  .filters{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:14px}
+  .filters .field{margin-bottom:0;min-width:150px}
+  .filters .grow{flex:1;min-width:220px}
+
+  table{width:100%;border-collapse:collapse;font-size:13px;background:var(--surface);
+    border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+  th{text-align:left;font-size:11px;font-family:var(--mono);letter-spacing:.07em;
+    text-transform:uppercase;color:var(--muted);padding:10px 12px;
+    border-bottom:1px solid var(--border);background:var(--surface2);white-space:nowrap}
+  td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:top}
+  tbody tr:last-child td{border-bottom:none}
+  tbody tr{cursor:pointer} tbody tr:hover td{background:var(--surface2)}
+  .mono{font-family:var(--mono)}
+  .pill{display:inline-block;font-size:11px;font-family:var(--mono);padding:2px 8px;
+    border-radius:10px;border:1px solid;white-space:nowrap}
+  .s-normal{color:var(--muted);border-color:var(--border)}
+  .s-warning{color:var(--warn);border-color:var(--warn)}
+  .s-critical{color:var(--warn);border-color:var(--warn)}
+  .s-over{color:var(--danger);border-color:var(--danger)}
+  .s-done_ontime{color:var(--success);border-color:var(--success)}
+  .s-done_late{color:var(--warn);border-color:var(--warn)}
+  .s-unknown{color:var(--muted);border-color:var(--border)}
+  .empty{color:var(--muted);font-size:13.5px;padding:30px;text-align:center;
+    border:1px dashed var(--border);border-radius:var(--r)}
+
+  dialog{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+    color:var(--text);padding:24px;max-width:640px;width:94vw}
+  dialog::backdrop{background:rgba(15,23,42,.75)}
+  .kv{display:grid;grid-template-columns:130px 1fr;gap:6px 14px;font-size:13.5px;margin-bottom:16px}
+  .kv .k{color:var(--muted)}
+  .ev{font-family:var(--mono);font-size:12px;line-height:1.9;max-height:220px;overflow:auto;
+    background:var(--surface2);border-radius:var(--rs);padding:12px}
+  .btn{border:none;border-radius:var(--rs);padding:10px 18px;font-family:var(--font);
+    font-size:14px;font-weight:600;cursor:pointer}
+  .btn.main{background:var(--accent);color:#0f172a}
+  .btn.ghost{background:transparent;border:1px solid var(--border);color:var(--text);font-weight:400}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div class="brand" style="margin-bottom:0">
+      <div class="brand-icon">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#0f172a" stroke-width="2.5">
+          <rect x="3" y="4" width="3" height="16" rx="1"/><rect x="8" y="4" width="1.5" height="16" rx="0.5"/>
+          <rect x="11" y="4" width="3" height="16" rx="1"/><rect x="16" y="4" width="1.5" height="16" rx="0.5"/>
+          <rect x="19" y="4" width="2" height="16" rx="1"/>
+        </svg>
+      </div>
+      <div>
+        <div class="brand-name">ติดตามเอกสาร</div>
+        <div class="brand-sub" id="slaInfo">PDF และเอกสารตัวจริง</div>
+      </div>
+    </div>
+    <div class="who" id="who"></div>
+  </div>
+
+  <div class="alert bad" id="alert"></div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="lane">
+    <h3>เส้นทาง PDF <span class="tag">ใช้ทำงาน · เร่ง</span></h3>
+    <div class="steps2" id="lanePdf"></div>
+  </div>
+  <div class="lane">
+    <h3>เส้นทางเอกสารตัวจริง <span class="tag">เก็บอ้างอิง · ไม่เร่ง</span></h3>
+    <div class="steps2" id="lanePaper"></div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab on" data-tab="ex">ต้องดำเนินการ<span class="badge" id="exCnt" style="display:none">0</span></button>
+    <button class="tab" data-tab="search">ค้นหา</button>
+  </div>
+
+  <div id="viewEx"></div>
+
+  <div id="viewSearch" style="display:none">
+    <div class="filters">
+      <div class="field grow">
+        <label class="label" for="q">คำค้น</label>
+        <input class="input" id="q" placeholder="เลขเอกสาร บาร์โค้ด ลูกค้า หรือรหัสกล่อง">
+      </div>
+      <div class="field">
+        <label class="label" for="fPdf">สถานะ PDF</label>
+        <select class="select" id="fPdf">
+          <option value="">ทั้งหมด</option>
+          <option value="scanned">สแกนแล้ว</option>
+          <option value="verified">ตรวจแล้ว</option>
+          <option value="sent">ส่งต่อแล้ว</option>
+          <option value="closed">ปิดงาน</option>
+        </select>
+      </div>
+      <div class="field">
+        <label class="label" for="fPaper">สถานะกระดาษ</label>
+        <select class="select" id="fPaper">
+          <option value="">ทั้งหมด</option>
+          <option value="held">อยู่ที่จัดส่ง</option>
+          <option value="shipped">ส่งแล้ว</option>
+          <option value="received">คลังรับแล้ว</option>
+          <option value="boxed">เข้ากล่องแล้ว</option>
+        </select>
+      </div>
+      <button class="btn main" id="btnSearch">ค้นหา</button>
+    </div>
+    <div id="searchResult"></div>
+  </div>
+
+  <div class="actions" style="margin-top:18px">
+    <button class="btn ghost" id="btnReload">รีเฟรช</button>
+    <a class="link" href="batch.html" style="margin-left:12px">← กลับหน้าหลัก</a>
+  </div>
+</div>
+
+<dialog id="dlg">
+  <div class="box-title" id="dTitle">—</div>
+  <div class="box-sub" id="dSub"></div>
+  <div class="kv" id="dKv"></div>
+  <div class="label" style="margin-bottom:6px">ประวัติการดำเนินการ</div>
+  <div class="ev" id="dEv"></div>
+  <div class="actions" style="margin-top:16px">
+    <a class="btn main" id="dPdf" target="_blank" style="text-decoration:none">เปิดไฟล์ PDF</a>
+    <button class="btn ghost" id="dClose">ปิด</button>
+  </div>
+</dialog>
+
+<script type="module">
+import { requireAuth, authFetch } from './js/auth.js?v=2.6.0';
+
+const API = DOCSCAN_CONFIG.API_URL;
+const $ = id => document.getElementById(id);
+let dash = null;
+
+const session = requireAuth();
+if (session) {
+  $('who').innerHTML = session.empName + '<br>' + session.site;
+  load();
+}
+
+const esc = s => String(s == null ? '' : s)
+  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+async function call(action, payload = {}) {
+  try { return await authFetch(API, { action, ...payload }); }
+  catch (err) {
+    if (err.code === 'auth_required') { alert('เซสชันหมดอายุ'); location.href = 'login.html'; }
+    throw err;
+  }
+}
+function fmtDate(v) {
+  if (!v) return '—';
+  const d = new Date(v);
+  return isNaN(d) ? String(v) : d.toLocaleDateString('th-TH', { day:'2-digit', month:'short', year:'2-digit' });
+}
+const SLA_TH = { normal:'ปกติ', warning:'ใกล้ครบ', critical:'ใกล้ครบมาก', over:'เกินกำหนด',
+                 done_ontime:'เสร็จทัน', done_late:'เสร็จช้า', unknown:'ไม่ทราบวันที่' };
+const slaPill = lvl => `<span class="pill s-${lvl}">${SLA_TH[lvl] || lvl}</span>`;
+
+const PDF_TH = { pending_scan:'รอสแกน', scanned:'สแกนแล้ว', verified:'ตรวจแล้ว',
+                 sent:'ส่งต่อแล้ว', closed:'ปิดงาน' };
+const PAPER_TH = { held:'อยู่ที่จัดส่ง', shipped:'ส่งแล้ว', received:'คลังรับแล้ว', boxed:'เข้ากล่องแล้ว' };
+
+/* ---------- โหลดสรุป ---------- */
+async function load() {
+  $('kpis').innerHTML = '<div class="empty">กำลังโหลด…</div>';
+  try {
+    dash = await call('docsDashboard');
+    render();
+  } catch (err) {
+    $('kpis').innerHTML = '';
+    $('alert').textContent = 'โหลดข้อมูลไม่สำเร็จ: ' + (err.message || err);
+    $('alert').className = 'alert bad on';
+  }
+}
+$('btnReload').addEventListener('click', () => call('docsDashboard', { fresh: true })
+  .then(d => { dash = d; render(); }).catch(e => alert(e.message)));
+
+function render() {
+  const s = dash.summary, sla = dash.sla || {};
+  $('slaInfo').textContent = 'PDF ภายใน ' + sla.pdf_days + ' วัน · กระดาษภายใน ' + sla.paper_days + ' วัน';
+
+  const kpi = (n, k, cls = '') => `<div class="kpi ${cls}"><div class="n">${n}</div><div class="k">${k}</div></div>`;
+  $('kpis').innerHTML =
+    kpi(s.total, 'เอกสารที่ยังไม่ปิด') +
+    kpi(s.pdf_over_sla, 'PDF เกิน SLA', s.pdf_over_sla ? 'bad' : 'ok') +
+    kpi(s.pdf_critical + s.pdf_warning, 'PDF ใกล้ครบ', 'warn') +
+    kpi(s.missing_pdf, 'ไม่มีไฟล์ PDF', s.missing_pdf ? 'bad' : 'ok') +
+    kpi(s.ocr_mismatch, 'ข้อมูลไม่ตรง', s.ocr_mismatch ? 'bad' : 'ok') +
+    kpi(s.paper_over_sla, 'กระดาษเกิน SLA', s.paper_over_sla ? 'bad' : 'ok');
+
+  const st = (n, k) => `<div class="step2"><div class="n">${n}</div><div class="k">${k}</div></div>`;
+  $('lanePdf').innerHTML = st(s.pending_scan, 'รอสแกน') + st(s.scanned, 'สแกนแล้ว') +
+    st(s.verified, 'ตรวจแล้ว') + st(s.sent, 'ส่งต่อแล้ว') + st(s.closed, 'ปิดงาน');
+  $('lanePaper').innerHTML = st(s.paper_held, 'อยู่ที่จัดส่ง') + st(s.paper_shipped, 'ส่งแล้ว') +
+    st(s.paper_received, 'คลังรับแล้ว') + st(s.paper_boxed, 'เข้ากล่องแล้ว');
+
+  const ex = dash.exceptions || [];
+  $('exCnt').textContent = ex.length;
+  $('exCnt').style.display = ex.length ? 'inline-block' : 'none';
+
+  $('viewEx').innerHTML = ex.length ? `
+    <table><thead><tr>
+      <th>เลขเอกสาร</th><th>วันที่</th><th>ปลายทาง</th><th>PDF</th><th>กระดาษ</th><th>เหตุผล</th>
+    </tr></thead><tbody>
+    ${ex.map(e => `<tr data-ref="${esc(e.ref_no)}">
+      <td class="mono"><b>${esc(e.ref_no)}</b><br><span style="color:var(--muted)">${esc(e.barcode)}</span></td>
+      <td class="mono">${fmtDate(e.doc_date)}</td>
+      <td>${esc(e.dest_warehouse) || esc(e.site) || '—'}</td>
+      <td>${esc(PDF_TH[e.pdf_status] || e.pdf_status)}<br><span class="mono" style="color:var(--muted)">${e.pdf_days} วัน</span></td>
+      <td>${esc(PAPER_TH[e.paper_status] || e.paper_status || '—')}</td>
+      <td style="color:var(--danger)">${esc(e.reason)}</td>
+    </tr>`).join('')}</tbody></table>`
+    : '<div class="empty">ไม่มีรายการที่ต้องดำเนินการ</div>';
+
+  bindRows('#viewEx');
+  if (dash.cached) {
+    $('alert').textContent = 'ข้อมูลจากแคช คำนวณเมื่อ ' +
+      new Date(dash.computed_at).toLocaleTimeString('th-TH') + ' — กดรีเฟรชเพื่อคำนวณใหม่';
+    $('alert').className = 'alert info on';
+  } else $('alert').className = 'alert';
+}
+
+/* ---------- ค้นหา ---------- */
+document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
+  document.querySelectorAll('.tab').forEach(x => x.classList.toggle('on', x === t));
+  $('viewEx').style.display = t.dataset.tab === 'ex' ? 'block' : 'none';
+  $('viewSearch').style.display = t.dataset.tab === 'search' ? 'block' : 'none';
+  if (t.dataset.tab === 'search') $('q').focus();
+}));
+
+$('btnSearch').addEventListener('click', doSearch);
+$('q').addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(); });
+
+async function doSearch() {
+  $('searchResult').innerHTML = '<div class="empty">กำลังค้นหา…</div>';
+  try {
+    const r = await call('docsSearch', {
+      q: $('q').value.trim(),
+      filters: { pdf_status: $('fPdf').value, paper_status: $('fPaper').value }
+    });
+    $('searchResult').innerHTML = r.results.length ? `
+      <table><thead><tr>
+        <th>เลขเอกสาร</th><th>วันที่</th><th>ปลายทาง</th><th>PDF</th><th>กระดาษ</th><th>กล่อง</th>
+      </tr></thead><tbody>
+      ${r.results.map(d => `<tr data-ref="${esc(d.ref_no)}">
+        <td class="mono"><b>${esc(d.ref_no)}</b><br><span style="color:var(--muted)">${esc(d.barcode)}</span></td>
+        <td class="mono">${fmtDate(d.doc_date)}</td>
+        <td>${esc(d.dest_warehouse) || esc(d.site) || '—'}</td>
+        <td>${esc(PDF_TH[d.pdf_status] || d.pdf_status)} ${slaPill(d.sla_pdf)}</td>
+        <td>${esc(PAPER_TH[d.paper_status] || d.paper_status || '—')}</td>
+        <td class="mono">${esc(d.box_id) || '—'}</td>
+      </tr>`).join('')}</tbody></table>
+      ${r.truncated ? '<p class="note">แสดง 200 รายการแรก — ใส่คำค้นให้แคบลงเพื่อดูให้ครบ</p>' : ''}`
+      : '<div class="empty">ไม่พบเอกสารที่ตรงกับเงื่อนไข<br><span style="font-size:12px">ค้นได้เฉพาะเอกสารที่ยังไม่ปิดงาน</span></div>';
+    bindRows('#searchResult');
+  } catch (err) {
+    $('searchResult').innerHTML = '<div class="empty">' + esc(err.message) + '</div>';
+  }
+}
+
+/* ---------- รายละเอียด ---------- */
+function bindRows(sel) {
+  document.querySelectorAll(sel + ' tbody tr[data-ref]').forEach(tr =>
+    tr.addEventListener('click', () => openDetail(tr.dataset.ref)));
+}
+
+async function openDetail(ref) {
+  $('dTitle').textContent = ref;
+  $('dSub').textContent = 'กำลังโหลด…';
+  $('dKv').innerHTML = ''; $('dEv').textContent = '';
+  $('dlg').showModal();
+  try {
+    const r = await call('docsDetail', { ref_no: ref });
+    if (!r.found) { $('dSub').textContent = 'ไม่พบเอกสารนี้ในตารางที่ยังไม่ปิดงาน'; return; }
+    const d = r.doc, sla = r.sla;
+    $('dSub').textContent = d.item_name || '';
+    $('dKv').innerHTML = [
+      ['บาร์โค้ด', d.barcode], ['วันที่เอกสาร', fmtDate(d.doc_date)],
+      ['ต้นทาง', d.transfer_from], ['ปลายทาง', d.transfer_to],
+      ['จำนวน', (d.sent_qty || '—') + ' / ' + (d.received_qty || '—')],
+      ['สถานะ PDF', (PDF_TH[d.pdf_status] || d.pdf_status || '—') + ' ' + slaPill(sla.pdf.level) +
+        ' <span class="mono" style="color:var(--muted)">' + sla.pdf.days + ' วัน</span>'],
+      ['ผลตรวจข้อมูล', d.ocr_status || '—'],
+      ['สถานะกระดาษ', (PAPER_TH[d.paper_status] || d.paper_status || '—') + ' ' + slaPill(sla.paper.level)],
+      ['กล่องจัดเก็บ', d.box_id || 'ยังไม่เข้ากล่อง'],
+      ['Batch', d.batch_id || '—']
+    ].map(([k, v]) => `<div class="k">${esc(k)}</div><div>${v}</div>`).join('');
+
+    $('dEv').innerHTML = (r.events || []).length
+      ? r.events.map(e => `${fmtDate(e.at)} · ${esc(e.status)} · ${esc(e.emp_name)}` +
+          (e.note ? ' · ' + esc(e.note) : '')).join('<br>')
+      : 'ยังไม่มีประวัติ';
+
+    const link = $('dPdf');
+    if (d.pdf_url) { link.href = d.pdf_url; link.style.display = 'inline-block'; }
+    else link.style.display = 'none';
+  } catch (err) { $('dSub').textContent = err.message; }
+}
+$('dClose').addEventListener('click', () => $('dlg').close());
+</script>
+</body>
+</html>
