@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>DocScan — Batch Mode</title>
+<title>DocScan — นำเข้าเอกสาร</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
@@ -254,22 +254,85 @@ main{width:100%;max-width:100%;padding:20px 24px 100px;}
 .split-bar-wrap{height:6px;background:var(--surface2);border-radius:20px;overflow:hidden;margin-bottom:12px;}
 .split-bar-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--success));border-radius:20px;transition:width 0.2s;}
 .split-detail{font-size:11px;color:var(--muted);font-family:var(--mono);}
+
+/* ---- แถบบนแบบเรียบ แทนเมนูเดิมที่ซ้ำกับปุ่ม ☰ ---- */
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);
+  padding:12px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.topbar .back{color:var(--accent);text-decoration:none;font-size:13.5px;white-space:nowrap}
+.topbar .back:hover{text-decoration:underline}
+.tb-title{border-left:1px solid var(--border);padding-left:16px}
+.tb-name{font-size:16px;font-weight:600}
+.tb-sub{font-size:12px;color:var(--muted);margin-top:1px}
+.tb-user{margin-left:auto;text-align:right;font-size:12.5px;color:var(--text)}
+.tb-site{font-size:11.5px;color:var(--muted);font-family:var(--mono)}
+.nav-bar,.page-wrap{margin-left:0 !important}
+
+/* ---- แผงอ่านอัตโนมัติ ---- */
+.reader{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+  padding:16px 18px;margin-bottom:14px}
+.reader .rowline{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap}
+.reader .fld{display:flex;flex-direction:column;gap:5px;min-width:220px}
+.reader label{font-size:12px;color:var(--muted)}
+.reader select,.reader input[type=number]{background:var(--surface2);border:1px solid var(--border);
+  border-radius:var(--rs);color:var(--text);font-family:var(--font);font-size:13.5px;padding:9px 11px}
+.rbtn{border:none;border-radius:var(--rs);padding:10px 18px;font-family:var(--font);
+  font-size:13.5px;font-weight:600;cursor:pointer;background:var(--accent);color:#0f172a}
+.rbtn.ghost{background:transparent;border:1px solid var(--border);color:var(--text);font-weight:400}
+.rbtn:disabled{opacity:.4;cursor:not-allowed}
+.rprog{margin-top:12px;display:none}
+.rprog.on{display:block}
+.rbar{height:5px;background:var(--surface2);border-radius:3px;overflow:hidden}
+.rbar i{display:block;height:100%;width:0;background:var(--accent);transition:width .2s}
+.rtext{font-family:var(--mono);font-size:12.5px;color:var(--muted);margin-top:7px}
+.rsum{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+.rchip{background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);
+  padding:9px 14px;font-size:12.5px}
+.rchip b{font-family:var(--mono);font-size:17px;display:block;line-height:1.2}
+.rchip.g b{color:var(--success)} .rchip.y b{color:var(--warn)} .rchip.r b{color:var(--danger)}
+tr.tier-red td{background:rgba(248,113,113,.07)}
+tr.tier-yellow td{background:rgba(251,191,36,.06)}
+.tierbadge{display:inline-block;font-size:10.5px;font-family:var(--mono);padding:1px 7px;
+  border-radius:9px;border:1px solid;margin-left:6px}
+.tb-g{color:var(--success);border-color:var(--success)}
+.tb-y{color:var(--warn);border-color:var(--warn)}
+.tb-r{color:var(--danger);border-color:var(--danger)}
+.why{font-size:11px;color:var(--muted);margin-top:3px;max-width:260px;line-height:1.5}
+
+/* ---- เลือกพื้นที่อ่านเอง ---- */
+.pickwrap{position:relative;display:inline-block;line-height:0;border:1px solid var(--border);
+  cursor:crosshair;max-width:100%;touch-action:none;background:#fff}
+#pickCanvas{display:block;max-width:100%;height:auto}
+.pickbox{position:absolute;pointer-events:none;display:none}
+#pkB{border:2px solid var(--accent);background:rgba(56,189,248,.14)}
+#pkO{border:2px solid var(--warn);background:rgba(251,191,36,.14)}
+.pickbox span{position:absolute;top:-18px;left:-2px;font-family:var(--mono);font-size:10px;
+  color:#0f172a;padding:1px 5px;line-height:1.5}
+#pkB span{background:var(--accent)} #pkO span{background:var(--warn)}
 </style>
-<script src="config.js?v=2.0.1"></script>
+<script src="config.js?v=2.9.0"></script>
 <script type="module">
 // ── โมดูลร่วม DocScan ────────────────────────────────────
 // module script ทำงานหลัง classic script แต่ก่อน window.onload
 // โค้ดเดิมเรียก requireAuth ใน window.onload จึงปลอดภัย
-import { apiFetch, uploadBatch, newClientId } from './js/api.js?v=2.0.1';
-import { parseCSV, buildIndex, searchCSV, classify } from './js/csv.js?v=2.0.1';
-import { parseDateInput, toDisplayDate, toInputDate, todayISO } from './js/date.js?v=2.0.1';
-import { requireAuth, authFetch, authGet, authGetText, logout, loadSession, daysLeft, AUTH_JS_VERSION } from './js/auth.js?v=2.0.1';
+import { apiFetch, uploadBatch, newClientId } from './js/api.js?v=2.9.0';
+import { parseCSV, buildIndex, searchCSV, classify } from './js/csv.js?v=2.9.0';
+import { parseDateInput, toDisplayDate, toInputDate, todayISO } from './js/date.js?v=2.9.0';
+import { compressPage, compressImageFile, toDataUrl, storagePeriod,
+         compressionSummary, SETTINGS as PDF_SETTINGS } from './js/pdf.js?v=2.9.0';
+import * as Reader from './js/reader.js?v=2.9.0';
+import { hasCollisionRisk, findNearMiss, searchCSV as csvSearch } from './js/csv.js?v=2.9.0';
+import { requireAuth, authFetch, authGet, authGetText, logout, loadSession, daysLeft, AUTH_JS_VERSION } from './js/auth.js?v=2.9.0';
+import { installNav, guardPage, homeFor as navHome } from './js/nav.js?v=2.9.0';
 
 window.DocScan = {
   apiFetch, authFetch, authGet, authGetText, uploadBatch, newClientId,
   parseCSV, buildIndex, searchCSV, classify,
   parseDateInput, toDisplayDate, toInputDate, todayISO,
-  requireAuth, logout, loadSession, daysLeft, AUTH_JS_VERSION
+  compressPage, compressImageFile, toDataUrl, storagePeriod,
+  compressionSummary, PDF_SETTINGS, Reader,
+  csvHelpers: { searchCSV: csvSearch, hasCollisionRisk, findNearMiss },
+  requireAuth, logout, loadSession, daysLeft, AUTH_JS_VERSION,
+  installNav, guardPage, navHome
 };
 // ประทับเลขเวอร์ชันไว้ให้หาเวลาผู้ใช้แจ้งปัญหา
 document.documentElement.setAttribute('data-docscan-version',
@@ -281,30 +344,17 @@ window.dispatchEvent(new Event('docscan-ready'));
 
 <!-- Site Overlay (สำหรับเปลี่ยน site เท่านั้น — ซ่อนถ้า session มีแล้ว) -->
 <!-- Sidebar -->
-<nav class="nav-bar">
-  <a class="nav-brand" href="dashboard.html">
-    <div class="nav-brand-icon">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0f172a" stroke-width="2.5">
-        <rect x="3" y="4" width="3" height="16" rx="1"/><rect x="8" y="4" width="1.5" height="16" rx=".5"/>
-        <rect x="11" y="4" width="3" height="16" rx="1"/><rect x="16" y="4" width="1.5" height="16" rx=".5"/>
-        <rect x="19" y="4" width="2" height="16" rx="1"/>
-      </svg>
-    </div>
-    <div><div class="nav-brand-name">DocScan</div><div class="nav-brand-sub">Pallet Tracking</div></div>
-  </a>
-  <div class="nav-pages">
-  <a class="nav-link" href="dashboard.html">📊 Dashboard</a>
-  
-  <a class="nav-link active" href="batch.html">📦 Batch Scan</a>
+<div class="topbar">
+  <a class="back" href="home.html">← หน้าหลัก</a>
+  <div class="tb-title">
+    <div class="tb-name">นำเข้าเอกสาร</div>
+    <div class="tb-sub">สแกนเอกสารเข้าระบบ</div>
   </div>
-  <div class="nav-user">
-    <div>
-      <div class="nav-user-name" id="sidebarName">—</div>
-      <div class="nav-user-site" id="sidebarSite">—</div>
-    </div>
-    <button class="nav-logout" onclick="logout()">↩ ออก</button>
+  <div class="tb-user">
+    <div id="sidebarName">—</div>
+    <div class="tb-site" id="sidebarSite">—</div>
   </div>
-</nav>
+</div>
 
 <div class="page-wrap">
 <!-- Topbar -->
@@ -323,11 +373,32 @@ window.dispatchEvent(new Event('docscan-ready'));
     <div class="icon">📂</div>
     <div>
       <div class="label">ลากไฟล์มาวางที่นี่ หรือคลิกเพื่อเลือกไฟล์</div>
-      <div class="sub">รองรับรูปภาพ (JPG, PNG) และ PDF — เลือกได้หลายไฟล์พร้อมกัน</div>
+      <div class="sub">ไฟล์สแกน PDF ที่มีเอกสารตั้งแต่ 1 หน้าขึ้นไป · รองรับรูปภาพด้วย</div>
     </div>
-    <input type="file" id="fileInput" accept="image/*,application/pdf" multiple onchange="handleFiles(event)">
+    <input type="file" id="fileInput" accept="image/*,application/pdf" onchange="handleFiles(event)">
   </div>
   <script>document.getElementById('uploadZone').addEventListener('click',function(e){if(e.target!==document.getElementById('fileInput')&&!document.getElementById('uploadZone').classList.contains('blocked'))document.getElementById('fileInput').click();});</script>
+
+  <div class="reader" id="readerPanel" style="display:none">
+    <div class="rowline">
+      <div class="fld">
+        <label for="docType">ชนิดเอกสาร</label>
+        <select id="docType"></select>
+      </div>
+      <div class="fld" style="min-width:120px">
+        <label for="samplePct">สุ่มตรวจ (%)</label>
+        <input type="number" id="samplePct" min="0" max="100" step="5" value="10">
+      </div>
+      <button class="rbtn" id="btnRead">อ่านเอกสารอัตโนมัติ</button>
+      <button class="rbtn ghost" id="btnPick">กำหนดพื้นที่อ่านเอง</button>
+      <button class="rbtn ghost" id="btnCancelRead" style="display:none">หยุด</button>
+    </div>
+    <div class="rprog" id="rprog">
+      <div class="rbar"><i id="rbar"></i></div>
+      <div class="rtext" id="rtext"></div>
+    </div>
+    <div class="rsum" id="rsum" style="display:none"></div>
+  </div>
 
   <div class="limit-banner" id="limitBanner">
     <span id="limitBannerText">⚠️ ไฟล์เกิน 30 รายการ — ระบบอาจทำงานช้า แนะนำให้แบ่ง batch</span>
@@ -364,6 +435,48 @@ window.dispatchEvent(new Event('docscan-ready'));
   
 
 </main>
+
+<dialog id="dlgPick" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);color:var(--text);padding:22px;max-width:900px;width:95vw">
+  <div style="font-size:16px;font-weight:600;margin-bottom:4px">กำหนดพื้นที่อ่านเอง</div>
+  <div style="font-size:12.5px;color:var(--muted);margin-bottom:16px;line-height:1.7">
+    ลากกรอบบนหน้าเอกสารเพื่อบอกระบบว่าให้อ่านตรงไหน<br>
+    พิกัดเก็บเป็นสัดส่วนของหน้า จึงใช้ได้กับทุกหน้าที่วางเหมือนกัน และจำไว้ให้ครั้งต่อไป
+  </div>
+
+  <div class="rowline" style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin-bottom:12px">
+    <div class="fld" style="display:flex;flex-direction:column;gap:5px">
+      <label style="font-size:12px;color:var(--muted)">กำลังลากกรอบ</label>
+      <select id="pickTarget" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);color:var(--text);padding:9px 11px;font-family:var(--font)">
+        <option value="barcode">พื้นที่บาร์โค้ด</option>
+        <option value="ocr">พื้นที่เลขที่เอกสาร</option>
+      </select>
+    </div>
+    <div class="fld" style="display:flex;flex-direction:column;gap:5px">
+      <label style="font-size:12px;color:var(--muted)">หมุนหน้า</label>
+      <select id="pickRotate" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);color:var(--text);padding:9px 11px;font-family:var(--font)">
+        <option value="0">ไม่หมุน</option><option value="90">90°</option>
+        <option value="180">180°</option><option value="270">270°</option>
+      </select>
+    </div>
+    <button class="rbtn ghost" id="pickPrev">◀</button>
+    <span id="pickPage" style="font-family:var(--mono);font-size:12.5px;color:var(--muted)">— / —</span>
+    <button class="rbtn ghost" id="pickNext">▶</button>
+    <button class="rbtn ghost" id="pickTest">ทดสอบอ่านหน้านี้</button>
+  </div>
+
+  <div class="pickwrap" id="pickWrap">
+    <canvas id="pickCanvas"></canvas>
+    <div class="pickbox" id="pkB"><span>บาร์โค้ด</span></div>
+    <div class="pickbox" id="pkO"><span>เลขที่เอกสาร</span></div>
+  </div>
+  <div id="pickResult" style="font-family:var(--mono);font-size:12.5px;color:var(--muted);margin-top:10px;min-height:20px"></div>
+
+  <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap">
+    <button class="rbtn" id="pickSave">บันทึกพื้นที่</button>
+    <button class="rbtn ghost" id="pickReset">คืนค่าเริ่มต้น</button>
+    <button class="rbtn ghost" id="pickClose">ปิด</button>
+  </div>
+</dialog>
 
 <!-- Dispute Modal -->
 <div class="dispute-overlay" id="disputeOverlay">
@@ -414,11 +527,8 @@ var DocScanAuth = {
     var s = DocScan.requireAuth();
     if (!s) return null;
     if (s.mustChangePassword) { location.href = 'change-password.html'; return null; }
-    if (["warehouse", "admin"].indexOf(s.role) === -1) {
-      alert('บัญชีนี้ไม่มีสิทธิ์ใช้งานหน้านี้');
-      location.href = s.role === 'delivery' ? 'delivery.html' : 'batch.html';
-      return null;
-    }
+    if (!DocScan.guardPage(s)) return null;
+    DocScan.installNav(s, { onLogout: logout });
     return s;
   }
 };
@@ -462,6 +572,7 @@ var rows = [];
 
 // ── Init ──────────────────────────────────────────────────
 window.onload = function () {
+  initReader();
   var s = DocScanAuth.requireAuth();
   if (!s) return;
   selectedSite = s.site; selectedEmpId = s.empId;
@@ -629,6 +740,7 @@ function processImage(file, skippedFiles) {
 
 // ── Process PDF: split แต่ละหน้าเป็นแถว ─────────────────
 async function processPDF(file, skippedFiles) {
+  _lastFileName = file.name;
   // แสดง progress overlay
   var overlay  = document.getElementById('splitOverlay');
   var barFill  = document.getElementById('splitBarFill');
@@ -642,6 +754,7 @@ async function processPDF(file, skippedFiles) {
 
     // 1. นับหน้าด้วย PDF.js
     var pdfJs  = await pdfjsLib.getDocument({ data: arrayBuf.slice(0) }).promise;
+  _lastPdfJs = pdfJs;   // เก็บไว้ให้ตัวอ่านอัตโนมัติใช้ซ้ำ ไม่ต้องเปิดไฟล์ใหม่
     var numPages = pdfJs.numPages;
 
     // 2. ถ้า 1 หน้า — ไม่ต้อง split ใช้เหมือนเดิม
@@ -653,8 +766,11 @@ async function processPDF(file, skippedFiles) {
       }
       var row = _makeRow(file, 'pdf');
       row.photoData    = await _renderPDFPage(pdfJs, 1, 200);
-      row.pdfPageData  = await _extractPDFPage(arrayBuf, 1);
+      row.pdfPageData  = await _extractPDFPage(pdfJs, 1);
+      row.originalBytes   = arrayBuf.byteLength;
+      row.compressedBytes = row.pdfPageData.length;
       row.originalPdf  = arrayBuf.slice(0); // ← เก็บ original ไว้ preview
+      row.pageNo       = 1;
       row.originalPage = 1;
       rows.push(row);
       return;
@@ -685,8 +801,11 @@ async function processPDF(file, skippedFiles) {
       var row = _makeRow(virtualFile, 'pdf');
 
       row.photoData    = await _renderPDFPage(pdfJs, p, 200);
-      row.pdfPageData  = await _extractPDFPage(arrayBuf, p);
+      row.pdfPageData  = await _extractPDFPage(pdfJs, p);
+      row.originalBytes   = Math.round(arrayBuf.byteLength / numPages);
+      row.compressedBytes = row.pdfPageData.length;
       row.originalPdf  = sharedBuf; // ← ชี้ไป original เดียวกัน
+      row.pageNo       = p;
       row.originalPage = p;         // ← หน้าที่ต้องการ
       row.pageNum      = p;
       row.totalPages   = numPages;
@@ -716,13 +835,25 @@ async function _renderPDFPage(pdfDoc, pageNum, maxW) {
 }
 
 // extract หน้าเดี่ยวออกจาก PDF เป็น Uint8Array ผ่าน pdf-lib
-async function _extractPDFPage(arrayBuf, pageNum) {
-  var srcDoc  = await PDFLib.PDFDocument.load(arrayBuf.slice(0));
-  var newDoc  = await PDFLib.PDFDocument.create();
-  var [page]  = await newDoc.copyPages(srcDoc, [pageNum - 1]);
-  newDoc.addPage(page);
-  return await newDoc.save(); // Uint8Array
+/**
+ * แยกหนึ่งหน้าออกมาเป็น PDF ขาวดำที่บีบแล้ว
+ *
+ * ของเดิมคัดลอกหน้าต้นฉบับมาทั้งดุ้น (~432 KB/หน้า) และ load ไฟล์ใหม่ทุกหน้า
+ * ตัวใหม่เรนเดอร์เป็นสี 200dpi q65 เหลือราว 206 KB/หน้า
+ * ที่ 20,000 ใบ/เดือน ต่างกัน 8.25 GB เหลือ 3.9 GB ต่อเดือน
+ *
+ * รับ pdfJs ที่เปิดไว้แล้ว จึงไม่ต้อง load เอกสารซ้ำทุกหน้า
+ */
+async function _extractPDFPage(pdfJs, pageNum) {
+  return await DocScan.compressPage(pdfJs, pageNum, {
+    dpi: PDF_DPI, quality: PDF_QUALITY
+  });
 }
+
+// 200dpi คือขั้นต่ำที่บาร์โค้ดยังมีระยะห่างพอ — วัดแล้วต่ำกว่านี้เริ่มเสี่ยง
+// q65 เก็บสีลายเซ็นและตราประทับไว้ครบตามที่เอกสารต้องเป็นสีเหมือนตัวจริง
+var PDF_DPI = 200;
+var PDF_QUALITY = 0.65;
 
 // สร้าง row object มาตรฐาน
 function _makeRow(file, photoType) {
@@ -836,11 +967,26 @@ function renderTable() {
     var bcClass='bc-input'+(row.status==='found'||row.status==='ready'?' found':row.status==='notfound'?' notfound':row.status==='dup'?' dup':'');
     var ev=row.editVals;
     var rid=row.id;
-    return '<tr class="row-'+row.status+'" id="row-'+rid+'">'+
+    // ชั้นความเชื่อมั่นจากการอ่านอัตโนมัติ ใช้ระบายสีแถวและติดป้าย
+    var tierCls = row.tier ? ' tier-'+row.tier : '';
+    var tierTag = '';
+    if (row.tier) {
+      var tm = { green:['tb-g','ผ่าน'], yellow:['tb-y','ควรยืนยัน'], red:['tb-r','ต้องตรวจ'] }[row.tier];
+      tierTag = '<span class="tierbadge '+tm[0]+'">'+tm[1]+'</span>';
+      if (row.sampled) tierTag += '<span class="tierbadge tb-y">สุ่มตรวจ</span>';
+      if (row.readSource) tierTag += '<span class="tierbadge tb-g">'+
+        (row.readSource==='barcode'?'บาร์โค้ด':'OCR')+'</span>';
+    }
+    var whyHtml = row.tierWhy ? '<div class="why">'+esc(row.tierWhy)+
+      (row.suggestion ? ' — <a href="#" onclick="applySuggestion(\''+rid+'\',\''+esc(row.suggestion)+'\');return false;" style="color:var(--accent)">ใช้ค่านี้</a>' : '')+'</div>' : '';
+    var pagesHtml = (row.pageNos && row.pageNos.length>1)
+      ? '<div class="why">รวม '+row.pageNos.length+' หน้า (สำเนา)</div>' : '';
+
+    return '<tr class="row-'+row.status+tierCls+'" id="row-'+rid+'">'+
       '<td style="text-align:center;color:var(--muted);font-family:var(--mono);font-size:11px;">'+(i+1)+'</td>'+
       '<td><div style="display:flex;flex-direction:column;align-items:center;gap:2px;">'+thumbHtml+'<div class="file-name" style="text-align:center;">'+fileLabel+'</div></div></td>'+
       '<td><input class="'+bcClass+'" value="'+esc(row.barcode)+'" placeholder="สแกน / พิมพ์ barcode" oninput="handleBarcodeInput(\''+rid+'\',this)" onkeydown="if(event.key===\'Enter\'){event.preventDefault();onBarcodeChange(\''+rid+'\',this.value);}"></td>'+
-      '<td>'+statusHtml+'</td>'+
+      '<td>'+statusHtml+tierTag+whyHtml+pagesHtml+'</td>'+
       '<td><input class="row-input mono" value="'+esc(ev.refNo)+'" oninput="updateEdit(\''+rid+'\',\'refNo\',this.value)" placeholder="Ref No."></td>'+
       '<td><input class="row-input" value="'+esc(ev.itemName)+'" oninput="updateEdit(\''+rid+'\',\'itemName\',this.value)" placeholder="ประเภท"></td>'+
       '<td><div class="cell-two">'+
@@ -1013,8 +1159,26 @@ function updateEdit(id, field, value) {
   updateSubmitBtn();
 }
 
+/** ใช้ค่าที่ระบบเสนอเมื่อเลขที่อ่านได้ใกล้เคียงกับรายการอ้างอิง */
+function applySuggestion(id, value) {
+  var row = rows.find(function (r) { return r.id === Number(id); });
+  if (!row) return;
+  row.barcode = value;
+  row.tier = 'yellow';
+  row.tierWhy = 'ใช้ค่าที่ระบบเสนอ ควรยืนยันกับเอกสาร';
+  row.suggestion = '';
+  onBarcodeChange(row.id, value);
+  renderTable();
+}
+
 function removeRow(id){var idNum=Number(id);rows=rows.filter(function(r){return r.id!==idNum;});renderTable();updateBatchCounter();}
-function clearAll(){if(rows.length&&confirm('ล้างทั้งหมด?')){rows=[];renderTable();updateBatchCounter();}}
+function clearAll(){
+  if(!rows.length||!confirm('ล้างทั้งหมด?'))return;
+  rows=[]; _lastPdfJs=null; _lastFileName='';
+  renderTable(); updateBatchCounter(); showReaderPanel(false);
+  document.getElementById('rsum').style.display='none';
+  document.getElementById('rprog').classList.remove('on');
+}
 
 function updateSubmitBtn(){
   var ready=rows.filter(function(r){return r.status!=='dup'&&r.barcode&&r.editVals.transferFrom&&r.editVals.transferTo&&r.editVals.receivedDate&&r.editVals.sentQty&&r.editVals.receivedQty;});
@@ -1045,9 +1209,13 @@ async function submitBatch(){
         client_id: r.client_id,
         barcode: r.barcode,
         ref_no: r.editVals.refNo || r.barcode,
+        period: DocScan.storagePeriod(),   // โฟลเดอร์ปลายทาง เช่น 2026-08
         image: str
       };
     });
+
+    var cs = DocScan.compressionSummary(ready);
+    if (cs) console.log('[DocScan] บีบไฟล์: ' + cs.text);
 
     if (uploadList.length) {
       var results = await DocScan.uploadBatch(API_URL, uploadList, {
@@ -1289,6 +1457,267 @@ function logout() {
 
 var toastTimer;
 function showToast(msg,type){var t=document.getElementById('toast');t.textContent=msg;t.className='toast '+(type||'info')+' show';clearTimeout(toastTimer);toastTimer=setTimeout(function(){t.classList.remove('show');},3000);}
+
+/* ============================================================
+   อ่านเอกสารอัตโนมัติ
+   บาร์โค้ดก่อน ถ้าไม่ได้ค่อย OCR แล้วเทียบกับรายการอ้างอิง
+   ============================================================ */
+var _types = null, _readAbort = null, _lastPdfJs = null, _lastFileName = '';
+
+function initReader() {
+  _types = DocScan.Reader.loadTypes();
+  var sel = document.getElementById('docType');
+  sel.innerHTML = '';
+  Object.keys(_types).forEach(function (k) {
+    var o = document.createElement('option');
+    o.value = k; o.textContent = _types[k].name;
+    sel.appendChild(o);
+  });
+  sel.value = localStorage.getItem('docScanLastType') || 'auto';
+  sel.addEventListener('change', function () {
+    localStorage.setItem('docScanLastType', sel.value);
+  });
+  document.getElementById('btnRead').addEventListener('click', runAutoRead);
+  document.getElementById('btnPick').addEventListener('click', openPicker);
+  document.getElementById('btnCancelRead').addEventListener('click', function () {
+    if (_readAbort) _readAbort.abort();
+  });
+}
+
+function showReaderPanel(show) {
+  document.getElementById('readerPanel').style.display = show ? 'block' : 'none';
+}
+
+function rprog(frac, text) {
+  document.getElementById('rprog').classList.add('on');
+  document.getElementById('rbar').style.width = Math.round(frac * 100) + '%';
+  document.getElementById('rtext').textContent = text;
+}
+
+async function runAutoRead() {
+  if (!_lastPdfJs) { alert('ยังไม่ได้อัปโหลดไฟล์ PDF'); return; }
+  if (!csvLoaded) { alert('กำลังโหลดรายการอ้างอิง กรุณารอสักครู่'); return; }
+
+  var btn = document.getElementById('btnRead');
+  var cancel = document.getElementById('btnCancelRead');
+  btn.disabled = true; cancel.style.display = 'inline-block';
+  _readAbort = new AbortController();
+
+  try {
+    var key = document.getElementById('docType').value;
+    if (key === 'auto') {
+      rprog(0.02, 'กำลังตรวจชนิดเอกสาร');
+      key = await DocScan.Reader.detectType(_lastPdfJs, _types);
+      document.getElementById('docType').value = key;
+      rprog(0.05, 'ตรวจได้ว่าเป็น ' + _types[key].name);
+    }
+    var type = _types[key];
+
+    var results = await DocScan.Reader.readAllPages(_lastPdfJs, type, {
+      signal: _readAbort.signal,
+      onProgress: function (m) { rprog(0.06, m); },
+      onPage: function (r, i, n) {
+        rprog(0.06 + 0.9 * i / n,
+          'อ่านหน้า ' + i + ' จาก ' + n + (r.value ? '  →  ' + r.value : '  →  อ่านไม่ได้'));
+      }
+    });
+
+    applyReadResults(results, key);
+    rprog(1, 'อ่านเสร็จแล้ว');
+  } catch (err) {
+    console.error(err);
+    rprog(1, 'อ่านไม่สำเร็จ: ' + (err.message || err));
+  } finally {
+    btn.disabled = false; cancel.style.display = 'none'; _readAbort = null;
+  }
+}
+
+/**
+ * เอาผลที่อ่านได้ไปใส่ในตาราง
+ * หน้าที่ได้เลขเดียวกันคือเอกสารใบเดียวกัน (เช่น CMD ที่มีสำเนาหลายชุด)
+ * แถวที่เป็นสำเนาซ้ำจะถูกลบออก เหลือใบเดียวที่ครอบทุกหน้า
+ */
+function applyReadResults(results, typeKey) {
+  var docs = DocScan.Reader.groupPages(results);
+  var pct = Number(document.getElementById('samplePct').value) || 0;
+  var idx = _csvIndex || (_csvIndex = DocScan.buildIndex(csvData));
+  var count = { green: 0, yellow: 0, red: 0, sampled: 0 };
+  var keepIds = {};
+
+  docs.forEach(function (d) {
+    var cls = DocScan.Reader.classifyDoc(d, idx, DocScan.csvHelpers);
+    var sampled = cls.tier === 'green' &&
+                  DocScan.Reader.sampleFlag(d.value || ('p' + d.pages[0].page), pct);
+    if (sampled) count.sampled++;
+    count[cls.tier]++;
+
+    // แถวแรกของกลุ่มเป็นตัวแทนเอกสารใบนี้
+    var first = rows.find(function (r) { return r.pageNo === d.pages[0].page; });
+    if (!first) return;
+    keepIds[first.id] = true;
+
+    first.tier = cls.tier;
+    first.tierWhy = cls.head;
+    first.suggestion = cls.suggestion || '';
+    first.sampled = sampled;
+    first.readSource = d.source;
+    first.pageNos = d.pages.map(function (p) { return p.page; });
+
+    if (d.value) {
+      first.barcode = d.value;
+      onBarcodeChange(first.id, d.value);
+    }
+
+    // หน้าที่เหลือในกลุ่มเป็นสำเนา ไม่ต้องเป็นแถวแยก
+    d.pages.slice(1).forEach(function (p) {
+      var dup = rows.find(function (r) { return r.pageNo === p.page; });
+      if (dup) dup._mergedInto = first.id;
+    });
+  });
+
+  var before = rows.length;
+  rows = rows.filter(function (r) { return !r._mergedInto; });
+  var merged = before - rows.length;
+
+  renderTable();
+  updateBatchCounter();
+
+  var sum = document.getElementById('rsum');
+  sum.style.display = 'flex';
+  sum.innerHTML =
+    '<div class="rchip g"><b>' + count.green + '</b>ผ่านอัตโนมัติ</div>' +
+    '<div class="rchip y"><b>' + count.yellow + '</b>ควรยืนยัน</div>' +
+    '<div class="rchip r"><b>' + count.red + '</b>ต้องตรวจ</div>' +
+    '<div class="rchip"><b>' + count.sampled + '</b>สุ่มตรวจ</div>' +
+    (merged ? '<div class="rchip"><b>' + merged + '</b>หน้าที่เป็นสำเนา รวมเข้าใบเดียว</div>' : '');
+}
+
+/* ---------------- เลือกพื้นที่อ่านเอง ---------------- */
+var _pickPage = 1, _pickRegions = { barcode: null, ocr: null }, _pickKey = 'cmd';
+
+async function openPicker() {
+  if (!_lastPdfJs) { alert('ยังไม่ได้อัปโหลดไฟล์ PDF'); return; }
+  _pickKey = document.getElementById('docType').value;
+  if (_pickKey === 'auto') {
+    _pickKey = await DocScan.Reader.detectType(_lastPdfJs, _types);
+    document.getElementById('docType').value = _pickKey;
+  }
+  var t = _types[_pickKey];
+  _pickRegions = { barcode: t.barcode ? Object.assign({}, t.barcode) : null,
+                   ocr: t.ocr ? Object.assign({}, t.ocr) : null };
+  document.getElementById('pickRotate').value = String(t.rotate || 0);
+  _pickPage = 1;
+  document.getElementById('pickResult').textContent = '';
+  document.getElementById('dlgPick').showModal();
+  await drawPick();
+}
+
+async function drawPick() {
+  var page = await _lastPdfJs.getPage(_pickPage);
+  var rot = ((page.rotate || 0) + Number(document.getElementById('pickRotate').value) + 360) % 360;
+  var vp0 = page.getViewport({ scale: 1, rotation: rot });
+  var scale = Math.min(760 / vp0.width, 2);
+  var vp = page.getViewport({ scale: scale, rotation: rot });
+  var cv = document.getElementById('pickCanvas');
+  cv.width = Math.floor(vp.width); cv.height = Math.floor(vp.height);
+  var ctx = cv.getContext('2d');
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, cv.width, cv.height);
+  await page.render({ canvasContext: ctx, viewport: vp }).promise;
+  page.cleanup();
+  document.getElementById('pickPage').textContent = 'หน้า ' + _pickPage + ' / ' + _lastPdfJs.numPages;
+  drawPickBoxes();
+}
+
+function drawPickBoxes() {
+  [['barcode', 'pkB'], ['ocr', 'pkO']].forEach(function (pair) {
+    var el = document.getElementById(pair[1]), r = _pickRegions[pair[0]];
+    if (!r) { el.style.display = 'none'; return; }
+    el.style.display = 'block';
+    el.style.left = (r.x * 100) + '%'; el.style.top = (r.y * 100) + '%';
+    el.style.width = (r.w * 100) + '%'; el.style.height = (r.h * 100) + '%';
+  });
+}
+
+(function bindPicker() {
+  var wrap = document.getElementById('pickWrap');
+  var sx = 0, sy = 0, dragging = false, target = null;
+  function rel(e) {
+    var b = wrap.getBoundingClientRect();
+    return { x: Math.min(1, Math.max(0, (e.clientX - b.left) / b.width)),
+             y: Math.min(1, Math.max(0, (e.clientY - b.top) / b.height)) };
+  }
+  wrap.addEventListener('pointerdown', function (e) {
+    target = document.getElementById('pickTarget').value;
+    var p = rel(e); sx = p.x; sy = p.y; dragging = true;
+    wrap.setPointerCapture(e.pointerId); e.preventDefault();
+  });
+  wrap.addEventListener('pointermove', function (e) {
+    if (!dragging) return;
+    var p = rel(e);
+    _pickRegions[target] = { x: Math.min(sx, p.x), y: Math.min(sy, p.y),
+                             w: Math.abs(p.x - sx), h: Math.abs(p.y - sy) };
+    drawPickBoxes();
+  });
+  wrap.addEventListener('pointerup', function () {
+    if (!dragging) return;
+    dragging = false;
+    var r = _pickRegions[target];
+    // กรอบเล็กเกินไปคือกดพลาด ไม่ใช่ตั้งใจลาก
+    if (r && (r.w < 0.008 || r.h < 0.006)) _pickRegions[target] = null;
+    drawPickBoxes();
+  });
+
+  document.getElementById('pickPrev').addEventListener('click', function () {
+    if (_pickPage > 1) { _pickPage--; drawPick(); }
+  });
+  document.getElementById('pickNext').addEventListener('click', function () {
+    if (_pickPage < _lastPdfJs.numPages) { _pickPage++; drawPick(); }
+  });
+  document.getElementById('pickRotate').addEventListener('change', drawPick);
+  document.getElementById('pickClose').addEventListener('click', function () {
+    document.getElementById('dlgPick').close();
+  });
+
+  document.getElementById('pickSave').addEventListener('click', function () {
+    _types = DocScan.Reader.saveType(_pickKey, {
+      barcode: _pickRegions.barcode, ocr: _pickRegions.ocr,
+      rotate: Number(document.getElementById('pickRotate').value)
+    });
+    document.getElementById('dlgPick').close();
+    alert('บันทึกพื้นที่ของ ' + _types[_pickKey].name + ' แล้ว\nจะถูกใช้ทุกครั้งที่เลือกชนิดนี้');
+  });
+
+  document.getElementById('pickReset').addEventListener('click', function () {
+    if (!confirm('คืนค่าพื้นที่ทุกชนิดกลับเป็นค่าเริ่มต้น?')) return;
+    _types = DocScan.Reader.resetTypes();
+    var t = _types[_pickKey];
+    _pickRegions = { barcode: t.barcode ? Object.assign({}, t.barcode) : null,
+                     ocr: t.ocr ? Object.assign({}, t.ocr) : null };
+    document.getElementById('pickRotate').value = String(t.rotate || 0);
+    drawPickBoxes();
+  });
+
+  document.getElementById('pickTest').addEventListener('click', async function () {
+    var out = document.getElementById('pickResult');
+    out.textContent = 'กำลังอ่าน...';
+    try {
+      var t = Object.assign({}, _types[_pickKey], {
+        barcode: _pickRegions.barcode, ocr: _pickRegions.ocr,
+        rotate: Number(document.getElementById('pickRotate').value)
+      });
+      var page = await _lastPdfJs.getPage(_pickPage);
+      var bc = t.barcodeUnreliable ? null : await DocScan.Reader.readBarcode(page, t);
+      var oc = await DocScan.Reader.readOcr(page, t, function (m) { out.textContent = m; });
+      page.cleanup();
+      out.innerHTML =
+        'บาร์โค้ด: ' + (bc && bc.value ? bc.value : (bc && bc.all.length ? bc.all.join(', ') + ' (ไม่ตรงรูปแบบ)' : 'อ่านไม่ได้')) +
+        '<br>OCR: ' + (oc && oc.value ? oc.value : 'อ่านไม่ได้') +
+        (oc && oc.raw ? '  <span style="opacity:.7">ดิบ: ' + esc(oc.raw) + '</span>' : '') +
+        (oc && oc.disagree ? '  <span style="color:var(--warn)">โหมดไม่ตรงกัน</span>' : '');
+    } catch (err) { out.textContent = 'ทดสอบไม่สำเร็จ: ' + (err.message || err); }
+  });
+})();
+
 </script>
 </div><!-- /page-wrap -->
 
