@@ -289,6 +289,16 @@ main{width:100%;max-width:100%;padding:20px 24px 100px;}
   padding:9px 14px;font-size:12.5px}
 .rchip b{font-family:var(--mono);font-size:17px;display:block;line-height:1.2}
 .rchip.g b{color:var(--success)} .rchip.y b{color:var(--warn)} .rchip.r b{color:var(--danger)}
+.readval{font-family:var(--mono);font-size:15px;font-weight:600;letter-spacing:.04em}
+.readsrc{font-size:11px;color:var(--muted);margin-top:2px}
+.readcrop{display:block;max-width:100%;max-height:52px;margin-top:6px;border:1px solid var(--border);
+  border-radius:4px;background:#fff;cursor:zoom-in;image-rendering:pixelated}
+.readnone{font-size:12px;color:var(--muted);line-height:1.6}
+td.ro{font-size:13px;color:var(--text);vertical-align:top}
+td.ro .acc{font-family:var(--mono);font-size:11.5px;color:var(--muted);margin-top:2px}
+.csvst{font-size:12.5px;color:var(--muted);margin-top:10px;font-family:var(--mono)}
+.csvst.ok{color:var(--success)}
+.csvst.bad{color:var(--danger)}
 tr.tier-red td{background:rgba(248,113,113,.07)}
 tr.tier-yellow td{background:rgba(251,191,36,.06)}
 .tierbadge{display:inline-block;font-size:10.5px;font-family:var(--mono);padding:1px 7px;
@@ -309,20 +319,20 @@ tr.tier-yellow td{background:rgba(251,191,36,.06)}
   color:#0f172a;padding:1px 5px;line-height:1.5}
 #pkB span{background:var(--accent)} #pkO span{background:var(--warn)}
 </style>
-<script src="config.js?v=2.9.1"></script>
+<script src="config.js?v=2.10.0"></script>
 <script type="module">
 // ── โมดูลร่วม DocScan ────────────────────────────────────
 // module script ทำงานหลัง classic script แต่ก่อน window.onload
 // โค้ดเดิมเรียก requireAuth ใน window.onload จึงปลอดภัย
-import { apiFetch, uploadBatch, newClientId } from './js/api.js?v=2.9.1';
-import { parseCSV, buildIndex, searchCSV, classify } from './js/csv.js?v=2.9.1';
-import { parseDateInput, toDisplayDate, toInputDate, todayISO } from './js/date.js?v=2.9.1';
+import { apiFetch, uploadBatch, newClientId } from './js/api.js?v=2.10.0';
+import { parseCSV, buildIndex, searchCSV, classify } from './js/csv.js?v=2.10.0';
+import { parseDateInput, toDisplayDate, toInputDate, todayISO } from './js/date.js?v=2.10.0';
 import { compressPage, compressImageFile, toDataUrl, storagePeriod,
-         compressionSummary, SETTINGS as PDF_SETTINGS } from './js/pdf.js?v=2.9.1';
-import * as Reader from './js/reader.js?v=2.9.1';
-import { hasCollisionRisk, findNearMiss, searchCSV as csvSearch } from './js/csv.js?v=2.9.1';
-import { requireAuth, authFetch, authGet, authGetText, logout, loadSession, daysLeft, AUTH_JS_VERSION } from './js/auth.js?v=2.9.1';
-import { installNav, guardPage, homeFor as navHome } from './js/nav.js?v=2.9.1';
+         compressionSummary, SETTINGS as PDF_SETTINGS } from './js/pdf.js?v=2.10.0';
+import * as Reader from './js/reader.js?v=2.10.0';
+import { hasCollisionRisk, findNearMiss, searchCSV as csvSearch } from './js/csv.js?v=2.10.0';
+import { requireAuth, authFetch, authGet, authGetText, logout, loadSession, daysLeft, AUTH_JS_VERSION } from './js/auth.js?v=2.10.0';
+import { installNav, guardPage, homeFor as navHome } from './js/nav.js?v=2.10.0';
 
 window.DocScan = {
   apiFetch, authFetch, authGet, authGetText, uploadBatch, newClientId,
@@ -393,6 +403,7 @@ window.dispatchEvent(new Event('docscan-ready'));
       <button class="rbtn ghost" id="btnPick">กำหนดพื้นที่อ่านเอง</button>
       <button class="rbtn ghost" id="btnCancelRead" style="display:none">หยุด</button>
     </div>
+    <div class="csvst" id="csvStatus">กำลังโหลดรายการอ้างอิง…</div>
     <div class="rprog" id="rprog">
       <div class="rbar"><i id="rbar"></i></div>
       <div class="rtext" id="rtext"></div>
@@ -414,17 +425,12 @@ window.dispatchEvent(new Event('docscan-ready'));
         <thead>
           <tr>
             <th style="width:3%;">#</th>
-            <th style="width:6%;">ไฟล์</th>
-            <th style="width:13%;">Barcode</th>
-            <th style="width:6%;">สถานะ</th>
-            <th style="width:9%;">Reference</th>
-            <th style="width:9%;">ประเภท</th>
-            <th style="width:14%;">โอนจาก / Origin Acc.</th>
-            <th style="width:14%;">โอนไป / Dest. Acc.</th>
-            <th style="width:9%;">วันที่ส่ง</th>
-            <th style="width:9%;">วันที่รับ</th>
-            <th style="width:5%;">ส่ง</th>
-            <th style="width:5%;">รับ</th>
+            <th style="width:12%;">เอกสาร</th>
+            <th style="width:16%;">สิ่งที่ระบบอ่านได้</th>
+            <th style="width:22%;">Barcode / Reference</th>
+            <th style="width:14%;">ประเภท</th>
+            <th style="width:15%;">โอนจาก / Origin Acc.</th>
+            <th style="width:15%;">โอนไป / Dest. Acc.</th>
             <th style="width:3%;"></th>
           </tr>
         </thead>
@@ -600,21 +606,27 @@ function loadCSV() {
       if (Date.now() - obj.ts < CSV_CACHE_TTL) {
         csvData = obj.data;
         csvLoaded = true;
-        console.log('[CSV] loaded from cache (' + csvData.length + ' rows)');
+        _csvIndex = null;
+        setCsvStatus('ready', csvData.length, obj.ts);
         return;
       }
     }
   } catch(e) {}
 
   // fetch ใหม่
+  setCsvStatus('loading');
   apiGetText('getCSV').then(function(text) {
     csvData   = parseCSV(text);
     csvLoaded = true;
+    _csvIndex = null;
     try {
       localStorage.setItem(CSV_CACHE_KEY, JSON.stringify({ ts: Date.now(), data: csvData }));
     } catch(e) {}
-    console.log('[CSV] fetched & cached (' + csvData.length + ' rows)');
-  }).catch(function() { showToast('โหลด CSV ไม่สำเร็จ','error'); });
+    setCsvStatus('ready', csvData.length, Date.now());
+  }).catch(function(err) {
+    setCsvStatus('error', 0, 0, err && err.message);
+    showToast('โหลดรายการอ้างอิงไม่สำเร็จ','error');
+  });
 }
 
 function clearCSVCache() {
@@ -969,40 +981,58 @@ function renderTable() {
     var ev=row.editVals;
     var rid=row.id;
     // ชั้นความเชื่อมั่นจากการอ่านอัตโนมัติ ใช้ระบายสีแถวและติดป้าย
-    var tierCls = row.tier ? ' tier-'+row.tier : '';
+    var tierCls = row.tier ? ' tier-' + row.tier : '';
     var tierTag = '';
     if (row.tier) {
       var tm = { green:['tb-g','ผ่าน'], yellow:['tb-y','ควรยืนยัน'], red:['tb-r','ต้องตรวจ'] }[row.tier];
-      tierTag = '<span class="tierbadge '+tm[0]+'">'+tm[1]+'</span>';
+      tierTag = '<span class="tierbadge ' + tm[0] + '">' + tm[1] + '</span>';
       if (row.sampled) tierTag += '<span class="tierbadge tb-y">สุ่มตรวจ</span>';
-      if (row.readSource) tierTag += '<span class="tierbadge tb-g">'+
-        (row.readSource==='barcode'?'บาร์โค้ด':'OCR')+'</span>';
     }
-    var whyHtml = row.tierWhy ? '<div class="why">'+esc(row.tierWhy)+
-      (row.suggestion ? ' — <a href="#" onclick="applySuggestion(\''+rid+'\',\''+esc(row.suggestion)+'\');return false;" style="color:var(--accent)">ใช้ค่านี้</a>' : '')+'</div>' : '';
-    var pagesHtml = (row.pageNos && row.pageNos.length>1)
-      ? '<div class="why">รวม '+row.pageNos.length+' หน้า (สำเนา)</div>' : '';
 
-    return '<tr class="row-'+row.status+tierCls+'" id="row-'+rid+'">'+
-      '<td style="text-align:center;color:var(--muted);font-family:var(--mono);font-size:11px;">'+(i+1)+'</td>'+
-      '<td><div style="display:flex;flex-direction:column;align-items:center;gap:2px;">'+thumbHtml+'<div class="file-name" style="text-align:center;">'+fileLabel+'</div></div></td>'+
-      '<td><input class="'+bcClass+'" value="'+esc(row.barcode)+'" placeholder="สแกน / พิมพ์ barcode" oninput="handleBarcodeInput(\''+rid+'\',this)" onkeydown="if(event.key===\'Enter\'){event.preventDefault();onBarcodeChange(\''+rid+'\',this.value);}"></td>'+
-      '<td>'+statusHtml+tierTag+whyHtml+pagesHtml+'</td>'+
-      '<td><input class="row-input mono" value="'+esc(ev.refNo)+'" oninput="updateEdit(\''+rid+'\',\'refNo\',this.value)" placeholder="Ref No."></td>'+
-      '<td><input class="row-input" value="'+esc(ev.itemName)+'" oninput="updateEdit(\''+rid+'\',\'itemName\',this.value)" placeholder="ประเภท"></td>'+
-      '<td><div class="cell-two">'+
-        '<input class="row-input" value="'+esc(ev.transferFrom)+'" oninput="updateEdit(\''+rid+'\',\'transferFrom\',this.value)" placeholder="โอนจาก" required>'+
-        '<input class="row-input mono" value="'+esc(ev.originAcc)+'" oninput="updateEdit(\''+rid+'\',\'originAcc\',this.value)" placeholder="Origin Acc.">'+
-      '</div></td>'+
-      '<td><div class="cell-two">'+
-        '<input class="row-input" value="'+esc(ev.transferTo)+'" oninput="updateEdit(\''+rid+'\',\'transferTo\',this.value)" placeholder="โอนไป" required>'+
-        '<input class="row-input mono" value="'+esc(ev.destAcc)+'" oninput="updateEdit(\''+rid+'\',\'destAcc\',this.value)" placeholder="Dest. Acc.">'+
-      '</div></td>'+
-      '<td><input class="row-input" type="date" value="'+esc(ev.despatch)+'" onchange="updateEdit(\''+rid+'\',\'despatch\',this.value)"></td>'+
-      '<td><input class="row-input date-smart" data-rid="'+rid+'" value="'+esc(toDisplayDate(ev.receivedDate))+'" placeholder="ddmmyy" maxlength="10" style="font-family:var(--mono);text-align:center;"></td>'+
-      '<td><input class="row-input" type="number" min="0" value="'+esc(ev.sentQty)+'" oninput="updateEdit(\''+rid+'\',\'sentQty\',this.value)" placeholder="0" required style="text-align:right;"></td>'+
-      '<td><input class="row-input" type="number" min="0" value="'+esc(ev.receivedQty)+'" oninput="updateEdit(\''+rid+'\',\'receivedQty\',this.value)" placeholder="0" required style="text-align:right;"></td>'+
-      '<td><button class="remove-row-btn" onclick="removeRow(\''+rid+'\')">✕</button></td>'+
+    // ภาพที่ระบบใช้อ่าน วางคู่กับค่าที่อ่านได้ เพื่อให้เทียบกับเอกสารได้ทันที
+    // นี่คืองานหลักของหน้านี้ ผู้ใช้ต้องตัดสินว่าค่าที่อ่านมาตรงกับเอกสารไหม
+    var readHtml = '';
+    if (row.readValue) {
+      readHtml += '<div class="readval">' + esc(row.readValue) + '</div>';
+      readHtml += '<div class="readsrc">' +
+        (row.readSource === 'barcode' ? 'จากบาร์โค้ด' : 'จาก OCR') + tierTag + '</div>';
+      if (row.readCrop) {
+        readHtml += '<img class="readcrop" src="' + row.readCrop +
+          '" alt="ภาพที่อ่าน" onclick="openPreview(\'' + rid + '\')">';
+      }
+      if (row.tierWhy) readHtml += '<div class="why">' + esc(row.tierWhy) +
+        (row.suggestion ? ' — <a href="#" onclick="applySuggestion(\'' + rid +
+          '\',\'' + esc(row.suggestion) + '\');return false;">ใช้ค่านี้</a>' : '') + '</div>';
+    } else {
+      readHtml = '<div class="readnone">ยังไม่ได้อ่าน<br>หรืออ่านไม่ได้</div>';
+    }
+    if (row.pageNos && row.pageNos.length > 1) {
+      readHtml += '<div class="why">รวม ' + row.pageNos.length + ' หน้า (สำเนา)</div>';
+    }
+
+    // ช่องเดียวที่แก้ได้ — ค่าที่จะใช้จริง
+    var mismatch = row.readValue && row.barcode &&
+                   row.readValue.toUpperCase() !== row.barcode.toUpperCase();
+
+    return '<tr class="row-' + row.status + tierCls + '" id="row-' + rid + '">' +
+      '<td style="text-align:center;color:var(--muted);font-family:var(--mono);font-size:11px;">' + (i+1) + '</td>' +
+      '<td><div style="display:flex;flex-direction:column;align-items:center;gap:2px;">' +
+        thumbHtml + '<div class="file-name" style="text-align:center;">' + fileLabel + '</div></div></td>' +
+      '<td>' + readHtml + '</td>' +
+      '<td>' +
+        '<input class="' + bcClass + '" value="' + esc(row.barcode) + '" ' +
+          'placeholder="สแกน / พิมพ์ barcode หรือ reference" ' +
+          'oninput="handleBarcodeInput(\'' + rid + '\',this)" ' +
+          'onkeydown="if(event.key===\'Enter\'){event.preventDefault();onBarcodeChange(\'' + rid + '\',this.value);}">' +
+        (mismatch ? '<div class="why" style="color:var(--warn)">แก้จากที่ระบบอ่านได้</div>' : '') +
+        '<div style="margin-top:4px">' + statusHtml + '</div>' +
+      '</td>' +
+      '<td class="ro">' + (esc(ev.itemName) || '—') + '</td>' +
+      '<td class="ro">' + (esc(ev.transferFrom) || '—') +
+        (ev.originAcc ? '<div class="acc">' + esc(ev.originAcc) + '</div>' : '') + '</td>' +
+      '<td class="ro">' + (esc(ev.transferTo) || '—') +
+        (ev.destAcc ? '<div class="acc">' + esc(ev.destAcc) + '</div>' : '') + '</td>' +
+      '<td><button class="remove-row-btn" onclick="removeRow(\'' + rid + '\')">✕</button></td>' +
     '</tr>';
   }).join('');
   updateSubmitBtn();
@@ -1182,14 +1212,26 @@ function clearAll(){
 }
 
 function updateSubmitBtn(){
-  var ready=rows.filter(function(r){return r.status!=='dup'&&r.barcode&&r.editVals.transferFrom&&r.editVals.transferTo&&r.editVals.receivedDate&&r.editVals.sentQty&&r.editVals.receivedQty;});
-  var dupCount=rows.filter(function(r){return r.status==='dup';}).length;
-  var btn=document.getElementById('submitBtn');btn.disabled=ready.length===0;
-  btn.textContent=ready.length>0?'ยืนยัน '+ready.length+' รายการ สู่ Google Sheet'+(dupCount?' (ซ้ำ '+dupCount+' ข้าม)':''):'ยืนยัน 0 รายการ สู่ Google Sheet';
+  var ready = rows.filter(function (r) { return r.status !== 'dup' && r.barcode; });
+  var btn = document.getElementById('submitBtn');
+  if (!btn) return;
+  btn.disabled = ready.length === 0;
+  var unread = rows.filter(function (r) { return !r.barcode; }).length;
+  var needCheck = rows.filter(function (r) {
+    return r.tier === 'red' || r.tier === 'yellow' || r.sampled;
+  }).length;
+  btn.textContent = ready.length
+    ? 'บันทึก ' + ready.length + ' รายการ' +
+      (needCheck ? '  (ยังไม่ได้ตรวจ ' + needCheck + ')' : '')
+    : (unread ? 'ยังไม่มีเลขที่เอกสาร' : 'บันทึก');
 }
 
 async function submitBatch(){
-  var ready=rows.filter(function(r){return r.status!=='dup'&&r.barcode&&r.editVals.transferFrom&&r.editVals.transferTo&&r.editVals.receivedDate&&r.editVals.sentQty&&r.editVals.receivedQty;});
+  // หน้านี้ยืนยันแค่เลขที่เอกสาร ข้อมูลอื่นมาจากรายการอ้างอิงอัตโนมัติ
+  // จึงต้องการแค่ barcode ที่ไม่ซ้ำและหาเจอในระบบ
+  var ready = rows.filter(function (r) {
+    return r.status !== 'dup' && r.barcode;
+  });
   if(!ready.length)return;
   var btn=document.getElementById('submitBtn');btn.disabled=true;
   try{
@@ -1240,6 +1282,11 @@ async function submitBatch(){
       var ev=row.editVals;
       return{
         client_id: row.client_id,
+        read_source: row.readSource || 'manual',
+        system_flag: row.tier ? (row.tier !== 'green') : false,
+        human_edited: !!(row.readValue && row.barcode &&
+                         row.readValue.toUpperCase() !== row.barcode.toUpperCase()),
+        sampled: !!row.sampled,
         barcode      : row.barcode,
         ref_no       : ev.refNo        || '',
         item_name    : ev.itemName     || '',
@@ -1485,15 +1532,44 @@ function initReader() {
   });
 }
 
+/**
+ * บอกสถานะรายการอ้างอิงให้เห็นตลอด
+ * เดิมถ้ากดอ่านตอน CSV ยังไม่มา จะขึ้นแค่ "กรุณารอสักครู่"
+ * ซึ่งไม่บอกว่าต้องรอนานแค่ไหนหรือจะรู้ได้ยังไงว่าพร้อมแล้ว
+ */
+var _csvState = 'loading';
+function setCsvStatus(state, count, ts, msg) {
+  _csvState = state;
+  var el = document.getElementById('csvStatus');
+  if (!el) return;
+  if (state === 'ready') {
+    var age = ts ? Math.round((Date.now() - ts) / 60000) : 0;
+    el.className = 'csvst ok';
+    el.textContent = 'รายการอ้างอิงพร้อมใช้ ' + (count || 0).toLocaleString() + ' รายการ' +
+      (age > 1 ? ' · อัปเดตเมื่อ ' + age + ' นาทีที่แล้ว' : '');
+  } else if (state === 'error') {
+    el.className = 'csvst bad';
+    el.textContent = 'โหลดรายการอ้างอิงไม่สำเร็จ' + (msg ? ' — ' + msg : '') +
+      ' · กดรีเฟรชรายการเพื่อลองใหม่';
+  } else {
+    el.className = 'csvst';
+    el.textContent = 'กำลังโหลดรายการอ้างอิง…';
+  }
+  var btn = document.getElementById('btnRead');
+  if (btn) {
+    btn.disabled = (state !== 'ready') || !_lastPdfJs;
+    btn.textContent = state === 'ready' ? 'อ่านเอกสารอัตโนมัติ' : 'รอรายการอ้างอิง…';
+  }
+}
+
 function showReaderPanel(show) {
   document.getElementById('readerPanel').style.display = show ? 'block' : 'none';
   if (!show) return;
 
   // การอ่านอัตโนมัติต้องใช้ไฟล์ PDF เพราะต้องเรนเดอร์หน้าใหม่หลายความละเอียด
   var hasPdf = !!_lastPdfJs;
-  ['btnRead', 'btnPick'].forEach(function (id) {
-    document.getElementById(id).disabled = !hasPdf;
-  });
+  document.getElementById('btnPick').disabled = !hasPdf;
+  document.getElementById('btnRead').disabled = !hasPdf || _csvState !== 'ready';
   if (!hasPdf) {
     document.getElementById('rprog').classList.add('on');
     document.getElementById('rbar').style.width = '0%';
@@ -1510,7 +1586,11 @@ function rprog(frac, text) {
 
 async function runAutoRead() {
   if (!_lastPdfJs) { alert('ยังไม่ได้อัปโหลดไฟล์ PDF'); return; }
-  if (!csvLoaded) { alert('กำลังโหลดรายการอ้างอิง กรุณารอสักครู่'); return; }
+  if (!csvLoaded) {
+    alert('รายการอ้างอิงยังโหลดไม่เสร็จ\n\n' +
+          'ดูสถานะได้ที่บรรทัดใต้ปุ่ม — ปุ่มจะกดได้เองเมื่อพร้อม');
+    return;
+  }
 
   var btn = document.getElementById('btnRead');
   var cancel = document.getElementById('btnCancelRead');
@@ -1576,6 +1656,12 @@ function applyReadResults(results, typeKey) {
     first.sampled = sampled;
     first.readSource = d.source;
     first.pageNos = d.pages.map(function (p) { return p.page; });
+
+    // เก็บค่าที่ระบบอ่านได้แยกจากค่าที่ใช้จริง
+    // เพื่อให้เห็นได้ว่าคนแก้ไปจากที่ระบบอ่านมาหรือไม่
+    first.readValue = d.value || '';
+    var oc = d.pages[0] && d.pages[0].ocr;
+    first.readCrop = oc && oc.crop ? oc.crop : '';
 
     if (d.value) {
       first.barcode = d.value;
