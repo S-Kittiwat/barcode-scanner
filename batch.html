@@ -289,6 +289,9 @@ main{width:100%;max-width:100%;padding:20px 24px 100px;}
   padding:9px 14px;font-size:12.5px}
 .rchip b{font-family:var(--mono);font-size:17px;display:block;line-height:1.2}
 .rchip.g b{color:var(--success)} .rchip.y b{color:var(--warn)} .rchip.r b{color:var(--danger)}
+.refout{font-size:11.5px;color:var(--muted);margin-top:5px;font-family:var(--mono)}
+.refout b{color:var(--success)}
+.refout.none{color:var(--danger)}
 .readval{font-family:var(--mono);font-size:15px;font-weight:600;letter-spacing:.04em}
 .readsrc{font-size:11px;color:var(--muted);margin-top:2px}
 .readcrop{display:block;max-width:100%;max-height:52px;margin-top:6px;border:1px solid var(--border);
@@ -319,20 +322,20 @@ tr.tier-yellow td{background:rgba(251,191,36,.06)}
   color:#0f172a;padding:1px 5px;line-height:1.5}
 #pkB span{background:var(--accent)} #pkO span{background:var(--warn)}
 </style>
-<script src="config.js?v=2.10.0"></script>
+<script src="config.js?v=2.11.0"></script>
 <script type="module">
 // ── โมดูลร่วม DocScan ────────────────────────────────────
 // module script ทำงานหลัง classic script แต่ก่อน window.onload
 // โค้ดเดิมเรียก requireAuth ใน window.onload จึงปลอดภัย
-import { apiFetch, uploadBatch, newClientId } from './js/api.js?v=2.10.0';
-import { parseCSV, buildIndex, searchCSV, classify } from './js/csv.js?v=2.10.0';
-import { parseDateInput, toDisplayDate, toInputDate, todayISO } from './js/date.js?v=2.10.0';
+import { apiFetch, uploadBatch, newClientId } from './js/api.js?v=2.11.0';
+import { parseCSV, buildIndex, searchCSV, classify } from './js/csv.js?v=2.11.0';
+import { parseDateInput, toDisplayDate, toInputDate, todayISO } from './js/date.js?v=2.11.0';
 import { compressPage, compressImageFile, toDataUrl, storagePeriod,
-         compressionSummary, SETTINGS as PDF_SETTINGS } from './js/pdf.js?v=2.10.0';
-import * as Reader from './js/reader.js?v=2.10.0';
-import { hasCollisionRisk, findNearMiss, searchCSV as csvSearch } from './js/csv.js?v=2.10.0';
-import { requireAuth, authFetch, authGet, authGetText, logout, loadSession, daysLeft, AUTH_JS_VERSION } from './js/auth.js?v=2.10.0';
-import { installNav, guardPage, homeFor as navHome } from './js/nav.js?v=2.10.0';
+         compressionSummary, SETTINGS as PDF_SETTINGS } from './js/pdf.js?v=2.11.0';
+import * as Reader from './js/reader.js?v=2.11.0';
+import { hasCollisionRisk, findNearMiss, searchCSV as csvSearch } from './js/csv.js?v=2.11.0';
+import { requireAuth, authFetch, authGet, authGetText, logout, loadSession, daysLeft, AUTH_JS_VERSION } from './js/auth.js?v=2.11.0';
+import { installNav, guardPage, homeFor as navHome } from './js/nav.js?v=2.11.0';
 
 window.DocScan = {
   apiFetch, authFetch, authGet, authGetText, uploadBatch, newClientId,
@@ -426,8 +429,8 @@ window.dispatchEvent(new Event('docscan-ready'));
           <tr>
             <th style="width:3%;">#</th>
             <th style="width:12%;">เอกสาร</th>
-            <th style="width:16%;">สิ่งที่ระบบอ่านได้</th>
-            <th style="width:22%;">Barcode / Reference</th>
+            <th style="width:17%;">สิ่งที่ระบบอ่านได้</th>
+            <th style="width:21%;">Reference (ใช้ตั้งชื่อไฟล์)</th>
             <th style="width:14%;">ประเภท</th>
             <th style="width:15%;">โอนจาก / Origin Acc.</th>
             <th style="width:15%;">โอนไป / Dest. Acc.</th>
@@ -996,6 +999,10 @@ function renderTable() {
       readHtml += '<div class="readval">' + esc(row.readValue) + '</div>';
       readHtml += '<div class="readsrc">' +
         (row.readSource === 'barcode' ? 'จากบาร์โค้ด' : 'จาก OCR') + tierTag + '</div>';
+      // บาร์โค้ดบางชนิดเป็นรหัสภายใน ไม่ใช่เลข Reference ที่ใช้ตั้งชื่อไฟล์
+      if (row.needsLookup) {
+        readHtml += '<div class="why">บาร์โค้ดนี้เป็นรหัสภายใน ต้องเทียบรายการอ้างอิงเพื่อหาเลข Reference</div>';
+      }
       if (row.readCrop) {
         readHtml += '<img class="readcrop" src="' + row.readCrop +
           '" alt="ภาพที่อ่าน" onclick="openPreview(\'' + rid + '\')">';
@@ -1021,11 +1028,15 @@ function renderTable() {
       '<td>' + readHtml + '</td>' +
       '<td>' +
         '<input class="' + bcClass + '" value="' + esc(row.barcode) + '" ' +
-          'placeholder="สแกน / พิมพ์ barcode หรือ reference" ' +
+          'placeholder="สแกนบาร์โค้ด หรือพิมพ์เลข Reference" ' +
           'oninput="handleBarcodeInput(\'' + rid + '\',this)" ' +
           'onkeydown="if(event.key===\'Enter\'){event.preventDefault();onBarcodeChange(\'' + rid + '\',this.value);}">' +
         (mismatch ? '<div class="why" style="color:var(--warn)">แก้จากที่ระบบอ่านได้</div>' : '') +
         '<div style="margin-top:4px">' + statusHtml + '</div>' +
+        // เลขที่จะใช้ตั้งชื่อไฟล์จริง ต้องเห็นชัดเพราะเป็นผลลัพธ์หลักของหน้านี้
+        (ev.refNo
+          ? '<div class="refout">ชื่อไฟล์: <b>' + esc(ev.refNo) + '</b>.pdf</div>'
+          : '<div class="refout none">ยังไม่มีเลข Reference — ตั้งชื่อไฟล์ไม่ได้</div>') +
       '</td>' +
       '<td class="ro">' + (esc(ev.itemName) || '—') + '</td>' +
       '<td class="ro">' + (esc(ev.transferFrom) || '—') +
@@ -1232,6 +1243,16 @@ async function submitBatch(){
   var ready = rows.filter(function (r) {
     return r.status !== 'dup' && r.barcode;
   });
+
+  // ไฟล์ต้องมีเลข Reference ไว้ตั้งชื่อ ไม่งั้นจะหาไฟล์ไม่เจอในภายหลัง
+  var noRef = ready.filter(function (r) { return !r.editVals.refNo; });
+  if (noRef.length) {
+    if (!confirm(noRef.length + ' รายการยังไม่มีเลข Reference\n' +
+        'ไฟล์จะถูกตั้งชื่อด้วยบาร์โค้ดแทน ซึ่งอาจหาไม่เจอภายหลัง\n\nบันทึกต่อไหม')) {
+      document.getElementById('submitBtn').disabled = false;
+      return;
+    }
+  }
   if(!ready.length)return;
   var btn=document.getElementById('submitBtn');btn.disabled=true;
   try{
@@ -1550,16 +1571,16 @@ function setCsvStatus(state, count, ts, msg) {
   } else if (state === 'error') {
     el.className = 'csvst bad';
     el.textContent = 'โหลดรายการอ้างอิงไม่สำเร็จ' + (msg ? ' — ' + msg : '') +
-      ' · กดรีเฟรชรายการเพื่อลองใหม่';
+      ' · ยังอ่านเอกสารได้ แต่ตรวจสอบและเติมข้อมูลอัตโนมัติไม่ได้';
   } else {
     el.className = 'csvst';
     el.textContent = 'กำลังโหลดรายการอ้างอิง…';
   }
+  // ไม่ล็อกปุ่มอ่านตามสถานะรายการอ้างอิง
+  // การอ่านบาร์โค้ดและ OCR ทำได้โดยไม่ต้องมีรายการอ้างอิง
+  // รายการอ้างอิงจำเป็นเฉพาะตอนแปลงบาร์โค้ดเป็นเลข Reference และตอนตรวจสอบ
   var btn = document.getElementById('btnRead');
-  if (btn) {
-    btn.disabled = (state !== 'ready') || !_lastPdfJs;
-    btn.textContent = state === 'ready' ? 'อ่านเอกสารอัตโนมัติ' : 'รอรายการอ้างอิง…';
-  }
+  if (btn) btn.disabled = !_lastPdfJs;
 }
 
 function showReaderPanel(show) {
@@ -1569,7 +1590,7 @@ function showReaderPanel(show) {
   // การอ่านอัตโนมัติต้องใช้ไฟล์ PDF เพราะต้องเรนเดอร์หน้าใหม่หลายความละเอียด
   var hasPdf = !!_lastPdfJs;
   document.getElementById('btnPick').disabled = !hasPdf;
-  document.getElementById('btnRead').disabled = !hasPdf || _csvState !== 'ready';
+  document.getElementById('btnRead').disabled = !hasPdf;
   if (!hasPdf) {
     document.getElementById('rprog').classList.add('on');
     document.getElementById('rbar').style.width = '0%';
@@ -1587,9 +1608,10 @@ function rprog(frac, text) {
 async function runAutoRead() {
   if (!_lastPdfJs) { alert('ยังไม่ได้อัปโหลดไฟล์ PDF'); return; }
   if (!csvLoaded) {
-    alert('รายการอ้างอิงยังโหลดไม่เสร็จ\n\n' +
-          'ดูสถานะได้ที่บรรทัดใต้ปุ่ม — ปุ่มจะกดได้เองเมื่อพร้อม');
-    return;
+    if (!confirm('ยังไม่มีรายการอ้างอิง\n\n' +
+        'ระบบยังอ่านบาร์โค้ดและ OCR ได้ตามปกติ\n' +
+        'แต่จะแปลงบาร์โค้ดเป็นเลข Reference ไม่ได้ และตรวจสอบความถูกต้องไม่ได้\n\n' +
+        'อ่านต่อเลยไหม')) return;
   }
 
   var btn = document.getElementById('btnRead');
@@ -1660,12 +1682,18 @@ function applyReadResults(results, typeKey) {
     // เก็บค่าที่ระบบอ่านได้แยกจากค่าที่ใช้จริง
     // เพื่อให้เห็นได้ว่าคนแก้ไปจากที่ระบบอ่านมาหรือไม่
     first.readValue = d.value || '';
+    first.readRefNo = d.refNo || '';
+    first.readBarcode = d.barcodeValue || '';
+    first.needsLookup = !!d.needsLookup;
     var oc = d.pages[0] && d.pages[0].ocr;
     first.readCrop = oc && oc.crop ? oc.crop : '';
 
     if (d.value) {
       first.barcode = d.value;
       onBarcodeChange(first.id, d.value);
+      // OCR อ่านช่อง Reference มาโดยตรง ใช้ตั้งชื่อไฟล์ได้เลย
+      // ไม่ต้องรอให้เทียบรายการอ้างอิงสำเร็จ
+      if (d.refNo && !first.editVals.refNo) first.editVals.refNo = d.refNo;
     }
 
     // หน้าที่เหลือในกลุ่มเป็นสำเนา ไม่ต้องเป็นแถวแยก
