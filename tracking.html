@@ -4,174 +4,194 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DocScan — ติดตามเอกสาร</title>
-<script src="config.js?v=2.6.0"></script>
-<link rel="stylesheet" href="css/auth.css?v=2.6.0">
+<script src="config.js?v=2.14.0"></script>
+<link rel="stylesheet" href="css/auth.css?v=2.14.0">
 <style>
   body{display:block;padding:0;align-items:stretch}
-  .wrap{max-width:1180px;margin:0 auto;padding:20px 20px 60px}
-  .top{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:18px}
-  .top .brand{margin-bottom:0}
-  .who{margin-left:auto;font-size:12.5px;color:var(--muted);text-align:right;line-height:1.6}
+  .wrap{max-width:1340px;margin:0 auto;padding:22px 24px 90px}
 
-  .kpis{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));margin-bottom:16px}
+  .topbar{background:var(--surface);border-bottom:1px solid var(--border);
+    padding:12px 24px;display:flex;align-items:center;gap:18px;flex-wrap:wrap;
+    position:sticky;top:0;z-index:20}
+  .topbar .back{color:var(--accent);text-decoration:none;font-size:13.5px}
+  .tb-title{border-left:1px solid var(--border);padding-left:18px}
+  .tb-name{font-size:16px;font-weight:600}
+  .tb-sub{font-size:12px;color:var(--muted);margin-top:1px}
+  .tb-user{margin-left:auto;text-align:right;font-size:12.5px}
+  .tb-site{font-size:11.5px;color:var(--muted);font-family:var(--mono)}
+
+  /* ช่องค้นหาเป็นพระเอกของหน้านี้ */
+  .hero{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+    padding:22px;margin-bottom:16px}
+  .srow{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  .sbox{flex:1;min-width:280px;position:relative}
+  .sbox input{width:100%;background:var(--surface2);border:1.5px solid var(--accent);
+    border-radius:10px;color:var(--text);font-family:var(--mono);font-size:19px;
+    padding:15px 15px 15px 48px;letter-spacing:.05em;outline:none}
+  .sbox .mag{position:absolute;left:16px;top:50%;transform:translateY(-50%);font-size:18px;opacity:.7}
+  .btn{border:none;border-radius:var(--rs);padding:14px 24px;font-family:var(--font);
+    font-size:14.5px;font-weight:600;cursor:pointer;background:var(--accent);color:#0f172a}
+  .btn.ghost{background:transparent;border:1px solid var(--border);color:var(--text);
+    font-weight:400;padding:10px 16px;font-size:13px}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+  .hint{font-size:12.5px;color:var(--muted);margin-top:12px;line-height:1.7}
+  .hint code{font-family:var(--mono);color:var(--accent);background:var(--surface2);
+    padding:1px 7px;border-radius:4px;cursor:pointer}
+
+  .filters{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;
+    padding-top:16px;border-top:1px solid var(--border)}
+  .fld{display:flex;flex-direction:column;gap:5px}
+  .fld label{font-size:11.5px;color:var(--muted)}
+  .fld select,.fld input{background:var(--surface2);border:1px solid var(--border);
+    border-radius:var(--rs);color:var(--text);font-family:var(--font);font-size:13px;padding:8px 11px}
+
+  .kpis{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));margin-bottom:16px}
   .kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px}
-  .kpi .n{font-family:var(--mono);font-size:26px;font-weight:600;line-height:1.1}
-  .kpi .k{font-size:12px;color:var(--muted);margin-top:3px;line-height:1.4}
+  .kpi .n{font-family:var(--mono);font-size:25px;font-weight:600;line-height:1.15}
+  .kpi .k{font-size:11.5px;color:var(--muted);margin-top:3px;line-height:1.45}
   .kpi.bad{border-color:rgba(248,113,113,.5)} .kpi.bad .n{color:var(--danger)}
   .kpi.warn .n{color:var(--warn)} .kpi.ok .n{color:var(--success)}
+  .kpi.click{cursor:pointer} .kpi.click:hover{border-color:var(--accent)}
 
-  .lane{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
-    padding:16px 18px;margin-bottom:14px}
-  .lane h3{font-size:14px;margin:0 0 12px;display:flex;gap:10px;align-items:center}
-  .lane h3 .tag{font-family:var(--mono);font-size:11px;color:var(--muted);font-weight:400}
-  .steps2{display:flex;gap:6px;flex-wrap:wrap}
-  .step2{flex:1;min-width:96px;background:var(--surface2);border-radius:var(--rs);padding:10px 12px}
-  .step2 .n{font-family:var(--mono);font-size:19px;font-weight:600}
-  .step2 .k{font-size:11.5px;color:var(--muted);margin-top:2px}
+  .rhead{display:flex;align-items:baseline;gap:12px;margin-bottom:10px;flex-wrap:wrap}
+  .rhead h2{font-size:14px;font-weight:600}
+  .rhead .c{font-size:12.5px;color:var(--muted);font-family:var(--mono)}
+  .rhead .r{margin-left:auto;display:flex;gap:10px;align-items:center}
 
-  .tabs{display:flex;gap:4px;border-bottom:1px solid var(--border);margin:22px 0 16px}
-  .tab{background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);
-    font-family:var(--font);font-size:14px;padding:10px 16px;cursor:pointer}
-  .tab.on{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
-  .tab .badge{display:inline-block;background:var(--danger);color:#fff;border-radius:9px;
-    font-size:11px;padding:1px 7px;margin-left:6px;font-family:var(--mono)}
-
-  .filters{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:14px}
-  .filters .field{margin-bottom:0;min-width:150px}
-  .filters .grow{flex:1;min-width:220px}
-
-  table{width:100%;border-collapse:collapse;font-size:13px;background:var(--surface);
-    border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
-  th{text-align:left;font-size:11px;font-family:var(--mono);letter-spacing:.07em;
-    text-transform:uppercase;color:var(--muted);padding:10px 12px;
-    border-bottom:1px solid var(--border);background:var(--surface2);white-space:nowrap}
-  td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:top}
-  tbody tr:last-child td{border-bottom:none}
-  tbody tr{cursor:pointer} tbody tr:hover td{background:var(--surface2)}
+  .tw{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{text-align:left;font-size:10.5px;font-family:var(--mono);letter-spacing:.1em;
+    text-transform:uppercase;color:var(--muted);padding:11px 14px;background:var(--surface2);
+    border-bottom:1px solid var(--border);white-space:nowrap}
+  td{padding:12px 14px;border-bottom:1px solid var(--border);vertical-align:middle}
+  tbody tr.main{cursor:pointer}
+  tbody tr.main:hover td{background:var(--surface2)}
+  tbody tr.main.open td{background:var(--surface2)}
   .mono{font-family:var(--mono)}
-  .pill{display:inline-block;font-size:11px;font-family:var(--mono);padding:2px 8px;
-    border-radius:10px;border:1px solid;white-space:nowrap}
-  .s-normal{color:var(--muted);border-color:var(--border)}
-  .s-warning{color:var(--warn);border-color:var(--warn)}
-  .s-critical{color:var(--warn);border-color:var(--warn)}
-  .s-over{color:var(--danger);border-color:var(--danger)}
-  .s-done_ontime{color:var(--success);border-color:var(--success)}
-  .s-done_late{color:var(--warn);border-color:var(--warn)}
-  .s-unknown{color:var(--muted);border-color:var(--border)}
-  .empty{color:var(--muted);font-size:13.5px;padding:30px;text-align:center;
-    border:1px dashed var(--border);border-radius:var(--r)}
+  .ref{font-family:var(--mono);font-size:14px;font-weight:600;letter-spacing:.03em}
+  .sub{font-size:11px;color:var(--muted);font-family:var(--mono);margin-top:2px}
 
-  dialog{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
-    color:var(--text);padding:24px;max-width:640px;width:94vw}
-  dialog::backdrop{background:rgba(15,23,42,.75)}
-  .kv{display:grid;grid-template-columns:130px 1fr;gap:6px 14px;font-size:13.5px;margin-bottom:16px}
+  .pill{display:inline-block;font-size:10.5px;font-family:var(--mono);padding:2px 9px;
+    border-radius:11px;border:1px solid;white-space:nowrap}
+  .p-ok{color:var(--success);border-color:var(--success)}
+  .p-warn{color:var(--warn);border-color:var(--warn)}
+  .p-bad{color:var(--danger);border-color:var(--danger)}
+  .p-mute{color:var(--muted);border-color:var(--border)}
+
+  /* จุดบอกความคืบหน้า อ่านเร็วกว่าตัวหนังสือเมื่อกวาดสายตาทั้งตาราง */
+  .flow{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);margin-top:4px}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--border);flex-shrink:0}
+  .dot.on{background:var(--success)} .dot.now{background:var(--accent)}
+  .dot.late{background:var(--danger)}
+
+  .detail td{background:#16202f;padding:0}
+  .dwrap{padding:20px 24px;display:grid;gap:26px;grid-template-columns:1.15fr 1fr}
+  .dsec h4{font-size:11px;font-family:var(--mono);letter-spacing:.11em;text-transform:uppercase;
+    color:var(--muted);margin-bottom:11px}
+  .kv{display:grid;grid-template-columns:120px 1fr;gap:7px 14px;font-size:13px}
   .kv .k{color:var(--muted)}
-  .ev{font-family:var(--mono);font-size:12px;line-height:1.9;max-height:220px;overflow:auto;
-    background:var(--surface2);border-radius:var(--rs);padding:12px}
-  .btn{border:none;border-radius:var(--rs);padding:10px 18px;font-family:var(--font);
-    font-size:14px;font-weight:600;cursor:pointer}
-  .btn.main{background:var(--accent);color:#0f172a}
-  .btn.ghost{background:transparent;border:1px solid var(--border);color:var(--text);font-weight:400}
+  .tl{border-left:2px solid var(--border);padding-left:16px;margin-left:5px}
+  .ev{position:relative;padding-bottom:15px;font-size:12.5px}
+  .ev:last-child{padding-bottom:0}
+  .ev::before{content:'';position:absolute;left:-22px;top:4px;width:9px;height:9px;
+    border-radius:50%;background:var(--success);border:2px solid var(--bg)}
+  .ev .t{font-family:var(--mono);font-size:11px;color:var(--muted)}
+  .ev .who{font-size:11.5px;color:var(--muted)}
+  .boxcard{background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);
+    padding:13px 15px;margin-top:12px;display:flex;gap:13px;align-items:center}
+  .boxcard img{width:62px;height:62px;object-fit:cover;border-radius:6px;flex-shrink:0;
+    cursor:zoom-in;border:1px solid var(--border)}
+  .boxcard .ph{width:62px;height:62px;border-radius:6px;background:var(--bg);flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;font-size:21px}
+  .boxcard .bid{font-family:var(--mono);font-size:13.5px;font-weight:600}
+  .boxcard .bl{font-size:12px;color:var(--muted);margin-top:3px;line-height:1.55}
+  .dacts{display:flex;gap:9px;margin-top:14px;flex-wrap:wrap}
+  .dacts a{text-decoration:none;display:inline-block}
+
+  .empty{color:var(--muted);font-size:13.5px;padding:34px;text-align:center;
+    border:1px dashed var(--border);border-radius:var(--r);line-height:1.8}
+  .empty b{color:var(--text);display:block;margin-bottom:6px;font-size:15px}
+  @media (max-width:980px){ .dwrap{grid-template-columns:1fr} th:nth-child(3),td:nth-child(3){display:none} }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="top">
-    <div class="brand" style="margin-bottom:0">
-      <div class="brand-icon">
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#0f172a" stroke-width="2.5">
-          <rect x="3" y="4" width="3" height="16" rx="1"/><rect x="8" y="4" width="1.5" height="16" rx="0.5"/>
-          <rect x="11" y="4" width="3" height="16" rx="1"/><rect x="16" y="4" width="1.5" height="16" rx="0.5"/>
-          <rect x="19" y="4" width="2" height="16" rx="1"/>
-        </svg>
-      </div>
-      <div>
-        <div class="brand-name">ติดตามเอกสาร</div>
-        <div class="brand-sub" id="slaInfo">PDF และเอกสารตัวจริง</div>
-      </div>
-    </div>
-    <div class="who" id="who"></div>
-  </div>
 
+<div class="topbar">
+  <a class="back" href="home.html">← หน้าหลัก</a>
+  <div class="tb-title">
+    <div class="tb-name">ติดตามเอกสาร</div>
+    <div class="tb-sub" id="slaInfo">ค้นหาเอกสารที่นำเข้าระบบแล้ว</div>
+  </div>
+  <div class="tb-user">
+    <span id="who">—</span>
+    <div class="tb-site" id="whoSite"></div>
+  </div>
+</div>
+
+<div class="wrap">
   <div class="alert bad" id="alert"></div>
 
-  <div class="kpis" id="kpis"></div>
-
-  <div class="lane">
-    <h3>เส้นทาง PDF <span class="tag">ใช้ทำงาน · เร่ง</span></h3>
-    <div class="steps2" id="lanePdf"></div>
-  </div>
-  <div class="lane">
-    <h3>เส้นทางเอกสารตัวจริง <span class="tag">เก็บอ้างอิง · ไม่เร่ง</span></h3>
-    <div class="steps2" id="lanePaper"></div>
-  </div>
-
-  <div class="tabs">
-    <button class="tab on" data-tab="ex">ต้องดำเนินการ<span class="badge" id="exCnt" style="display:none">0</span></button>
-    <button class="tab" data-tab="search">ค้นหา</button>
-  </div>
-
-  <div id="viewEx"></div>
-
-  <div id="viewSearch" style="display:none">
-    <div class="filters">
-      <div class="field grow">
-        <label class="label" for="q">คำค้น</label>
-        <input class="input" id="q" placeholder="เลขเอกสาร บาร์โค้ด ลูกค้า หรือรหัสกล่อง">
+  <div class="hero">
+    <div class="srow">
+      <div class="sbox">
+        <span class="mag">🔎</span>
+        <input id="q" placeholder="เลข Reference, บาร์โค้ด, ชื่อลูกค้า หรือรหัสกล่อง" autocomplete="off">
       </div>
-      <div class="field">
-        <label class="label" for="fPdf">สถานะ PDF</label>
-        <select class="select" id="fPdf">
+      <button class="btn" id="btnSearch">ค้นหา</button>
+    </div>
+    <div class="hint" id="hint"></div>
+    <div class="filters">
+      <div class="fld"><label for="fPdf">สถานะ PDF</label>
+        <select id="fPdf">
           <option value="">ทั้งหมด</option>
           <option value="scanned">สแกนแล้ว</option>
           <option value="verified">ตรวจแล้ว</option>
           <option value="sent">ส่งต่อแล้ว</option>
           <option value="closed">ปิดงาน</option>
-        </select>
-      </div>
-      <div class="field">
-        <label class="label" for="fPaper">สถานะกระดาษ</label>
-        <select class="select" id="fPaper">
+        </select></div>
+      <div class="fld"><label for="fPaper">สถานะเอกสารตัวจริง</label>
+        <select id="fPaper">
           <option value="">ทั้งหมด</option>
           <option value="held">อยู่ที่จัดส่ง</option>
           <option value="shipped">ส่งแล้ว</option>
           <option value="received">คลังรับแล้ว</option>
           <option value="boxed">เข้ากล่องแล้ว</option>
-        </select>
-      </div>
-      <button class="btn main" id="btnSearch">ค้นหา</button>
+        </select></div>
+      <div class="fld"><label for="fBox">รหัสกล่อง</label>
+        <input id="fBox" placeholder="BOX-2026-08-…" style="width:172px"></div>
+      <div class="fld"><label for="fFrom">วันที่เอกสาร ตั้งแต่</label><input id="fFrom" type="date"></div>
+      <div class="fld"><label for="fTo">ถึง</label><input id="fTo" type="date"></div>
+      <div class="fld"><label>&nbsp;</label><button class="btn ghost" id="btnClear">ล้างตัวกรอง</button></div>
     </div>
-    <div id="searchResult"></div>
   </div>
 
-  <div class="actions" style="margin-top:18px">
-    <button class="btn ghost" id="btnReload">รีเฟรช</button>
-    <a class="link" href="batch.html" style="margin-left:12px">← กลับหน้าหลัก</a>
+  <div class="kpis" id="kpis"></div>
+
+  <div class="rhead">
+    <h2 id="rTitle">รายการที่ต้องดำเนินการ</h2>
+    <span class="c" id="rCount"></span>
+    <div class="r">
+      <button class="btn ghost" id="btnCsv">ดาวน์โหลด CSV</button>
+      <button class="btn ghost" id="btnReload">รีเฟรช</button>
+    </div>
   </div>
+
+  <div id="view"></div>
 </div>
 
-<dialog id="dlg">
-  <div class="box-title" id="dTitle">—</div>
-  <div class="box-sub" id="dSub"></div>
-  <div class="kv" id="dKv"></div>
-  <div class="label" style="margin-bottom:6px">ประวัติการดำเนินการ</div>
-  <div class="ev" id="dEv"></div>
-  <div class="actions" style="margin-top:16px">
-    <a class="btn main" id="dPdf" target="_blank" style="text-decoration:none">เปิดไฟล์ PDF</a>
-    <button class="btn ghost" id="dClose">ปิด</button>
-  </div>
-</dialog>
-
 <script type="module">
-import { requireAuth, authFetch } from './js/auth.js?v=2.6.0';
+import { requireAuth, authFetch, logout } from './js/auth.js?v=2.14.0';
+import { installNav } from './js/nav.js?v=2.14.0';
 
 const API = DOCSCAN_CONFIG.API_URL;
 const $ = id => document.getElementById(id);
-let dash = null;
+let dash = null, rowsData = [];
 
 const session = requireAuth();
 if (session) {
-  $('who').innerHTML = session.empName + '<br>' + session.site;
+  installNav(session, { onLogout: () => { logout(API); location.replace('login.html'); } });
+  $('who').textContent = session.empName || session.empId;
+  $('whoSite').textContent = session.empId + ' · ' + session.site;
   load();
 }
 
@@ -185,156 +205,349 @@ async function call(action, payload = {}) {
     throw err;
   }
 }
-function fmtDate(v) {
+function showError(m) { $('alert').textContent = m; $('alert').className = 'alert bad on'; }
+function fmt(v) {
   if (!v) return '—';
   const d = new Date(v);
-  return isNaN(d) ? String(v) : d.toLocaleDateString('th-TH', { day:'2-digit', month:'short', year:'2-digit' });
+  return isNaN(d) ? String(v)
+    : d.toLocaleDateString('th-TH', { day: '2-digit', month: 'short', year: '2-digit' });
 }
-const SLA_TH = { normal:'ปกติ', warning:'ใกล้ครบ', critical:'ใกล้ครบมาก', over:'เกินกำหนด',
-                 done_ontime:'เสร็จทัน', done_late:'เสร็จช้า', unknown:'ไม่ทราบวันที่' };
-const slaPill = lvl => `<span class="pill s-${lvl}">${SLA_TH[lvl] || lvl}</span>`;
+function fmtT(v) {
+  if (!v) return '—';
+  const d = new Date(v);
+  return isNaN(d) ? String(v)
+    : d.toLocaleString('th-TH', { day: '2-digit', month: 'short', year: '2-digit',
+                                  hour: '2-digit', minute: '2-digit' });
+}
 
 const PDF_TH = { pending_scan:'รอสแกน', scanned:'สแกนแล้ว', verified:'ตรวจแล้ว',
                  sent:'ส่งต่อแล้ว', closed:'ปิดงาน' };
 const PAPER_TH = { held:'อยู่ที่จัดส่ง', shipped:'ส่งแล้ว', received:'คลังรับแล้ว', boxed:'เข้ากล่องแล้ว' };
+const PDF_SEQ = ['pending_scan','scanned','verified','sent','closed'];
+const PAPER_SEQ = ['held','shipped','received','boxed'];
+
+function flow(seq, cur, sla, days) {
+  const i = Math.max(0, seq.indexOf(cur));
+  const last = i >= seq.length - 1;
+  const dots = seq.slice(1).map((_, k) => {
+    if (k < i) return '<span class="dot on"></span>';
+    if (k === i) return '<span class="dot ' + (sla === 'over' ? 'late' : 'now') + '"></span>';
+    return '<span class="dot"></span>';
+  }).join('');
+  const label = last ? 'เสร็จใน ' + days + ' วัน'
+    : sla === 'over' ? 'เกิน SLA ' + days + ' วัน' : days + ' วัน';
+  return '<div class="flow">' + dots + ' ' + esc(label) + '</div>';
+}
+function pill(status, sla, th) {
+  const cls = sla === 'over' ? 'p-bad'
+    : (status === 'closed' || status === 'boxed') ? 'p-ok'
+    : (sla === 'critical' || sla === 'warning') ? 'p-warn' : 'p-mute';
+  return '<span class="pill ' + cls + '">' + esc(th[status] || status || '—') + '</span>';
+}
 
 /* ---------- โหลดสรุป ---------- */
 async function load() {
-  $('kpis').innerHTML = '<div class="empty">กำลังโหลด…</div>';
+  $('view').innerHTML = '<div class="empty">กำลังโหลด…</div>';
   try {
     dash = await call('docsDashboard');
-    render();
+    const s = dash.summary, sla = dash.sla || {};
+    $('slaInfo').textContent =
+      'PDF ภายใน ' + sla.pdf_days + ' วัน · เอกสารตัวจริงภายใน ' + sla.paper_days + ' วัน';
+
+    const k = (n, label, cls, act) =>
+      '<div class="kpi ' + (cls || '') + (act ? ' click' : '') + '"' +
+      (act ? ' data-act="' + act + '"' : '') + '>' +
+      '<div class="n">' + n + '</div><div class="k">' + label + '</div></div>';
+
+    $('kpis').innerHTML =
+      k(s.total, 'เอกสารที่ยังไม่ปิดงาน') +
+      k(s.scanned + s.verified + s.sent + s.closed, 'PDF พร้อมใช้งาน', 'ok') +
+      k(s.pdf_over_sla, 'PDF เกิน SLA', s.pdf_over_sla ? 'bad' : 'ok', 'pdf_over') +
+      k(s.paper_received, 'รอเข้ากล่องจัดเก็บ', s.paper_received ? 'warn' : '', 'to_box') +
+      k(s.ocr_mismatch + s.missing_pdf, 'ต้องแก้ไข',
+        (s.ocr_mismatch + s.missing_pdf) ? 'bad' : 'ok', 'fix');
+
+    $('kpis').querySelectorAll('[data-act]').forEach(el =>
+      el.addEventListener('click', () => quick(el.dataset.act)));
+
+    const first = (dash.exceptions && dash.exceptions[0]) ? dash.exceptions[0].ref_no : '';
+    $('hint').innerHTML = 'ลองค้น: ' +
+      (first ? '<code data-q="' + esc(first) + '">' + esc(first) + '</code> ' : '') +
+      '<code data-q="LOSCAM">LOSCAM</code> <code data-q="BOX-">BOX-</code>' +
+      ' · ค้นได้เฉพาะเอกสารที่ยังไม่ปิดงาน';
+    $('hint').querySelectorAll('[data-q]').forEach(el =>
+      el.addEventListener('click', () => { $('q').value = el.dataset.q; doSearch(); }));
+
+    showExceptions();
   } catch (err) {
-    $('kpis').innerHTML = '';
-    $('alert').textContent = 'โหลดข้อมูลไม่สำเร็จ: ' + (err.message || err);
-    $('alert').className = 'alert bad on';
+    $('view').innerHTML = '';
+    showError('โหลดข้อมูลไม่สำเร็จ: ' + (err.message || err));
   }
 }
-$('btnReload').addEventListener('click', () => call('docsDashboard', { fresh: true })
-  .then(d => { dash = d; render(); }).catch(e => alert(e.message)));
 
-function render() {
-  const s = dash.summary, sla = dash.sla || {};
-  $('slaInfo').textContent = 'PDF ภายใน ' + sla.pdf_days + ' วัน · กระดาษภายใน ' + sla.paper_days + ' วัน';
+function quick(act) {
+  $('q').value = ''; $('fBox').value = '';
+  $('fPdf').value = ''; $('fPaper').value = '';
+  if (act === 'to_box') { $('fPaper').value = 'received'; doSearch(); return; }
+  showExceptions(act);
+}
 
-  const kpi = (n, k, cls = '') => `<div class="kpi ${cls}"><div class="n">${n}</div><div class="k">${k}</div></div>`;
-  $('kpis').innerHTML =
-    kpi(s.total, 'เอกสารที่ยังไม่ปิด') +
-    kpi(s.pdf_over_sla, 'PDF เกิน SLA', s.pdf_over_sla ? 'bad' : 'ok') +
-    kpi(s.pdf_critical + s.pdf_warning, 'PDF ใกล้ครบ', 'warn') +
-    kpi(s.missing_pdf, 'ไม่มีไฟล์ PDF', s.missing_pdf ? 'bad' : 'ok') +
-    kpi(s.ocr_mismatch, 'ข้อมูลไม่ตรง', s.ocr_mismatch ? 'bad' : 'ok') +
-    kpi(s.paper_over_sla, 'กระดาษเกิน SLA', s.paper_over_sla ? 'bad' : 'ok');
+function showExceptions(filter) {
+  let ex = (dash && dash.exceptions) || [];
+  if (filter === 'pdf_over') ex = ex.filter(e => /เกิน SLA/.test(e.reason));
+  if (filter === 'fix') ex = ex.filter(e => /ไม่ตรง|ไม่มีไฟล์/.test(e.reason));
 
-  const st = (n, k) => `<div class="step2"><div class="n">${n}</div><div class="k">${k}</div></div>`;
-  $('lanePdf').innerHTML = st(s.pending_scan, 'รอสแกน') + st(s.scanned, 'สแกนแล้ว') +
-    st(s.verified, 'ตรวจแล้ว') + st(s.sent, 'ส่งต่อแล้ว') + st(s.closed, 'ปิดงาน');
-  $('lanePaper').innerHTML = st(s.paper_held, 'อยู่ที่จัดส่ง') + st(s.paper_shipped, 'ส่งแล้ว') +
-    st(s.paper_received, 'คลังรับแล้ว') + st(s.paper_boxed, 'เข้ากล่องแล้ว');
+  $('rTitle').textContent = 'รายการที่ต้องดำเนินการ';
+  $('rCount').textContent = ex.length + ' รายการ';
+  rowsData = ex.map(e => ({
+    ref_no: e.ref_no, barcode: e.barcode, doc_date: e.doc_date,
+    dest_warehouse: e.dest_warehouse || e.site,
+    pdf_status: e.pdf_status, paper_status: e.paper_status,
+    sla_pdf: /PDF เกิน SLA/.test(e.reason) ? 'over' : 'normal', sla_pdf_days: e.pdf_days,
+    sla_paper: /กระดาษยังไม่เข้ากล่อง/.test(e.reason) ? 'over' : 'normal',
+    sla_paper_days: e.paper_days, box_id: '', reason: e.reason
+  }));
 
-  const ex = dash.exceptions || [];
-  $('exCnt').textContent = ex.length;
-  $('exCnt').style.display = ex.length ? 'inline-block' : 'none';
-
-  $('viewEx').innerHTML = ex.length ? `
-    <table><thead><tr>
-      <th>เลขเอกสาร</th><th>วันที่</th><th>ปลายทาง</th><th>PDF</th><th>กระดาษ</th><th>เหตุผล</th>
-    </tr></thead><tbody>
-    ${ex.map(e => `<tr data-ref="${esc(e.ref_no)}">
-      <td class="mono"><b>${esc(e.ref_no)}</b><br><span style="color:var(--muted)">${esc(e.barcode)}</span></td>
-      <td class="mono">${fmtDate(e.doc_date)}</td>
-      <td>${esc(e.dest_warehouse) || esc(e.site) || '—'}</td>
-      <td>${esc(PDF_TH[e.pdf_status] || e.pdf_status)}<br><span class="mono" style="color:var(--muted)">${e.pdf_days} วัน</span></td>
-      <td>${esc(PAPER_TH[e.paper_status] || e.paper_status || '—')}</td>
-      <td style="color:var(--danger)">${esc(e.reason)}</td>
-    </tr>`).join('')}</tbody></table>`
-    : '<div class="empty">ไม่มีรายการที่ต้องดำเนินการ</div>';
-
-  bindRows('#viewEx');
-  if (dash.cached) {
-    $('alert').textContent = 'ข้อมูลจากแคช คำนวณเมื่อ ' +
-      new Date(dash.computed_at).toLocaleTimeString('th-TH') + ' — กดรีเฟรชเพื่อคำนวณใหม่';
-    $('alert').className = 'alert info on';
-  } else $('alert').className = 'alert';
+  render(ex.length ? null :
+    '<b>ไม่มีรายการที่ต้องดำเนินการ</b>ทุกอย่างอยู่ในกำหนด<br>' +
+    'ใช้ช่องค้นหาด้านบนเพื่อดูเอกสารใบใดใบหนึ่ง');
 }
 
 /* ---------- ค้นหา ---------- */
-document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
-  document.querySelectorAll('.tab').forEach(x => x.classList.toggle('on', x === t));
-  $('viewEx').style.display = t.dataset.tab === 'ex' ? 'block' : 'none';
-  $('viewSearch').style.display = t.dataset.tab === 'search' ? 'block' : 'none';
-  if (t.dataset.tab === 'search') $('q').focus();
-}));
-
 $('btnSearch').addEventListener('click', doSearch);
 $('q').addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(); });
+['fPdf', 'fPaper'].forEach(id => $(id).addEventListener('change', doSearch));
+$('fBox').addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(); });
+$('btnClear').addEventListener('click', () => {
+  ['q', 'fBox', 'fFrom', 'fTo'].forEach(i => $(i).value = '');
+  $('fPdf').value = ''; $('fPaper').value = '';
+  showExceptions();
+});
+$('btnReload').addEventListener('click', () =>
+  call('docsDashboard', { fresh: true })
+    .then(d => { dash = d; load(); })
+    .catch(e => showError(e.message)));
 
 async function doSearch() {
-  $('searchResult').innerHTML = '<div class="empty">กำลังค้นหา…</div>';
+  $('view').innerHTML = '<div class="empty">กำลังค้นหา…</div>';
   try {
     const r = await call('docsSearch', {
       q: $('q').value.trim(),
-      filters: { pdf_status: $('fPdf').value, paper_status: $('fPaper').value }
+      filters: {
+        pdf_status: $('fPdf').value, paper_status: $('fPaper').value,
+        box_id: $('fBox').value.trim(),
+        date_from: $('fFrom').value, date_to: $('fTo').value
+      }
     });
-    $('searchResult').innerHTML = r.results.length ? `
-      <table><thead><tr>
-        <th>เลขเอกสาร</th><th>วันที่</th><th>ปลายทาง</th><th>PDF</th><th>กระดาษ</th><th>กล่อง</th>
-      </tr></thead><tbody>
-      ${r.results.map(d => `<tr data-ref="${esc(d.ref_no)}">
-        <td class="mono"><b>${esc(d.ref_no)}</b><br><span style="color:var(--muted)">${esc(d.barcode)}</span></td>
-        <td class="mono">${fmtDate(d.doc_date)}</td>
-        <td>${esc(d.dest_warehouse) || esc(d.site) || '—'}</td>
-        <td>${esc(PDF_TH[d.pdf_status] || d.pdf_status)} ${slaPill(d.sla_pdf)}</td>
-        <td>${esc(PAPER_TH[d.paper_status] || d.paper_status || '—')}</td>
-        <td class="mono">${esc(d.box_id) || '—'}</td>
-      </tr>`).join('')}</tbody></table>
-      ${r.truncated ? '<p class="note">แสดง 200 รายการแรก — ใส่คำค้นให้แคบลงเพื่อดูให้ครบ</p>' : ''}`
-      : '<div class="empty">ไม่พบเอกสารที่ตรงกับเงื่อนไข<br><span style="font-size:12px">ค้นได้เฉพาะเอกสารที่ยังไม่ปิดงาน</span></div>';
-    bindRows('#searchResult');
+    rowsData = r.results || [];
+    $('rTitle').textContent = 'ผลการค้นหา';
+    $('rCount').textContent = r.count + ' รายการ' + (r.truncated ? ' (แสดง 200 แรก)' : '');
+    render(rowsData.length ? null :
+      '<b>ไม่พบเอกสารที่ตรงกับเงื่อนไข</b>' +
+      'ลองลดเงื่อนไขลง หรือตรวจว่าเอกสารถูกนำเข้าระบบแล้ว<br>' +
+      'ค้นได้เฉพาะเอกสารที่ยังไม่ปิดงาน');
   } catch (err) {
-    $('searchResult').innerHTML = '<div class="empty">' + esc(err.message) + '</div>';
+    $('view').innerHTML = '<div class="empty">' + esc(err.message || err) + '</div>';
   }
 }
 
-/* ---------- รายละเอียด ---------- */
-function bindRows(sel) {
-  document.querySelectorAll(sel + ' tbody tr[data-ref]').forEach(tr =>
-    tr.addEventListener('click', () => openDetail(tr.dataset.ref)));
+/* ---------- ตาราง ---------- */
+function render(emptyMsg) {
+  if (emptyMsg) { $('view').innerHTML = '<div class="empty">' + emptyMsg + '</div>'; return; }
+
+  $('view').innerHTML = '<div class="tw"><table><thead><tr>' +
+    '<th style="width:170px">Reference</th>' +
+    '<th style="width:112px">วันที่เอกสาร</th>' +
+    '<th style="width:200px">ปลายทาง</th>' +
+    '<th style="width:190px">PDF</th>' +
+    '<th style="width:200px">เอกสารตัวจริง</th>' +
+    '<th>กล่องจัดเก็บ</th>' +
+    '</tr></thead><tbody>' +
+    rowsData.map(rowHtml).join('') + '</tbody></table></div>';
+
+  $('view').querySelectorAll('tr.main').forEach(tr =>
+    tr.addEventListener('click', () => toggle(tr.dataset.ref)));
 }
 
-async function openDetail(ref) {
-  $('dTitle').textContent = ref;
-  $('dSub').textContent = 'กำลังโหลด…';
-  $('dKv').innerHTML = ''; $('dEv').textContent = '';
-  $('dlg').showModal();
+function rowHtml(d) {
+  return '<tr class="main" data-ref="' + esc(d.ref_no) + '">' +
+    '<td><div class="ref">' + esc(d.ref_no) + '</div>' +
+      '<div class="sub">' + (esc(d.barcode) || '—') + '</div></td>' +
+    '<td class="mono">' + fmt(d.doc_date) + '</td>' +
+    '<td>' + (esc(d.dest_warehouse) || '—') + '</td>' +
+    '<td>' + pill(d.pdf_status, d.sla_pdf, PDF_TH) +
+      flow(PDF_SEQ, d.pdf_status, d.sla_pdf, d.sla_pdf_days) + '</td>' +
+    '<td>' + pill(d.paper_status, d.sla_paper, PAPER_TH) +
+      flow(PAPER_SEQ, d.paper_status, d.sla_paper, d.sla_paper_days) + '</td>' +
+    '<td class="mono">' + (d.box_id ? esc(d.box_id)
+      : '<span style="color:var(--muted)">ยังไม่เข้ากล่อง</span>') +
+      (d.reason ? '<div class="sub" style="color:var(--danger)">' + esc(d.reason) + '</div>' : '') +
+    '</td></tr>' +
+    '<tr class="detail" data-d="' + esc(d.ref_no) + '" style="display:none"><td colspan="6"></td></tr>';
+}
+
+/* ---------- รายละเอียดกางในตาราง ---------- */
+async function toggle(ref) {
+  const sel = '[data-ref="' + CSS.escape(ref) + '"]';
+  const row = $('view').querySelector('tr.main' + sel);
+  const det = $('view').querySelector('tr.detail[data-d="' + CSS.escape(ref) + '"]');
+  if (!det) return;
+
+  if (det.style.display !== 'none') {
+    det.style.display = 'none'; row.classList.remove('open'); return;
+  }
+  // เปิดทีละใบ ไม่งั้นตารางยาวจนหาแถวที่กำลังดูไม่เจอ
+  $('view').querySelectorAll('tr.detail').forEach(x => x.style.display = 'none');
+  $('view').querySelectorAll('tr.main').forEach(x => x.classList.remove('open'));
+
+  det.style.display = 'table-row';
+  row.classList.add('open');
+  det.firstElementChild.innerHTML = '<div class="empty">กำลังโหลด…</div>';
+
   try {
     const r = await call('docsDetail', { ref_no: ref });
-    if (!r.found) { $('dSub').textContent = 'ไม่พบเอกสารนี้ในตารางที่ยังไม่ปิดงาน'; return; }
-    const d = r.doc, sla = r.sla;
-    $('dSub').textContent = d.item_name || '';
-    $('dKv').innerHTML = [
-      ['บาร์โค้ด', d.barcode], ['วันที่เอกสาร', fmtDate(d.doc_date)],
-      ['ต้นทาง', d.transfer_from], ['ปลายทาง', d.transfer_to],
-      ['จำนวน', (d.sent_qty || '—') + ' / ' + (d.received_qty || '—')],
-      ['สถานะ PDF', (PDF_TH[d.pdf_status] || d.pdf_status || '—') + ' ' + slaPill(sla.pdf.level) +
-        ' <span class="mono" style="color:var(--muted)">' + sla.pdf.days + ' วัน</span>'],
-      ['ผลตรวจข้อมูล', d.ocr_status || '—'],
-      ['สถานะกระดาษ', (PAPER_TH[d.paper_status] || d.paper_status || '—') + ' ' + slaPill(sla.paper.level)],
-      ['กล่องจัดเก็บ', d.box_id || 'ยังไม่เข้ากล่อง'],
-      ['Batch', d.batch_id || '—']
-    ].map(([k, v]) => `<div class="k">${esc(k)}</div><div>${v}</div>`).join('');
-
-    $('dEv').innerHTML = (r.events || []).length
-      ? r.events.map(e => `${fmtDate(e.at)} · ${esc(e.status)} · ${esc(e.emp_name)}` +
-          (e.note ? ' · ' + esc(e.note) : '')).join('<br>')
-      : 'ยังไม่มีประวัติ';
-
-    const link = $('dPdf');
-    if (d.pdf_url) { link.href = d.pdf_url; link.style.display = 'inline-block'; }
-    else link.style.display = 'none';
-  } catch (err) { $('dSub').textContent = err.message; }
+    det.firstElementChild.innerHTML = r.found ? detailHtml(r)
+      : '<div class="empty">ไม่พบรายละเอียดของเอกสารนี้</div>';
+  } catch (err) {
+    det.firstElementChild.innerHTML = '<div class="empty">' + esc(err.message) + '</div>';
+  }
 }
-$('dClose').addEventListener('click', () => $('dlg').close());
+
+const EV_TH = { scanned:'สแกนเข้าระบบ', with_delivery:'ทีมจัดส่งรับเอกสาร',
+  with_warehouse:'ส่งเอกสารตัวจริงไปคลัง', received_warehouse:'คลังรับเอกสาร',
+  archived:'จัดเก็บเข้ากล่อง', disputed:'แจ้งปัญหา', resolved:'แก้ไขปัญหาแล้ว',
+  batch_closed:'ปิดชุดเอกสาร', lost_document:'ไม่พบเอกสาร' };
+
+function drivePreview(url) {
+  const m = String(url).match(/[-\w]{25,}/);
+  return m ? 'https://drive.google.com/thumbnail?id=' + m[0] + '&sz=w400' : url;
+}
+
+function detailHtml(r) {
+  const d = r.doc, sla = r.sla, box = r.box;
+  const kv = [
+    ['บาร์โค้ด', esc(d.barcode) || '—'],
+    ['วันที่เอกสาร', fmt(d.doc_date)],
+    ['ประเภท', esc(d.item_name) || '—'],
+    ['โอนจาก', esc(d.transfer_from) || '—'],
+    ['โอนไป', esc(d.transfer_to) || '—'],
+    ['จำนวน', (d.sent_qty || '—') + ' / ' + (d.received_qty || '—')],
+    ['อ่านโดย', d.read_source === 'barcode' ? 'บาร์โค้ด'
+              : d.read_source === 'ocr' ? 'OCR' : 'กรอกเอง'],
+    ['สถานะ PDF', esc(PDF_TH[d.pdf_status] || d.pdf_status || '—') +
+                  ' · ' + esc(sla.pdf.days) + ' วัน'],
+    ['สถานะกระดาษ', esc(PAPER_TH[d.paper_status] || d.paper_status || '—')],
+    ['ชุดที่ส่ง', esc(d.batch_id) || '—']
+  ].map(p => '<div class="k">' + esc(p[0]) + '</div><div>' + p[1] + '</div>').join('');
+
+  const boxCard = box
+    ? '<div class="boxcard">' +
+      (box.photo_url
+        ? '<img src="' + drivePreview(box.photo_url) + '" alt="ตำแหน่งจัดเก็บ" ' +
+          'onclick="window.open(\'' + esc(box.photo_url) + '\',\'_blank\')">'
+        : '<div class="ph">📦</div>') +
+      '<div><div class="bid">' + esc(box.box_name || box.box_id) + '</div>' +
+      '<div class="bl">' + esc(box.box_id) + ' · ' + box.item_count + '/' + box.capacity + ' ใบ<br>' +
+      (esc(box.location) || 'ยังไม่ระบุตำแหน่ง') +
+      (box.destroy_after ? ' · ครบกำหนดทำลาย ' + fmt(box.destroy_after) : '') +
+      '</div></div></div>'
+    : '<div class="boxcard"><div class="ph">📦</div><div>' +
+      '<div class="bid">ยังไม่เข้ากล่อง</div>' +
+      '<div class="bl">เอกสารตัวจริงยังไม่ถูกจัดเก็บ</div></div></div>';
+
+  const events = (r.events || []).length
+    ? r.events.map(e => '<div class="ev">' +
+        '<div class="t">' + fmtT(e.at) + '</div>' +
+        '<div>' + esc(EV_TH[e.status] || e.status) +
+          (e.note ? ' · ' + esc(e.note) : '') + '</div>' +
+        '<div class="who">' + (esc(e.emp_name) || esc(e.emp_id) || '—') +
+          (e.site ? ' · ' + esc(e.site) : '') + '</div></div>').join('')
+    : '<div class="ev"><div>ยังไม่มีประวัติ</div></div>';
+
+  return '<div class="dwrap"><div class="dsec">' +
+    '<h4>ข้อมูลเอกสาร</h4><div class="kv">' + kv + '</div>' + boxCard +
+    '<div class="dacts">' +
+    (d.pdf_url
+      ? '<a class="btn ghost" href="' + esc(d.pdf_url) + '" target="_blank">เปิดไฟล์ PDF</a>'
+      : '<button class="btn ghost" disabled>ไม่มีไฟล์ PDF</button>') +
+    '<button class="btn ghost" data-slip="' + esc(d.ref_no) + '">พิมพ์ใบขอเบิกเอกสาร</button>' +
+    '</div></div>' +
+    '<div class="dsec"><h4>ประวัติการดำเนินการ</h4><div class="tl">' + events + '</div></div>' +
+    '</div>';
+}
+
+/* ---------- ใบขอเบิกเอกสาร ---------- */
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-slip]');
+  if (b) { e.stopPropagation(); printSlip(b.dataset.slip); }
+});
+
+async function printSlip(ref) {
+  let r;
+  try { r = await call('docsDetail', { ref_no: ref }); }
+  catch (err) { alert(err.message); return; }
+  if (!r.found) { alert('ไม่พบเอกสาร'); return; }
+
+  const d = r.doc, box = r.box;
+  const rows = [
+    ['เลข Reference', '<span class="big">' + esc(d.ref_no) + '</span>'],
+    ['บาร์โค้ด', '<span class="mono">' + (esc(d.barcode) || '—') + '</span>'],
+    ['ประเภท', esc(d.item_name) || '—'],
+    ['โอนจาก', esc(d.transfer_from) || '—'],
+    ['โอนไป', esc(d.transfer_to) || '—'],
+    ['วันที่เอกสาร', fmt(d.doc_date)],
+    ['กล่องจัดเก็บ', box
+      ? '<span class="mono">' + esc(box.box_id) + '</span>' +
+        (box.box_name ? '<br>' + esc(box.box_name) : '')
+      : 'ยังไม่เข้ากล่อง'],
+    ['ตำแหน่ง', box ? (esc(box.location) || '—') : '—']
+  ].map(p => '<tr><td class="k">' + esc(p[0]) + '</td><td>' + p[1] + '</td></tr>').join('');
+
+  const w = window.open('', '_blank', 'width=780,height=920');
+  if (!w) { alert('เบราว์เซอร์บล็อกหน้าต่างใหม่ — อนุญาต popup แล้วลองอีกครั้ง'); return; }
+
+  w.document.write(
+    '<!DOCTYPE html><html lang="th"><head><meta charset="UTF-8">' +
+    '<title>ใบขอเบิกเอกสาร ' + esc(ref) + '</title>' +
+    '<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;600&family=IBM+Plex+Mono&display=swap" rel="stylesheet">' +
+    '<style>body{font-family:"IBM Plex Sans Thai",sans-serif;padding:40px;color:#111;line-height:1.7}' +
+    'h1{font-size:20px;margin:0 0 4px}.sub{font-size:12px;color:#666;margin-bottom:22px}' +
+    'table{width:100%;border-collapse:collapse;font-size:13.5px;margin-bottom:22px}' +
+    'td{padding:8px 10px;border-bottom:1px solid #ddd;vertical-align:top}' +
+    'td.k{width:150px;color:#666}.mono{font-family:"IBM Plex Mono",monospace}' +
+    '.big{font-family:"IBM Plex Mono",monospace;font-size:22px;font-weight:600}' +
+    '.sig{margin-top:48px;display:flex;gap:44px}' +
+    '.sig div{flex:1;border-top:1px solid #999;padding-top:8px;font-size:12.5px;color:#666}' +
+    '@media print{body{padding:20px}}</style></head><body>' +
+    '<h1>ใบขอเบิกเอกสารตัวจริง</h1>' +
+    '<div class="sub">พิมพ์เมื่อ ' + new Date().toLocaleString('th-TH') +
+      ' · โดย ' + esc(session.empName || session.empId) + '</div>' +
+    '<table>' + rows + '</table>' +
+    '<div class="sig"><div>ผู้ขอเบิก &nbsp; วันที่</div>' +
+    '<div>ผู้อนุมัติ &nbsp; วันที่</div><div>ผู้คืนเอกสาร &nbsp; วันที่</div></div>' +
+    '</body></html>');
+  w.document.close();
+  setTimeout(() => { try { w.print(); } catch (e) {} }, 600);
+}
+
+/* ---------- ดาวน์โหลด CSV ---------- */
+$('btnCsv').addEventListener('click', () => {
+  if (!rowsData.length) { alert('ไม่มีข้อมูลให้ดาวน์โหลด'); return; }
+  const cols = ['ref_no','barcode','doc_date','dest_warehouse','pdf_status',
+                'sla_pdf_days','paper_status','sla_paper_days','box_id'];
+  const head = ['Reference','บาร์โค้ด','วันที่เอกสาร','ปลายทาง','สถานะ PDF',
+                'PDF (วัน)','สถานะกระดาษ','กระดาษ (วัน)','กล่องจัดเก็บ'];
+  const q = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+  // ใส่ BOM เพื่อให้ Excel เปิดภาษาไทยไม่เพี้ยน
+  const csv = '\ufeff' + [head.map(q).join(',')]
+    .concat(rowsData.map(r => cols.map(c => q(r[c])).join(','))).join('\r\n');
+
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+  a.download = 'docscan-' + new Date().toISOString().slice(0, 10) + '.csv';
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+});
 </script>
 </body>
 </html>
