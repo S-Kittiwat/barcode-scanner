@@ -289,6 +289,12 @@ main{width:100%;max-width:100%;padding:20px 24px 100px;}
   padding:9px 14px;font-size:12.5px}
 .rchip b{font-family:var(--mono);font-size:17px;display:block;line-height:1.2}
 .rchip.g b{color:var(--success)} .rchip.y b{color:var(--warn)} .rchip.r b{color:var(--danger)}
+.cands{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}
+.candbtn{background:var(--surface2);border:1px solid var(--warn);color:var(--warn);
+  border-radius:14px;padding:5px 14px;font-family:var(--mono);font-size:13px;
+  font-weight:600;cursor:pointer}
+.candbtn:hover{border-color:var(--accent);color:var(--accent)}
+.candbtn.on{background:var(--accent);border-color:var(--accent);color:#0f172a;font-weight:600}
 .refout{font-size:11.5px;color:var(--muted);margin-top:5px;font-family:var(--mono)}
 .refout b{color:var(--success)}
 .refout.none{color:var(--danger)}
@@ -322,20 +328,20 @@ tr.tier-yellow td{background:rgba(251,191,36,.06)}
   color:#0f172a;padding:1px 5px;line-height:1.5}
 #pkB span{background:var(--accent)} #pkO span{background:var(--warn)}
 </style>
-<script src="config.js?v=2.11.0"></script>
+<script src="config.js?v=2.14.0"></script>
 <script type="module">
 // ── โมดูลร่วม DocScan ────────────────────────────────────
 // module script ทำงานหลัง classic script แต่ก่อน window.onload
 // โค้ดเดิมเรียก requireAuth ใน window.onload จึงปลอดภัย
-import { apiFetch, uploadBatch, newClientId } from './js/api.js?v=2.11.0';
-import { parseCSV, buildIndex, searchCSV, classify } from './js/csv.js?v=2.11.0';
-import { parseDateInput, toDisplayDate, toInputDate, todayISO } from './js/date.js?v=2.11.0';
+import { apiFetch, uploadBatch, newClientId } from './js/api.js?v=2.14.0';
+import { parseCSV, buildIndex, searchCSV, classify } from './js/csv.js?v=2.14.0';
+import { parseDateInput, toDisplayDate, toInputDate, todayISO } from './js/date.js?v=2.14.0';
 import { compressPage, compressImageFile, toDataUrl, storagePeriod,
-         compressionSummary, SETTINGS as PDF_SETTINGS } from './js/pdf.js?v=2.11.0';
-import * as Reader from './js/reader.js?v=2.11.0';
-import { hasCollisionRisk, findNearMiss, searchCSV as csvSearch } from './js/csv.js?v=2.11.0';
-import { requireAuth, authFetch, authGet, authGetText, logout, loadSession, daysLeft, AUTH_JS_VERSION } from './js/auth.js?v=2.11.0';
-import { installNav, guardPage, homeFor as navHome } from './js/nav.js?v=2.11.0';
+         compressionSummary, SETTINGS as PDF_SETTINGS } from './js/pdf.js?v=2.14.0';
+import * as Reader from './js/reader.js?v=2.14.0';
+import { hasCollisionRisk, findNearMiss, searchCSV as csvSearch } from './js/csv.js?v=2.14.0';
+import { requireAuth, authFetch, authGet, authGetText, logout, loadSession, daysLeft, AUTH_JS_VERSION } from './js/auth.js?v=2.14.0';
+import { installNav, guardPage, homeFor as navHome } from './js/nav.js?v=2.14.0';
 
 window.DocScan = {
   apiFetch, authFetch, authGet, authGetText, uploadBatch, newClientId,
@@ -397,6 +403,13 @@ window.dispatchEvent(new Event('docscan-ready'));
       <div class="fld">
         <label for="docType">ชนิดเอกสาร</label>
         <select id="docType"></select>
+      </div>
+      <div class="fld" style="min-width:150px">
+        <label for="ocrLevel">ความละเอียดการอ่าน</label>
+        <select id="ocrLevel">
+          <option value="accurate">ละเอียด — 9 รอบต่อหน้า</option>
+          <option value="fast">เร็ว — 3 รอบต่อหน้า</option>
+        </select>
       </div>
       <div class="fld" style="min-width:120px">
         <label for="samplePct">สุ่มตรวจ (%)</label>
@@ -1007,6 +1020,15 @@ function renderTable() {
         readHtml += '<img class="readcrop" src="' + row.readCrop +
           '" alt="ภาพที่อ่าน" onclick="openPreview(\'' + rid + '\')">';
       }
+      if (row.candidates && row.candidates.length > 1) {
+        readHtml += '<div class="why" style="color:var(--warn);font-weight:600">' +
+          'เลือกค่าที่ตรงกับเอกสาร</div>';
+        readHtml += '<div class="cands">' + row.candidates.map(function (c) {
+          return '<button class="candbtn' + (c === row.barcode ? ' on' : '') +
+            '" onclick="applySuggestion(\'' + rid + '\',\'' + esc(c) + '\')">' +
+            esc(c) + '</button>';
+        }).join('') + '</div>';
+      }
       if (row.tierWhy) readHtml += '<div class="why">' + esc(row.tierWhy) +
         (row.suggestion ? ' — <a href="#" onclick="applySuggestion(\'' + rid +
           '\',\'' + esc(row.suggestion) + '\');return false;">ใช้ค่านี้</a>' : '') + '</div>';
@@ -1207,8 +1229,9 @@ function applySuggestion(id, value) {
   if (!row) return;
   row.barcode = value;
   row.tier = 'yellow';
-  row.tierWhy = 'ใช้ค่าที่ระบบเสนอ ควรยืนยันกับเอกสาร';
+  row.tierWhy = 'คนเลือกค่านี้เอง';
   row.suggestion = '';
+  row.editVals.refNo = value;
   onBarcodeChange(row.id, value);
   renderTable();
 }
@@ -1631,6 +1654,7 @@ async function runAutoRead() {
 
     var results = await DocScan.Reader.readAllPages(_lastPdfJs, type, {
       signal: _readAbort.signal,
+      ocrLevel: document.getElementById('ocrLevel').value,
       onProgress: function (m) { rprog(0.06, m); },
       onPage: function (r, i, n) {
         rprog(0.06 + 0.9 * i / n,
@@ -1687,6 +1711,12 @@ function applyReadResults(results, typeKey) {
     first.needsLookup = !!d.needsLookup;
     var oc = d.pages[0] && d.pages[0].ocr;
     first.readCrop = oc && oc.crop ? oc.crop : '';
+    // ค่าที่ OCR ลังเล ให้คนเลือกด้วยคลิกเดียว เร็วกว่าพิมพ์ใหม่และพิมพ์ผิดยาก
+    first.candidates = (cls.candidates && cls.candidates.length)
+      ? cls.candidates
+      : (oc && oc.candidates && oc.candidates.length > 1
+          ? oc.candidates.slice(0, 3).map(function (c) { return c.value; })
+          : []);
 
     if (d.value) {
       first.barcode = d.value;

@@ -28,8 +28,8 @@ export const NAV = [
     items: [
       {
         id: 'scan', file: 'batch.html', icon: '📄',
-        title: 'สแกนเอกสารเข้าระบบ',
-        desc: 'อัปโหลดไฟล์สแกน อ่านบาร์โค้ดและ OCR เพื่อตั้งชื่อและกรอกข้อมูล',
+        title: 'นำเข้าเอกสาร',
+        desc: 'สแกนเอกสารเข้าระบบ — อ่านบาร์โค้ดและ OCR อัตโนมัติ',
         owner: 'ทีมจัดส่ง',
         roles: ['delivery', 'warehouse', 'admin']
       },

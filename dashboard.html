@@ -122,21 +122,23 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .toast.error{border-color:rgba(248,113,113,0.4);color:var(--danger);}
 .toast.success{border-color:rgba(52,211,153,0.4);color:var(--success);}
 </style>
-<script src="config.js?v=2.0.1"></script>
+<script src="config.js?v=2.14.0"></script>
 <script type="module">
 // ── โมดูลร่วม DocScan ────────────────────────────────────
 // module script ทำงานหลัง classic script แต่ก่อน window.onload
 // โค้ดเดิมเรียก requireAuth ใน window.onload จึงปลอดภัย
-import { apiFetch, uploadBatch, newClientId } from './js/api.js?v=2.0.1';
-import { parseCSV, buildIndex, searchCSV, classify } from './js/csv.js?v=2.0.1';
-import { parseDateInput, toDisplayDate, toInputDate, todayISO } from './js/date.js?v=2.0.1';
-import { requireAuth, authFetch, authGet, authGetText, logout, loadSession, daysLeft, AUTH_JS_VERSION } from './js/auth.js?v=2.0.1';
+import { apiFetch, uploadBatch, newClientId } from './js/api.js?v=2.14.0';
+import { parseCSV, buildIndex, searchCSV, classify } from './js/csv.js?v=2.14.0';
+import { parseDateInput, toDisplayDate, toInputDate, todayISO } from './js/date.js?v=2.14.0';
+import { requireAuth, authFetch, authGet, authGetText, logout, loadSession, daysLeft, AUTH_JS_VERSION } from './js/auth.js?v=2.14.0';
+import { installNav, guardPage, homeFor as navHome } from './js/nav.js?v=2.14.0';
 
 window.DocScan = {
   apiFetch, authFetch, authGet, authGetText, uploadBatch, newClientId,
   parseCSV, buildIndex, searchCSV, classify,
   parseDateInput, toDisplayDate, toInputDate, todayISO,
-  requireAuth, logout, loadSession, daysLeft, AUTH_JS_VERSION
+  requireAuth, logout, loadSession, daysLeft, AUTH_JS_VERSION,
+  installNav, guardPage, navHome
 };
 // ประทับเลขเวอร์ชันไว้ให้หาเวลาผู้ใช้แจ้งปัญหา
 document.documentElement.setAttribute('data-docscan-version',
@@ -412,7 +414,9 @@ var DocScanAuth = {
     var s = DocScan.requireAuth();
     if (!s) return null;
     if (s.mustChangePassword) { location.href = 'change-password.html'; return null; }
+    if (!DocScan.guardPage(s)) return null;
     
+    DocScan.installNav(s, { onLogout: logout });
     return s;
   }
 };
@@ -439,6 +443,8 @@ function apiGetJson(action, params, extraQS) {
 }
 
 /** พาไปหน้าเข้าสู่ระบบเมื่อเซสชันหมดอายุกลางคัน โดยไม่ทิ้งงานที่ค้าง */
+
+
 function handleAuthError(err) {
   if (err && err.code === 'auth_required') {
     alert('เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่\n\nงานที่ค้างอยู่ยังอยู่ในเครื่อง ไม่หายไปไหน');

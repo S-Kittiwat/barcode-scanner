@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>DocScan — เข้าสู่ระบบ</title>
-<script src="config.js?v=2.0.1"></script>
-<link rel="stylesheet" href="css/auth.css?v=2.0.1">
+<script src="config.js?v=2.14.0"></script>
+<link rel="stylesheet" href="css/auth.css?v=2.14.0">
 </head>
 <body>
 <div class="login-wrap">
@@ -53,16 +53,14 @@
 </div>
 
 <script type="module">
-import { login, loadSession, consumeReturnTo } from './js/auth.js?v=2.0.1';
+import { login, loadSession, consumeReturnTo } from './js/auth.js?v=2.14.0';
+import { homeFor } from './js/nav.js?v=2.14.0';
 
 const API_URL = DOCSCAN_CONFIG.API_URL;
 const $ = id => document.getElementById(id);
 $('ver').textContent = 'v' + (DOCSCAN_CONFIG.VERSION || '');
 
-/** หน้าแรกตาม role — เซิร์ฟเวอร์เป็นคนบอก role ไม่ใช่ผู้ใช้เลือกเอง */
-function homeFor(role) {
-  return role === 'delivery' ? 'delivery.html' : 'batch.html';
-}
+// หน้าแรกตาม role มาจาก js/nav.js ที่เดียว
 
 // มี session อยู่แล้วก็ข้ามไปเลย
 const existing = loadSession();

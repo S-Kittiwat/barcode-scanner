@@ -12,7 +12,7 @@
 import { apiFetch, apiGet } from './api.js';
 
 /** ใช้เช็คใน console ว่าเบราว์เซอร์โหลดไฟล์เวอร์ชันไหนอยู่ */
-export const AUTH_JS_VERSION = '2.0.1';
+export const AUTH_JS_VERSION = '2.14.0';
 
 const SESSION_KEY = 'docScanSession';
 const PBKDF2_ITER = 150000;

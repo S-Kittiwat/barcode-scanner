@@ -6,7 +6,7 @@
 <title>DocScan — รับเอกสาร</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<script src="config.js?v=2.0.1"></script>
+<script src="config.js?v=2.14.0"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
 :root{
@@ -160,16 +160,18 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 // ── โมดูลร่วม DocScan ────────────────────────────────────
 // module script ทำงานหลัง classic script แต่ก่อน window.onload
 // โค้ดเดิมเรียก requireAuth ใน window.onload จึงปลอดภัย
-import { apiFetch, uploadBatch, newClientId } from './js/api.js?v=2.0.1';
-import { parseCSV, buildIndex, searchCSV, classify } from './js/csv.js?v=2.0.1';
-import { parseDateInput, toDisplayDate, toInputDate, todayISO } from './js/date.js?v=2.0.1';
-import { requireAuth, authFetch, authGet, authGetText, logout, loadSession, daysLeft, AUTH_JS_VERSION } from './js/auth.js?v=2.0.1';
+import { apiFetch, uploadBatch, newClientId } from './js/api.js?v=2.14.0';
+import { parseCSV, buildIndex, searchCSV, classify } from './js/csv.js?v=2.14.0';
+import { parseDateInput, toDisplayDate, toInputDate, todayISO } from './js/date.js?v=2.14.0';
+import { requireAuth, authFetch, authGet, authGetText, logout, loadSession, daysLeft, AUTH_JS_VERSION } from './js/auth.js?v=2.14.0';
+import { installNav, guardPage, homeFor as navHome } from './js/nav.js?v=2.14.0';
 
 window.DocScan = {
   apiFetch, authFetch, authGet, authGetText, uploadBatch, newClientId,
   parseCSV, buildIndex, searchCSV, classify,
   parseDateInput, toDisplayDate, toInputDate, todayISO,
-  requireAuth, logout, loadSession, daysLeft, AUTH_JS_VERSION
+  requireAuth, logout, loadSession, daysLeft, AUTH_JS_VERSION,
+  installNav, guardPage, navHome
 };
 // ประทับเลขเวอร์ชันไว้ให้หาเวลาผู้ใช้แจ้งปัญหา
 document.documentElement.setAttribute('data-docscan-version',
@@ -365,11 +367,8 @@ var DocScanAuth = {
     var s = DocScan.requireAuth();
     if (!s) return null;
     if (s.mustChangePassword) { location.href = 'change-password.html'; return null; }
-    if (["warehouse", "admin"].indexOf(s.role) === -1) {
-      alert('บัญชีนี้ไม่มีสิทธิ์ใช้งานหน้านี้');
-      location.href = s.role === 'delivery' ? 'delivery.html' : 'batch.html';
-      return null;
-    }
+    if (!DocScan.guardPage(s)) return null;
+    DocScan.installNav(s, { onLogout: logout });
     return s;
   }
 };
@@ -835,7 +834,12 @@ async function confirmReceive() {
       if (dItems.length) await apiPost({action:'disputeItems',items:dItems});
     }
     showToast('✅ บันทึก '+ready.length+' รายการเรียบร้อย','success');
-    setTimeout(function(){ window.location.href='batch.html'; },1500);
+    // รับเอกสารแล้ว ขั้นถัดไปคือแพ็คเข้ากล่องจัดเก็บ
+    setTimeout(function(){
+      if (confirm('บันทึกเรียบร้อย '+ready.length+' รายการ\n\nไปหน้าจัดเก็บเข้ากล่องต่อเลยไหม'))
+        window.location.href='archive.html';
+      else window.location.href='batch.html';
+    },1200);
   } catch(err) {
     showToast('เกิดข้อผิดพลาด: '+err.message,'error');
     btn.disabled=false; btn.textContent='✅ ยืนยันรับ';

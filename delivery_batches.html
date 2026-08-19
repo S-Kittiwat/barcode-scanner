@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>DocScan — ประวัติการรับส่งเอกสาร</title>
-<script src="config.js?v=2.0.1"></script>
+<script src="config.js?v=2.14.0"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.6/JsBarcode.all.min.js"></script>
 <style>
 /* ── Print Handover Sheet ── */
@@ -178,16 +178,18 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 // ── โมดูลร่วม DocScan ────────────────────────────────────
 // module script ทำงานหลัง classic script แต่ก่อน window.onload
 // โค้ดเดิมเรียก requireAuth ใน window.onload จึงปลอดภัย
-import { apiFetch, uploadBatch, newClientId } from './js/api.js?v=2.0.1';
-import { parseCSV, buildIndex, searchCSV, classify } from './js/csv.js?v=2.0.1';
-import { parseDateInput, toDisplayDate, toInputDate, todayISO } from './js/date.js?v=2.0.1';
-import { requireAuth, authFetch, authGet, authGetText, logout, loadSession, daysLeft, AUTH_JS_VERSION } from './js/auth.js?v=2.0.1';
+import { apiFetch, uploadBatch, newClientId } from './js/api.js?v=2.14.0';
+import { parseCSV, buildIndex, searchCSV, classify } from './js/csv.js?v=2.14.0';
+import { parseDateInput, toDisplayDate, toInputDate, todayISO } from './js/date.js?v=2.14.0';
+import { requireAuth, authFetch, authGet, authGetText, logout, loadSession, daysLeft, AUTH_JS_VERSION } from './js/auth.js?v=2.14.0';
+import { installNav, guardPage, homeFor as navHome } from './js/nav.js?v=2.14.0';
 
 window.DocScan = {
   apiFetch, authFetch, authGet, authGetText, uploadBatch, newClientId,
   parseCSV, buildIndex, searchCSV, classify,
   parseDateInput, toDisplayDate, toInputDate, todayISO,
-  requireAuth, logout, loadSession, daysLeft, AUTH_JS_VERSION
+  requireAuth, logout, loadSession, daysLeft, AUTH_JS_VERSION,
+  installNav, guardPage, navHome
 };
 // ประทับเลขเวอร์ชันไว้ให้หาเวลาผู้ใช้แจ้งปัญหา
 document.documentElement.setAttribute('data-docscan-version',
@@ -420,11 +422,8 @@ var DocScanAuth = {
     var s = DocScan.requireAuth();
     if (!s) return null;
     if (s.mustChangePassword) { location.href = 'change-password.html'; return null; }
-    if (["delivery", "admin"].indexOf(s.role) === -1) {
-      alert('บัญชีนี้ไม่มีสิทธิ์ใช้งานหน้านี้');
-      location.href = s.role === 'delivery' ? 'delivery.html' : 'batch.html';
-      return null;
-    }
+    if (!DocScan.guardPage(s)) return null;
+    DocScan.installNav(s, { onLogout: logout });
     return s;
   }
 };

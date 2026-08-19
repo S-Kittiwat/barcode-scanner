@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DocScan — ผู้ดูแลระบบ</title>
-<script src="config.js?v=2.1.0"></script>
-<link rel="stylesheet" href="css/auth.css?v=2.1.0">
+<script src="config.js?v=2.14.0"></script>
+<link rel="stylesheet" href="css/auth.css?v=2.14.0">
 <style>
   body{display:block;padding:0;align-items:stretch}
   .wrap{max-width:1000px;margin:0 auto;padding:22px 20px 60px}
@@ -99,8 +99,9 @@
 <div class="toast" id="toast"></div>
 
 <script type="module">
+import { installNav, guardPage } from './js/nav.js?v=2.14.0';
 import { requireAuth, authFetch, logout, derivePassword,
-         checkPasswordStrength } from './js/auth.js?v=2.1.0';
+         checkPasswordStrength } from './js/auth.js?v=2.14.0';
 
 const API = DOCSCAN_CONFIG.API_URL;
 const $ = id => document.getElementById(id);
@@ -108,10 +109,8 @@ let sites = [], data = { pending: [], history: [], users: [] };
 
 const session = requireAuth();
 if (session) {
-  if (session.role !== 'admin') {
-    alert('หน้านี้สำหรับผู้ดูแลระบบเท่านั้น');
-    location.replace(session.role === 'delivery' ? 'delivery.html' : 'batch.html');
-  } else {
+  installNav(session);
+  if (guardPage(session)) {
     $('who').innerHTML = session.empName + '<br>' + session.empId + ' · ' + session.role;
     loadAll();
   }
