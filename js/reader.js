@@ -60,7 +60,10 @@ export const DOC_TYPES = {
     barcode: { x: 0.02, y: 0.83, w: 0.14, h: 0.14 },
     barcodePattern: '^[0-9A-Z]{6}$',
     barcodeStrip: '',
-    ocr: { x: 0.68, y: 0.055, w: 0.25, h: 0.095 },
+    // กรอบต้องเผื่อความคลาดของการวางกระดาษบนเครื่องสแกน
+    // ไฟล์สองชุดที่ทดสอบ เลข T อยู่คนละตำแหน่ง y ต่างกันราว 6% ของหน้า
+    // กรอบแคบเกินไปจะตัดตัวเลขขาดครึ่ง กว้างเกินไปจะดูดตัวอักษรข้างเคียงเข้ามา
+    ocr: { x: 0.66, y: 0.045, w: 0.28, h: 0.165 },
     ocrWhitelist: 'T0123456789',
     ocrPattern: '[T1Il|]?\\s?(9\\d{6})',
     ocrTemplate: 'T$1'
@@ -241,49 +244,195 @@ export async function readBarcode(page, type) {
  * ทดสอบแล้วโหมดเดียวพลาดหน้าที่ตัวเลขมีรอยขาด แต่โหวตแล้วได้ครบ
  * และเมื่อโหมดไม่ตรงกัน นั่นคือสัญญาณว่าหน้านั้นควรให้คนดู
  */
-export async function readOcr(page, type, onProgress) {
+/**
+ * ตัวเลขที่ OCR มักสับสนกันเอง
+ * 8 กับ 9 เป็นคู่ที่พลาดบ่อยที่สุดในฟอนต์ของเอกสารพวกนี้
+ * เพราะต่างกันแค่ห่วงล่างซ้ายปิดหรือเปิด ซึ่งหายไปง่ายเมื่อพิมพ์จางหรือสแกนไม่คม
+ */
+const CONFUSABLE = [
+  ['8', '9'], ['8', '0'], ['8', '6'], ['9', '4'],
+  ['5', '6'], ['3', '8'], ['1', '7'], ['0', 'D']
+];
+
+/** ค่าสองตัวนี้ต่างกันแค่หลักเดียว และหลักนั้นเป็นคู่ที่สับสนกันง่ายไหม */
+export function ambiguousPair(a, b) {
+  a = String(a); b = String(b);
+  if (a === b || a.length !== b.length) return null;
+  let at = -1;
+  for (let i = 0; i < a.length; i++) {
+    if (a[i] === b[i]) continue;
+    if (at >= 0) return null;      // ต่างกันเกินหนึ่งหลัก ไม่ใช่กรณีนี้
+    at = i;
+  }
+  if (at < 0) return null;
+  const pair = [a[at], b[at]];
+  const hit = CONFUSABLE.some(c =>
+    (c[0] === pair[0] && c[1] === pair[1]) || (c[0] === pair[1] && c[1] === pair[0]));
+  return hit ? { pos: at, chars: pair } : { pos: at, chars: pair, weak: true };
+}
+
+/* สร้างภาพหลายแบบจากหน้าเดียว แล้วให้ OCR อ่านทุกแบบ
+   ตัวเลขที่กำกวมจะให้ผลต่างกันตามการปรับภาพ ทำให้จับได้ว่ากำลังสับสน
+   ถ้าอ่านแบบเดียวจะได้คำตอบเดียวและดูเหมือนมั่นใจ ทั้งที่อาจผิด */
+function imageVariants(cv, level) {
+  const out = [{ name: 'raw', canvas: cv }];
+  if (level === 'fast') return out;
+  // ทดสอบแล้ว raw + otsu พอ ส่วน close/open ไม่ได้เพิ่มความถูกต้อง
+  // และเมื่อโหวตข้ามหลายความละเอียดอยู่แล้ว การเพิ่มตัวแปรมีแต่ทำให้ช้าลง
+
+  const ctx = cv.getContext('2d', { willReadFrequently: true });
+  const src = ctx.getImageData(0, 0, cv.width, cv.height);
+  const n = cv.width * cv.height;
+  const gray = new Uint8Array(n);
+  for (let i = 0; i < n; i++) {
+    gray[i] = (src.data[i * 4] * 0.299 + src.data[i * 4 + 1] * 0.587 +
+               src.data[i * 4 + 2] * 0.114) | 0;
+  }
+
+  // Otsu
+  const hist = new Uint32Array(256);
+  for (let i = 0; i < n; i++) hist[gray[i]]++;
+  let sum = 0; for (let t = 0; t < 256; t++) sum += t * hist[t];
+  let sumB = 0, wB = 0, best = 0, thr = 128;
+  for (let t = 0; t < 256; t++) {
+    wB += hist[t]; if (!wB) continue;
+    const wF = n - wB; if (!wF) break;
+    sumB += t * hist[t];
+    const between = wB * wF * Math.pow(sumB / wB - (sum - sumB) / wF, 2);
+    if (between > best) { best = between; thr = t; }
+  }
+  const bin = new Uint8Array(n);
+  for (let i = 0; i < n; i++) bin[i] = gray[i] > thr ? 0 : 1;   // 1 = หมึก
+
+  out.push({ name: 'otsu', canvas: fromMask(cv, bin) });
+  return out;
+}
+
+function fromMask(ref, mask) {
+  const cv = document.createElement('canvas');
+  cv.width = ref.width; cv.height = ref.height;
+  const ctx = cv.getContext('2d', { willReadFrequently: true });
+  const img = ctx.createImageData(cv.width, cv.height);
+  for (let i = 0; i < mask.length; i++) {
+    const v = mask[i] ? 0 : 255;
+    img.data[i * 4] = img.data[i * 4 + 1] = img.data[i * 4 + 2] = v;
+    img.data[i * 4 + 3] = 255;
+  }
+  ctx.putImageData(img, 0, 0);
+  return cv;
+}
+
+/** ปิดช่องว่างเล็ก ๆ ในเส้น — ช่วยกรณีหาง 9 ขาดจนดูเหมือน 8 */
+function morph(mask, w, h) {
+  const grow = (inp, expand) => {
+    const o = new Uint8Array(w * h);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      let v = expand ? 0 : 1;
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+        const yy = y + dy, xx = x + dx;
+        if (yy < 0 || yy >= h || xx < 0 || xx >= w) { if (!expand) v = 0; continue; }
+        const sv = inp[yy * w + xx];
+        if (expand) { if (sv) v = 1; } else { if (!sv) v = 0; }
+      }
+      o[y * w + x] = v;
+    }
+    return o;
+  };
+  return grow(grow(mask, true), false);
+}
+
+/**
+ * อ่านด้วย OCR โดยโหวตข้ามทั้งการปรับภาพและโหมดแบ่งหน้า
+ *
+ * level 'fast'     ภาพดิบ × 3 โหมด  = 3 ครั้ง
+ * level 'accurate' 3 แบบภาพ × 3 โหมด = 9 ครั้ง (ค่าเริ่มต้น)
+ *
+ * เหตุผลที่ต้องโหวตหลายแบบ ไม่ใช่แค่หลายโหมด
+ * ตัวเลขที่กำกวมอย่าง 8 กับ 9 จะให้ผลต่างกันเมื่อปรับภาพต่างกัน
+ * ถ้าอ่านแบบเดียวจะได้คำตอบเดียวที่ดูมั่นใจ ทั้งที่อาจผิด
+ */
+/**
+ * ความละเอียดที่ใช้โหวต — สำคัญกว่าที่คิด
+ *
+ * ทดสอบกับหน้าที่เลข 9 หางขาดจนอ่านเป็น 8
+ *   400dpi อย่างเดียว  ได้ 8 (คะแนนเสมอ 3:3 แล้วเลือกผิด)
+ *   300dpi             ได้ 9 ถูกทุกโหมด
+ *   500dpi             ได้ 9 ถูกทุกโหมด
+ *   โหวต 300+400+500   ได้ 9 ชนะขาด 14:4
+ *
+ * ความละเอียดต่างกันทำให้ขอบตัวอักษรตกลงบนพิกเซลต่างกัน
+ * รอยขาดเล็ก ๆ จึงหายไปที่บางความละเอียดและไม่หายที่บางความละเอียด
+ * การตรึงไว้ค่าเดียวคือการเดิมพันว่าค่านั้นจะเหมาะกับทุกเอกสาร ซึ่งไม่จริง
+ */
+const OCR_DPIS = { fast: [400], accurate: [300, 400, 500] };
+
+export async function readOcr(page, type, onProgress, level) {
   if (!type.ocr) return null;
   const worker = await ocrWorker(onProgress);
 
-  const full = await renderPage(page, 400, type.rotate);
-  const region = crop(full, type.ocr);
-  full.width = full.height = 0;
-
-  const cropUrl = region.toDataURL('image/png');
+  const mode = level === 'fast' ? 'fast' : 'accurate';
+  const dpis = OCR_DPIS[mode];
   const pattern = safeRegex(type.ocrPattern);
   const votes = [];
-  let firstRaw = '', firstConf = 0;
+  let firstRaw = '', firstConf = 0, cropUrl = '';
 
-  for (const psm of ['7', '6', '13']) {
-    await worker.setParameters({
-      tessedit_char_whitelist: type.ocrWhitelist || '',
-      tessedit_pageseg_mode: psm
-    });
-    const { data } = await worker.recognize(region);
-    const text = (data.text || '').replace(/\s+/g, '');
-    const conf = wordConfidence(data);
-    if (!firstRaw) { firstRaw = text; firstConf = conf; }
+  for (const dpi of dpis) {
+    const full = await renderPage(page, dpi, type.rotate);
+    const region = crop(full, type.ocr);
+    full.width = full.height = 0;
+    if (!cropUrl) cropUrl = region.toDataURL('image/png');
 
-    const value = pattern ? applyTemplate(text.match(pattern), type.ocrTemplate) : text;
-    if (value) votes.push({ psm, value, raw: text, conf });
+    const variants = imageVariants(region, mode === 'fast' ? 'fast' : 'full');
+
+    for (const v of variants) {
+      for (const psm of ['7', '6', '13']) {
+        await worker.setParameters({
+          tessedit_char_whitelist: type.ocrWhitelist || '',
+          tessedit_pageseg_mode: psm
+        });
+        const { data } = await worker.recognize(v.canvas);
+        const text = (data.text || '').replace(/\s+/g, '');
+        const conf = wordConfidence(data);
+        if (!firstRaw) { firstRaw = text; firstConf = conf; }
+        const value = pattern ? applyTemplate(text.match(pattern), type.ocrTemplate) : text;
+        if (value) votes.push({ tag: dpi + '/' + v.name + ':' + psm, value, raw: text, conf });
+      }
+    }
+    variants.forEach(v => { if (v.canvas !== region) { v.canvas.width = v.canvas.height = 0; } });
+    region.width = region.height = 0;
   }
-  region.width = region.height = 0;
 
   if (!votes.length) {
-    return { value: '', raw: firstRaw, conf: firstConf, votes: [],
-             disagree: false, crop: cropUrl };
+    return { value: '', raw: firstRaw, conf: firstConf, votes: [], candidates: [],
+             disagree: false, ambiguous: null, crop: cropUrl };
   }
 
   const tally = new Map();
   votes.forEach(v => tally.set(v.value, (tally.get(v.value) || 0) + 1));
-  let best = votes[0].value, bestN = tally.get(best);
-  votes.forEach(v => { const n = tally.get(v.value); if (n > bestN) { best = v.value; bestN = n; } });
+  const ranked = [...tally.entries()].sort((a, b) => b[1] - a[1]);
+  const best = ranked[0][0];
   const winner = votes.find(v => v.value === best);
+
+  // ผู้ชนะกับอันดับสองต่างกันแค่หลักเดียวที่สับสนง่ายหรือเปล่า
+  let ambiguous = null;
+  if (ranked.length > 1) {
+    const amb = ambiguousPair(ranked[0][0], ranked[1][0]);
+    // คะแนนสูสี = ระบบยังไม่ได้ตัดสินจริง แค่ชนะไปนิดเดียว
+    // เคสจริง 400dpi อย่างเดียวได้ 3:3 แล้วเลือกผิด จึงต้องถือว่ากำกวมด้วย
+    const close = ranked[1][1] >= ranked[0][1] * 0.6;
+    if (amb && (!amb.weak || close)) {
+      ambiguous = { a: ranked[0][0], b: ranked[1][0], pos: amb.pos, chars: amb.chars,
+                    votes: [ranked[0][1], ranked[1][1]], close: close };
+    }
+  }
 
   return {
     value: best, raw: winner.raw, conf: winner.conf,
-    votes: votes.map(v => v.psm + ':' + v.value),
-    disagree: tally.size > 1, crop: cropUrl
+    votes: votes.map(v => v.tag + '=' + v.value),
+    candidates: ranked.map(r => ({ value: r[0], n: r[1] })),
+    disagree: tally.size > 1,
+    ambiguous: ambiguous,
+    crop: cropUrl
   };
 }
 
@@ -347,7 +496,7 @@ export async function readAllPages(pdfJs, type, opts = {}) {
     // (เช่น LOSCAM ที่บาร์โค้ดเป็น B05EEA แต่ต้องการ T9648565)
     if (!res.refNo && type.ocr) {
       try {
-        res.ocr = await readOcr(page, type, opts.onProgress);
+        res.ocr = await readOcr(page, type, opts.onProgress, opts.ocrLevel);
         if (res.ocr && res.ocr.value) {
           // OCR อ่านช่อง Reference ตรง ๆ จึงได้เลขที่ใช้ตั้งชื่อไฟล์ทันที
           // เส้นทางนี้ไม่ต้องพึ่งรายการอ้างอิงเลย
@@ -443,6 +592,17 @@ export function classifyDoc(doc, csvIndex, helpers) {
   }
 
   const ocr = doc.pages[0] && doc.pages[0].ocr;
+
+  // ตัวเลขที่สับสนกันง่ายอย่าง 8 กับ 9 ต้องให้คนดูเสมอ
+  // แม้ค่าที่ชนะโหวตจะพบในรายการอ้างอิง เพราะอีกค่าหนึ่งก็อาจมีอยู่จริงเช่นกัน
+  if (ocr && ocr.ambiguous) {
+    return { tier: 'red', reason: 'ambiguous_digit',
+             head: 'ตัวเลขหลักที่ ' + (ocr.ambiguous.pos + 1) + ' อ่านได้ทั้ง ' +
+                   ocr.ambiguous.chars.join(' และ ') + ' — ' +
+                   ocr.ambiguous.a + ' หรือ ' + ocr.ambiguous.b,
+             candidates: [ocr.ambiguous.a, ocr.ambiguous.b] };
+  }
+
   if (ocr && ocr.disagree) {
     return { tier: 'red', reason: 'votes_disagree',
              head: 'โหมด OCR อ่านไม่ตรงกัน — ' + (ocr.votes || []).join('  ') };
