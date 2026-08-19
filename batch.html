@@ -349,7 +349,21 @@ window.DocScan = {
   parseDateInput, toDisplayDate, toInputDate, todayISO,
   compressPage, compressImageFile, toDataUrl, storagePeriod,
   compressionSummary, PDF_SETTINGS, Reader,
-  csvHelpers: { searchCSV: csvSearch, hasCollisionRisk, findNearMiss },
+  csvHelpers: {
+    // index ที่ส่งเข้ามามีเฉพาะแถวที่ถามไป จึงหาเพื่อนบ้านเองไม่ได้
+    // ต้องใช้ผลที่เซิร์ฟเวอร์สแกนทั้ง 51,254 แถวแล้วส่งกลับมา
+    searchCSV: (m, v) => (m && m.get) ? (m.get(String(v).trim().toUpperCase()) || null) : null,
+    hasCollisionRisk: (m, v) => {
+      const n = window._refNeighbors || {};
+      const list = n[String(v).trim().toUpperCase()];
+      return !!(list && list.length);
+    },
+    findNearMiss: (m, v) => {
+      const n = window._refNeighbors || {};
+      const list = n[String(v).trim().toUpperCase()];
+      return (list && list.length) ? { barcode: list[0] } : null;
+    }
+  },
   requireAuth, logout, loadSession, daysLeft, AUTH_JS_VERSION,
   installNav, guardPage, navHome
 };
@@ -500,34 +514,7 @@ window.dispatchEvent(new Event('docscan-ready'));
   </div>
 </dialog>
 
-<!-- Dispute Modal -->
-<div class="dispute-overlay" id="disputeOverlay">
-  <div class="dispute-box">
-    <div class="dispute-head">
-      <div class="dispute-title">⚠️ แจ้งปัญหาเอกสาร</div>
-      <button class="dispute-close" onclick="closeDisputeModal()">×</button>
-    </div>
-    <div class="dispute-body">
-      <div>
-        <div class="d-label">ประเภทปัญหา</div>
-        <div class="d-radio-group">
-          <label class="d-radio"><input type="radio" name="disputeType" value="missing" checked> เอกสารขาด (มี barcode ใน batch แต่ไม่มีในมือ)</label>
-          <label class="d-radio"><input type="radio" name="disputeType" value="extra"> เอกสารเกิน (มี barcode ที่ไม่อยู่ใน batch)</label>
-          <label class="d-radio"><input type="radio" name="disputeType" value="damaged"> เอกสารชำรุด/อ่านไม่ได้</label>
-        </div>
-      </div>
-      <div>
-        <div class="d-label">หมายเหตุ</div>
-        <textarea class="d-textarea" id="disputeNote" placeholder="ระบุรายละเอียด เช่น barcode ที่หาย หรืออาการชำรุด..."></textarea>
-      </div>
-      <div id="disputeDetail" style="font-size:12px;color:var(--muted);background:var(--surface2);border-radius:var(--rs);padding:10px 12px;"></div>
-    </div>
-    <div class="dispute-foot">
-      <button class="d-cancel" onclick="closeDisputeModal()">ยกเลิก</button>
-      <button class="d-confirm" onclick="confirmDispute()">📩 ส่งแจ้งปัญหา + รับส่วนที่ครบ</button>
-    </div>
-  </div>
-</div>
+<!-- กล่องแจ้งปัญหาย้ายไปหน้ารับเอกสาร (receive.html) แล้ว -->
 
 <div class="submit-bar">
   <button class="clear-all-btn" onclick="clearAll()">ล้างทั้งหมด</button>
@@ -589,7 +576,7 @@ function handleAuthError(err) {
 var API_URL = DOCSCAN_CONFIG.API_URL;
 var CSV_URL = API_URL + '?action=getCSV';
 var selectedSite = ''; var selectedEmpId = ''; var selectedEmpName = ''; var selectedEmpEmail = '';
-var csvData = []; var csvLoaded = false; var _csvIndex = null;
+var csvLoaded = false;
 var rows = [];
 
 // ── Init ──────────────────────────────────────────────────
@@ -613,62 +600,94 @@ window.onload = function () {
 var CSV_CACHE_KEY = 'docScanCSV';
 var CSV_CACHE_TTL = 30 * 60 * 1000; // 30 นาที
 
+/**
+ * ไฟล์อ้างอิงจริงมี 51,254 แถว ขนาด 9.5 MB
+ * จึงไม่โหลดมาทั้งไฟล์อีกต่อไป — ถามเฉพาะแถวที่ต้องใช้ตอนอ่านเอกสารเสร็จ
+ * ตรงนี้แค่เช็คว่าไฟล์อ้างอิงพร้อมใช้และมีกี่แถว
+ */
 function loadCSV() {
-  // เช็ค cache ก่อน
-  try {
-    var cached = localStorage.getItem(CSV_CACHE_KEY);
-    if (cached) {
-      var obj = JSON.parse(cached);
-      if (Date.now() - obj.ts < CSV_CACHE_TTL) {
-        csvData = obj.data;
-        csvLoaded = true;
-        _csvIndex = null;
-        setCsvStatus('ready', csvData.length, obj.ts);
-        return;
-      }
-    }
-  } catch(e) {}
-
-  // fetch ใหม่
   setCsvStatus('loading');
-  apiGetText('getCSV').then(function(text) {
-    csvData   = parseCSV(text);
+  apiPost({ action: 'refsStatus' }).then(function (r) {
     csvLoaded = true;
-    _csvIndex = null;
-    try {
-      localStorage.setItem(CSV_CACHE_KEY, JSON.stringify({ ts: Date.now(), data: csvData }));
-    } catch(e) {}
-    setCsvStatus('ready', csvData.length, Date.now());
-  }).catch(function(err) {
+    _refsMeta = r;
+    setCsvStatus('ready', r.rows, new Date(r.updated_at).getTime());
+  }).catch(function (err) {
     setCsvStatus('error', 0, 0, err && err.message);
-    showToast('โหลดรายการอ้างอิงไม่สำเร็จ','error');
+    showToast('ตรวจรายการอ้างอิงไม่สำเร็จ', 'error');
   });
 }
 
+var _refsMeta = null;
+
+/**
+ * ถามข้อมูลอ้างอิงเฉพาะเลขที่อ่านได้จริง ครั้งละไม่เกิน 200
+ * คืน index แบบเดียวกับที่ classifyDoc ใช้ เพื่อไม่ต้องแก้ตรรกะส่วนอื่น
+ */
+async function fetchRefs(keys) {
+  var uniq = [];
+  var seen = {};
+  keys.forEach(function (k) {
+    var v = String(k || '').trim().toUpperCase();
+    if (v && !seen[v]) { seen[v] = true; uniq.push(v); }
+  });
+  if (!uniq.length) return { index: new Map(), neighbors: {} };
+
+  var idx = new Map(), neighbors = {};
+  for (var i = 0; i < uniq.length; i += 200) {
+    var res = await apiPost({ action: 'refsLookup', keys: uniq.slice(i, i + 200) });
+    (res.rows || []).forEach(function (row) {
+      var bc  = String(row.barcode || '').trim().toUpperCase();
+      var ref = String(row.ref_no || '').trim().toUpperCase();
+      if (bc)  idx.set(bc, row);
+      if (ref) idx.set(ref, row);
+    });
+    Object.keys(res.neighbors || {}).forEach(function (k) {
+      neighbors[k] = res.neighbors[k];
+    });
+  }
+  return { index: idx, neighbors: neighbors };
+}
+
 function clearCSVCache() {
-  localStorage.removeItem(CSV_CACHE_KEY);
-  csvData = []; csvLoaded = false;
+  // ไม่มีแคชในเครื่องแล้ว ข้อมูลอ้างอิงถามจากเซิร์ฟเวอร์ทุกครั้งที่อ่านเอกสาร
+  try { localStorage.removeItem(CSV_CACHE_KEY); } catch (e) {}
   loadCSV();
-  showToast('รีโหลด CSV แล้ว','info');
+  showToast('ตรวจรายการอ้างอิงใหม่แล้ว', 'success');
 }
 
-function parseCSV(text) {
-  // ตัวอ่านเดิม split(',') ตรง ๆ ทำให้แถวที่มี comma ในชื่อลูกค้าเลื่อนคอลัมน์
-  var rows = DocScan.parseCSV(text);
-  _csvIndex = DocScan.buildIndex(rows);
-  return rows;
-}
 
+// parseCSV ไม่ถูกใช้แล้ว — ไม่ได้โหลดไฟล์อ้างอิงทั้งไฟล์อีกต่อไป
+// ข้อมูลอ้างอิงถามจากเซิร์ฟเวอร์เฉพาะเลขที่ต้องใช้ผ่าน fetchRefs()
+
+/**
+ * ค้นจากผลที่ดึงมาแล้วในรอบนี้
+ * ถ้าไม่มี ให้คืน null แล้วปล่อยให้ onBarcodeChangeAsync ไปถามเซิร์ฟเวอร์
+ */
 function searchCSV(barcode) {
-  if (!_csvIndex) _csvIndex = DocScan.buildIndex(csvData);
-  return DocScan.searchCSV(_csvIndex, barcode);
+  var k = String(barcode || '').trim().toUpperCase();
+  return (_lastRefIndex && _lastRefIndex.get) ? (_lastRefIndex.get(k) || null) : null;
+}
+var _lastRefIndex = new Map();
+
+/** ผู้ใช้พิมพ์หรือแก้เลขเอง ต้องถามข้อมูลอ้างอิงของเลขนั้นเพิ่ม */
+async function lookupOne(id, value) {
+  var k = String(value || '').trim().toUpperCase();
+  if (!k || _lastRefIndex.has(k)) { onBarcodeChange(id, value); return; }
+  try {
+    var r = await fetchRefs([k]);
+    r.index.forEach(function (v, key) { _lastRefIndex.set(key, v); });
+    Object.keys(r.neighbors || {}).forEach(function (kk) {
+      _refNeighbors[kk] = r.neighbors[kk];
+    });
+    window._refNeighbors = _refNeighbors;
+  } catch (e) { /* ถามไม่ได้ก็ให้กรอกต่อไปได้ */ }
+  onBarcodeChange(id, value);
 }
 
-/** หารายการที่ใกล้เคียง เผื่อกรอกผิดหนึ่งตัว */
+/** เลขที่ใกล้เคียง มาจากเซิร์ฟเวอร์ที่สแกนทั้งไฟล์ให้แล้ว */
 function suggestCSV(barcode) {
-  if (!_csvIndex) _csvIndex = DocScan.buildIndex(csvData);
-  var n = DocScan.classify({ value: barcode, source: 'manual' }, _csvIndex);
-  return n && n.suggestion ? n.suggestion : null;
+  var list = _refNeighbors[String(barcode || '').trim().toUpperCase()];
+  return (list && list.length) ? list[0] : null;
 }
 
 // ── Site ──────────────────────────────────────────────────
@@ -1052,7 +1071,7 @@ function renderTable() {
         '<input class="' + bcClass + '" value="' + esc(row.barcode) + '" ' +
           'placeholder="สแกนบาร์โค้ด หรือพิมพ์เลข Reference" ' +
           'oninput="handleBarcodeInput(\'' + rid + '\',this)" ' +
-          'onkeydown="if(event.key===\'Enter\'){event.preventDefault();onBarcodeChange(\'' + rid + '\',this.value);}">' +
+          'onkeydown="if(event.key===\'Enter\'){event.preventDefault();lookupOne(\'' + rid + '\',this.value);}">' +
         (mismatch ? '<div class="why" style="color:var(--warn)">แก้จากที่ระบบอ่านได้</div>' : '') +
         '<div style="margin-top:4px">' + statusHtml + '</div>' +
         // เลขที่จะใช้ตั้งชื่อไฟล์จริง ต้องเห็นชัดเพราะเป็นผลลัพธ์หลักของหน้านี้
@@ -1555,6 +1574,8 @@ function showToast(msg,type){var t=document.getElementById('toast');t.textConten
    บาร์โค้ดก่อน ถ้าไม่ได้ค่อย OCR แล้วเทียบกับรายการอ้างอิง
    ============================================================ */
 var _types = null, _readAbort = null, _lastPdfJs = null, _lastFileName = '';
+var _refNeighbors = {};
+window._refNeighbors = _refNeighbors;
 
 function initReader() {
   _types = DocScan.Reader.loadTypes();
@@ -1662,7 +1683,7 @@ async function runAutoRead() {
       }
     });
 
-    applyReadResults(results, key);
+    await applyReadResults(results, key);
     rprog(1, 'อ่านเสร็จแล้ว');
   } catch (err) {
     console.error(err);
@@ -1677,10 +1698,22 @@ async function runAutoRead() {
  * หน้าที่ได้เลขเดียวกันคือเอกสารใบเดียวกัน (เช่น CMD ที่มีสำเนาหลายชุด)
  * แถวที่เป็นสำเนาซ้ำจะถูกลบออก เหลือใบเดียวที่ครอบทุกหน้า
  */
-function applyReadResults(results, typeKey) {
+async function applyReadResults(results, typeKey) {
   var docs = DocScan.Reader.groupPages(results);
   var pct = Number(document.getElementById('samplePct').value) || 0;
-  var idx = _csvIndex || (_csvIndex = DocScan.buildIndex(csvData));
+
+  // ถามข้อมูลอ้างอิงเฉพาะเลขที่อ่านได้จริง แทนการโหลดทั้งไฟล์ 9.5 MB
+  rprog(0.97, 'กำลังตรวจกับรายการอ้างอิง');
+  var refs = { index: new Map(), neighbors: {} };
+  try {
+    refs = await fetchRefs(docs.map(function (d) { return d.value; }).filter(Boolean));
+  } catch (err) {
+    showToast('ตรวจกับรายการอ้างอิงไม่สำเร็จ: ' + (err.message || err), 'error');
+  }
+  refs.index.forEach(function (v, k) { _lastRefIndex.set(k, v); });
+  var idx = refs.index;
+  _refNeighbors = refs.neighbors || {};
+  window._refNeighbors = _refNeighbors;
   var count = { green: 0, yellow: 0, red: 0, sampled: 0 };
   var keepIds = {};
 
