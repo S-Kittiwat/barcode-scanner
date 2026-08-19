@@ -29,6 +29,8 @@ export const DOC_TYPES = {
   cmd: {
     name: 'BRS — เอกสารการโอน (CMD)',
     rotate: 0,
+    // ตัด PMNO ออกแล้วได้เลข Reference เลย ไม่ต้องเทียบรายการอ้างอิง
+    barcodeIsRef: true,
     barcode: { x: 0.58, y: 0.060, w: 0.37, h: 0.090 },
     barcodePattern: '^PMNO\\d{9}$',
     barcodeStrip: '^PMNO',
@@ -40,6 +42,8 @@ export const DOC_TYPES = {
   pcd: {
     name: 'BRS — Pallet Control Docket (ECD)',
     rotate: 270,
+    // บาร์โค้ดเป็นรหัสภายใน (เช่น B7040F) ต้องเทียบรายการอ้างอิงจึงได้ Reference
+    barcodeIsRef: false,
     barcode: { x: 0.11, y: 0.685, w: 0.22, h: 0.100 },
     barcodePattern: '^[0-9A-Z]{6}$',
     barcodeStrip: '',
@@ -51,6 +55,8 @@ export const DOC_TYPES = {
   loscam: {
     name: 'LOSCAM — Equipment Control Docket',
     rotate: 270,
+    // บาร์โค้ดเป็นรหัสภายใน (เช่น B05EEA) ไม่ใช่เลข T ที่ใช้ตั้งชื่อไฟล์
+    barcodeIsRef: false,
     barcode: { x: 0.02, y: 0.83, w: 0.14, h: 0.14 },
     barcodePattern: '^[0-9A-Z]{6}$',
     barcodeStrip: '',
@@ -328,16 +334,28 @@ export async function readAllPages(pdfJs, type, opts = {}) {
     if (!opts.skipBarcode) {
       res.barcode = await readBarcode(page, type);
       if (res.barcode.matched && res.barcode.value) {
+        res.barcodeValue = res.barcode.value;
         res.value = res.barcode.value;
         res.source = 'barcode';
+        if (type.barcodeIsRef) res.refNo = res.barcode.value;
+        else res.needsLookup = true;   // ต้องเทียบรายการอ้างอิงจึงได้ Reference
       }
     }
 
-    // ตกมา OCR เมื่อบาร์โค้ดอ่านไม่ได้หรืออ่านได้แต่ไม่ตรงรูปแบบ
-    if (!res.value && type.ocr) {
+    // ตกมา OCR เมื่อยังไม่ได้เลข Reference
+    // รวมกรณีที่อ่านบาร์โค้ดได้แต่บาร์โค้ดนั้นไม่ใช่ Reference
+    // (เช่น LOSCAM ที่บาร์โค้ดเป็น B05EEA แต่ต้องการ T9648565)
+    if (!res.refNo && type.ocr) {
       try {
         res.ocr = await readOcr(page, type, opts.onProgress);
-        if (res.ocr && res.ocr.value) { res.value = res.ocr.value; res.source = 'ocr'; }
+        if (res.ocr && res.ocr.value) {
+          // OCR อ่านช่อง Reference ตรง ๆ จึงได้เลขที่ใช้ตั้งชื่อไฟล์ทันที
+          // เส้นทางนี้ไม่ต้องพึ่งรายการอ้างอิงเลย
+          res.value = res.ocr.value;
+          res.refNo = res.ocr.value;
+          res.source = 'ocr';
+          res.needsLookup = false;
+        }
       } catch (err) {
         res.ocrError = err.message;
       }
@@ -369,11 +387,13 @@ export function groupPages(results) {
         byValue.get(r.value).pages.push(r);
         return;
       }
-      const d = { value: r.value, source: r.source, pages: [r] };
+      const d = { value: r.value, refNo: r.refNo || '', barcodeValue: r.barcodeValue || '',
+                  needsLookup: !!r.needsLookup, source: r.source, pages: [r] };
       byValue.set(r.value, d);
       docs.push(d);
     } else {
-      docs.push({ value: '', source: 'manual', pages: [r] });
+      docs.push({ value: '', refNo: '', barcodeValue: r.barcodeValue || '',
+                  needsLookup: !!r.needsLookup, source: 'manual', pages: [r] });
     }
   });
 
@@ -392,6 +412,24 @@ export function groupPages(results) {
 export function classifyDoc(doc, csvIndex, helpers) {
   if (!doc.value) {
     return { tier: 'red', reason: 'no_value', head: 'ระบบอ่านไม่ได้ ต้องกรอกเอง' };
+  }
+
+  // ไม่มีรายการอ้างอิง ยังทำงานต่อได้ แต่ยืนยันความถูกต้องไม่ได้
+  const hasRef = csvIndex && typeof csvIndex.has === 'function' && csvIndex.size > 0;
+  if (!hasRef) {
+    if (doc.needsLookup) {
+      return { tier: 'red', reason: 'lookup_unavailable',
+               head: 'ได้บาร์โค้ด ' + doc.barcodeValue +
+                     ' แต่ไม่มีรายการอ้างอิงให้แปลงเป็นเลข Reference — กรอกเอง' };
+    }
+    return { tier: 'yellow', reason: 'no_reference_data',
+             head: 'ไม่มีรายการอ้างอิงให้ตรวจสอบ — โปรดเทียบกับเอกสารเอง' };
+  }
+
+  // อ่านบาร์โค้ดได้แต่ยังแปลงเป็น Reference ไม่ได้
+  if (doc.needsLookup && !doc.refNo) {
+    return { tier: 'red', reason: 'lookup_failed',
+             head: 'บาร์โค้ด ' + doc.barcodeValue + ' ไม่พบในรายการอ้างอิง' };
   }
 
   const found = helpers && helpers.searchCSV ? helpers.searchCSV(csvIndex, doc.value) : null;
