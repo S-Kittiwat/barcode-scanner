@@ -5,7 +5,8 @@
 //  ค่าทั้งหมดในไฟล์นี้มาจากการทดสอบกับเอกสารจริง ไม่ใช่การเดา
 //    บาร์โค้ดทุกชนิดในระบบเป็น Code 39
 //    dpi ขั้นต่ำที่อ่าน PMNO ได้เสถียรคือ 180-200 · 400/600 ไม่ช่วยอะไรเพิ่ม
-//    LOSCAM อ่านบาร์โค้ดไม่ได้เลยสักหน้า (แท่งคดจากกระดาษยับ) ต้องพึ่ง OCR
+//    LOSCAM ในไฟล์ตัวอย่างชุดหนึ่งอ่านบาร์โค้ดไม่ได้เลย (แท่งคดจากกระดาษยับ)
+//      แต่ขึ้นกับคุณภาพการสแกน จึงต้องลองบาร์โค้ดก่อนเสมอ แล้วค่อยตกไป OCR
 //    OCR ต้องโหวตหลาย PSM ไม่งั้นพลาดหน้าที่ตัวเลขมีรอยขาด
 //    การขยายภาพก่อน OCR ทำให้แย่ลง ไม่ใช่ดีขึ้น
 //
@@ -56,8 +57,10 @@ export const DOC_TYPES = {
     ocr: { x: 0.68, y: 0.055, w: 0.25, h: 0.095 },
     ocrWhitelist: 'T0123456789',
     ocrPattern: '[T1Il|]?\\s?(9\\d{6})',
-    ocrTemplate: 'T$1',
-    barcodeUnreliable: true   // ทดสอบแล้วอ่านไม่ได้เลย ข้ามไป OCR ทันที
+    ocrTemplate: 'T$1'
+    // ไม่ตั้ง barcodeUnreliable — คุณภาพการสแกนต่างกันได้
+    // ไฟล์ตัวอย่างชุดหนึ่งอ่านไม่ได้เลย แต่เครื่องสแกนอื่นหรือกระดาษที่ไม่ยับอาจอ่านได้
+    // ระบบจะลองบาร์โค้ดก่อนเสมอ แล้วค่อยตกไป OCR ถ้าไม่ได้
   }
 };
 
@@ -320,7 +323,9 @@ export async function readAllPages(pdfJs, type, opts = {}) {
     const page = await pdfJs.getPage(p);
     const res = { page: p, value: '', source: 'manual', barcode: null, ocr: null };
 
-    if (!type.barcodeUnreliable) {
+    // ลองบาร์โค้ดก่อนเสมอ ยกเว้นผู้ใช้สั่งข้ามเอง
+    // เอกสารชนิดเดียวกันอาจอ่านได้หรือไม่ได้ ขึ้นกับคุณภาพการสแกนแต่ละครั้ง
+    if (!opts.skipBarcode) {
       res.barcode = await readBarcode(page, type);
       if (res.barcode.matched && res.barcode.value) {
         res.value = res.barcode.value;
@@ -328,6 +333,7 @@ export async function readAllPages(pdfJs, type, opts = {}) {
       }
     }
 
+    // ตกมา OCR เมื่อบาร์โค้ดอ่านไม่ได้หรืออ่านได้แต่ไม่ตรงรูปแบบ
     if (!res.value && type.ocr) {
       try {
         res.ocr = await readOcr(page, type, opts.onProgress);
