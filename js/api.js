@@ -182,7 +182,21 @@ export async function apiGet(url, action, params = {}, opts = {}) {
       const text = await res.text();
 
       // บาง endpoint คืนข้อความดิบ ไม่ใช่ JSON — getCSV คืน CSV ตรง ๆ
-      if (o.parse === 'text') return text;
+      if (o.parse === 'text') {
+        // แต่ถ้าเซิร์ฟเวอร์ผิดพลาด มันจะคืน JSON แทน
+        // ถ้าไม่ตรวจตรงนี้ ตัวอ่าน CSV จะเอา JSON ไปแยกเป็นแถวแล้วได้ข้อมูลขยะ
+        // โดยไม่มีใครรู้ว่าผิด ซึ่งอันตรายกว่าขึ้น error ตรง ๆ
+        const head = text.slice(0, 200).trim();
+        if (head.charAt(0) === '{') {
+          try {
+            const j = JSON.parse(text);
+            if (j && j.status === 'error') {
+              throw new ApiError(j.message || 'เซิร์ฟเวอร์แจ้งข้อผิดพลาด', 'app', j);
+            }
+          } catch (e) { if (e instanceof ApiError) throw e; }
+        }
+        return text;
+      }
 
       let data;
       try { data = JSON.parse(text); }
