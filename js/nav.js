@@ -24,43 +24,58 @@ export const ROLE_LABEL = {
  */
 export const NAV = [
   {
-    group: 'งานประจำวัน',
+    group: 'งานเอกสาร',
     items: [
-      { id: 'batch',    file: 'batch.html',    icon: '📄',
-        title: 'สแกนเอกสาร', desc: 'แยกหน้า PDF และกรอกข้อมูล',
-        roles: ['delivery', 'warehouse', 'admin'] },
-      { id: 'receive',  file: 'receive.html',  icon: '📥',
-        title: 'รับเอกสาร', desc: 'คลังรับเอกสารตัวจริงจากทีมจัดส่ง',
-        roles: ['warehouse', 'admin'] },
-      { id: 'archive',  file: 'archive.html',  icon: '📦',
-        title: 'จัดเก็บเข้ากล่อง', desc: 'แพ็คเอกสารตัวจริงและระบุตำแหน่ง',
-        roles: ['warehouse', 'admin'] },
-      { id: 'delivery', file: 'delivery.html', icon: '🚚',
-        title: 'รายการรอส่ง', desc: 'เอกสารที่ยังไม่ได้ส่งเข้าคลัง',
-        roles: ['delivery', 'admin'] },
-      { id: 'batches',  file: 'delivery_batches.html', icon: '🗂',
-        title: 'จัดการรอบส่ง', desc: 'รวมเอกสารเป็นชุดและติดตามสถานะ',
-        roles: ['delivery', 'admin'] },
-      { id: 'incoming', file: 'incoming.html', icon: '📬',
-        title: 'ชุดที่กำลังมา', desc: 'ชุดเอกสารที่รอคลังรับ',
-        roles: ['warehouse', 'admin'] }
+      {
+        id: 'scan', file: 'batch.html', icon: '📄',
+        title: 'สแกนเอกสารเข้าระบบ',
+        desc: 'อัปโหลดไฟล์สแกน อ่านบาร์โค้ดและ OCR เพื่อตั้งชื่อและกรอกข้อมูล',
+        owner: 'ทีมจัดส่ง',
+        roles: ['delivery', 'warehouse', 'admin']
+      },
+      {
+        id: 'send', file: 'delivery_batches.html', icon: '🚚',
+        title: 'ส่งเอกสารตัวจริง',
+        desc: 'รวมเอกสารเป็นชุด บันทึกการส่ง และพิมพ์ใบปะหน้า',
+        owner: 'ทีมจัดส่ง',
+        roles: ['delivery', 'admin'],
+        steps: [
+          { file: 'delivery.html',         label: 'เลือกเอกสาร' },
+          { file: 'delivery_batches.html', label: 'จัดชุดและส่ง' }
+        ]
+      },
+      {
+        id: 'store', file: 'incoming.html', icon: '📦',
+        title: 'รับและจัดเก็บเอกสาร',
+        desc: 'รับชุดที่ส่งมา ตรวจครบถ้วน แล้วลงทะเบียนเข้ากล่องจัดเก็บ',
+        owner: 'ทีมคลังพาเลท',
+        roles: ['warehouse', 'admin'],
+        steps: [
+          { file: 'incoming.html', label: 'ชุดที่มาถึง' },
+          { file: 'receive.html',  label: 'ตรวจรับ' },
+          { file: 'archive.html',  label: 'เข้ากล่อง' }
+        ]
+      }
     ]
   },
   {
-    group: 'ติดตามและค้นหา',
+    group: 'ติดตามและรายงาน',
     items: [
       { id: 'tracking',  file: 'tracking.html',  icon: '🔎',
-        title: 'ติดตามเอกสาร', desc: 'สถานะ PDF และกระดาษ พร้อม SLA', roles: null },
+        title: 'ติดตามเอกสาร',
+        desc: 'ค้นหาและดูสถานะ PDF กับเอกสารตัวจริง พร้อม SLA', roles: null },
       { id: 'dashboard', file: 'dashboard.html', icon: '📊',
-        title: 'ภาพรวม', desc: 'สรุปตัวเลขและความคืบหน้า', roles: null }
+        title: 'Dashboard',
+        desc: 'สรุปภาพรวมและความคืบหน้า', roles: null }
     ]
   },
   {
     group: 'บัญชีและการตั้งค่า',
     items: [
-      { id: 'admin',  file: 'admin.html',  icon: '⚙️',
-        title: 'ผู้ดูแลระบบ', desc: 'อนุมัติผู้ใช้และจัดการสิทธิ์', roles: ['admin'] },
-      { id: 'pw',     file: 'change-password.html', icon: '🔑',
+      { id: 'admin', file: 'admin.html', icon: '⚙️',
+        title: 'ผู้ดูแลระบบ',
+        desc: 'อนุมัติผู้ใช้ จัดการสิทธิ์และรหัสผ่าน', roles: ['admin'] },
+      { id: 'pw', file: 'change-password.html', icon: '🔑',
         title: 'เปลี่ยนรหัสผ่าน', desc: '', roles: null }
     ]
   }
@@ -74,6 +89,24 @@ export const EXTRA_ROLES = {
 };
 
 const flat = () => NAV.reduce((a, g) => a.concat(g.items), []);
+
+/**
+ * ทุกไฟล์ที่อยู่ในผัง รวมหน้าย่อยของแต่ละขั้นตอน
+ * หน้าย่อยใช้สิทธิ์เดียวกับหน้าหลักของกลุ่มนั้น
+ */
+function fileRoles_(file) {
+  for (const it of flat()) {
+    if (it.file === file) return it.roles;
+    if (it.steps && it.steps.some(s => s.file === file)) return it.roles;
+  }
+  return undefined;
+}
+
+/** หา flow ที่ไฟล์นี้อยู่ ใช้วาดแถบขั้นตอน */
+export function flowOf(file) {
+  return flat().find(it => it.steps &&
+    (it.file === file || it.steps.some(s => s.file === file))) || null;
+}
 
 /**
  * ข้อความบอกว่าใครใช้หน้านี้ได้
@@ -95,20 +128,23 @@ export function currentPage() {
 
 /** role นี้เปิดหน้านี้ได้ไหม — undefined = ไม่รู้จักหน้านี้ ปล่อยผ่าน */
 export function canAccess(role, file) {
-  const item = flat().find(x => x.file === file);
-  const roles = item ? item.roles
-              : (Object.prototype.hasOwnProperty.call(EXTRA_ROLES, file)
-                  ? EXTRA_ROLES[file] : undefined);
+  let roles = fileRoles_(file);
+  if (roles === undefined) {
+    roles = Object.prototype.hasOwnProperty.call(EXTRA_ROLES, file)
+      ? EXTRA_ROLES[file] : undefined;
+  }
   if (roles === undefined) return true;
   if (roles === null) return true;
   return roles.indexOf(role) !== -1;
 }
 
-/** หน้าแรกที่เหมาะกับ role นี้ */
+/**
+ * หน้าแรกหลังล็อกอิน — ทุก role ไปหน้ารวมงานเหมือนกัน
+ * จะได้เห็นว่าระบบมีอะไรบ้างและตัวเองอยู่ตรงไหนของกระบวนการ
+ * แทนที่จะถูกโยนเข้าหน้าใดหน้าหนึ่งโดยไม่เห็นภาพรวม
+ */
 export function homeFor(role) {
-  if (role === 'delivery') return 'delivery.html';
-  if (role === 'admin') return 'home.html';
-  return 'batch.html';
+  return 'home.html';
 }
 
 /**
@@ -188,10 +224,58 @@ const CSS = `
   padding:9px 16px;cursor:pointer;font-family:inherit;font-size:13.5px}
 .dsnav-ver{margin-left:auto;font-size:11.5px;color:#64748b;font-family:'IBM Plex Mono',monospace}
 @media (max-width:520px){.dsnav-gd{grid-template-columns:1fr}}
+
+/* แถบขั้นตอน — ทำให้หลายหน้าในงานเดียวกันดูเป็นระบบเดียว
+   วางบนสุดแบบ sticky ไม่แตะ layout เดิมของแต่ละหน้า */
+.dsflow{position:sticky;top:0;z-index:800;background:#111a2b;
+  border-bottom:1px solid #334155;padding:9px 16px;
+  font-family:'IBM Plex Sans Thai',system-ui,sans-serif;
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.dsflow .ti{font-size:13px;font-weight:600;color:#f1f5f9;margin-right:4px}
+.dsflow .ow{font-size:11px;color:#64748b;font-family:'IBM Plex Mono',monospace}
+.dsflow .sp{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-left:auto}
+.dsflow a,.dsflow span.st{display:inline-flex;align-items:center;gap:7px;
+  padding:6px 13px;border-radius:20px;font-size:12.5px;text-decoration:none;
+  border:1px solid #334155;color:#94a3b8;background:#1e293b;white-space:nowrap}
+.dsflow a:hover{border-color:#38bdf8;color:#38bdf8}
+.dsflow .st.cur{background:#38bdf8;border-color:#38bdf8;color:#0f172a;font-weight:600}
+.dsflow .no{font-family:'IBM Plex Mono',monospace;font-size:11px;opacity:.8}
+.dsflow .ar{color:#475569;font-size:12px}
+@media (max-width:640px){.dsflow .ow{display:none}}
 `;
 
 const esc = s => String(s == null ? '' : s)
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+/**
+ * วาดแถบขั้นตอนบนสุด ถ้าหน้านี้อยู่ในงานที่มีหลายขั้น
+ * เรียกอัตโนมัติจาก installNav ไม่ต้องเรียกเอง
+ */
+export function installFlowBar(session) {
+  if (!session || document.getElementById('dsflow')) return;
+  const here = currentPage();
+  const flow = flowOf(here);
+  if (!flow || !flow.steps || flow.steps.length < 2) return;
+  if (!canAccess(session.role, here)) return;
+
+  const bar = document.createElement('div');
+  bar.className = 'dsflow';
+  bar.id = 'dsflow';
+  bar.innerHTML =
+    `<span class="ti">${flow.icon} ${esc(flow.title)}</span>` +
+    (flow.owner ? `<span class="ow">${esc(flow.owner)}</span>` : '') +
+    '<span class="sp">' +
+    flow.steps.map((st, i) => {
+      const num = `<span class="no">${i + 1}</span>`;
+      const body = num + esc(st.label);
+      const el = st.file === here
+        ? `<span class="st cur">${body}</span>`
+        : `<a class="st" href="${st.file}">${body}</a>`;
+      return (i ? '<span class="ar">›</span>' : '') + el;
+    }).join('') +
+    '</span>';
+  document.body.insertBefore(bar, document.body.firstChild);
+}
 
 /**
  * ติดตั้งปุ่มเมนู
@@ -203,6 +287,8 @@ export function installNav(session, opts = {}) {
   const style = document.createElement('style');
   style.textContent = CSS;
   document.head.appendChild(style);
+
+  installFlowBar(session);
 
   const here = currentPage();
   const groups = menuFor(session.role);
