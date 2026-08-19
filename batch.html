@@ -309,20 +309,20 @@ tr.tier-yellow td{background:rgba(251,191,36,.06)}
   color:#0f172a;padding:1px 5px;line-height:1.5}
 #pkB span{background:var(--accent)} #pkO span{background:var(--warn)}
 </style>
-<script src="config.js?v=2.9.0"></script>
+<script src="config.js?v=2.9.1"></script>
 <script type="module">
 // ── โมดูลร่วม DocScan ────────────────────────────────────
 // module script ทำงานหลัง classic script แต่ก่อน window.onload
 // โค้ดเดิมเรียก requireAuth ใน window.onload จึงปลอดภัย
-import { apiFetch, uploadBatch, newClientId } from './js/api.js?v=2.9.0';
-import { parseCSV, buildIndex, searchCSV, classify } from './js/csv.js?v=2.9.0';
-import { parseDateInput, toDisplayDate, toInputDate, todayISO } from './js/date.js?v=2.9.0';
+import { apiFetch, uploadBatch, newClientId } from './js/api.js?v=2.9.1';
+import { parseCSV, buildIndex, searchCSV, classify } from './js/csv.js?v=2.9.1';
+import { parseDateInput, toDisplayDate, toInputDate, todayISO } from './js/date.js?v=2.9.1';
 import { compressPage, compressImageFile, toDataUrl, storagePeriod,
-         compressionSummary, SETTINGS as PDF_SETTINGS } from './js/pdf.js?v=2.9.0';
-import * as Reader from './js/reader.js?v=2.9.0';
-import { hasCollisionRisk, findNearMiss, searchCSV as csvSearch } from './js/csv.js?v=2.9.0';
-import { requireAuth, authFetch, authGet, authGetText, logout, loadSession, daysLeft, AUTH_JS_VERSION } from './js/auth.js?v=2.9.0';
-import { installNav, guardPage, homeFor as navHome } from './js/nav.js?v=2.9.0';
+         compressionSummary, SETTINGS as PDF_SETTINGS } from './js/pdf.js?v=2.9.1';
+import * as Reader from './js/reader.js?v=2.9.1';
+import { hasCollisionRisk, findNearMiss, searchCSV as csvSearch } from './js/csv.js?v=2.9.1';
+import { requireAuth, authFetch, authGet, authGetText, logout, loadSession, daysLeft, AUTH_JS_VERSION } from './js/auth.js?v=2.9.1';
+import { installNav, guardPage, homeFor as navHome } from './js/nav.js?v=2.9.1';
 
 window.DocScan = {
   apiFetch, authFetch, authGet, authGetText, uploadBatch, newClientId,
@@ -360,7 +360,7 @@ window.dispatchEvent(new Event('docscan-ready'));
 <!-- Topbar -->
 <header style="background:var(--surface);border-bottom:1px solid var(--border);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;">
   <div>
-    <div style="font-size:15px;font-weight:600;">Batch Scan</div>
+    <div style="font-size:15px;font-weight:600;">นำเข้าเอกสาร</div>
     <div style="font-size:11px;color:var(--muted);" id="userInfo">—</div>
   </div>
 </header>
@@ -572,9 +572,9 @@ var rows = [];
 
 // ── Init ──────────────────────────────────────────────────
 window.onload = function () {
-  initReader();
   var s = DocScanAuth.requireAuth();
   if (!s) return;
+  initReader();
   selectedSite = s.site; selectedEmpId = s.empId;
   selectedEmpName = s.empName; selectedEmpEmail = s.empEmail;
   
@@ -711,6 +711,7 @@ async function processFiles(files) {
 
   renderTable();
   updateBatchCounter();
+  showReaderPanel(rows.length > 0);
 }
 
 // ── Process รูปภาพ 1 ไฟล์ = 1 แถว ────────────────────────
@@ -1486,6 +1487,19 @@ function initReader() {
 
 function showReaderPanel(show) {
   document.getElementById('readerPanel').style.display = show ? 'block' : 'none';
+  if (!show) return;
+
+  // การอ่านอัตโนมัติต้องใช้ไฟล์ PDF เพราะต้องเรนเดอร์หน้าใหม่หลายความละเอียด
+  var hasPdf = !!_lastPdfJs;
+  ['btnRead', 'btnPick'].forEach(function (id) {
+    document.getElementById(id).disabled = !hasPdf;
+  });
+  if (!hasPdf) {
+    document.getElementById('rprog').classList.add('on');
+    document.getElementById('rbar').style.width = '0%';
+    document.getElementById('rtext').textContent =
+      'การอ่านอัตโนมัติรองรับเฉพาะไฟล์ PDF — ไฟล์รูปภาพต้องกรอกเอง';
+  }
 }
 
 function rprog(frac, text) {
