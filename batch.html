@@ -290,6 +290,27 @@ main{width:100%;max-width:100%;padding:20px 24px 100px;}
   padding:9px 14px;font-size:12.5px}
 .rchip b{font-family:var(--mono);font-size:17px;display:block;line-height:1.2}
 .rchip.g b{color:var(--success)} .rchip.y b{color:var(--warn)} .rchip.r b{color:var(--danger)}
+.preview-side{width:290px;flex-shrink:0;padding:16px;overflow-y:auto;
+  border-left:1px solid var(--border);background:var(--surface)}
+.ps-h{font-size:13.5px;font-weight:600;margin-bottom:3px}
+.ps-sub{font-size:11.5px;color:var(--muted);margin-bottom:12px;line-height:1.6}
+.ps-crop{display:block;max-width:100%;border:1px solid var(--border);border-radius:4px;
+  background:#fff;margin-bottom:10px}
+.ps-lab{font-size:10.5px;color:var(--muted);margin-bottom:3px;font-family:var(--mono)}
+.ps-btn{display:block;width:100%;text-align:left;background:var(--surface2);
+  border:1.5px solid var(--border);border-radius:7px;padding:9px 12px;cursor:pointer;
+  font-family:var(--font);margin-bottom:7px}
+.ps-btn:hover{border-color:var(--accent)}
+.ps-btn.best{border-color:var(--success)}
+.ps-btn.on{background:var(--success);border-color:var(--success)}
+.ps-btn.on .ps-v,.ps-btn.on .ps-n{color:#0f172a}
+.ps-v{display:block;font-family:var(--mono);font-size:16px;font-weight:600;letter-spacing:.04em}
+.ps-n{display:block;font-size:11px;color:var(--muted);margin-top:2px;line-height:1.4}
+.ps-or{font-size:11.5px;color:var(--muted);text-align:center;margin:10px 0 6px}
+.ps-input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;
+  color:var(--text);font-family:var(--mono);font-size:14px;padding:9px 11px;letter-spacing:.04em}
+.ps-done{margin-top:14px;padding:10px;border-radius:6px;background:rgba(52,211,153,.12);
+  color:var(--success);font-size:12.5px;text-align:center}
 .pickhead{font-size:10.5px;color:var(--warn);font-weight:600;margin:0 0 4px;line-height:1.4}
 .needdo{font-size:11px;color:var(--danger);font-weight:600}
 .needconfirm{font-size:11px;color:var(--warn);font-weight:600}
@@ -371,6 +392,42 @@ tr.tier-yellow td{background:rgba(251,191,36,.06)}
 
 /* ---- เลือกพื้นที่อ่านเอง ---- */
 /* ต้องอยู่เหนือกล่องตั้งค่า เพราะเปิดซ้อนกันได้ */
+#dlgVerify{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+  color:var(--text);padding:18px;max-width:1200px;width:96vw}
+#dlgVerify::backdrop{background:rgba(15,23,42,.85)}
+.vf-top{display:flex;align-items:flex-start;gap:16px;margin-bottom:14px;flex-wrap:wrap}
+.vf-title{font-size:16px;font-weight:600}
+.vf-sub{font-size:12.5px;color:var(--muted);margin-top:2px;font-family:var(--mono)}
+.vf-nav{margin-left:auto;display:flex;gap:8px;align-items:center}
+.vf-count{font-family:var(--mono);font-size:12.5px;color:var(--muted)}
+.vf-body{display:grid;grid-template-columns:1fr 300px;gap:16px}
+.vf-doc{background:#fff;border:1px solid var(--border);border-radius:var(--rs);
+  overflow:auto;max-height:72vh;display:flex;align-items:flex-start;justify-content:center}
+#vfPage{max-width:100%;display:block}
+.vf-side{display:flex;flex-direction:column;gap:14px;max-height:72vh;overflow:auto}
+.vf-sec{background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);padding:12px}
+.vf-k{font-size:11px;font-family:var(--mono);letter-spacing:.08em;text-transform:uppercase;
+  color:var(--muted);margin-bottom:8px}
+.vf-crop{display:block;max-width:100%;margin-bottom:8px;border:1px solid var(--border);
+  border-radius:4px;background:#fff}
+.vf-choice{display:block;width:100%;text-align:left;background:var(--surface);
+  border:1.5px solid var(--border);border-radius:8px;padding:11px 13px;cursor:pointer;
+  font-family:var(--font);margin-bottom:8px}
+.vf-choice:hover{border-color:var(--accent)}
+.vf-choice.best{border-color:var(--success)}
+.vf-choice.on{background:var(--accent);border-color:var(--accent)}
+.vf-choice.on .vc-v,.vf-choice.on .vc-n{color:#0f172a}
+.vc-v{display:block;font-family:var(--mono);font-size:18px;font-weight:600;letter-spacing:.04em}
+.vc-n{display:block;font-size:11px;color:var(--muted);margin-top:3px;line-height:1.5}
+.vf-input{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:6px;
+  color:var(--text);font-family:var(--mono);font-size:15px;padding:9px 11px}
+.vf-note{font-size:12px;color:var(--muted);line-height:1.7}
+tr.needfix td{box-shadow:inset 3px 0 0 var(--danger)}
+tr.needfix td:first-child{background:rgba(248,113,113,.14)}
+.fixbtn{background:var(--danger);border:none;color:#fff;border-radius:6px;
+  padding:6px 12px;font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer;width:100%}
+.fixbtn:hover{opacity:.9}
+@media (max-width:900px){ .vf-body{grid-template-columns:1fr} }
 #dlgImg{z-index:60;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
   color:var(--text);padding:20px;max-width:900px;width:92vw}
 #dlgImg::backdrop{background:rgba(15,23,42,.82)}
@@ -554,6 +611,40 @@ window.dispatchEvent(new Event('docscan-ready'));
   
 
 </main>
+
+<dialog id="dlgVerify">
+  <div class="vf-top">
+    <div>
+      <div class="vf-title" id="vfTitle">ตรวจเอกสาร</div>
+      <div class="vf-sub" id="vfSub"></div>
+    </div>
+    <div class="vf-nav">
+      <button class="rbtn ghost" id="vfPrev">‹ ก่อนหน้า</button>
+      <span class="vf-count" id="vfCount"></span>
+      <button class="rbtn ghost" id="vfNext">ถัดไป ›</button>
+      <button class="rbtn ghost" id="vfClose">ปิด</button>
+    </div>
+  </div>
+  <div class="vf-body">
+    <div class="vf-doc">
+      <img id="vfPage" alt="หน้าเอกสาร">
+    </div>
+    <div class="vf-side">
+      <div class="vf-sec">
+        <div class="vf-k">ภาพที่ระบบอ่าน</div>
+        <img class="vf-crop" id="vfCropBc" alt="บาร์โค้ด" style="display:none">
+        <img class="vf-crop" id="vfCropRef" alt="เลขที่เอกสาร" style="display:none">
+      </div>
+      <div class="vf-sec" id="vfChoices"></div>
+      <div class="vf-sec">
+        <div class="vf-k">หรือพิมพ์เอง</div>
+        <input class="vf-input" id="vfManual" placeholder="พิมพ์เลข Reference">
+        <button class="rbtn" id="vfApply" style="width:100%;margin-top:8px">ใช้ค่าที่พิมพ์</button>
+      </div>
+      <div class="vf-note" id="vfNote"></div>
+    </div>
+  </div>
+</dialog>
 
 <dialog id="dlgImg">
   <div class="imgtop">
@@ -810,6 +901,7 @@ async function lookupOne(id, value) {
 
   // คนแก้เองแล้ว ต้องคิดชั้นความเชื่อมั่นใหม่ ไม่ใช่ค้างที่ผลเดิม
   if (row) {
+    row.resolved = true;   // คนลงมือแก้เองแล้ว ถือว่าตัดสินแล้ว
     var doc = row.doc;
     if (doc) {
       row.tier = 'yellow';
@@ -1223,6 +1315,10 @@ function renderFilterBar() {
     b('red', 'ต้องตรวจ', n.red, 'r') +
     b('yellow', 'ควรยืนยัน', n.yellow, 'y') +
     b('green', 'ผ่านแล้ว', n.green) +
+    (pendingRows().length
+      ? '<button class="fixbtn" style="width:auto;padding:6px 16px" ' +
+        'onclick="openVerify()">ตรวจทีละใบ (' + pendingRows().length + ')</button>'
+      : '') +
     '<span class="fnote">' +
       (todo ? 'เรียงรายการที่ต้องดู ' + todo + ' รายการไว้บนสุดแล้ว'
             : 'ทุกรายการผ่านแล้ว พร้อมบันทึก') + '</span>';
@@ -1301,19 +1397,23 @@ function renderTable() {
 
     /* ช่อง "ต้องเลือก" — แยกออกมาเพราะเป็นงานที่คนต้องลงมือทำ
        ถ้าปนอยู่กับผลการอ่าน จะกลืนไปกับข้อความอื่นแล้วมองข้าม */
+    // แถวที่ระบบไม่แน่ใจและคนยังไม่ตัดสิน ต้องเด่นและบันทึกไม่ได้
+    var needFix = !!(row.candidates && row.candidates.length > 1 && !row.resolved);
     var pickHtml;
-    if (row.candidates && row.candidates.length > 1) {
-      pickHtml = '<div class="pickhead">' + esc(row.why || 'เลือกค่าที่ตรงกับเอกสาร') + '</div>' +
-        '<div class="candbox">' + row.candidates.map(function (c, ci) {
-          var note = (row.candidateNotes && row.candidateNotes[ci]) || '';
-          var chosen = String(c).toUpperCase() === String(row.barcode || '').toUpperCase();
-          return '<button class="cand2' + (chosen ? ' on' : '') +
-            (ci === 0 ? ' best' : '') + '" ' +
-            'onclick="applySuggestion(\'' + rid + '\',\'' + esc(c) + '\')">' +
-            '<span class="c2v">' + esc(c) + (chosen ? ' ✓' : '') + '</span>' +
-            (note ? '<span class="c2n">' + esc(note) + '</span>' : '') +
-            '</button>';
-        }).join('') + '</div>';
+    if (needFix) {
+      // ต้องเปิดดูเอกสารก่อนเลือก เพราะตัดสินจากตัวเลขอย่างเดียวไม่ได้
+      // ตัวเลือกอยู่ข้างภาพในหน้าพรีวิว เทียบแล้วกดได้เลย
+      pickHtml = '<div class="pickhead">' + esc(row.why || 'ต้องเลือกค่า') + '</div>' +
+        '<button class="fixbtn" onclick="openVerify(\'' + rid + '\')">' +
+        'ดูเอกสารแล้วเลือก</button>' +
+        '<div class="needdo" style="margin-top:5px;font-weight:400;font-size:10.5px">' +
+        esc(row.candidates.join('  หรือ  ')) + '</div>';
+    } else if (row.candidates && row.candidates.length > 1 && row.resolved) {
+      pickHtml = '<div class="needok">เลือกแล้ว: <b style="color:var(--success);' +
+        'font-family:var(--mono)">' + esc(row.barcode) + '</b></div>' +
+        '<button class="fixbtn" style="background:transparent;border:1px solid var(--border);' +
+        'color:var(--muted);margin-top:5px" onclick="openVerify(\'' + rid + '\')">' +
+        'เปิดดูอีกครั้ง</button>';
     } else if (!row.barcode) {
       pickHtml = '<div class="needdo">ต้องกรอกเลขเอง</div>';
     } else if (row.tier === 'red') {
@@ -1333,7 +1433,8 @@ function renderTable() {
     var mismatch = row.readValue && row.barcode &&
                    row.readValue.toUpperCase() !== row.barcode.toUpperCase();
 
-    return '<tr class="row-' + row.status + tierCls + '" id="row-' + rid + '">' +
+    return '<tr class="row-' + row.status + tierCls + (needFix ? ' needfix' : '') +
+      '" id="row-' + rid + '">' +
       '<td class="no">' + (i + 1) + '</td>' +
       '<td><div style="display:flex;flex-direction:column;align-items:center;gap:2px">' +
         thumbHtml + '<div class="file-name" style="text-align:center">' + fileLabel + '</div>' +
@@ -1619,6 +1720,98 @@ function inkHtml(row) {
     ' — โปรดตรวจกับเอกสารตัวจริง</div>';
 }
 
+/* ============================================================
+   ตรวจเอกสารทีละใบ — ดูหน้าจริงแล้วเลือกเลย
+   ตัดสินจากเอกสารย่อมถูกกว่าเดาจากตัวเลขสองตัวในตาราง
+   ============================================================ */
+var _vfList = [], _vfPos = 0;
+
+/** แถวที่ยังต้องให้คนตัดสิน */
+function pendingRows() {
+  return rows.filter(function (r) {
+    return r.candidates && r.candidates.length > 1 && !r.resolved;
+  });
+}
+
+async function openVerify(id) {
+  _vfList = pendingRows();
+  if (!_vfList.length) { showToast('ไม่มีรายการที่ต้องเลือก', 'success'); return; }
+  var idx = (id === undefined) ? 0
+    : _vfList.findIndex(function (r) { return r.id === Number(id); });
+  _vfPos = idx >= 0 ? idx : 0;
+  document.getElementById('dlgVerify').showModal();
+  await drawVerify();
+}
+
+async function drawVerify() {
+  var row = _vfList[_vfPos];
+  if (!row) { document.getElementById('dlgVerify').close(); return; }
+
+  document.getElementById('vfTitle').textContent = 'ตรวจเอกสาร — เลือกเลขที่ถูกต้อง';
+  document.getElementById('vfSub').textContent =
+    'หน้า ' + (row.pageNos ? row.pageNos.join(', ') : (row.pageNo || '-'));
+  document.getElementById('vfCount').textContent = (_vfPos + 1) + ' / ' + _vfList.length;
+  document.getElementById('vfNote').textContent = row.why || '';
+  document.getElementById('vfManual').value = row.barcode || '';
+
+  var bc = document.getElementById('vfCropBc');
+  if (row.barcodeCrop) { bc.src = row.barcodeCrop; bc.style.display = 'block'; }
+  else bc.style.display = 'none';
+  var rc = document.getElementById('vfCropRef');
+  if (row.readCrop) { rc.src = row.readCrop; rc.style.display = 'block'; }
+  else rc.style.display = 'none';
+
+  // ปุ่มเลือกวางข้างภาพเอกสาร จะได้ตัดสินจากสิ่งที่เห็นจริง
+  document.getElementById('vfChoices').innerHTML =
+    '<div class="vf-k">เลือกเลขที่ตรงกับเอกสาร</div>' +
+    (row.candidates || []).map(function (c, ci) {
+      var note = (row.candidateNotes && row.candidateNotes[ci]) || '';
+      var on = String(c).toUpperCase() === String(row.barcode || '').toUpperCase();
+      return '<button class="vf-choice' + (on ? ' on' : '') + (ci === 0 ? ' best' : '') +
+        '" data-v="' + esc(c) + '">' +
+        '<span class="vc-v">' + esc(c) + '</span>' +
+        (note ? '<span class="vc-n">' + esc(note) + '</span>' : '') + '</button>';
+    }).join('');
+
+  document.getElementById('vfChoices').querySelectorAll('[data-v]').forEach(function (el) {
+    el.addEventListener('click', function () { chooseVerify(el.dataset.v); });
+  });
+
+  // หน้าเอกสารเต็ม ความละเอียดพอดูด้วยตา ไม่ต้องสูงเพราะไม่ได้เอาไปอ่านด้วยเครื่อง
+  var img = document.getElementById('vfPage');
+  img.removeAttribute('src');
+  try {
+    var pageNo = (row.pageNos && row.pageNos[0]) || row.pageNo || 1;
+    var type = _types[document.getElementById('docType').value] || {};
+    var page = await _lastPdfJs.getPage(pageNo);
+    var cv = await DocScan.Reader.renderPage(page, 120, type.rotate || 0);
+    img.src = cv.toDataURL('image/jpeg', 0.75);
+    cv.width = cv.height = 0;
+    page.cleanup();
+  } catch (e) { /* ยังมีภาพครอปให้ดูอยู่ */ }
+}
+
+function chooseVerify(v) {
+  var row = _vfList[_vfPos];
+  if (!row) return;
+  row.resolved = true;
+  applySuggestion(row.id, v);
+  nextVerify();
+}
+
+function nextVerify() {
+  var remain = pendingRows();
+  if (!remain.length) {
+    document.getElementById('dlgVerify').close();
+    showToast('ตรวจครบทุกรายการแล้ว', 'success');
+    renderTable();
+    return;
+  }
+  _vfList = remain;
+  if (_vfPos >= _vfList.length) _vfPos = 0;
+  drawVerify();
+}
+
 /** ใช้ค่าที่ระบบเสนอเมื่อเลขที่อ่านได้ใกล้เคียงกับรายการอ้างอิง */
 function applySuggestion(id, value) {
   var row = rows.find(function (r) { return r.id === Number(id); });
@@ -1649,6 +1842,17 @@ function updateSubmitBtn(){
   var ready = rows.filter(function (r) { return r.status !== 'dup' && r.barcode; });
   var btn = document.getElementById('submitBtn');
   if (!btn) return;
+
+  /* ห้ามบันทึกถ้ายังมีรายการที่ระบบไม่แน่ใจและคนยังไม่ตัดสิน
+     ปล่อยผ่านคือได้ชื่อไฟล์ผิดโดยไม่มีใครรู้ ซึ่งแก้ทีหลังยากมาก
+     เพราะไฟล์ขึ้น Drive ไปแล้วและข้อมูลลง Sheet ไปแล้ว */
+  var pending = pendingRows();
+  if (pending.length) {
+    btn.disabled = true;
+    btn.textContent = 'ต้องเลือกเลขให้ครบก่อน (' + pending.length + ' รายการ)';
+    return;
+  }
+
   btn.disabled = ready.length === 0;
   var unread = rows.filter(function (r) { return !r.barcode; }).length;
   var needCheck = rows.filter(function (r) {
@@ -2315,6 +2519,25 @@ function drawPickBoxes() {
   });
 }
 
+document.getElementById('vfClose').addEventListener('click', function () {
+  document.getElementById('dlgVerify').close();
+  renderTable();
+});
+document.getElementById('vfPrev').addEventListener('click', function () {
+  if (_vfPos > 0) { _vfPos--; drawVerify(); }
+});
+document.getElementById('vfNext').addEventListener('click', function () {
+  if (_vfPos < _vfList.length - 1) { _vfPos++; drawVerify(); }
+});
+document.getElementById('vfApply').addEventListener('click', function () {
+  var v = document.getElementById('vfManual').value.trim();
+  if (!v) { showToast('ยังไม่ได้พิมพ์เลข', 'error'); return; }
+  chooseVerify(v);
+});
+document.getElementById('vfManual').addEventListener('keydown', function (e) {
+  if (e.key === 'Enter') { e.preventDefault(); document.getElementById('vfApply').click(); }
+});
+
 document.getElementById('imgClose').addEventListener('click', function () {
   document.getElementById('dlgImg').close();
 });
@@ -2523,6 +2746,7 @@ document.getElementById('dlgImg').addEventListener('click', function (e) {
     </div>
     <div class="preview-body" id="previewBody">
       <div class="preview-img-wrap" id="previewImgWrap"></div>
+      <div class="preview-side" id="previewSide" style="display:none"></div>
     </div>
     <div class="preview-nav" id="previewNav">
       <button class="preview-nav-btn" id="prevBtn" onclick="navigatePreview(-1)">‹ ก่อนหน้า</button>
