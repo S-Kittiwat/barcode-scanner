@@ -329,15 +329,29 @@ tr.tier-yellow td{background:rgba(251,191,36,.06)}
 .why{font-size:11px;color:var(--muted);margin-top:3px;max-width:260px;line-height:1.5}
 
 /* ---- เลือกพื้นที่อ่านเอง ---- */
+/* ต้องอยู่เหนือกล่องตั้งค่า เพราะเปิดซ้อนกันได้ */
+#dlgImg{z-index:60;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+  color:var(--text);padding:20px;max-width:900px;width:92vw}
+#dlgImg::backdrop{background:rgba(15,23,42,.82)}
+.imgtop{display:flex;align-items:center;gap:14px;margin-bottom:12px}
+.imgtitle{font-size:15px;font-weight:600}
+.imgtop .rbtn{margin-left:auto}
+.imgwrap{background:#fff;border:1px solid var(--border);border-radius:var(--rs);
+  padding:10px;text-align:center;max-height:70vh;overflow:auto}
+#imgBig{max-width:100%;display:block;margin:0 auto}
+.imgnote{font-size:12.5px;color:var(--muted);margin-top:10px;line-height:1.7}
 .pickwrap{position:relative;display:inline-block;line-height:0;border:1px solid var(--border);
   cursor:crosshair;max-width:100%;touch-action:none;background:#fff}
 #pickCanvas{display:block;max-width:100%;height:auto}
 .pickbox{position:absolute;pointer-events:none;display:none}
 #pkB{border:2px solid var(--accent);background:rgba(56,189,248,.14)}
 #pkO{border:2px solid var(--warn);background:rgba(251,191,36,.14)}
+#pkS{border:2px solid var(--success);background:rgba(52,211,153,.14)}
+#pkT{border:2px solid var(--danger);background:rgba(248,113,113,.14)}
 .pickbox span{position:absolute;top:-18px;left:-2px;font-family:var(--mono);font-size:10px;
   color:#0f172a;padding:1px 5px;line-height:1.5}
 #pkB span{background:var(--accent)} #pkO span{background:var(--warn)}
+#pkS span{background:var(--success)} #pkT span{background:var(--danger);color:#fff}
 </style>
 <script src="config.js?v=2.14.0"></script>
 <script type="module">
@@ -491,11 +505,24 @@ window.dispatchEvent(new Event('docscan-ready'));
 
 </main>
 
+<dialog id="dlgImg">
+  <div class="imgtop">
+    <div class="imgtitle" id="imgTitle">ภาพ</div>
+    <button class="rbtn ghost" id="imgClose">ปิด</button>
+  </div>
+  <div class="imgwrap"><img id="imgBig" alt=""></div>
+  <div class="imgnote" id="imgNote"></div>
+</dialog>
+
 <dialog id="dlgPick" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);color:var(--text);padding:22px;max-width:900px;width:95vw">
   <div style="font-size:16px;font-weight:600;margin-bottom:4px">กำหนดพื้นที่อ่านเอง</div>
   <div style="font-size:12.5px;color:var(--muted);margin-bottom:16px;line-height:1.7">
-    ลากกรอบบนหน้าเอกสารเพื่อบอกระบบว่าให้อ่านตรงไหน<br>
-    พิกัดเก็บเป็นสัดส่วนของหน้า จึงใช้ได้กับทุกหน้าที่วางเหมือนกัน และจำไว้ให้ครั้งต่อไป
+    เลือกว่าจะลากกรอบอะไร แล้วลากบนหน้าเอกสาร — ลากใหม่ทับได้เรื่อย ๆ<br>
+    <span style="color:var(--accent)">■</span> บาร์โค้ด
+    <span style="color:var(--warn)">■</span> เลขที่เอกสาร
+    <span style="color:var(--success)">■</span> ลายเซ็น
+    <span style="color:var(--danger)">■</span> ตราประทับ<br>
+    ไม่ลากกรอบลายเซ็นหรือตรา = ไม่ตรวจอย่างนั้น · ลากเล็กมาก = ลบกรอบทิ้ง
   </div>
 
   <div class="rowline" style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin-bottom:12px">
@@ -1069,7 +1096,9 @@ function renderTable() {
       }
       if (row.readCrop) {
         readHtml += '<img class="readcrop" src="' + row.readCrop +
-          '" alt="ภาพที่อ่าน" title="กดเพื่อดูขนาดเต็ม" onclick="openImage(this.src)">';
+          '" alt="ภาพที่อ่าน" title="กดเพื่อดูขนาดเต็ม" ' +
+        'onclick="openImage(this.src,\'เลขที่เอกสารที่ระบบอ่าน\',' +
+        '\'ค่าที่อ่านได้: ' + esc(row.readValue || 'อ่านไม่ได้') + '\')">';
       }
       if (row.candidates && row.candidates.length > 1) {
         readHtml += '<div class="why" style="color:var(--warn);font-weight:600">' +
@@ -1308,20 +1337,23 @@ function inkCell(row) {
           (ok ? 'มีแล้ว' : 'ยังไม่มี') + '</span></div>' +
       (c.crop
         ? '<img class="inkimg" src="' + c.crop + '" alt="' + esc(c.label) +
-          '" onclick="openImage(this.src)">'
+          '" title="กดเพื่อดูขนาดเต็ม" onclick="openImage(this.src,\'' + esc(c.label) +
+          '\',\'' + (ok ? 'ตรวจพบ' : 'ไม่พบ') + ' · หมึก ' + c.value +
+          '% เกณฑ์ ' + c.min + '%\')">'
         : '') +
       '</div>';
   }).join('');
 }
 
-/** เปิดภาพขนาดเต็มในแท็บใหม่ */
-function openImage(src) {
-  var w = window.open('', '_blank');
-  if (!w) return;
-  w.document.write('<body style="margin:0;background:#111;display:flex;' +
-    'align-items:center;justify-content:center;min-height:100vh">' +
-    '<img src="' + src + '" style="max-width:100%;max-height:100vh"></body>');
-  w.document.close();
+/**
+ * เปิดภาพในหน้าเดียวกัน ไม่เปิดแท็บใหม่
+ * เพราะแท็บใหม่ทำให้หลุดจากงานที่ทำอยู่ และเบราว์เซอร์บางตัวบล็อก
+ */
+function openImage(src, title, note) {
+  document.getElementById('imgBig').src = src;
+  document.getElementById('imgTitle').textContent = title || 'ภาพจากเอกสาร';
+  document.getElementById('imgNote').textContent = note || '';
+  document.getElementById('dlgImg').showModal();
 }
 
 /**
@@ -1794,13 +1826,23 @@ async function runAutoRead() {
       onProgress: function (m) { rprog(0.06, m); },
 
       onPage: function (r, i, n) {
+        // บอกเวลาต่อหน้า จะได้รู้ว่าหน้าไหนกินเวลาและเพราะอะไร
+        var how = r.source === 'barcode' ? 'บาร์โค้ด'
+                : r.source === 'ocr' ? 'OCR' : 'อ่านไม่ได้';
         rprog(0.06 + 0.9 * i / n,
-          'อ่านหน้า ' + i + ' จาก ' + n + (r.value ? '  →  ' + r.value : '  →  อ่านไม่ได้'));
+          'หน้า ' + i + '/' + n + '  ' + how +
+          (r.value ? '  →  ' + r.value : '') +
+          (r.ms ? '   (' + (r.ms / 1000).toFixed(1) + ' วิ)' : ''));
       }
     });
 
     await applyReadResults(results, key);
-    rprog(1, 'อ่านเสร็จแล้ว');
+    var byBc = results.filter(function (r) { return r.source === 'barcode'; }).length;
+    var byOcr = results.filter(function (r) { return r.source === 'ocr'; }).length;
+    var none = results.length - byBc - byOcr;
+    rprog(1, 'เสร็จใน ' + Math.round((Date.now() - t0) / 1000) + ' วินาที · ' +
+      'บาร์โค้ด ' + byBc + ' · OCR ' + byOcr + ' · อ่านไม่ได้ ' + none +
+      (byOcr || none ? '   — OCR ช้ากว่าบาร์โค้ดราว 20 เท่า ถ้าช้าให้ปรับกรอบบาร์โค้ดให้ตรง' : ''));
   } catch (err) {
     console.error(err);
     rprog(1, 'อ่านไม่สำเร็จ: ' + (err.message || err));
@@ -1863,6 +1905,10 @@ async function applyReadResults(results, typeKey) {
     // เก็บค่าที่ระบบอ่านได้แยกจากค่าที่ใช้จริง
     // เพื่อให้เห็นได้ว่าคนแก้ไปจากที่ระบบอ่านมาหรือไม่
     first.ink = d.ink || null;
+    first.noText = !!(d.pages[0] && d.pages[0].ocr && d.pages[0].ocr.noText);
+    if (!first.readCrop && d.pages[0] && d.pages[0].ocr) {
+      first.readCrop = d.pages[0].ocr.crop || '';
+    }
     first.readValue = d.value || '';
     first.readRefNo = d.refNo || '';
     first.readBarcode = d.barcodeValue || '';
@@ -1966,6 +2012,14 @@ function drawPickBoxes() {
   });
 }
 
+document.getElementById('imgClose').addEventListener('click', function () {
+  document.getElementById('dlgImg').close();
+});
+document.getElementById('dlgImg').addEventListener('click', function (e) {
+  // กดนอกภาพเพื่อปิด เหมือนกล่องดูรูปทั่วไป
+  if (e.target === this) this.close();
+});
+
 (function bindPicker() {
   var wrap = document.getElementById('pickWrap');
   var sx = 0, sy = 0, dragging = false, target = null;
@@ -2067,7 +2121,9 @@ function drawPickBoxes() {
       if (oc && oc.crop) {
         html += '<div style="margin-bottom:8px">ภาพที่ระบบอ่าน' +
                 (oc.cropRotate ? ' (หมุนกรอบ ' + oc.cropRotate + '°)' : '') + ':</div>' +
-                '<img src="' + oc.crop + '" style="max-width:100%;border:1px solid var(--border);' +
+                '<img src="' + oc.crop + '" title="กดเพื่อดูขนาดเต็ม" ' +
+                'onclick="openImage(this.src,\'พื้นที่เลขที่เอกสาร\')" ' +
+                'style="max-width:100%;border:1px solid var(--border);cursor:zoom-in;' +
                 'border-radius:4px;background:#fff;display:block;margin-bottom:10px">';
       }
       html += 'บาร์โค้ด: ' + (bc && bc.value ? esc(bc.value)
@@ -2118,7 +2174,9 @@ function drawPickBoxes() {
             (c.pass ? '<b style="color:var(--success)">พบ</b>'
                     : '<b style="color:var(--danger)">ไม่พบ</b>') +
             ' <span style="opacity:.7">(หมึก ' + c.value + '% · เกณฑ์ ' + c.min + '%)</span>' +
-            (c.crop ? '<br><img src="' + c.crop + '" style="max-width:200px;margin-top:5px;' +
+            (c.crop ? '<br><img src="' + c.crop + '" title="กดเพื่อดูขนาดเต็ม" ' +
+                      'onclick="openImage(this.src,\'' + esc(c.label) + '\')" ' +
+                      'style="max-width:200px;margin-top:5px;cursor:zoom-in;' +
                       'border:1px solid var(--border);border-radius:4px;background:#fff">' : '') +
             '</div>';
         });
