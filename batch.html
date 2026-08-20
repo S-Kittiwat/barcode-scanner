@@ -311,11 +311,12 @@ main{width:100%;max-width:100%;padding:20px 24px 100px;}
 .refout.none{color:var(--danger)}
 .readval{font-family:var(--mono);font-size:15px;font-weight:600;letter-spacing:.04em}
 .readsrc{font-size:11px;color:var(--muted);margin-top:2px}
-.bcline{font-size:11.5px;color:var(--muted);margin-top:5px;font-family:var(--mono)}
-.bcline b{color:var(--text)}
-.bcline.none{color:var(--danger)}
-.bcok{color:var(--success);margin-left:6px;font-weight:600}
-.bcimg{max-height:34px}
+.rl{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;margin-top:4px}
+.rl-k{font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;color:var(--muted);
+  border:1px solid var(--border);border-radius:3px;padding:0 4px;flex-shrink:0}
+.rl-v{font-family:var(--mono);font-size:14px;font-weight:600;letter-spacing:.03em}
+.rl-v.none{font-size:12px;font-weight:400;color:var(--danger)}
+.rl-n{font-size:10.5px;color:var(--muted)}
 .readcrop{display:block;max-width:100%;max-height:52px;margin-top:6px;border:1px solid var(--border);
   border-radius:4px;background:#fff;cursor:zoom-in;image-rendering:pixelated}
 .readnone{font-size:12px;color:var(--muted);line-height:1.6}
@@ -497,13 +498,13 @@ window.dispatchEvent(new Event('docscan-ready'));
       <table>
         <thead>
           <tr>
-            <th style="width:3%;">#</th>
-            <th style="width:12%;">เอกสาร</th>
-            <th style="width:19%;">สิ่งที่ระบบอ่านได้</th>
-            <th style="width:19%;">Reference (ใช้ตั้งชื่อไฟล์)</th>
-            <th style="width:16%;">ลายเซ็น / ตราประทับ</th>
-            <th style="width:23%;">ข้อมูลเอกสาร</th>
-            <th style="width:3%;"></th>
+            <th style="width:30px">#</th>
+            <th style="width:84px">เอกสาร</th>
+            <th style="width:250px">Barcode / Reference ที่อ่านได้</th>
+            <th style="width:150px">ลายเซ็น / ตราประทับ</th>
+            <th style="width:180px">Reference (ใช้ตั้งชื่อไฟล์)</th>
+            <th>ข้อมูลเอกสาร</th>
+            <th style="width:36px"></th>
           </tr>
         </thead>
         <tbody id="batchBody"></tbody>
@@ -577,6 +578,7 @@ window.dispatchEvent(new Event('docscan-ready'));
 
   <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap">
     <button class="rbtn" id="pickSave">บันทึกพื้นที่</button>
+    <button class="rbtn ghost" id="pickRead">บันทึกแล้วอ่านเอกสารเลย</button>
     <button class="rbtn ghost" id="pickForget">ลบค่าที่ตั้งเองของชนิดนี้</button>
     <button class="rbtn ghost" id="pickReset">คืนค่าเริ่มต้นทุกชนิด</button>
     <button class="rbtn ghost" id="pickClose">ปิด</button>
@@ -834,8 +836,12 @@ async function processFiles(files) {
   document.getElementById('beforeRead').style.display = 'block';
   document.getElementById('beforeRead').innerHTML =
     '<b>อัปโหลดแล้ว ' + rows.length + ' หน้า</b>' +
-    'ขั้นถัดไป: ตรวจการตั้งค่าการอ่าน แล้วกด "อ่านเอกสารอัตโนมัติ"<br>' +
+    'ตรวจว่ากรอบทั้ง 4 ครอบถูกที่ในหน้าตั้งค่า แล้วกด "อ่านเอกสารอัตโนมัติ"<br>' +
     'รายการเอกสารจะขึ้นหลังอ่านเสร็จ เพราะระบบต้องรู้ก่อนว่าหน้าไหนเป็นสำเนาของกัน';
+
+  // เปิดหน้าตั้งค่าให้เลย เพื่อให้เห็นว่าระบบจะตรวจตรงไหนบ้างก่อนกดอ่าน
+  // ถ้ารอให้คนกดเอง ส่วนใหญ่จะกดอ่านเลยแล้วได้ผลผิดเพราะกรอบไม่ตรง
+  if (_lastPdfJs) setTimeout(function () { openPicker(); }, 150);
 }
 
 // ── Process รูปภาพ 1 ไฟล์ = 1 แถว ────────────────────────
@@ -1114,71 +1120,76 @@ function renderTable() {
     var tierCls = row.tier ? ' tier-' + row.tier : '';
     var tierTag = '';
     if (row.tier) {
-      var tm = { green:['tb-g','ผ่าน'], yellow:['tb-y','ควรยืนยัน'], red:['tb-r','ต้องตรวจ'] }[row.tier];
-      tierTag = '<span class="tierbadge ' + tm[0] + '">' + tm[1] + '</span>';
+      var tm = { green:['b-g','ผ่าน'], yellow:['b-y','ควรยืนยัน'], red:['b-r','ต้องตรวจ'] }[row.tier];
+      tierTag = '<span class="tierbadge tb-' + tm[0].slice(2) + '">' + tm[1] + '</span>';
       if (row.sampled) tierTag += '<span class="tierbadge tb-y">สุ่มตรวจ</span>';
     }
 
-    // ภาพที่ระบบใช้อ่าน วางคู่กับค่าที่อ่านได้ เพื่อให้เทียบกับเอกสารได้ทันที
-    // นี่คืองานหลักของหน้านี้ ผู้ใช้ต้องตัดสินว่าค่าที่อ่านมาตรงกับเอกสารไหม
-    var readHtml = '';
-    if (row.readValue) {
-      readHtml += '<div class="readval">' + esc(row.readValue) + '</div>';
-      readHtml += '<div class="readsrc">' +
-        (row.readSource === 'barcode' ? 'จากบาร์โค้ด' : 'จาก OCR') + tierTag + '</div>';
-      // บาร์โค้ดบางชนิดเป็นรหัสภายใน ไม่ใช่เลข Reference ที่ใช้ตั้งชื่อไฟล์
-      if (row.needsLookup) {
-        readHtml += '<div class="why">บาร์โค้ดนี้เป็นรหัสภายใน ต้องเทียบรายการอ้างอิงเพื่อหาเลข Reference</div>';
+    /* คอลัมน์รวม — บาร์โค้ดกับ Reference อยู่ด้วยกัน
+       สองอย่างนี้เป็นหลักฐานคนละชนิดของเอกสารใบเดียวกัน
+       วางติดกันแล้วเทียบด้วยตาได้ทันทีว่าตรงกันไหม
+       บาร์โค้ดเชื่อได้มากกว่าเพราะมี checksum ในตัว */
+    function readLine(label, value, note, crop, cropTitle) {
+      var h = '<div class="rl">' +
+        '<span class="rl-k">' + label + '</span>' +
+        (value ? '<span class="rl-v">' + esc(value) + '</span>'
+               : '<span class="rl-v none">อ่านไม่ได้</span>') +
+        (note ? '<span class="rl-n">' + note + '</span>' : '') +
+        '</div>';
+      if (crop) {
+        h += '<img class="readcrop" src="' + crop + '" title="กดเพื่อดูขนาดเต็ม" ' +
+          'onclick="openImage(this.src,\'' + cropTitle + '\',\'' +
+          (value ? 'อ่านได้ ' + esc(value) : 'อ่านไม่ได้') + '\')">';
       }
-      if (row.readCrop) {
-        readHtml += '<img class="readcrop" src="' + row.readCrop +
-          '" alt="ภาพที่อ่าน" title="กดเพื่อดูขนาดเต็ม" ' +
-        'onclick="openImage(this.src,\'เลขที่เอกสารที่ระบบอ่าน\',' +
-        '\'ค่าที่อ่านได้: ' + esc(row.readValue || 'อ่านไม่ได้') + '\')">';
-      }
-      if (row.candidates && row.candidates.length > 1) {
-        readHtml += '<div class="why" style="color:var(--warn);font-weight:600">' +
-          (row.crossMismatch
-            ? 'บาร์โค้ดกับ OCR ไม่ตรงกัน — ปุ่มแรกคือค่าที่บาร์โค้ดชี้'
-            : 'เลือกค่าที่ตรงกับเอกสาร') + '</div>';
-        readHtml += '<div class="cands">' + row.candidates.map(function (c) {
-          return '<button class="candbtn' + (c === row.barcode ? ' on' : '') +
+      return h;
+    }
+
+    var readHtml =
+      readLine('BC', row.readBarcode, '', row.barcodeCrop, 'พื้นที่บาร์โค้ด') +
+      readLine('REF', row.readValue,
+        row.readValue ? ((row.readSource === 'barcode' ? 'บาร์โค้ด' : 'OCR') + tierTag) : '',
+        row.readCrop, 'พื้นที่เลขที่เอกสาร');
+
+    if (row.candidates && row.candidates.length > 1) {
+      readHtml += '<div class="why warn">' +
+        (row.crossMismatch ? 'สองทางไม่ตรงกัน — ปุ่มแรกคือค่าที่บาร์โค้ดชี้'
+                           : 'เลือกค่าที่ตรงกับเอกสาร') + '</div>' +
+        '<div class="cands">' + row.candidates.map(function (c) {
+          return '<button class="cand' + (c === row.barcode ? ' on' : '') +
             '" onclick="applySuggestion(\'' + rid + '\',\'' + esc(c) + '\')">' +
             esc(c) + '</button>';
         }).join('') + '</div>';
-      }
-      if (row.tierWhy) readHtml += '<div class="why">' + esc(row.tierWhy) +
-        (row.suggestion ? ' — <a href="#" onclick="applySuggestion(\'' + rid +
-          '\',\'' + esc(row.suggestion) + '\');return false;">ใช้ค่านี้</a>' : '') + '</div>';
-    } else {
-      readHtml = '<div class="readnone">ยังไม่ได้อ่าน<br>หรืออ่านไม่ได้</div>';
+    } else if (row.why) {
+      readHtml += '<div class="why">' + esc(row.why) + '</div>';
+    }
+    if (row.noText) {
+      readHtml += '<div class="why warn">ไม่เห็นตัวอักษรในกรอบเลย — กรอบน่าจะไม่ตรง</div>';
     }
     if (row.pageNos && row.pageNos.length > 1) {
       readHtml += '<div class="why">รวม ' + row.pageNos.length + ' หน้า (สำเนา)</div>';
     }
 
-    // ช่องเดียวที่แก้ได้ — ค่าที่จะใช้จริง
     var mismatch = row.readValue && row.barcode &&
                    row.readValue.toUpperCase() !== row.barcode.toUpperCase();
 
     return '<tr class="row-' + row.status + tierCls + '" id="row-' + rid + '">' +
-      '<td style="text-align:center;color:var(--muted);font-family:var(--mono);font-size:11px;">' + (i+1) + '</td>' +
-      '<td><div style="display:flex;flex-direction:column;align-items:center;gap:2px;">' +
-        thumbHtml + '<div class="file-name" style="text-align:center;">' + fileLabel + '</div></div></td>' +
+      '<td class="no">' + (i + 1) + '</td>' +
+      '<td><div style="display:flex;flex-direction:column;align-items:center;gap:2px">' +
+        thumbHtml + '<div class="file-name" style="text-align:center">' + fileLabel + '</div>' +
+      '</div></td>' +
       '<td>' + readHtml + '</td>' +
+      '<td>' + inkCell(row) + '</td>' +
       '<td>' +
         '<input class="' + bcClass + '" value="' + esc(row.barcode) + '" ' +
-          'placeholder="สแกนบาร์โค้ด หรือพิมพ์เลข Reference" ' +
+          'placeholder="พิมพ์เลข Reference" ' +
           'oninput="handleBarcodeInput(\'' + rid + '\',this)" ' +
           'onkeydown="if(event.key===\'Enter\'){event.preventDefault();lookupOne(\'' + rid + '\',this.value);}">' +
         (mismatch ? '<div class="why" style="color:var(--warn)">แก้จากที่ระบบอ่านได้</div>' : '') +
         '<div style="margin-top:4px">' + statusHtml + '</div>' +
-        // เลขที่จะใช้ตั้งชื่อไฟล์จริง ต้องเห็นชัดเพราะเป็นผลลัพธ์หลักของหน้านี้
         (ev.refNo
           ? '<div class="refout">ชื่อไฟล์: <b>' + esc(ev.refNo) + '</b>.pdf</div>'
-          : '<div class="refout none">ยังไม่มีเลข Reference — ตั้งชื่อไฟล์ไม่ได้</div>') +
+          : '<div class="refout none">ยังไม่มีเลข Reference</div>') +
       '</td>' +
-      '<td>' + inkCell(row) + '</td>' +
       '<td class="ro">' + refBlock(ev) + '</td>' +
       '<td><button class="remove-row-btn" onclick="removeRow(\'' + rid + '\')">✕</button></td>' +
     '</tr>';
@@ -1861,6 +1872,9 @@ function rprog(frac, text) {
 
 async function runAutoRead() {
   if (!_lastPdfJs) { alert('ยังไม่ได้อัปโหลดไฟล์ PDF'); return; }
+  // ปิดหน้าตั้งค่าก่อนเริ่มอ่าน จะได้เห็นความคืบหน้าและผลลัพธ์
+  var dlgP = document.getElementById('dlgPick');
+  if (dlgP && dlgP.open) dlgP.close();
   if (!csvLoaded) {
     if (!confirm('ยังไม่มีรายการอ้างอิง\n\n' +
         'ระบบยังอ่านบาร์โค้ดและ OCR ได้ตามปกติ\n' +
@@ -2169,6 +2183,7 @@ document.getElementById('dlgImg').addEventListener('click', function (e) {
     } else patch.stamp = undefined;
     DocScan.Ink.saveRules(_pickKey, patch);
     document.getElementById('dlgPick').close();
+    if (window._skipSaveAlert) { window._skipSaveAlert = false; return; }
     alert('บันทึกแล้ว: ' + _types[_pickKey].name + '\n\n' +
           'หมุนหน้า ' + document.getElementById('pickRotate').value + ' องศา\n' +
           'หมุนข้อความในกรอบ ' + document.getElementById('pickCropRot').value + '\n' +
@@ -2272,6 +2287,13 @@ document.getElementById('dlgImg').addEventListener('click', function (e) {
 
       out.innerHTML = html;
     } catch (err) { out.textContent = 'ทดสอบไม่สำเร็จ: ' + (err.message || err); }
+  });
+
+  document.getElementById('pickRead').addEventListener('click', function () {
+    window._skipSaveAlert = true;
+    document.getElementById('pickSave').click();
+    document.getElementById('dlgPick').close();
+    setTimeout(function () { document.getElementById('btnRead').click(); }, 100);
   });
 
   document.getElementById('pickForget').addEventListener('click', function () {
