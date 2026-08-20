@@ -290,27 +290,31 @@ main{width:100%;max-width:100%;padding:20px 24px 100px;}
   padding:9px 14px;font-size:12.5px}
 .rchip b{font-family:var(--mono);font-size:17px;display:block;line-height:1.2}
 .rchip.g b{color:var(--success)} .rchip.y b{color:var(--warn)} .rchip.r b{color:var(--danger)}
-.pickhead{font-size:11.5px;color:var(--warn);font-weight:600;margin:0 0 5px;line-height:1.5}
-.needdo{font-size:12px;color:var(--danger);font-weight:600}
-.needconfirm{font-size:12px;color:var(--warn);font-weight:600}
-.needok{font-size:12px;color:var(--muted)}
-.candbox{display:flex;flex-direction:column;gap:5px}
+.pickhead{font-size:10.5px;color:var(--warn);font-weight:600;margin:0 0 4px;line-height:1.4}
+.needdo{font-size:11px;color:var(--danger);font-weight:600}
+.needconfirm{font-size:11px;color:var(--warn);font-weight:600}
+.needok{font-size:11px;color:var(--muted)}
+.rt-from{margin-bottom:5px}
+.rt-to{padding-left:8px;border-left:2px solid var(--border)}
+.candbox{display:flex;flex-direction:column;gap:4px}
 .cand2{display:block;width:100%;text-align:left;background:var(--surface2);
-  border:1px solid var(--border);border-radius:6px;padding:6px 10px;cursor:pointer;
+  border:1px solid var(--border);border-radius:5px;padding:4px 8px;cursor:pointer;
   font-family:var(--font)}
 .cand2:hover{border-color:var(--accent)}
 .cand2.best{border-color:var(--success)}
 .cand2.on{background:var(--accent);border-color:var(--accent)}
 .cand2.on .c2v,.cand2.on .c2n{color:#0f172a}
-.c2v{display:block;font-family:var(--mono);font-size:13.5px;font-weight:600;color:var(--text)}
-.c2n{display:block;font-size:10.5px;color:var(--muted);margin-top:1px;line-height:1.4}
+.c2v{display:block;font-family:var(--mono);font-size:12.5px;font-weight:600;color:var(--text)}
+.c2n{display:block;font-size:9.5px;color:var(--muted);margin-top:1px;line-height:1.35}
 .cands{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}
 .candbtn{background:var(--surface2);border:1px solid var(--warn);color:var(--warn);
   border-radius:14px;padding:5px 14px;font-family:var(--mono);font-size:13px;
   font-weight:600;cursor:pointer}
 .candbtn:hover{border-color:var(--accent);color:var(--accent)}
 .candbtn.on{background:var(--accent);border-color:var(--accent);color:#0f172a;font-weight:600}
-.rbrow{display:flex;align-items:baseline;gap:6px;margin-bottom:3px}
+.rbrow{display:flex;align-items:baseline;gap:5px;margin-bottom:3px}
+.rb-t{font-family:var(--mono);font-size:10px;color:var(--muted);width:12px;flex-shrink:0}
+.rb-t::after{content:':'}
 .rb-m{font-family:var(--mono);font-size:12.5px}
 .th-sub{font-size:9px;letter-spacing:0;text-transform:none;opacity:.7;font-weight:400}
 .rb-ok{font-size:10px;color:var(--success);border:1px solid var(--success);
@@ -530,17 +534,16 @@ window.dispatchEvent(new Event('docscan-ready'));
           <tr>
             <th style="width:28px">#</th>
             <th style="width:76px">เอกสาร</th>
-            <th style="width:140px">Barcode ที่อ่านได้</th>
-            <th style="width:170px">Reference ที่อ่านได้</th>
-            <th style="width:190px">ต้องเลือก</th>
-            <th style="width:110px">ลายเซ็น</th>
-            <th style="width:110px">ตราประทับ</th>
-            <th style="width:160px">Reference (ใช้ตั้งชื่อไฟล์)</th>
-            <th style="width:130px">Barcode / Reference<div class="th-sub">ข้อมูลอ้างอิง</div></th>
-            <th style="width:120px">ประเภท</th>
-            <th style="width:140px">โอนจาก / Origin Acc.</th>
-            <th>โอนไป / Dest. Acc.</th>
-            <th style="width:34px"></th>
+            <th style="width:130px">Barcode ที่อ่านได้</th>
+            <th style="width:150px">Reference ที่อ่านได้</th>
+            <th style="width:100px">ลายเซ็น</th>
+            <th style="width:100px">ตราประทับ</th>
+            <th style="width:150px">ต้องเลือก</th>
+            <th style="width:150px">Reference (ใช้ตั้งชื่อไฟล์)</th>
+            <th style="width:125px">Barcode / Reference<div class="th-sub">ข้อมูลอ้างอิง</div></th>
+            <th style="width:110px">ประเภท</th>
+            <th>โอนจาก / โอนไป</th>
+            <th style="width:32px"></th>
           </tr>
         </thead>
         <tbody id="batchBody"></tbody>
@@ -1337,9 +1340,9 @@ function renderTable() {
       '</div></td>' +
       '<td>' + bcHtml + '</td>' +
       '<td>' + readHtml + '</td>' +
-      '<td>' + pickHtml + '</td>' +
       '<td>' + inkCell(row, 'signature') + '</td>' +
       '<td>' + inkCell(row, 'stamp') + '</td>' +
+      '<td>' + pickHtml + '</td>' +
       '<td>' +
         '<input class="' + bcClass + '" value="' + esc(row.barcode) + '" ' +
           'placeholder="พิมพ์เลข Reference" ' +
@@ -1353,12 +1356,11 @@ function renderTable() {
       '</td>' +
       '<td class="ro">' + refIdCell(row.doc, row) + '</td>' +
       '<td class="ro">' + (esc(ev.itemName) || '—') + '</td>' +
-      '<td class="ro">' + partyCell(ev.originAcc, ev.transferFrom) + '</td>' +
-      '<td class="ro">' + partyCell(ev.destAcc, ev.transferTo) + '</td>' +
+      '<td class="ro">' + routeCell(ev) + '</td>' +
       '<td><button class="remove-row-btn" onclick="removeRow(\'' + rid + '\')">✕</button></td>' +
     '</tr>';
   }).join('') ||
-    '<tr><td colspan="13"><div class="empty2">ไม่มีรายการในตัวกรองนี้ — ' +
+    '<tr><td colspan="12"><div class="empty2">ไม่มีรายการในตัวกรองนี้ — ' +
     'กด "ทั้งหมด" เพื่อดูทุกรายการ</div></td></tr>';
 }
 
@@ -1533,11 +1535,20 @@ function updateEdit(id, field, value) {
  * เรียงตามลำดับที่คนอ่านจริง: ของอะไร → จากใคร → ไปไหน
  * เลขบัญชีอยู่บรรทัดบนของแต่ละฝั่ง เพราะเป็นตัวที่ใช้ยืนยันกับเอกสาร
  */
-/** ต้นทางหรือปลายทาง — เลขบัญชีอยู่บน ชื่ออยู่ล่าง */
-function partyCell(acc, name) {
-  if (!acc && !name) return '—';
-  return (acc ? '<div class="rb-acc">' + esc(acc) + '</div>' : '') +
-         (name ? '<div>' + esc(name) + '</div>' : '');
+/**
+ * ต้นทางกับปลายทางในช่องเดียว
+ * ปลายทางมีเส้นคั่นซ้ายมือ เพื่อแยกจากต้นทางโดยไม่ต้องใส่หัวข้อ
+ */
+function routeCell(ev) {
+  if (!ev.originAcc && !ev.transferFrom && !ev.destAcc && !ev.transferTo) return '—';
+  var line = function (acc, name, cls) {
+    if (!acc && !name) return '';
+    return '<div class="' + cls + '">' +
+      (acc ? '<div class="rb-acc">' + esc(acc) + '</div>' : '') +
+      (name ? '<div>' + esc(name) + '</div>' : '') + '</div>';
+  };
+  return line(ev.originAcc, ev.transferFrom, 'rt-from') +
+         line(ev.destAcc, ev.transferTo, 'rt-to');
 }
 
 /** ช่อง Barcode / Reference จากรายการอ้างอิง ไว้เทียบกับภาพ */
@@ -1549,9 +1560,13 @@ function refIdCell(doc, row) {
               refBc.toUpperCase() === String(row.readBarcode).toUpperCase();
   var okRef = refRef && row.readValue &&
               refRef.toUpperCase() === String(row.readValue).toUpperCase();
-  return (refBc ? '<div class="rbrow"><span class="rb-m">' + esc(refBc) + '</span>' +
+  // ต้องบอกว่าบรรทัดไหนเป็นบาร์โค้ด บรรทัดไหนเป็น Reference
+  // ไม่งั้นเห็นเลขสองตัวแล้วแยกไม่ออกว่าอันไหนคืออะไร
+  return (refBc ? '<div class="rbrow"><span class="rb-t">B</span>' +
+            '<span class="rb-m">' + esc(refBc) + '</span>' +
             (okBc ? '<span class="rb-ok">ตรง</span>' : '') + '</div>' : '') +
-         (refRef ? '<div class="rbrow"><span class="rb-m">' + esc(refRef) + '</span>' +
+         (refRef ? '<div class="rbrow"><span class="rb-t">R</span>' +
+            '<span class="rb-m">' + esc(refRef) + '</span>' +
             (okRef ? '<span class="rb-ok">ตรง</span>' : '') + '</div>' : '');
 }
 
