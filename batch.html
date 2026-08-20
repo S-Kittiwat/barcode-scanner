@@ -1608,11 +1608,13 @@ function initReader() {
   var sel = document.getElementById('docType');
   sel.innerHTML = '';
   Object.keys(_types).forEach(function (k) {
+    if (k === 'auto') return;   // ตัดการเดาชนิดออก ให้คนเลือกเอง
     var o = document.createElement('option');
-    o.value = k; o.textContent = _types[k].name;
+    o.value = k; o.textContent = _types[k].name +
+      (_types[k]._custom ? '  (ตั้งค่าเองแล้ว)' : '');
     sel.appendChild(o);
   });
-  sel.value = localStorage.getItem('docScanLastType') || 'auto';
+  sel.value = localStorage.getItem('docScanLastType') || 'loscam';
   sel.addEventListener('change', function () {
     localStorage.setItem('docScanLastType', sel.value);
     showCustomHint();
@@ -1665,9 +1667,6 @@ function showCustomHint() {
     el.className = 'csvst ok';
     el.textContent = 'ชนิดนี้ใช้กรอบและมุมที่ตั้งเองไว้ (' + (t.rotate || 0) +
       ' องศา) — ระบบจะไม่ปรับอัตโนมัติ';
-  } else if (k === 'auto') {
-    el.className = 'csvst';
-    el.textContent = 'ระบบจะเดาชนิดเอกสารและหามุมที่อ่านได้ให้เอง';
   } else {
     el.className = 'csvst';
     el.textContent = 'ใช้ค่าตั้งต้น — ถ้าอ่านไม่ตรง กด "กำหนดพื้นที่อ่านเอง"';
@@ -1712,13 +1711,8 @@ async function runAutoRead() {
 
   try {
     var key = document.getElementById('docType').value;
-    if (key === 'auto') {
-      rprog(0.02, 'กำลังตรวจชนิดเอกสาร');
-      key = await DocScan.Reader.detectType(_lastPdfJs, _types);
-      document.getElementById('docType').value = key;
-      rprog(0.05, 'ตรวจได้ว่าเป็น ' + _types[key].name);
-    }
     var type = _types[key];
+    if (!type) { alert('กรุณาเลือกชนิดเอกสาร'); return; }
 
     var results = await DocScan.Reader.readAllPages(_lastPdfJs, type, {
       signal: _readAbort.signal,
@@ -1727,10 +1721,7 @@ async function runAutoRead() {
         ? (DocScan.Ink.loadRules()[key] || null) : null,
       checkInk: DocScan.Ink.checkPage,
       onProgress: function (m) { rprog(0.06, m); },
-      onRotate: function (rot) {
-        // เครื่องสแกนคนละเครื่องให้ไฟล์คนละทิศ ระบบหาเองแล้วบอกให้รู้
-        showToast('ปรับมุมอ่านเป็น ' + rot + ' องศาให้อัตโนมัติ', 'success');
-      },
+
       onPage: function (r, i, n) {
         rprog(0.06 + 0.9 * i / n,
           'อ่านหน้า ' + i + ' จาก ' + n + (r.value ? '  →  ' + r.value : '  →  อ่านไม่ได้'));
@@ -1853,10 +1844,7 @@ var _pickPage = 1, _pickRegions = { barcode: null, ocr: null }, _pickKey = 'cmd'
 async function openPicker() {
   if (!_lastPdfJs) { alert('ยังไม่ได้อัปโหลดไฟล์ PDF'); return; }
   _pickKey = document.getElementById('docType').value;
-  if (_pickKey === 'auto') {
-    _pickKey = await DocScan.Reader.detectType(_lastPdfJs, _types);
-    document.getElementById('docType').value = _pickKey;
-  }
+
   var t = _types[_pickKey];
   _pickRegions = { barcode: t.barcode ? Object.assign({}, t.barcode) : null,
                    ocr: t.ocr ? Object.assign({}, t.ocr) : null };
@@ -1869,17 +1857,21 @@ async function openPicker() {
 
 async function drawPick() {
   var page = await _lastPdfJs.getPage(_pickPage);
-  var rot = ((page.rotate || 0) + Number(document.getElementById('pickRotate').value) + 360) % 360;
-  var vp0 = page.getViewport({ scale: 1, rotation: rot });
-  var scale = Math.min(760 / vp0.width, 2);
-  var vp = page.getViewport({ scale: scale, rotation: rot });
-  var cv = document.getElementById('pickCanvas');
-  cv.width = Math.floor(vp.width); cv.height = Math.floor(vp.height);
-  var ctx = cv.getContext('2d');
-  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, cv.width, cv.height);
-  await page.render({ canvasContext: ctx, viewport: vp }).promise;
+  var rotate = Number(document.getElementById('pickRotate').value);
+
+  // ต้องใช้ฟังก์ชันเดียวกับตัวอ่านจริง ไม่ใช่คำนวณมุมเอง
+  // เดิมตรงนี้บวก page.rotate เพิ่ม แต่ตัวอ่านไม่บวก
+  // ผลคือหน้าตัวอย่างหมุนถูกแต่ตอนอ่านจริงไม่หมุน กรอบจึงไปครอบผิดที่
+  var full = await DocScan.Reader.renderPage(page, 110, rotate);
   page.cleanup();
-  document.getElementById('pickPage').textContent = 'หน้า ' + _pickPage + ' / ' + _lastPdfJs.numPages;
+
+  var cv = document.getElementById('pickCanvas');
+  cv.width = full.width; cv.height = full.height;
+  cv.getContext('2d').drawImage(full, 0, 0);
+  full.width = full.height = 0;
+
+  document.getElementById('pickPage').textContent =
+    'หน้า ' + _pickPage + ' / ' + _lastPdfJs.numPages;
   drawPickBoxes();
 }
 
