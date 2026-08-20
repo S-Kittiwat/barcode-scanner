@@ -1500,6 +1500,13 @@ function updateEdit(id, field, value) {
  * เรียงตามลำดับที่คนอ่านจริง: ของอะไร → จากใคร → ไปไหน
  * เลขบัญชีอยู่บรรทัดบนของแต่ละฝั่ง เพราะเป็นตัวที่ใช้ยืนยันกับเอกสาร
  */
+/** ต้นทางหรือปลายทาง — เลขบัญชีอยู่บน ชื่ออยู่ล่าง */
+function partyCell(acc, name) {
+  if (!acc && !name) return '—';
+  return (acc ? '<div class="rb-acc">' + esc(acc) + '</div>' : '') +
+         (name ? '<div>' + esc(name) + '</div>' : '');
+}
+
 /** ช่อง Barcode / Reference จากรายการอ้างอิง ไว้เทียบกับภาพ */
 function refIdCell(doc, row) {
   if (!doc) return '<span class="inkna">ไม่พบในรายการ</span>';
@@ -1570,7 +1577,7 @@ function applySuggestion(id, value) {
   if (!row) return;
   row.barcode = value;
   row.tier = 'yellow';
-  row.tierWhy = 'คนเลือกค่านี้เอง';
+  row.why = 'คนเลือกค่านี้เอง';
   row.suggestion = '';
   row.editVals.refNo = value;
   onBarcodeChange(row.id, value);
@@ -2134,7 +2141,7 @@ async function applyReadResults(results, typeKey) {
     keepIds[first.id] = true;
 
     first.tier = cls.tier;
-    first.tierWhy = cls.head;
+    first.why = cls.head;
     first.suggestion = cls.suggestion || '';
     first.sampled = sampled;
     first.readSource = d.source;
