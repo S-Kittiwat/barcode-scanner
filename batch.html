@@ -311,11 +311,18 @@ main{width:100%;max-width:100%;padding:20px 24px 100px;}
 .refout.none{color:var(--danger)}
 .readval{font-family:var(--mono);font-size:15px;font-weight:600;letter-spacing:.04em}
 .readsrc{font-size:11px;color:var(--muted);margin-top:2px}
+.bcline{font-size:11.5px;color:var(--muted);margin-top:5px;font-family:var(--mono)}
+.bcline b{color:var(--text)}
+.bcline.none{color:var(--danger)}
+.bcok{color:var(--success);margin-left:6px;font-weight:600}
+.bcimg{max-height:34px}
 .readcrop{display:block;max-width:100%;max-height:52px;margin-top:6px;border:1px solid var(--border);
   border-radius:4px;background:#fff;cursor:zoom-in;image-rendering:pixelated}
 .readnone{font-size:12px;color:var(--muted);line-height:1.6}
 td.ro{font-size:13px;color:var(--text);vertical-align:top}
 td.ro .acc{font-family:var(--mono);font-size:11.5px;color:var(--muted);margin-top:2px}
+.empty2{color:var(--muted);font-size:13px;padding:26px;text-align:center;line-height:1.9}
+.empty2 b{color:var(--text);display:block;font-size:15px;margin-bottom:6px}
 .csvst{font-size:12.5px;color:var(--muted);margin-top:10px;font-family:var(--mono)}
 .csvst.ok{color:var(--success)}
 .csvst.bad{color:var(--danger)}
@@ -485,6 +492,8 @@ window.dispatchEvent(new Event('docscan-ready'));
       <div>ยังไม่มีไฟล์ — Upload ไฟล์เพื่อเริ่มต้น</div>
     </div>
     <div class="batch-table-wrap" id="batchTableWrap" style="display:none;">
+      <div class="empty2" id="beforeRead" style="display:none"></div>
+      <div id="tableWrap" style="display:none">
       <table>
         <thead>
           <tr>
@@ -499,6 +508,7 @@ window.dispatchEvent(new Event('docscan-ready'));
         </thead>
         <tbody id="batchBody"></tbody>
       </table>
+      </div>
     </div>
   </div>
   
@@ -815,9 +825,17 @@ async function processFiles(files) {
     showToast('⚠️ '+rows.length+' รายการ — แนะนำแบ่ง batch ไม่เกิน '+BATCH_WARN,'info');
   }
 
-  renderTable();
   updateBatchCounter();
   showReaderPanel(rows.length > 0);
+  // ยังไม่แสดงตาราง — รอให้อ่านเสร็จก่อน
+  // เพราะก่อนอ่านยังไม่รู้ว่าหน้าไหนเป็นสำเนาของกัน
+  // แสดงทีละหน้าตอนนี้จะทำให้เห็นรายการเกินจริงแล้วยุบทีหลัง
+  document.getElementById('tableWrap').style.display = 'none';
+  document.getElementById('beforeRead').style.display = 'block';
+  document.getElementById('beforeRead').innerHTML =
+    '<b>อัปโหลดแล้ว ' + rows.length + ' หน้า</b>' +
+    'ขั้นถัดไป: ตรวจการตั้งค่าการอ่าน แล้วกด "อ่านเอกสารอัตโนมัติ"<br>' +
+    'รายการเอกสารจะขึ้นหลังอ่านเสร็จ เพราะระบบต้องรู้ก่อนว่าหน้าไหนเป็นสำเนาของกัน';
 }
 
 // ── Process รูปภาพ 1 ไฟล์ = 1 แถว ────────────────────────
@@ -872,10 +890,10 @@ async function processPDF(file, skippedFiles) {
         skippedFiles.push(file.name); return;
       }
       var row = _makeRow(file, 'pdf');
+      // ยังไม่บีบไฟล์ตรงนี้ เพราะยังไม่รู้ว่าหน้าไหนเป็นสำเนาของกัน
+      // บีบตอนกดบันทึก จะได้ไม่ทำงานเสียเปล่ากับหน้าที่จะถูกรวม
       row.photoData    = await _renderPDFPage(pdfJs, 1, 200);
-      row.pdfPageData  = await _extractPDFPage(pdfJs, 1);
-      row.originalBytes   = arrayBuf.byteLength;
-      row.compressedBytes = row.pdfPageData.length;
+      row.originalBytes = arrayBuf.byteLength;
       row.originalPdf  = arrayBuf.slice(0); // ← เก็บ original ไว้ preview
       row.pageNo       = 1;
       row.originalPage = 1;
@@ -907,10 +925,8 @@ async function processPDF(file, skippedFiles) {
       var virtualFile = { name: pageName, type: 'application/pdf', size: 0, _virtual: true };
       var row = _makeRow(virtualFile, 'pdf');
 
-      row.photoData    = await _renderPDFPage(pdfJs, p, 200);
-      row.pdfPageData  = await _extractPDFPage(pdfJs, p);
-      row.originalBytes   = Math.round(arrayBuf.byteLength / numPages);
-      row.compressedBytes = row.pdfPageData.length;
+      row.photoData     = await _renderPDFPage(pdfJs, p, 200);
+      row.originalBytes = Math.round(arrayBuf.byteLength / numPages);
       row.originalPdf  = sharedBuf; // ← ชี้ไป original เดียวกัน
       row.pageNo       = p;
       row.originalPage = p;         // ← หน้าที่ต้องการ
@@ -955,6 +971,26 @@ async function _extractPDFPage(pdfJs, pageNum) {
   return await DocScan.compressPage(pdfJs, pageNum, {
     dpi: PDF_DPI, quality: PDF_QUALITY
   });
+}
+
+/**
+ * สร้างไฟล์ PDF ของเอกสารหนึ่งใบ รวมทุกหน้าที่เป็นสำเนาของกัน
+ *
+ * เดิมเก็บแค่หน้าแรกแล้วทิ้งสำเนาที่เหลือ ซึ่งทำให้เอกสารอย่าง CMD
+ * ที่มีต้นฉบับกับสำเนาคนละใบ หายไปครึ่งหนึ่งโดยไม่มีใครรู้
+ */
+async function buildDocPdf(pdfJs, pageNos) {
+  if (!pageNos || !pageNos.length) return null;
+  if (pageNos.length === 1) return await _extractPDFPage(pdfJs, pageNos[0]);
+
+  var merged = await PDFLib.PDFDocument.create();
+  for (var i = 0; i < pageNos.length; i++) {
+    var one = await _extractPDFPage(pdfJs, pageNos[i]);
+    var src = await PDFLib.PDFDocument.load(one);
+    var copied = await merged.copyPages(src, src.getPageIndices());
+    copied.forEach(function (pg) { merged.addPage(pg); });
+  }
+  return await merged.save();
 }
 
 // 200dpi คือขั้นต่ำที่บาร์โค้ดยังมีระยะห่างพอ — วัดแล้วต่ำกว่านี้เริ่มเสี่ยง
@@ -1102,7 +1138,9 @@ function renderTable() {
       }
       if (row.candidates && row.candidates.length > 1) {
         readHtml += '<div class="why" style="color:var(--warn);font-weight:600">' +
-          'เลือกค่าที่ตรงกับเอกสาร</div>';
+          (row.crossMismatch
+            ? 'บาร์โค้ดกับ OCR ไม่ตรงกัน — ปุ่มแรกคือค่าที่บาร์โค้ดชี้'
+            : 'เลือกค่าที่ตรงกับเอกสาร') + '</div>';
         readHtml += '<div class="cands">' + row.candidates.map(function (c) {
           return '<button class="candbtn' + (c === row.barcode ? ' on' : '') +
             '" onclick="applySuggestion(\'' + rid + '\',\'' + esc(c) + '\')">' +
@@ -1389,6 +1427,8 @@ function clearAll(){
   if(!rows.length||!confirm('ล้างทั้งหมด?'))return;
   rows=[]; _lastPdfJs=null; _lastFileName='';
   renderTable(); updateBatchCounter(); showReaderPanel(false);
+  document.getElementById('tableWrap').style.display='none';
+  document.getElementById('beforeRead').style.display='none';
   document.getElementById('rsum').style.display='none';
   document.getElementById('rprog').classList.remove('on');
 }
@@ -1430,24 +1470,45 @@ async function submitBatch(){
     // ── อัปโหลดเป็นชุด ชุดละ 5 ไฟล์ ────────────────────
     // เดิมยิงหนึ่งคำขอต่อหนึ่งไฟล์ 50 หน้า = 50 คำขอ
     // ตอนนี้เหลือ 10 คำขอ และมี client_id กันไฟล์ซ้ำเมื่อ retry
-    var uploadList = ready.filter(function (r) {
-      return r.pdfPageData || r.photoData;
-    }).map(function (r) {
-      var d = r.pdfPageData || r.photoData;
+    // บีบไฟล์ตรงนี้ ไม่ใช่ตอนอัปโหลดเข้ามา
+    // เพราะตอนนั้นยังไม่รู้ว่าหน้าไหนเป็นสำเนาของกัน จะบีบเสียเปล่า
+    var uploadList = [];
+    for (var ri = 0; ri < ready.length; ri++) {
+      var r = ready[ri];
+      btn.textContent = 'กำลังเตรียมไฟล์ ' + (ri + 1) + '/' + ready.length;
+
+      var d = r.pdfPageData;
+      if (!d && _lastPdfJs && r.pageNos && r.pageNos.length) {
+        d = await buildDocPdf(_lastPdfJs, r.pageNos);
+        r.pdfPageData = d;
+        r.compressedBytes = d ? d.length : 0;
+      } else if (!d && _lastPdfJs && r.pageNo) {
+        d = await _extractPDFPage(_lastPdfJs, r.pageNo);
+        r.pdfPageData = d;
+        r.compressedBytes = d.length;
+      }
+      if (!d) d = r.photoData;
+      if (!d) continue;
+
       var str = d;
       if (d instanceof Uint8Array) {
         var binary = '';
-        for (var b = 0; b < d.byteLength; b++) binary += String.fromCharCode(d[b]);
+        var chunk = 0x8000;
+        for (var b = 0; b < d.length; b += chunk) {
+          binary += String.fromCharCode.apply(null, d.subarray(b, b + chunk));
+        }
         str = 'data:application/pdf;base64,' + btoa(binary);
       }
-      return {
+      uploadList.push({
         client_id: r.client_id,
         barcode: r.barcode,
         ref_no: r.editVals.refNo || r.barcode,
         period: DocScan.storagePeriod(),   // โฟลเดอร์ปลายทาง เช่น 2026-08
         image: str
-      };
-    });
+      });
+      await new Promise(function (res) { setTimeout(res, 0); });
+    }
+    btn.textContent = 'กำลังอัปโหลด...';
 
     var cs = DocScan.compressionSummary(ready);
     if (cs) console.log('[DocScan] บีบไฟล์: ' + cs.text);
@@ -1817,6 +1878,16 @@ async function runAutoRead() {
     var type = _types[key];
     if (!type) { alert('กรุณาเลือกชนิดเอกสาร'); return; }
 
+    // เตือนครั้งเดียวถ้ายังไม่เคยตั้งค่าชนิดนี้กับเครื่องสแกนที่ใช้อยู่
+    // ค่าตั้งต้นมาจากเอกสารตัวอย่าง ซึ่งอาจวางไม่ตรงกับของแต่ละที่
+    if (!type._custom && !sessionStorage.getItem('warnedPreset:' + key)) {
+      sessionStorage.setItem('warnedPreset:' + key, '1');
+      if (!confirm('ชนิด "' + type.name + '" ยังใช้ค่าตั้งต้นอยู่\n\n' +
+          'ค่าตั้งต้นมาจากเอกสารตัวอย่าง อาจไม่ตรงกับเครื่องสแกนของคุณ\n' +
+          'แนะนำให้กด "กำหนดพื้นที่อ่านเอง" แล้วทดสอบก่อนหนึ่งครั้ง\n\n' +
+          'อ่านด้วยค่าตั้งต้นเลยไหม')) return;
+    }
+
     var results = await DocScan.Reader.readAllPages(_lastPdfJs, type, {
       signal: _readAbort.signal,
       ocrLevel: document.getElementById('ocrLevel').value,
@@ -1864,7 +1935,13 @@ async function applyReadResults(results, typeKey) {
   rprog(0.97, 'กำลังตรวจกับรายการอ้างอิง');
   var refs = { index: new Map(), neighbors: {} };
   try {
-    refs = await fetchRefs(docs.map(function (d) { return d.value; }).filter(Boolean));
+    // ถามทั้งเลขที่อ่านได้และบาร์โค้ด เพื่อให้ตรวจสองทางได้
+    var keys = [];
+    docs.forEach(function (d) {
+      if (d.value) keys.push(d.value);
+      if (d.barcodeValue) keys.push(d.barcodeValue);
+    });
+    refs = await fetchRefs(keys);
   } catch (err) {
     showToast('ตรวจกับรายการอ้างอิงไม่สำเร็จ: ' + (err.message || err), 'error');
   }
@@ -1872,7 +1949,7 @@ async function applyReadResults(results, typeKey) {
   var idx = refs.index;
   _refNeighbors = refs.neighbors || {};
   window._refNeighbors = _refNeighbors;
-  var count = { green: 0, yellow: 0, red: 0, sampled: 0, noInk: 0 };
+  var count = { green: 0, yellow: 0, red: 0, sampled: 0, noInk: 0, crossOk: 0 };
   var keepIds = {};
 
   docs.forEach(function (d) {
@@ -1888,6 +1965,7 @@ async function applyReadResults(results, typeKey) {
                   DocScan.Reader.sampleFlag(d.value || ('p' + d.pages[0].page), pct);
     if (sampled) count.sampled++;
     if (d.ink && !d.ink.ok) count.noInk++;
+    if (cls.reason === 'cross_verified') count.crossOk++;
     count[cls.tier]++;
 
     // แถวแรกของกลุ่มเป็นตัวแทนเอกสารใบนี้
@@ -1901,6 +1979,7 @@ async function applyReadResults(results, typeKey) {
     first.sampled = sampled;
     first.readSource = d.source;
     first.pageNos = d.pages.map(function (p) { return p.page; });
+    first.pdfPageData = null;   // บีบใหม่ตอนบันทึก ให้ครบทุกสำเนา
 
     // เก็บค่าที่ระบบอ่านได้แยกจากค่าที่ใช้จริง
     // เพื่อให้เห็นได้ว่าคนแก้ไปจากที่ระบบอ่านมาหรือไม่
@@ -1912,10 +1991,12 @@ async function applyReadResults(results, typeKey) {
     first.readValue = d.value || '';
     first.readRefNo = d.refNo || '';
     first.readBarcode = d.barcodeValue || '';
+    first.barcodeCrop = d.barcodeCrop || '';
     first.needsLookup = !!d.needsLookup;
     var oc = d.pages[0] && d.pages[0].ocr;
     first.readCrop = oc && oc.crop ? oc.crop : '';
     // ค่าที่ OCR ลังเล ให้คนเลือกด้วยคลิกเดียว เร็วกว่าพิมพ์ใหม่และพิมพ์ผิดยาก
+    first.crossMismatch = (cls.reason === 'cross_mismatch');
     first.candidates = (cls.candidates && cls.candidates.length)
       ? cls.candidates
       : (oc && oc.candidates && oc.candidates.length > 1
@@ -1930,7 +2011,9 @@ async function applyReadResults(results, typeKey) {
       if (d.refNo && !first.editVals.refNo) first.editVals.refNo = d.refNo;
     }
 
-    // หน้าที่เหลือในกลุ่มเป็นสำเนา ไม่ต้องเป็นแถวแยก
+    // หน้าที่เหลือในกลุ่มเป็นสำเนาของใบเดียวกัน ไม่ต้องเป็นแถวแยก
+    // แต่ต้องเก็บเลขหน้าไว้ เพราะไฟล์ที่อัปต้องมีครบทุกสำเนา
+    // ไม่ใช่เก็บแค่หน้าแรกแล้วทิ้งที่เหลือ
     d.pages.slice(1).forEach(function (p) {
       var dup = rows.find(function (r) { return r.pageNo === p.page; });
       if (dup) dup._mergedInto = first.id;
@@ -1941,6 +2024,8 @@ async function applyReadResults(results, typeKey) {
   rows = rows.filter(function (r) { return !r._mergedInto; });
   var merged = before - rows.length;
 
+  document.getElementById('beforeRead').style.display = 'none';
+  document.getElementById('tableWrap').style.display = 'block';
   renderTable();
   updateBatchCounter();
 
@@ -1948,6 +2033,8 @@ async function applyReadResults(results, typeKey) {
   sum.style.display = 'flex';
   sum.innerHTML =
     '<div class="rchip g"><b>' + count.green + '</b>ผ่านอัตโนมัติ</div>' +
+    (count.crossOk ? '<div class="rchip g"><b>' + count.crossOk +
+      '</b>ยืนยันสองทาง</div>' : '') +
     '<div class="rchip y"><b>' + count.yellow + '</b>ควรยืนยัน</div>' +
     '<div class="rchip r"><b>' + count.red + '</b>ต้องตรวจ</div>' +
     '<div class="rchip"><b>' + count.sampled + '</b>สุ่มตรวจ</div>' +
