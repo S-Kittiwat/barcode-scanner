@@ -295,6 +295,17 @@ main{width:100%;max-width:100%;padding:20px 24px 100px;}
   font-weight:600;cursor:pointer}
 .candbtn:hover{border-color:var(--accent);color:var(--accent)}
 .candbtn.on{background:var(--accent);border-color:var(--accent);color:#0f172a;font-weight:600}
+.rb-item{font-size:13px;font-weight:600;margin-bottom:5px}
+.rb-line{font-size:12.5px;line-height:1.5;margin-bottom:4px}
+.rb-line .rb-acc{display:block;font-family:var(--mono);font-size:11px;color:var(--muted)}
+.rb-line .rb-name{display:block}
+.rb-line.rb-to{padding-left:9px;border-left:2px solid var(--border)}
+.inkitem{margin-bottom:9px}
+.inklab{font-size:11.5px;color:var(--muted);display:flex;gap:6px;align-items:center}
+.inkyes{color:var(--success);font-weight:600}
+.inkno{color:var(--danger);font-weight:600}
+.inkimg{display:block;max-width:100%;max-height:44px;margin-top:3px;border:1px solid var(--border);
+  border-radius:4px;background:#fff;cursor:zoom-in}
 .refout{font-size:11.5px;color:var(--muted);margin-top:5px;font-family:var(--mono)}
 .refout b{color:var(--success)}
 .refout.none{color:var(--danger)}
@@ -465,11 +476,10 @@ window.dispatchEvent(new Event('docscan-ready'));
           <tr>
             <th style="width:3%;">#</th>
             <th style="width:12%;">เอกสาร</th>
-            <th style="width:17%;">สิ่งที่ระบบอ่านได้</th>
-            <th style="width:21%;">Reference (ใช้ตั้งชื่อไฟล์)</th>
-            <th style="width:14%;">ประเภท</th>
-            <th style="width:15%;">โอนจาก / Origin Acc.</th>
-            <th style="width:15%;">โอนไป / Dest. Acc.</th>
+            <th style="width:19%;">สิ่งที่ระบบอ่านได้</th>
+            <th style="width:19%;">Reference (ใช้ตั้งชื่อไฟล์)</th>
+            <th style="width:16%;">ลายเซ็น / ตราประทับ</th>
+            <th style="width:23%;">ข้อมูลเอกสาร</th>
             <th style="width:3%;"></th>
           </tr>
         </thead>
@@ -494,13 +504,23 @@ window.dispatchEvent(new Event('docscan-ready'));
       <select id="pickTarget" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);color:var(--text);padding:9px 11px;font-family:var(--font)">
         <option value="barcode">พื้นที่บาร์โค้ด</option>
         <option value="ocr">พื้นที่เลขที่เอกสาร</option>
+        <option value="signature">พื้นที่ลายเซ็น</option>
+        <option value="stamp">พื้นที่ตราประทับ</option>
       </select>
     </div>
     <div class="fld" style="display:flex;flex-direction:column;gap:5px">
       <label style="font-size:12px;color:var(--muted)">หมุนหน้า</label>
       <select id="pickRotate" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);color:var(--text);padding:9px 11px;font-family:var(--font)">
-        <option value="0">ไม่หมุน</option><option value="90">90°</option>
+        <option value="0">ไม่หมุน (เหมือนไฟล์)</option><option value="90">90°</option>
         <option value="180">180°</option><option value="270">270°</option>
+      </select>
+    </div>
+    <div class="fld" style="display:flex;flex-direction:column;gap:5px">
+      <label style="font-size:12px;color:var(--muted)">หมุนข้อความในกรอบ</label>
+      <select id="pickCropRot" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);color:var(--text);padding:9px 11px;font-family:var(--font)">
+        <option value="auto">หาเอง</option>
+        <option value="0">ไม่หมุน</option><option value="90">90°</option>
+        <option value="270">270°</option>
       </select>
     </div>
     <button class="rbtn ghost" id="pickPrev">◀</button>
@@ -513,6 +533,8 @@ window.dispatchEvent(new Event('docscan-ready'));
     <canvas id="pickCanvas"></canvas>
     <div class="pickbox" id="pkB"><span>บาร์โค้ด</span></div>
     <div class="pickbox" id="pkO"><span>เลขที่เอกสาร</span></div>
+    <div class="pickbox" id="pkS"><span>ลายเซ็น</span></div>
+    <div class="pickbox" id="pkT"><span>ตราประทับ</span></div>
   </div>
   <div id="pickResult" style="font-family:var(--mono);font-size:12.5px;color:var(--muted);margin-top:10px;min-height:20px"></div>
 
@@ -1047,7 +1069,7 @@ function renderTable() {
       }
       if (row.readCrop) {
         readHtml += '<img class="readcrop" src="' + row.readCrop +
-          '" alt="ภาพที่อ่าน" onclick="openPreview(\'' + rid + '\')">';
+          '" alt="ภาพที่อ่าน" title="กดเพื่อดูขนาดเต็ม" onclick="openImage(this.src)">';
       }
       if (row.candidates && row.candidates.length > 1) {
         readHtml += '<div class="why" style="color:var(--warn);font-weight:600">' +
@@ -1089,11 +1111,8 @@ function renderTable() {
           ? '<div class="refout">ชื่อไฟล์: <b>' + esc(ev.refNo) + '</b>.pdf</div>'
           : '<div class="refout none">ยังไม่มีเลข Reference — ตั้งชื่อไฟล์ไม่ได้</div>') +
       '</td>' +
-      '<td class="ro">' + (esc(ev.itemName) || '—') + '</td>' +
-      '<td class="ro">' + (esc(ev.transferFrom) || '—') +
-        (ev.originAcc ? '<div class="acc">' + esc(ev.originAcc) + '</div>' : '') + '</td>' +
-      '<td class="ro">' + (esc(ev.transferTo) || '—') +
-        (ev.destAcc ? '<div class="acc">' + esc(ev.destAcc) + '</div>' : '') + '</td>' +
+      '<td>' + inkCell(row) + '</td>' +
+      '<td class="ro">' + refBlock(ev) + '</td>' +
       '<td><button class="remove-row-btn" onclick="removeRow(\'' + rid + '\')">✕</button></td>' +
     '</tr>';
   }).join('');
@@ -1250,6 +1269,59 @@ function updateEdit(id, field, value) {
     row.status = newStatus;
   }
   updateSubmitBtn();
+}
+
+/**
+ * ข้อมูลอ้างอิงแบบประหยัดที่
+ * เรียงตามลำดับที่คนอ่านจริง: ของอะไร → จากใคร → ไปไหน
+ * เลขบัญชีอยู่บรรทัดบนของแต่ละฝั่ง เพราะเป็นตัวที่ใช้ยืนยันกับเอกสาร
+ */
+function refBlock(ev) {
+  if (!ev.itemName && !ev.transferFrom && !ev.transferTo) return '—';
+  var out = '';
+  if (ev.itemName) out += '<div class="rb-item">' + esc(ev.itemName) + '</div>';
+  if (ev.originAcc || ev.transferFrom) {
+    out += '<div class="rb-line">' +
+      (ev.originAcc ? '<span class="rb-acc">' + esc(ev.originAcc) + '</span>' : '') +
+      (ev.transferFrom ? '<span class="rb-name">' + esc(ev.transferFrom) + '</span>' : '') +
+      '</div>';
+  }
+  if (ev.destAcc || ev.transferTo) {
+    out += '<div class="rb-line rb-to">' +
+      (ev.destAcc ? '<span class="rb-acc">' + esc(ev.destAcc) + '</span>' : '') +
+      (ev.transferTo ? '<span class="rb-name">' + esc(ev.transferTo) + '</span>' : '') +
+      '</div>';
+  }
+  return out;
+}
+
+/** ช่องลายเซ็นและตราประทับ พร้อมภาพให้กดดูใหญ่ */
+function inkCell(row) {
+  if (!row.ink || !row.ink.checks || !row.ink.checks.length) {
+    return '<span style="font-size:11.5px;color:var(--muted)">ไม่ได้ตรวจ</span>';
+  }
+  return row.ink.checks.map(function (c) {
+    var ok = c.pass;
+    return '<div class="inkitem">' +
+      '<div class="inklab">' + esc(c.label) +
+        '<span class="' + (ok ? 'inkyes' : 'inkno') + '">' +
+          (ok ? 'มีแล้ว' : 'ยังไม่มี') + '</span></div>' +
+      (c.crop
+        ? '<img class="inkimg" src="' + c.crop + '" alt="' + esc(c.label) +
+          '" onclick="openImage(this.src)">'
+        : '') +
+      '</div>';
+  }).join('');
+}
+
+/** เปิดภาพขนาดเต็มในแท็บใหม่ */
+function openImage(src) {
+  var w = window.open('', '_blank');
+  if (!w) return;
+  w.document.write('<body style="margin:0;background:#111;display:flex;' +
+    'align-items:center;justify-content:center;min-height:100vh">' +
+    '<img src="' + src + '" style="max-width:100%;max-height:100vh"></body>');
+  w.document.close();
 }
 
 /**
@@ -1845,9 +1917,18 @@ async function openPicker() {
   _pickKey = document.getElementById('docType').value;
 
   var t = _types[_pickKey];
-  _pickRegions = { barcode: t.barcode ? Object.assign({}, t.barcode) : null,
-                   ocr: t.ocr ? Object.assign({}, t.ocr) : null };
+  var ink = DocScan.Ink.loadRules()[_pickKey] || {};
+  _pickRegions = {
+    barcode: t.barcode ? Object.assign({}, t.barcode) : null,
+    ocr: t.ocr ? Object.assign({}, t.ocr) : null,
+    signature: (ink.signature && ink.signature.region)
+      ? Object.assign({}, ink.signature.region) : null,
+    stamp: (ink.stamp && ink.stamp.region)
+      ? Object.assign({}, ink.stamp.region) : null
+  };
   document.getElementById('pickRotate').value = String(t.rotate || 0);
+  document.getElementById('pickCropRot').value =
+    (t.cropRotate === undefined || t.cropRotate === 'auto') ? 'auto' : String(t.cropRotate);
   _pickPage = 1;
   document.getElementById('pickResult').textContent = '';
   document.getElementById('dlgPick').showModal();
@@ -1875,7 +1956,8 @@ async function drawPick() {
 }
 
 function drawPickBoxes() {
-  [['barcode', 'pkB'], ['ocr', 'pkO']].forEach(function (pair) {
+  [['barcode', 'pkB'], ['ocr', 'pkO'], ['signature', 'pkS'], ['stamp', 'pkT']]
+    .forEach(function (pair) {
     var el = document.getElementById(pair[1]), r = _pickRegions[pair[0]];
     if (!r) { el.style.display = 'none'; return; }
     el.style.display = 'block';
@@ -1925,13 +2007,32 @@ function drawPickBoxes() {
   });
 
   document.getElementById('pickSave').addEventListener('click', function () {
+    var cr = document.getElementById('pickCropRot').value;
     _types = DocScan.Reader.saveType(_pickKey, {
       barcode: _pickRegions.barcode, ocr: _pickRegions.ocr,
-      rotate: Number(document.getElementById('pickRotate').value)
+      rotate: Number(document.getElementById('pickRotate').value),
+      cropRotate: cr === 'auto' ? 'auto' : Number(cr)
     });
+
+    // กรอบลายเซ็นและตราเก็บแยก เพราะเป็นคนละเรื่องกับการอ่านเลข
+    // ลบกรอบทิ้ง = ไม่ต้องตรวจอย่างนั้นสำหรับชนิดนี้
+    var cur = DocScan.Ink.loadRules()[_pickKey] || {};
+    var patch = {};
+    if (_pickRegions.signature) {
+      patch.signature = Object.assign({ min: 0.5, label: 'ลายเซ็น' },
+        cur.signature || {}, { region: _pickRegions.signature });
+    } else patch.signature = undefined;
+    if (_pickRegions.stamp) {
+      patch.stamp = Object.assign({ min: 0.8, label: 'ตราประทับ' },
+        cur.stamp || {}, { region: _pickRegions.stamp });
+    } else patch.stamp = undefined;
+    DocScan.Ink.saveRules(_pickKey, patch);
     document.getElementById('dlgPick').close();
     alert('บันทึกแล้ว: ' + _types[_pickKey].name + '\n\n' +
-          'มุม ' + document.getElementById('pickRotate').value + ' องศา\n' +
+          'หมุนหน้า ' + document.getElementById('pickRotate').value + ' องศา\n' +
+          'หมุนข้อความในกรอบ ' + document.getElementById('pickCropRot').value + '\n' +
+          'ตรวจลายเซ็น: ' + (_pickRegions.signature ? 'ใช่' : 'ไม่') +
+          ' · ตรวจตราประทับ: ' + (_pickRegions.stamp ? 'ใช่' : 'ไม่') + '\n' +
           'ระบบจะใช้ค่านี้ทุกครั้งและจะไม่หมุนหรือขยับกรอบเองอีก');
   });
 
@@ -1951,7 +2052,8 @@ function drawPickBoxes() {
     try {
       var t = Object.assign({}, _types[_pickKey], {
         barcode: _pickRegions.barcode, ocr: _pickRegions.ocr,
-        rotate: Number(document.getElementById('pickRotate').value)
+        rotate: Number(document.getElementById('pickRotate').value),
+        cropRotate: document.getElementById('pickCropRot').value
       });
       var page = await _lastPdfJs.getPage(_pickPage);
       var bc = await DocScan.Reader.readBarcode(page, t);
@@ -1963,7 +2065,8 @@ function drawPickBoxes() {
       var html = '';
       // แสดงภาพที่ระบบอ่านจริง สำคัญที่สุด เพราะถ้ากรอบผิดจะเห็นทันที
       if (oc && oc.crop) {
-        html += '<div style="margin-bottom:8px">ภาพที่ระบบอ่าน:</div>' +
+        html += '<div style="margin-bottom:8px">ภาพที่ระบบอ่าน' +
+                (oc.cropRotate ? ' (หมุนกรอบ ' + oc.cropRotate + '°)' : '') + ':</div>' +
                 '<img src="' + oc.crop + '" style="max-width:100%;border:1px solid var(--border);' +
                 'border-radius:4px;background:#fff;display:block;margin-bottom:10px">';
       }
@@ -1985,9 +2088,43 @@ function drawPickBoxes() {
         }
         if (!oc.value && !oc.raw) {
           html += '<br><span style="color:var(--warn)">ไม่เห็นตัวอักษรเลย ' +
-                  'กรอบน่าจะไม่ตรงตำแหน่งหรือมุมผิด</span>';
+                  'กรอบน่าจะไม่ตรงตำแหน่ง</span>';
+        }
+        // ถ้าภาพที่อ่านเป็นแนวตั้ง OCR จะอ่านไม่ออก
+        if (!oc.value && oc.raw && oc.raw.length <= 3) {
+          html += '<br><span style="color:var(--warn)">' +
+                  'ได้ตัวอักษรน้อยมาก — ถ้าภาพด้านบนเป็นแนวตั้ง ' +
+                  'ลองเปลี่ยน "หมุนข้อความในกรอบ" เป็น 90 หรือ 270</span>';
         }
       }
+      // ตรวจลายเซ็นและตราในหน้าเดียวกัน ให้เห็นภาพและผลพร้อมกัน
+      if (_pickRegions.signature || _pickRegions.stamp) {
+        var rules = {};
+        if (_pickRegions.signature)
+          rules.signature = { region: _pickRegions.signature, min: 0.5, label: 'ลายเซ็น' };
+        if (_pickRegions.stamp)
+          rules.stamp = { region: _pickRegions.stamp, min: 0.8, label: 'ตราประทับ' };
+
+        var pg2 = await _lastPdfJs.getPage(_pickPage);
+        var small = await DocScan.Reader.renderPage(pg2, 150, t.rotate);
+        var ink = DocScan.Ink.checkPage(small, rules);
+        small.width = small.height = 0;
+        pg2.cleanup();
+
+        html += '<div style="margin-top:12px;border-top:1px solid var(--border);padding-top:10px">';
+        ink.checks.forEach(function (c) {
+          html += '<div style="margin-bottom:8px">' +
+            esc(c.label) + ': ' +
+            (c.pass ? '<b style="color:var(--success)">พบ</b>'
+                    : '<b style="color:var(--danger)">ไม่พบ</b>') +
+            ' <span style="opacity:.7">(หมึก ' + c.value + '% · เกณฑ์ ' + c.min + '%)</span>' +
+            (c.crop ? '<br><img src="' + c.crop + '" style="max-width:200px;margin-top:5px;' +
+                      'border:1px solid var(--border);border-radius:4px;background:#fff">' : '') +
+            '</div>';
+        });
+        html += '</div>';
+      }
+
       out.innerHTML = html;
     } catch (err) { out.textContent = 'ทดสอบไม่สำเร็จ: ' + (err.message || err); }
   });
