@@ -506,7 +506,6 @@ window.dispatchEvent(new Event('docscan-ready'));
     <button class="rbtn ghost" id="pickPrev">◀</button>
     <span id="pickPage" style="font-family:var(--mono);font-size:12.5px;color:var(--muted)">— / —</span>
     <button class="rbtn ghost" id="pickNext">▶</button>
-    <button class="rbtn ghost" id="pickAuto">หามุมอัตโนมัติ</button>
     <button class="rbtn ghost" id="pickTest">ทดสอบอ่านหน้านี้</button>
   </div>
 
@@ -1944,23 +1943,6 @@ function drawPickBoxes() {
                      ocr: t.ocr ? Object.assign({}, t.ocr) : null };
     document.getElementById('pickRotate').value = String(t.rotate || 0);
     drawPickBoxes();
-  });
-
-  document.getElementById('pickAuto').addEventListener('click', async function () {
-    var out = document.getElementById('pickResult');
-    out.textContent = 'กำลังลองทุกมุม...';
-    try {
-      var t = Object.assign({}, _types[_pickKey], {
-        barcode: _pickRegions.barcode, ocr: _pickRegions.ocr,
-        rotate: Number(document.getElementById('pickRotate').value)
-      });
-      var rot = await DocScan.Reader.detectRotation(_lastPdfJs, t, function (m) {
-        out.textContent = m;
-      });
-      document.getElementById('pickRotate').value = String(rot);
-      await drawPick();
-      out.textContent = 'ได้มุม ' + rot + ' องศา — กดทดสอบอ่านหน้านี้เพื่อยืนยัน';
-    } catch (err) { out.textContent = 'หามุมไม่สำเร็จ: ' + (err.message || err); }
   });
 
   document.getElementById('pickTest').addEventListener('click', async function () {
