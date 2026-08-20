@@ -339,6 +339,7 @@ import { parseDateInput, toDisplayDate, toInputDate, todayISO } from './js/date.
 import { compressPage, compressImageFile, toDataUrl, storagePeriod,
          compressionSummary, SETTINGS as PDF_SETTINGS } from './js/pdf.js?v=2.14.0';
 import * as Reader from './js/reader.js?v=2.14.0';
+import * as Ink from './js/ink.js?v=2.14.0';
 import { hasCollisionRisk, findNearMiss, searchCSV as csvSearch } from './js/csv.js?v=2.14.0';
 import { requireAuth, authFetch, authGet, authGetText, logout, loadSession, daysLeft, AUTH_JS_VERSION } from './js/auth.js?v=2.14.0';
 import { installNav, guardPage, homeFor as navHome } from './js/nav.js?v=2.14.0';
@@ -348,7 +349,7 @@ window.DocScan = {
   parseCSV, buildIndex, searchCSV, classify,
   parseDateInput, toDisplayDate, toInputDate, todayISO,
   compressPage, compressImageFile, toDataUrl, storagePeriod,
-  compressionSummary, PDF_SETTINGS, Reader,
+  compressionSummary, PDF_SETTINGS, Reader, Ink,
   csvHelpers: {
     // index ที่ส่งเข้ามามีเฉพาะแถวที่ถามไป จึงหาเพื่อนบ้านเองไม่ได้
     // ต้องใช้ผลที่เซิร์ฟเวอร์สแกนทั้ง 51,254 แถวแล้วส่งกลับมา
@@ -425,6 +426,13 @@ window.dispatchEvent(new Event('docscan-ready'));
           <option value="fast">เร็ว — 3 รอบต่อหน้า</option>
         </select>
       </div>
+      <div class="fld" style="min-width:170px">
+        <label for="chkInk">ตรวจลายเซ็น/ตราประทับ</label>
+        <select id="chkInk">
+          <option value="1">ตรวจ</option>
+          <option value="0">ไม่ตรวจ</option>
+        </select>
+      </div>
       <div class="fld" style="min-width:120px">
         <label for="samplePct">สุ่มตรวจ (%)</label>
         <input type="number" id="samplePct" min="0" max="100" step="5" value="10">
@@ -433,6 +441,7 @@ window.dispatchEvent(new Event('docscan-ready'));
       <button class="rbtn ghost" id="btnPick">กำหนดพื้นที่อ่านเอง</button>
       <button class="rbtn ghost" id="btnCancelRead" style="display:none">หยุด</button>
     </div>
+    <div class="csvst" id="customHint"></div>
     <div class="csvst" id="csvStatus">กำลังโหลดรายการอ้างอิง…</div>
     <div class="rprog" id="rprog">
       <div class="rbar"><i id="rbar"></i></div>
@@ -510,7 +519,8 @@ window.dispatchEvent(new Event('docscan-ready'));
 
   <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap">
     <button class="rbtn" id="pickSave">บันทึกพื้นที่</button>
-    <button class="rbtn ghost" id="pickReset">คืนค่าเริ่มต้น</button>
+    <button class="rbtn ghost" id="pickForget">ลบค่าที่ตั้งเองของชนิดนี้</button>
+    <button class="rbtn ghost" id="pickReset">คืนค่าเริ่มต้นทุกชนิด</button>
     <button class="rbtn ghost" id="pickClose">ปิด</button>
   </div>
 </dialog>
@@ -1243,6 +1253,21 @@ function updateEdit(id, field, value) {
   updateSubmitBtn();
 }
 
+/**
+ * ผลตรวจลายเซ็นและตราประทับ
+ * ขึ้นเตือนเฉพาะตอนไม่พบ ถ้าครบก็แสดงเงียบ ๆ ไม่รบกวนสายตา
+ */
+function inkHtml(row) {
+  if (!row.ink || !row.ink.checks || !row.ink.checks.length) return '';
+  if (row.ink.ok) {
+    return '<div class="why" style="color:var(--success)">✓ พบ' +
+      row.ink.checks.map(function (c) { return esc(c.label); }).join('และ') + '</div>';
+  }
+  return '<div class="why warn">⚠ ไม่พบ' +
+    row.ink.missing.map(function (c) { return esc(c.label); }).join('และ') +
+    ' — โปรดตรวจกับเอกสารตัวจริง</div>';
+}
+
 /** ใช้ค่าที่ระบบเสนอเมื่อเลขที่อ่านได้ใกล้เคียงกับรายการอ้างอิง */
 function applySuggestion(id, value) {
   var row = rows.find(function (r) { return r.id === Number(id); });
@@ -1590,7 +1615,9 @@ function initReader() {
   sel.value = localStorage.getItem('docScanLastType') || 'auto';
   sel.addEventListener('change', function () {
     localStorage.setItem('docScanLastType', sel.value);
+    showCustomHint();
   });
+  showCustomHint();
   document.getElementById('btnRead').addEventListener('click', runAutoRead);
   document.getElementById('btnPick').addEventListener('click', openPicker);
   document.getElementById('btnCancelRead').addEventListener('click', function () {
@@ -1626,6 +1653,25 @@ function setCsvStatus(state, count, ts, msg) {
   // รายการอ้างอิงจำเป็นเฉพาะตอนแปลงบาร์โค้ดเป็นเลข Reference และตอนตรวจสอบ
   var btn = document.getElementById('btnRead');
   if (btn) btn.disabled = !_lastPdfJs;
+}
+
+/** บอกให้รู้ว่าชนิดที่เลือกอยู่ใช้ค่าที่ตั้งเองหรือค่าตั้งต้น */
+function showCustomHint() {
+  var el = document.getElementById('customHint');
+  if (!el) return;
+  var k = document.getElementById('docType').value;
+  var t = _types && _types[k];
+  if (t && t._custom) {
+    el.className = 'csvst ok';
+    el.textContent = 'ชนิดนี้ใช้กรอบและมุมที่ตั้งเองไว้ (' + (t.rotate || 0) +
+      ' องศา) — ระบบจะไม่ปรับอัตโนมัติ';
+  } else if (k === 'auto') {
+    el.className = 'csvst';
+    el.textContent = 'ระบบจะเดาชนิดเอกสารและหามุมที่อ่านได้ให้เอง';
+  } else {
+    el.className = 'csvst';
+    el.textContent = 'ใช้ค่าตั้งต้น — ถ้าอ่านไม่ตรง กด "กำหนดพื้นที่อ่านเอง"';
+  }
 }
 
 function showReaderPanel(show) {
@@ -1677,6 +1723,9 @@ async function runAutoRead() {
     var results = await DocScan.Reader.readAllPages(_lastPdfJs, type, {
       signal: _readAbort.signal,
       ocrLevel: document.getElementById('ocrLevel').value,
+      inkRules: document.getElementById('chkInk').value === '1'
+        ? (DocScan.Ink.loadRules()[key] || null) : null,
+      checkInk: DocScan.Ink.checkPage,
       onProgress: function (m) { rprog(0.06, m); },
       onRotate: function (rot) {
         // เครื่องสแกนคนละเครื่องให้ไฟล์คนละทิศ ระบบหาเองแล้วบอกให้รู้
@@ -1719,14 +1768,22 @@ async function applyReadResults(results, typeKey) {
   var idx = refs.index;
   _refNeighbors = refs.neighbors || {};
   window._refNeighbors = _refNeighbors;
-  var count = { green: 0, yellow: 0, red: 0, sampled: 0 };
+  var count = { green: 0, yellow: 0, red: 0, sampled: 0, noInk: 0 };
   var keepIds = {};
 
   docs.forEach(function (d) {
     var cls = DocScan.Reader.classifyDoc(d, idx, DocScan.csvHelpers);
+    // เอกสารที่ขาดลายเซ็นหรือตราประทับ ใช้เป็นหลักฐานไม่ได้
+    // ต้องให้คนดูเสมอ แม้เลขที่จะอ่านถูกต้อง
+    if (d.ink && !d.ink.ok && cls.tier === 'green') {
+      cls = { tier: 'yellow', reason: 'ink_missing',
+              head: 'เลขที่ถูกต้อง แต่ไม่พบ' +
+                    d.ink.missing.map(function (c) { return c.label; }).join('และ') };
+    }
     var sampled = cls.tier === 'green' &&
                   DocScan.Reader.sampleFlag(d.value || ('p' + d.pages[0].page), pct);
     if (sampled) count.sampled++;
+    if (d.ink && !d.ink.ok) count.noInk++;
     count[cls.tier]++;
 
     // แถวแรกของกลุ่มเป็นตัวแทนเอกสารใบนี้
@@ -1743,6 +1800,7 @@ async function applyReadResults(results, typeKey) {
 
     // เก็บค่าที่ระบบอ่านได้แยกจากค่าที่ใช้จริง
     // เพื่อให้เห็นได้ว่าคนแก้ไปจากที่ระบบอ่านมาหรือไม่
+    first.ink = d.ink || null;
     first.readValue = d.value || '';
     first.readRefNo = d.refNo || '';
     first.readBarcode = d.barcodeValue || '';
@@ -1785,6 +1843,7 @@ async function applyReadResults(results, typeKey) {
     '<div class="rchip y"><b>' + count.yellow + '</b>ควรยืนยัน</div>' +
     '<div class="rchip r"><b>' + count.red + '</b>ต้องตรวจ</div>' +
     '<div class="rchip"><b>' + count.sampled + '</b>สุ่มตรวจ</div>' +
+    (count.noInk ? '<div class="rchip r"><b>' + count.noInk + '</b>ขาดลายเซ็น/ตรา</div>' : '') +
     (merged ? '<div class="rchip"><b>' + merged + '</b>หน้าที่เป็นสำเนา รวมเข้าใบเดียว</div>' : '');
 }
 
@@ -1880,7 +1939,9 @@ function drawPickBoxes() {
       rotate: Number(document.getElementById('pickRotate').value)
     });
     document.getElementById('dlgPick').close();
-    alert('บันทึกพื้นที่ของ ' + _types[_pickKey].name + ' แล้ว\nจะถูกใช้ทุกครั้งที่เลือกชนิดนี้');
+    alert('บันทึกแล้ว: ' + _types[_pickKey].name + '\n\n' +
+          'มุม ' + document.getElementById('pickRotate').value + ' องศา\n' +
+          'ระบบจะใช้ค่านี้ทุกครั้งและจะไม่หมุนหรือขยับกรอบเองอีก');
   });
 
   document.getElementById('pickReset').addEventListener('click', function () {
@@ -1912,23 +1973,62 @@ function drawPickBoxes() {
 
   document.getElementById('pickTest').addEventListener('click', async function () {
     var out = document.getElementById('pickResult');
-    out.textContent = 'กำลังอ่าน...';
+    out.innerHTML = 'กำลังอ่าน...';
     try {
       var t = Object.assign({}, _types[_pickKey], {
         barcode: _pickRegions.barcode, ocr: _pickRegions.ocr,
         rotate: Number(document.getElementById('pickRotate').value)
       });
       var page = await _lastPdfJs.getPage(_pickPage);
-      var bc = t.barcodeUnreliable ? null : await DocScan.Reader.readBarcode(page, t);
-      var oc = await DocScan.Reader.readOcr(page, t, function (m) { out.textContent = m; });
+      var bc = await DocScan.Reader.readBarcode(page, t);
+      var oc = t.ocr ? await DocScan.Reader.readOcr(page, t, function (m) {
+        out.innerHTML = esc(m);
+      }, 'accurate') : null;
       page.cleanup();
-      out.innerHTML =
-        'บาร์โค้ด: ' + (bc && bc.value ? bc.value : (bc && bc.all.length ? bc.all.join(', ') + ' (ไม่ตรงรูปแบบ)' : 'อ่านไม่ได้')) +
-        '<br>OCR: ' + (oc && oc.value ? oc.value : 'อ่านไม่ได้') +
-        (oc && oc.raw ? '  <span style="opacity:.7">ดิบ: ' + esc(oc.raw) + '</span>' : '') +
-        (oc && oc.disagree ? '  <span style="color:var(--warn)">โหมดไม่ตรงกัน</span>' : '');
+
+      var html = '';
+      // แสดงภาพที่ระบบอ่านจริง สำคัญที่สุด เพราะถ้ากรอบผิดจะเห็นทันที
+      if (oc && oc.crop) {
+        html += '<div style="margin-bottom:8px">ภาพที่ระบบอ่าน:</div>' +
+                '<img src="' + oc.crop + '" style="max-width:100%;border:1px solid var(--border);' +
+                'border-radius:4px;background:#fff;display:block;margin-bottom:10px">';
+      }
+      html += 'บาร์โค้ด: ' + (bc && bc.value ? esc(bc.value)
+        : (bc && bc.all.length ? esc(bc.all.join(', ')) + ' (ไม่ตรงรูปแบบที่ตั้งไว้)'
+                               : 'อ่านไม่ได้'));
+      if (oc) {
+        html += '<br>OCR: ' + (oc.value
+          ? '<b style="color:var(--success)">' + esc(oc.value) + '</b>'
+          : '<span style="color:var(--danger)">อ่านไม่ได้</span>');
+        if (oc.raw) html += '<br><span style="opacity:.7">ตัวอักษรดิบที่เห็น: "' +
+                            esc(oc.raw) + '"</span>';
+        if (oc.candidates && oc.candidates.length > 1) {
+          html += '<br>ค่าที่เป็นไปได้: ' + oc.candidates.map(esc).join(' · ');
+        }
+        if (!oc.value && oc.raw) {
+          html += '<br><span style="color:var(--warn)">อ่านเจอตัวอักษรแต่ไม่ตรงรูปแบบ ' +
+                  esc(_types[_pickKey].ocrPattern) + ' — อาจเลือกชนิดเอกสารผิด</span>';
+        }
+        if (!oc.value && !oc.raw) {
+          html += '<br><span style="color:var(--warn)">ไม่เห็นตัวอักษรเลย ' +
+                  'กรอบน่าจะไม่ตรงตำแหน่งหรือมุมผิด</span>';
+        }
+      }
+      out.innerHTML = html;
     } catch (err) { out.textContent = 'ทดสอบไม่สำเร็จ: ' + (err.message || err); }
   });
+
+  document.getElementById('pickForget').addEventListener('click', function () {
+    if (!confirm('ลบค่าที่ตั้งเองของ ' + _types[_pickKey].name + ' แล้วกลับไปใช้ค่าตั้งต้น?')) return;
+    _types = DocScan.Reader.resetType(_pickKey);
+    var t = _types[_pickKey];
+    _pickRegions = { barcode: t.barcode ? Object.assign({}, t.barcode) : null,
+                     ocr: t.ocr ? Object.assign({}, t.ocr) : null };
+    document.getElementById('pickRotate').value = String(t.rotate || 0);
+    drawPick();
+    document.getElementById('pickResult').textContent = 'กลับไปใช้ค่าตั้งต้นแล้ว';
+  });
+
 })();
 
 </script>
