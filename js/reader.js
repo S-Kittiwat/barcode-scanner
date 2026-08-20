@@ -172,7 +172,7 @@ export async function releaseOcr() {
  * เดิมผมเอา page.rotate มาบวกทับ ทำให้ไฟล์ที่มีมุมฝังในตัวเองหมุนเกินไป
  * เช่นไฟล์ที่ page.rotate = 270 กับ preset 270 จะได้ 180 แทนที่จะเป็น 270
  */
-async function renderPage(page, dpi, rotate) {
+export async function renderPage(page, dpi, rotate) {
   const rot = ((rotate || 0) % 360 + 360) % 360;
   const vp = page.getViewport({ scale: dpi / 72, rotation: rot });
   const cv = document.createElement('canvas');
