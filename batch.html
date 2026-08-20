@@ -168,6 +168,7 @@ main{width:100%;max-width:100%;padding:20px 24px 100px;}
 .status-badge{font-size:10px;padding:2px 7px;border-radius:20px;white-space:nowrap;display:inline-block;}
 .status-idle{background:var(--surface2);color:var(--muted);border:1px solid var(--border);}
 .status-found{background:rgba(52,211,153,0.12);color:var(--success);border:1px solid rgba(52,211,153,0.3);}
+.status-ready{background:rgba(52,211,153,.15);color:var(--success);}
 .status-notfound{background:rgba(251,191,36,0.12);color:var(--warn);border:1px solid rgba(251,191,36,0.3);}
 .row-dup td{background:rgba(248,113,113,0.07);}
 .status-dup{background:rgba(248,113,113,0.12);color:var(--danger);border:1px solid rgba(248,113,113,0.3);}
@@ -289,30 +290,35 @@ main{width:100%;max-width:100%;padding:20px 24px 100px;}
   padding:9px 14px;font-size:12.5px}
 .rchip b{font-family:var(--mono);font-size:17px;display:block;line-height:1.2}
 .rchip.g b{color:var(--success)} .rchip.y b{color:var(--warn)} .rchip.r b{color:var(--danger)}
+.pickhead{font-size:11.5px;color:var(--warn);font-weight:600;margin:7px 0 4px}
+.candbox{display:flex;flex-direction:column;gap:5px}
+.cand2{display:block;width:100%;text-align:left;background:var(--surface2);
+  border:1px solid var(--border);border-radius:6px;padding:6px 10px;cursor:pointer;
+  font-family:var(--font)}
+.cand2:hover{border-color:var(--accent)}
+.cand2.best{border-color:var(--success)}
+.cand2.on{background:var(--accent);border-color:var(--accent)}
+.cand2.on .c2v,.cand2.on .c2n{color:#0f172a}
+.c2v{display:block;font-family:var(--mono);font-size:13.5px;font-weight:600;color:var(--text)}
+.c2n{display:block;font-size:10.5px;color:var(--muted);margin-top:1px;line-height:1.4}
 .cands{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}
 .candbtn{background:var(--surface2);border:1px solid var(--warn);color:var(--warn);
   border-radius:14px;padding:5px 14px;font-family:var(--mono);font-size:13px;
   font-weight:600;cursor:pointer}
 .candbtn:hover{border-color:var(--accent);color:var(--accent)}
 .candbtn.on{background:var(--accent);border-color:var(--accent);color:#0f172a;font-weight:600}
-.rb-ref{margin-bottom:7px;padding-bottom:6px;border-bottom:1px dashed var(--border)}
-.rb-ref>div{display:flex;align-items:baseline;gap:6px;margin-bottom:2px}
-.rb-k{font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;color:var(--muted);
-  border:1px solid var(--border);border-radius:3px;padding:0 4px;min-width:26px;text-align:center}
+.rbrow{display:flex;align-items:baseline;gap:6px;margin-bottom:3px}
 .rb-m{font-family:var(--mono);font-size:12.5px}
+.th-sub{font-size:9px;letter-spacing:0;text-transform:none;opacity:.7;font-weight:400}
 .rb-ok{font-size:10px;color:var(--success);border:1px solid var(--success);
   border-radius:8px;padding:0 6px}
-.rb-item{font-size:13px;font-weight:600;margin-bottom:5px}
-.rb-line{font-size:12.5px;line-height:1.5;margin-bottom:4px}
-.rb-line .rb-acc{display:block;font-family:var(--mono);font-size:11px;color:var(--muted)}
-.rb-line .rb-name{display:block}
-.rb-line.rb-to{padding-left:9px;border-left:2px solid var(--border)}
-.inkitem{margin-bottom:9px}
-.inklab{font-size:11.5px;color:var(--muted);display:flex;gap:6px;align-items:center}
-.inkyes{color:var(--success);font-weight:600}
-.inkno{color:var(--danger);font-weight:600}
-.inkimg{display:block;max-width:100%;max-height:44px;margin-top:3px;border:1px solid var(--border);
-  border-radius:4px;background:#fff;cursor:zoom-in}
+.rb-acc{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.inkyes{color:var(--success);font-weight:600;font-size:12.5px}
+.inkno{color:var(--danger);font-weight:600;font-size:12.5px}
+.inkna{font-size:11.5px;color:var(--muted)}
+.inkpct{font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:2px}
+.inkimg{display:block;max-width:100%;max-height:40px;margin-top:3px;border:1px solid var(--border);
+  border-radius:3px;background:#fff;cursor:zoom-in}
 .refout{font-size:11.5px;color:var(--muted);margin-top:5px;font-family:var(--mono)}
 .refout b{color:var(--success)}
 .refout.none{color:var(--danger)}
@@ -329,6 +335,19 @@ main{width:100%;max-width:100%;padding:20px 24px 100px;}
 .readnone{font-size:12px;color:var(--muted);line-height:1.6}
 td.ro{font-size:13px;color:var(--text);vertical-align:top}
 td.ro .acc{font-family:var(--mono);font-size:11.5px;color:var(--muted);margin-top:2px}
+.filterbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;
+  padding:12px 16px;background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r);margin-bottom:12px}
+.fbtn{background:var(--surface2);border:1px solid var(--border);color:var(--text);
+  border-radius:16px;padding:6px 15px;font-family:var(--font);font-size:13px;cursor:pointer}
+.fbtn:hover{border-color:var(--accent)}
+.fbtn.on{background:var(--accent);border-color:var(--accent);color:#0f172a;font-weight:600}
+.fbtn.r{border-color:rgba(248,113,113,.5)}
+.fbtn.r.on{background:var(--danger);border-color:var(--danger);color:#fff}
+.fbtn.y{border-color:rgba(251,191,36,.5)}
+.fbtn.y.on{background:var(--warn);border-color:var(--warn);color:#0f172a}
+.fbtn b{font-family:var(--mono);margin-left:5px}
+.fnote{margin-left:auto;font-size:12px;color:var(--muted)}
 .empty2{color:var(--muted);font-size:13px;padding:26px;text-align:center;line-height:1.9}
 .empty2 b{color:var(--text);display:block;font-size:15px;margin-bottom:6px}
 .csvst{font-size:12.5px;color:var(--muted);margin-top:10px;font-family:var(--mono)}
@@ -501,18 +520,23 @@ window.dispatchEvent(new Event('docscan-ready'));
     </div>
     <div class="batch-table-wrap" id="batchTableWrap" style="display:none;">
       <div class="empty2" id="beforeRead" style="display:none"></div>
+      <div class="filterbar" id="filterBar" style="display:none"></div>
       <div id="tableWrap" style="display:none">
       <table>
         <thead>
           <tr>
-            <th style="width:30px">#</th>
-            <th style="width:84px">เอกสาร</th>
-            <th style="width:150px">Barcode ที่อ่านได้</th>
-            <th style="width:180px">Reference ที่อ่านได้</th>
-            <th style="width:150px">ลายเซ็น / ตราประทับ</th>
-            <th style="width:180px">Reference (ใช้ตั้งชื่อไฟล์)</th>
-            <th>ข้อมูลเอกสาร</th>
-            <th style="width:36px"></th>
+            <th style="width:28px">#</th>
+            <th style="width:76px">เอกสาร</th>
+            <th style="width:140px">Barcode ที่อ่านได้</th>
+            <th style="width:170px">Reference ที่อ่านได้</th>
+            <th style="width:110px">ลายเซ็น</th>
+            <th style="width:110px">ตราประทับ</th>
+            <th style="width:160px">Reference (ใช้ตั้งชื่อไฟล์)</th>
+            <th style="width:130px">Barcode / Reference<div class="th-sub">ข้อมูลอ้างอิง</div></th>
+            <th style="width:120px">ประเภท</th>
+            <th style="width:140px">โอนจาก / Origin Acc.</th>
+            <th>โอนไป / Dest. Acc.</th>
+            <th style="width:34px"></th>
           </tr>
         </thead>
         <tbody id="batchBody"></tbody>
@@ -748,10 +772,22 @@ function searchCSV(barcode) {
 }
 var _lastRefIndex = new Map();
 
-/** ผู้ใช้พิมพ์หรือแก้เลขเอง ต้องถามข้อมูลอ้างอิงของเลขนั้นเพิ่ม */
+/**
+ * คนพิมพ์หรือแก้เลขเอง — ถามข้อมูลอ้างอิงของเลขนั้นจากเซิร์ฟเวอร์
+ * รองรับทั้งเลข Reference และบาร์โค้ด เพราะคนอาจพิมพ์อย่างใดอย่างหนึ่ง
+ */
 async function lookupOne(id, value) {
   var k = String(value || '').trim().toUpperCase();
-  if (!k || _lastRefIndex.has(k)) { onBarcodeChange(id, value); return; }
+  if (!k) { onBarcodeChange(id, value); return; }
+
+  var idNum = Number(id);
+  var row = rows.find(function (r) { return r.id === idNum; });
+
+  if (_lastRefIndex.has(k)) { onBarcodeChange(id, value); return; }
+
+  // บอกให้รู้ว่ากำลังค้นอยู่ ไม่ใช่ค้างหรือหาไม่เจอ
+  if (row) { row.status = 'looking'; _updateRowDOM(row); }
+
   try {
     var r = await fetchRefs([k]);
     r.index.forEach(function (v, key) { _lastRefIndex.set(key, v); });
@@ -759,8 +795,26 @@ async function lookupOne(id, value) {
       _refNeighbors[kk] = r.neighbors[kk];
     });
     window._refNeighbors = _refNeighbors;
-  } catch (e) { /* ถามไม่ได้ก็ให้กรอกต่อไปได้ */ }
+  } catch (e) {
+    if (row) showToast('ค้นข้อมูลอ้างอิงไม่สำเร็จ: ' + (e.message || e), 'error');
+  }
+
   onBarcodeChange(id, value);
+
+  // คนแก้เองแล้ว ต้องคิดชั้นความเชื่อมั่นใหม่ ไม่ใช่ค้างที่ผลเดิม
+  if (row) {
+    var doc = row.doc;
+    if (doc) {
+      row.tier = 'yellow';
+      row.why = 'คนกรอกเอง · พบในรายการอ้างอิง';
+    } else {
+      row.tier = 'red';
+      row.why = 'ไม่พบเลขนี้ในรายการอ้างอิง';
+    }
+    row.candidates = [];
+    row.crossMismatch = false;
+    renderTable();
+  }
 }
 
 /** เลขที่ใกล้เคียง มาจากเซิร์ฟเวอร์ที่สแกนทั้งไฟล์ให้แล้ว */
@@ -1048,7 +1102,7 @@ function _setDate(rid, iso) {
     var badge = tr.querySelector('.status-badge');
     if (badge) {
       var labels = {idle:'รอ Barcode',found:'พบข้อมูล',notfound:'ไม่พบ',ready:'พร้อมส่ง',dup:'Barcode ซ้ำ'};
-      var cls    = {idle:'status-idle',found:'status-found',notfound:'status-notfound',ready:'status-ready',dup:'status-dup'};
+      var cls    = {idle:'status-idle',found:'status-found',notfound:'status-notfound',ready:'status-ready',dup:'status-dup', looking:'status-idle'};
       badge.className  = 'status-badge ' + (cls[newStatus]||'');
       badge.textContent = labels[newStatus]||'';
     }
@@ -1101,12 +1155,70 @@ document.addEventListener('blur', function(e) {
 }, true);
 
 // ── Render Table ──────────────────────────────────────────
+/**
+ * กรองรายการ ให้เห็นเฉพาะที่ต้องทำ
+ * ค่าเริ่มต้นคือ "ต้องดู" เพราะถ้าแสดงทั้งหมด คนต้องเลื่อนหาเอง
+ * ซึ่งพลาดง่ายมากเมื่อมี 50 รายการแต่ต้องตรวจแค่ 3
+ */
+var _filter = 'todo';
+
+function rowMatchesFilter(r) {
+  if (_filter === 'all') return true;
+  if (_filter === 'todo') return r.tier === 'red' || r.tier === 'yellow' || r.sampled;
+  if (_filter === 'red') return r.tier === 'red';
+  if (_filter === 'yellow') return r.tier === 'yellow';
+  if (_filter === 'green') return r.tier === 'green' && !r.sampled;
+  return true;
+}
+
+function renderFilterBar() {
+  var bar = document.getElementById('filterBar');
+  if (!bar) return;
+  if (!rows.length) { bar.style.display = 'none'; return; }
+
+  var n = { all: rows.length, red: 0, yellow: 0, green: 0, todo: 0 };
+  rows.forEach(function (r) {
+    if (r.tier === 'red') n.red++;
+    else if (r.tier === 'yellow') n.yellow++;
+    else if (r.tier === 'green') n.green++;
+    if (r.tier === 'red' || r.tier === 'yellow' || r.sampled) n.todo++;
+  });
+
+  // ไม่มีอะไรต้องดู ก็ไม่ควรเริ่มที่ตัวกรองที่ว่างเปล่า
+  if (_filter === 'todo' && !n.todo) _filter = 'all';
+
+  var b = function (key, label, cnt, cls) {
+    return '<button class="fbtn ' + (cls || '') + (_filter === key ? ' on' : '') +
+      '" data-f="' + key + '">' + label + '<b>' + cnt + '</b></button>';
+  };
+
+  bar.style.display = 'flex';
+  bar.innerHTML =
+    b('todo', 'ต้องดู', n.todo, 'y') +
+    b('red', 'ต้องตรวจ', n.red, 'r') +
+    b('yellow', 'ควรยืนยัน', n.yellow, 'y') +
+    b('green', 'ผ่านแล้ว', n.green) +
+    b('all', 'ทั้งหมด', n.all) +
+    '<span class="fnote">' +
+      (n.todo ? 'เหลือ ' + n.todo + ' รายการที่ต้องดู'
+              : 'ตรวจครบแล้ว พร้อมบันทึก') + '</span>';
+
+  bar.querySelectorAll('[data-f]').forEach(function (el) {
+    el.addEventListener('click', function () {
+      _filter = el.dataset.f;
+      renderTable();
+    });
+  });
+}
+
 function renderTable() {
   var wrap=document.getElementById('batchTableWrap'); var empty=document.getElementById('emptyState');
   if (rows.length===0){wrap.style.display='none';empty.style.display='block';updateSubmitBtn();return;}
   wrap.style.display='block';empty.style.display='none';
+  renderFilterBar();
   var tbody=document.getElementById('batchBody');
-  tbody.innerHTML=rows.map(function(row,i){
+  var shown = rows.filter(rowMatchesFilter);
+  tbody.innerHTML=shown.map(function(row,i){
     var thumbHtml = row.photoData
       ? '<img class="file-thumb" src="'+row.photoData+'" onclick="openPreview('+row.id+')" title="คลิกดูรูป">'
       : (row.pdfPageData
@@ -1119,6 +1231,7 @@ function renderTable() {
       found   :'<span class="status-badge status-found">พบข้อมูล</span>',
       notfound:'<span class="status-badge status-notfound">ไม่พบ</span>',
       ready   :'<span class="status-badge status-ready">พร้อมส่ง</span>',
+      looking :'<span class="status-badge status-idle">กำลังค้น…</span>',
       dup     :'<span class="status-badge status-dup">Barcode ซ้ำ</span>'
     }[row.status]||'';
     var bcClass='bc-input'+(row.status==='found'||row.status==='ready'?' found':row.status==='notfound'?' notfound':row.status==='dup'?' dup':'');
@@ -1159,13 +1272,18 @@ function renderTable() {
       row.readCrop, 'พื้นที่เลขที่เอกสาร');
 
     if (row.candidates && row.candidates.length > 1) {
-      readHtml += '<div class="why warn">' +
-        (row.crossMismatch ? 'สองทางไม่ตรงกัน — ปุ่มแรกคือค่าที่บาร์โค้ดชี้'
-                           : 'เลือกค่าที่ตรงกับเอกสาร') + '</div>' +
-        '<div class="cands">' + row.candidates.map(function (c) {
-          return '<button class="cand' + (c === row.barcode ? ' on' : '') +
-            '" onclick="applySuggestion(\'' + rid + '\',\'' + esc(c) + '\')">' +
-            esc(c) + '</button>';
+      // ปุ่มต้องบอกด้วยว่าแต่ละค่ามาจากไหน ไม่งั้นคนเลือกไม่ถูก
+      // เดิมมีแต่ตัวเลขสองตัวติดกัน ซึ่งไม่พอให้ตัดสินใจ
+      readHtml += '<div class="pickhead">เลือกค่าที่ตรงกับเอกสาร</div>' +
+        '<div class="candbox">' + row.candidates.map(function (c, ci) {
+          var note = (row.candidateNotes && row.candidateNotes[ci]) || '';
+          var best = ci === 0;
+          return '<button class="cand2' + (c === row.barcode ? ' on' : '') +
+            (best ? ' best' : '') + '" ' +
+            'onclick="applySuggestion(\'' + rid + '\',\'' + esc(c) + '\')">' +
+            '<span class="c2v">' + esc(c) + '</span>' +
+            (note ? '<span class="c2n">' + esc(note) + '</span>' : '') +
+            '</button>';
         }).join('') + '</div>';
     } else if (row.why) {
       readHtml += '<div class="why">' + esc(row.why) + '</div>';
@@ -1187,7 +1305,8 @@ function renderTable() {
       '</div></td>' +
       '<td>' + bcHtml + '</td>' +
       '<td>' + readHtml + '</td>' +
-      '<td>' + inkCell(row) + '</td>' +
+      '<td>' + inkCell(row, 'signature') + '</td>' +
+      '<td>' + inkCell(row, 'stamp') + '</td>' +
       '<td>' +
         '<input class="' + bcClass + '" value="' + esc(row.barcode) + '" ' +
           'placeholder="พิมพ์เลข Reference" ' +
@@ -1199,17 +1318,33 @@ function renderTable() {
           ? '<div class="refout">ชื่อไฟล์: <b>' + esc(ev.refNo) + '</b>.pdf</div>'
           : '<div class="refout none">ยังไม่มีเลข Reference</div>') +
       '</td>' +
-      '<td class="ro">' + refBlock(ev, row.doc, row) + '</td>' +
+      '<td class="ro">' + refIdCell(row.doc, row) + '</td>' +
+      '<td class="ro">' + (esc(ev.itemName) || '—') + '</td>' +
+      '<td class="ro">' + partyCell(ev.originAcc, ev.transferFrom) + '</td>' +
+      '<td class="ro">' + partyCell(ev.destAcc, ev.transferTo) + '</td>' +
       '<td><button class="remove-row-btn" onclick="removeRow(\'' + rid + '\')">✕</button></td>' +
     '</tr>';
-  }).join('');
-  updateSubmitBtn();
+  }).join('') ||
+    '<tr><td colspan="12"><div class="empty2">ไม่มีรายการในตัวกรองนี้ — ' +
+    'กด "ทั้งหมด" เพื่อดูทุกรายการ</div></td></tr>';
 }
 
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');}
 
 var _bcTimer={};
-function handleBarcodeInput(id,el){clearTimeout(_bcTimer[id]);_bcTimer[id]=setTimeout(function(){if(el.value.trim())onBarcodeChange(id,el.value);},800);}
+/**
+ * คนพิมพ์เลขเอง — ต้องไปถามข้อมูลอ้างอิงของเลขนั้นด้วย
+ *
+ * เดิมเรียก onBarcodeChange ตรง ๆ ซึ่งค้นแค่ในแคชของรอบที่อ่านไป
+ * เลขที่พิมพ์ใหม่จึงไม่เจอเสมอ และช่องข้อมูลเอกสารว่างเปล่า
+ * ทั้งที่เลขนั้นมีอยู่จริงในรายการอ้างอิง 51,254 แถว
+ */
+function handleBarcodeInput(id, el) {
+  clearTimeout(_bcTimer[id]);
+  _bcTimer[id] = setTimeout(function () {
+    if (el.value.trim()) lookupOne(id, el.value);
+  }, 800);
+}
 
 function onBarcodeChange(id, value) {
   clearTimeout(_bcTimer[id]);
@@ -1241,6 +1376,8 @@ function onBarcodeChange(id, value) {
   row.status = doc ? 'found' : 'notfound';
 
   if (doc) {
+    // คนอาจพิมพ์บาร์โค้ดแทนเลข Reference
+    // ชื่อไฟล์ต้องใช้ ref_no จากรายการอ้างอิงเสมอ ไม่ใช่สิ่งที่พิมพ์มา
     row.editVals.refNo        = doc['ref_no']                    || '';
     row.editVals.itemName     = doc['item_name']                 || '';
     row.editVals.transferFrom = doc['customer_start_name']       || '';
@@ -1292,7 +1429,7 @@ function _updateRowDOM(row) {
   var badge = tr.querySelector('.status-badge');
   if (badge) {
     var labels = {idle:'รอ Barcode', found:'พบข้อมูล', notfound:'ไม่พบ', ready:'พร้อมส่ง'};
-    var cls    = {idle:'status-idle', found:'status-found', notfound:'status-notfound', ready:'status-ready', dup:'status-dup'};
+    var cls    = {idle:'status-idle', found:'status-found', notfound:'status-notfound', ready:'status-ready', dup:'status-dup', looking:'status-idle'};
     badge.className  = 'status-badge ' + (cls[st] || '');
     badge.textContent = labels[st] || '';
   }
@@ -1347,7 +1484,7 @@ function updateEdit(id, field, value) {
       var badge = tr.querySelector('.status-badge');
       if (badge) {
         var labels = {idle:'รอ Barcode',found:'พบข้อมูล',notfound:'ไม่พบ',ready:'พร้อมส่ง',dup:'Barcode ซ้ำ'};
-        var cls    = {idle:'status-idle',found:'status-found',notfound:'status-notfound',ready:'status-ready',dup:'status-dup'};
+        var cls    = {idle:'status-idle',found:'status-found',notfound:'status-notfound',ready:'status-ready',dup:'status-dup', looking:'status-idle'};
         badge.className = 'status-badge ' + (cls[newStatus]||'');
         badge.textContent = labels[newStatus] || '';
       }
@@ -1363,63 +1500,42 @@ function updateEdit(id, field, value) {
  * เรียงตามลำดับที่คนอ่านจริง: ของอะไร → จากใคร → ไปไหน
  * เลขบัญชีอยู่บรรทัดบนของแต่ละฝั่ง เพราะเป็นตัวที่ใช้ยืนยันกับเอกสาร
  */
-function refBlock(ev, doc, row) {
-  if (!doc && !ev.itemName && !ev.transferFrom && !ev.transferTo) return '—';
-  var out = '';
-
-  /* แสดงบาร์โค้ดกับ Reference ที่อยู่ในรายการอ้างอิง
-     เพื่อให้เทียบกับภาพในคอลัมน์ซ้ายได้โดยไม่ต้องเปิดไฟล์อ้างอิงเอง
-     ตัวไหนตรงกับที่ระบบอ่านได้จะขึ้นเครื่องหมายถูก */
-  if (doc) {
-    var refBc  = String(doc['barcode'] || '').trim();
-    var refRef = String(doc['ref_no'] || '').trim();
-    var okBc  = refBc && row && row.readBarcode &&
-                refBc.toUpperCase() === String(row.readBarcode).toUpperCase();
-    var okRef = refRef && row && row.readValue &&
-                refRef.toUpperCase() === String(row.readValue).toUpperCase();
-    out += '<div class="rb-ref">' +
-      (refBc ? '<div><span class="rb-k">BC</span><span class="rb-m">' + esc(refBc) + '</span>' +
-        (okBc ? '<span class="rb-ok">ตรง</span>' : '') + '</div>' : '') +
-      (refRef ? '<div><span class="rb-k">REF</span><span class="rb-m">' + esc(refRef) + '</span>' +
-        (okRef ? '<span class="rb-ok">ตรง</span>' : '') + '</div>' : '') +
-      '</div>';
-  }
-
-  if (ev.itemName) out += '<div class="rb-item">' + esc(ev.itemName) + '</div>';
-  if (ev.originAcc || ev.transferFrom) {
-    out += '<div class="rb-line">' +
-      (ev.originAcc ? '<span class="rb-acc">' + esc(ev.originAcc) + '</span>' : '') +
-      (ev.transferFrom ? '<span class="rb-name">' + esc(ev.transferFrom) + '</span>' : '') +
-      '</div>';
-  }
-  if (ev.destAcc || ev.transferTo) {
-    out += '<div class="rb-line rb-to">' +
-      (ev.destAcc ? '<span class="rb-acc">' + esc(ev.destAcc) + '</span>' : '') +
-      (ev.transferTo ? '<span class="rb-name">' + esc(ev.transferTo) + '</span>' : '') +
-      '</div>';
-  }
-  return out;
+/** ช่อง Barcode / Reference จากรายการอ้างอิง ไว้เทียบกับภาพ */
+function refIdCell(doc, row) {
+  if (!doc) return '<span class="inkna">ไม่พบในรายการ</span>';
+  var refBc  = String(doc['barcode'] || '').trim();
+  var refRef = String(doc['ref_no'] || '').trim();
+  var okBc  = refBc && row.readBarcode &&
+              refBc.toUpperCase() === String(row.readBarcode).toUpperCase();
+  var okRef = refRef && row.readValue &&
+              refRef.toUpperCase() === String(row.readValue).toUpperCase();
+  return (refBc ? '<div class="rbrow"><span class="rb-m">' + esc(refBc) + '</span>' +
+            (okBc ? '<span class="rb-ok">ตรง</span>' : '') + '</div>' : '') +
+         (refRef ? '<div class="rbrow"><span class="rb-m">' + esc(refRef) + '</span>' +
+            (okRef ? '<span class="rb-ok">ตรง</span>' : '') + '</div>' : '');
 }
 
-/** ช่องลายเซ็นและตราประทับ พร้อมภาพให้กดดูใหญ่ */
-function inkCell(row) {
+/**
+ * ช่องลายเซ็นหรือตราประทับ แยกคอลัมน์ละอย่าง
+ * key = 'signature' หรือ 'stamp'
+ */
+function inkCell(row, key) {
   if (!row.ink || !row.ink.checks || !row.ink.checks.length) {
-    return '<span style="font-size:11.5px;color:var(--muted)">ไม่ได้ตรวจ</span>';
+    return '<span class="inkna">ไม่ได้ตรวจ</span>';
   }
-  return row.ink.checks.map(function (c) {
-    var ok = c.pass;
-    return '<div class="inkitem">' +
-      '<div class="inklab">' + esc(c.label) +
-        '<span class="' + (ok ? 'inkyes' : 'inkno') + '">' +
-          (ok ? 'มีแล้ว' : 'ยังไม่มี') + '</span></div>' +
-      (c.crop
-        ? '<img class="inkimg" src="' + c.crop + '" alt="' + esc(c.label) +
-          '" title="กดเพื่อดูขนาดเต็ม" onclick="openImage(this.src,\'' + esc(c.label) +
-          '\',\'' + (ok ? 'ตรวจพบ' : 'ไม่พบ') + ' · หมึก ' + c.value +
-          '% เกณฑ์ ' + c.min + '%\')">'
-        : '') +
-      '</div>';
-  }).join('');
+  var c = row.ink.checks.filter(function (x) { return x.key === key; })[0];
+  if (!c) return '<span class="inkna">ไม่ได้ตรวจ</span>';
+
+  var ok = c.pass;
+  return '<div class="' + (ok ? 'inkyes' : 'inkno') + '">' +
+      (ok ? 'มีแล้ว' : 'ยังไม่มี') + '</div>' +
+    (c.crop
+      ? '<img class="inkimg" src="' + c.crop + '" alt="' + esc(c.label) +
+        '" title="กดเพื่อดูขนาดเต็ม" onclick="openImage(this.src,\'' + esc(c.label) +
+        '\',\'' + (ok ? 'ตรวจพบ' : 'ไม่พบ') + ' · หมึก ' + c.value +
+        '% เกณฑ์ ' + c.min + '%\')">'
+      : '') +
+    '<div class="inkpct">' + c.value + '% / ' + c.min + '%</div>';
 }
 
 /**
@@ -1468,6 +1584,8 @@ function clearAll(){
   renderTable(); updateBatchCounter(); showReaderPanel(false);
   document.getElementById('tableWrap').style.display='none';
   document.getElementById('beforeRead').style.display='none';
+  document.getElementById('filterBar').style.display='none';
+  _filter = 'todo';
   document.getElementById('rsum').style.display='none';
   document.getElementById('rprog').classList.remove('on');
 }
@@ -2039,6 +2157,7 @@ async function applyReadResults(results, typeKey) {
     first.readCrop = oc && oc.crop ? oc.crop : '';
     // ค่าที่ OCR ลังเล ให้คนเลือกด้วยคลิกเดียว เร็วกว่าพิมพ์ใหม่และพิมพ์ผิดยาก
     first.crossMismatch = (cls.reason === 'cross_mismatch');
+    first.candidateNotes = cls.candidateNotes || [];
     first.candidates = (cls.candidates && cls.candidates.length)
       ? cls.candidates
       : (oc && oc.candidates && oc.candidates.length > 1
