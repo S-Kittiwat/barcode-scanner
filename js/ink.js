@@ -80,6 +80,35 @@ export function resetRules() {
  *   น้ำเงิน b เด่นกว่า r อย่างน้อย 35 ระดับ
  * ต้องเผื่อขนาดนี้เพราะหมึกบนกระดาษสแกนซีดกว่าสีจริงมาก
  */
+/** ตัดภาพในกรอบออกมาเป็น data URL ไว้ให้คนตรวจว่าระบบดูตรงไหน */
+export function cropRegion(canvas, region, maxW) {
+  // ภาพเป็นของประกอบ ถ้าสร้างไม่ได้ต้องไม่ทำให้การตรวจหมึกล้มไปด้วย
+  if (typeof document === 'undefined' || !canvas.getContext) return '';
+  try {
+    return cropRegionInner(canvas, region, maxW);
+  } catch (e) { return ''; }
+}
+
+function cropRegionInner(canvas, region, maxW) {
+  const x = region ? Math.max(0, Math.floor(region.x * canvas.width)) : 0;
+  const y = region ? Math.max(0, Math.floor(region.y * canvas.height)) : 0;
+  const w = region
+    ? Math.max(1, Math.min(canvas.width - x, Math.ceil(region.w * canvas.width)))
+    : canvas.width;
+  const h = region
+    ? Math.max(1, Math.min(canvas.height - y, Math.ceil(region.h * canvas.height)))
+    : canvas.height;
+
+  const scale = maxW && w > maxW ? maxW / w : 1;
+  const out = document.createElement('canvas');
+  out.width = Math.max(1, Math.round(w * scale));
+  out.height = Math.max(1, Math.round(h * scale));
+  out.getContext('2d').drawImage(canvas, x, y, w, h, 0, 0, out.width, out.height);
+  const url = out.toDataURL('image/jpeg', 0.7);
+  out.width = out.height = 0;
+  return url;
+}
+
 export function measureInk(canvas, region) {
   const ctx = canvas.getContext('2d', { willReadFrequently: true });
   const x = region ? Math.max(0, Math.floor(region.x * canvas.width)) : 0;
@@ -139,6 +168,8 @@ export function checkPage(canvas, rules) {
       value: Math.round(value * 100) / 100,
       min: rule.min,
       pass: value >= rule.min,
+      // ภาพในกรอบ เพื่อให้คนดูได้ว่าระบบตรวจตรงไหนและตัดสินถูกไหม
+      crop: cropRegion(canvas, rule.region || null, 260),
       detail: m
     });
   });
