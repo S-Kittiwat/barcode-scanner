@@ -290,7 +290,10 @@ main{width:100%;max-width:100%;padding:20px 24px 100px;}
   padding:9px 14px;font-size:12.5px}
 .rchip b{font-family:var(--mono);font-size:17px;display:block;line-height:1.2}
 .rchip.g b{color:var(--success)} .rchip.y b{color:var(--warn)} .rchip.r b{color:var(--danger)}
-.pickhead{font-size:11.5px;color:var(--warn);font-weight:600;margin:7px 0 4px}
+.pickhead{font-size:11.5px;color:var(--warn);font-weight:600;margin:0 0 5px;line-height:1.5}
+.needdo{font-size:12px;color:var(--danger);font-weight:600}
+.needconfirm{font-size:12px;color:var(--warn);font-weight:600}
+.needok{font-size:12px;color:var(--muted)}
 .candbox{display:flex;flex-direction:column;gap:5px}
 .cand2{display:block;width:100%;text-align:left;background:var(--surface2);
   border:1px solid var(--border);border-radius:6px;padding:6px 10px;cursor:pointer;
@@ -529,6 +532,7 @@ window.dispatchEvent(new Event('docscan-ready'));
             <th style="width:76px">เอกสาร</th>
             <th style="width:140px">Barcode ที่อ่านได้</th>
             <th style="width:170px">Reference ที่อ่านได้</th>
+            <th style="width:190px">ต้องเลือก</th>
             <th style="width:110px">ลายเซ็น</th>
             <th style="width:110px">ตราประทับ</th>
             <th style="width:160px">Reference (ใช้ตั้งชื่อไฟล์)</th>
@@ -1156,17 +1160,37 @@ document.addEventListener('blur', function(e) {
 
 // ── Render Table ──────────────────────────────────────────
 /**
- * กรองรายการ ให้เห็นเฉพาะที่ต้องทำ
- * ค่าเริ่มต้นคือ "ต้องดู" เพราะถ้าแสดงทั้งหมด คนต้องเลื่อนหาเอง
- * ซึ่งพลาดง่ายมากเมื่อมี 50 รายการแต่ต้องตรวจแค่ 3
+ * เรียงรายการที่ต้องทำขึ้นบนสุด
+ *
+ * เดิมใช้ตัวกรอง "ต้องดู" ซึ่งนับซ้ำกับ "ต้องตรวจ" และ "ควรยืนยัน"
+ * และการกรองยังซ่อนรายการอื่นไปด้วย ทำให้ไม่เห็นภาพรวม
+ *
+ * การเรียงแก้ปัญหาเดียวกันโดยไม่ซ่อนอะไร
+ * ของที่มีปัญหาอยู่บนสุดเสมอ ไม่ต้องเลื่อนหา และยังเห็นทั้งชุด
+ * ตัวกรองเก็บไว้เผื่ออยากดูเฉพาะกลุ่ม
  */
-var _filter = 'todo';
+var _filter = 'all';
+
+var TIER_ORDER = { red: 0, yellow: 1, green: 3 };
+
+function rowPriority(r) {
+  var p = TIER_ORDER[r.tier];
+  if (p === undefined) p = 2;          // ยังไม่ได้อ่าน อยู่กลาง ๆ
+  if (r.tier === 'green' && r.sampled) p = 2;   // สุ่มตรวจ ต้องดูแม้จะผ่าน
+  return p;
+}
+
+function sortRowsForView(list) {
+  return list.slice().sort(function (a, b) {
+    var d = rowPriority(a) - rowPriority(b);
+    return d !== 0 ? d : (a.id - b.id);   // ลำดับเดิมเมื่อความสำคัญเท่ากัน
+  });
+}
 
 function rowMatchesFilter(r) {
   if (_filter === 'all') return true;
-  if (_filter === 'todo') return r.tier === 'red' || r.tier === 'yellow' || r.sampled;
   if (_filter === 'red') return r.tier === 'red';
-  if (_filter === 'yellow') return r.tier === 'yellow';
+  if (_filter === 'yellow') return r.tier === 'yellow' || (r.tier === 'green' && r.sampled);
   if (_filter === 'green') return r.tier === 'green' && !r.sampled;
   return true;
 }
@@ -1176,32 +1200,29 @@ function renderFilterBar() {
   if (!bar) return;
   if (!rows.length) { bar.style.display = 'none'; return; }
 
-  var n = { all: rows.length, red: 0, yellow: 0, green: 0, todo: 0 };
+  var n = { all: rows.length, red: 0, yellow: 0, green: 0 };
   rows.forEach(function (r) {
     if (r.tier === 'red') n.red++;
+    else if (r.tier === 'green' && r.sampled) n.yellow++;   // สุ่มตรวจนับรวมกับควรยืนยัน
     else if (r.tier === 'yellow') n.yellow++;
     else if (r.tier === 'green') n.green++;
-    if (r.tier === 'red' || r.tier === 'yellow' || r.sampled) n.todo++;
   });
-
-  // ไม่มีอะไรต้องดู ก็ไม่ควรเริ่มที่ตัวกรองที่ว่างเปล่า
-  if (_filter === 'todo' && !n.todo) _filter = 'all';
 
   var b = function (key, label, cnt, cls) {
     return '<button class="fbtn ' + (cls || '') + (_filter === key ? ' on' : '') +
       '" data-f="' + key + '">' + label + '<b>' + cnt + '</b></button>';
   };
 
+  var todo = n.red + n.yellow;
   bar.style.display = 'flex';
   bar.innerHTML =
-    b('todo', 'ต้องดู', n.todo, 'y') +
+    b('all', 'ทั้งหมด', n.all) +
     b('red', 'ต้องตรวจ', n.red, 'r') +
     b('yellow', 'ควรยืนยัน', n.yellow, 'y') +
     b('green', 'ผ่านแล้ว', n.green) +
-    b('all', 'ทั้งหมด', n.all) +
     '<span class="fnote">' +
-      (n.todo ? 'เหลือ ' + n.todo + ' รายการที่ต้องดู'
-              : 'ตรวจครบแล้ว พร้อมบันทึก') + '</span>';
+      (todo ? 'เรียงรายการที่ต้องดู ' + todo + ' รายการไว้บนสุดแล้ว'
+            : 'ทุกรายการผ่านแล้ว พร้อมบันทึก') + '</span>';
 
   bar.querySelectorAll('[data-f]').forEach(function (el) {
     el.addEventListener('click', function () {
@@ -1217,7 +1238,7 @@ function renderTable() {
   wrap.style.display='block';empty.style.display='none';
   renderFilterBar();
   var tbody=document.getElementById('batchBody');
-  var shown = rows.filter(rowMatchesFilter);
+  var shown = sortRowsForView(rows.filter(rowMatchesFilter));
   tbody.innerHTML=shown.map(function(row,i){
     var thumbHtml = row.photoData
       ? '<img class="file-thumb" src="'+row.photoData+'" onclick="openPreview('+row.id+')" title="คลิกดูรูป">'
@@ -1271,22 +1292,33 @@ function renderTable() {
       row.readValue ? ((row.readSource === 'barcode' ? 'บาร์โค้ด' : 'OCR') + tierTag) : '',
       row.readCrop, 'พื้นที่เลขที่เอกสาร');
 
+    if (row.why && !(row.candidates && row.candidates.length > 1)) {
+      readHtml += '<div class="why">' + esc(row.why) + '</div>';
+    }
+
+    /* ช่อง "ต้องเลือก" — แยกออกมาเพราะเป็นงานที่คนต้องลงมือทำ
+       ถ้าปนอยู่กับผลการอ่าน จะกลืนไปกับข้อความอื่นแล้วมองข้าม */
+    var pickHtml;
     if (row.candidates && row.candidates.length > 1) {
-      // ปุ่มต้องบอกด้วยว่าแต่ละค่ามาจากไหน ไม่งั้นคนเลือกไม่ถูก
-      // เดิมมีแต่ตัวเลขสองตัวติดกัน ซึ่งไม่พอให้ตัดสินใจ
-      readHtml += '<div class="pickhead">เลือกค่าที่ตรงกับเอกสาร</div>' +
+      pickHtml = '<div class="pickhead">' + esc(row.why || 'เลือกค่าที่ตรงกับเอกสาร') + '</div>' +
         '<div class="candbox">' + row.candidates.map(function (c, ci) {
           var note = (row.candidateNotes && row.candidateNotes[ci]) || '';
-          var best = ci === 0;
-          return '<button class="cand2' + (c === row.barcode ? ' on' : '') +
-            (best ? ' best' : '') + '" ' +
+          var chosen = String(c).toUpperCase() === String(row.barcode || '').toUpperCase();
+          return '<button class="cand2' + (chosen ? ' on' : '') +
+            (ci === 0 ? ' best' : '') + '" ' +
             'onclick="applySuggestion(\'' + rid + '\',\'' + esc(c) + '\')">' +
-            '<span class="c2v">' + esc(c) + '</span>' +
+            '<span class="c2v">' + esc(c) + (chosen ? ' ✓' : '') + '</span>' +
             (note ? '<span class="c2n">' + esc(note) + '</span>' : '') +
             '</button>';
         }).join('') + '</div>';
-    } else if (row.why) {
-      readHtml += '<div class="why">' + esc(row.why) + '</div>';
+    } else if (!row.barcode) {
+      pickHtml = '<div class="needdo">ต้องกรอกเลขเอง</div>';
+    } else if (row.tier === 'red') {
+      pickHtml = '<div class="needdo">ต้องตรวจกับเอกสาร</div>';
+    } else if (row.tier === 'yellow' || row.sampled) {
+      pickHtml = '<div class="needconfirm">ยืนยันกับเอกสาร</div>';
+    } else {
+      pickHtml = '<div class="needok">—</div>';
     }
     if (row.noText) {
       readHtml += '<div class="why warn">ไม่เห็นตัวอักษรในกรอบเลย — กรอบน่าจะไม่ตรง</div>';
@@ -1305,6 +1337,7 @@ function renderTable() {
       '</div></td>' +
       '<td>' + bcHtml + '</td>' +
       '<td>' + readHtml + '</td>' +
+      '<td>' + pickHtml + '</td>' +
       '<td>' + inkCell(row, 'signature') + '</td>' +
       '<td>' + inkCell(row, 'stamp') + '</td>' +
       '<td>' +
@@ -1325,7 +1358,7 @@ function renderTable() {
       '<td><button class="remove-row-btn" onclick="removeRow(\'' + rid + '\')">✕</button></td>' +
     '</tr>';
   }).join('') ||
-    '<tr><td colspan="12"><div class="empty2">ไม่มีรายการในตัวกรองนี้ — ' +
+    '<tr><td colspan="13"><div class="empty2">ไม่มีรายการในตัวกรองนี้ — ' +
     'กด "ทั้งหมด" เพื่อดูทุกรายการ</div></td></tr>';
 }
 
@@ -1592,7 +1625,7 @@ function clearAll(){
   document.getElementById('tableWrap').style.display='none';
   document.getElementById('beforeRead').style.display='none';
   document.getElementById('filterBar').style.display='none';
-  _filter = 'todo';
+  _filter = 'all';
   document.getElementById('rsum').style.display='none';
   document.getElementById('rprog').classList.remove('on');
 }
