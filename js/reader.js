@@ -265,6 +265,8 @@ export async function readBarcode(page, type) {
    * วัดกับเอกสารจริง: หน้าที่มีบาร์โค้ด 4 ตัวปนกับตัวหนังสือเต็มหน้า
    * การสแกนทั้งหน้ากลับ "หาไม่เจอเลย" ทั้งที่ในกรอบอ่านได้ทันที
    * การไล่สแกนทั้งหน้าทุกความละเอียดจึงเสียเวลาเปล่าเป็นส่วนใหญ่ */
+  let cropUrl = '';
+
   for (const dpi of [200, 300]) {
     const isLast = (dpi === 300);
     const full = await renderPage(page, dpi, type.rotate);
@@ -273,6 +275,8 @@ export async function readBarcode(page, type) {
     // ลองในกรอบก่อน เร็วกว่าและตัดบาร์โค้ดตัวอื่นในหน้าออก
     if (type.barcode) {
       const c = crop(full, type.barcode);
+      // เก็บภาพไว้ให้คนตรวจว่ากรอบครอบตรงบาร์โค้ดไหม
+      if (!cropUrl) { try { cropUrl = c.toDataURL('image/jpeg', 0.7); } catch (e) {} }
       try { found = await Z.readBarcodes(imageData(c), opts); } catch (e) { found = []; }
       if (c !== full) { c.width = c.height = 0; }
     }
@@ -289,12 +293,12 @@ export async function readBarcode(page, type) {
         let v = hit.text;
         const strip = safeRegex(type.barcodeStrip);
         if (strip) v = v.replace(strip, '');
-        return { value: v, raw: hit.text, all: texts, dpi, matched: true };
+        return { value: v, raw: hit.text, all: texts, dpi, matched: true, crop: cropUrl };
       }
-      return { value: '', raw: found[0].text, all: texts, dpi, matched: false };
+      return { value: '', raw: found[0].text, all: texts, dpi, matched: false, crop: cropUrl };
     }
   }
-  return { value: '', raw: '', all: [], dpi: null, matched: false };
+  return { value: '', raw: '', all: [], dpi: null, matched: false, crop: cropUrl };
 }
 
 /* ---------------- อ่านด้วย OCR ---------------- */
@@ -703,11 +707,13 @@ export function groupPages(results) {
         return;
       }
       const d = { value: r.value, refNo: r.refNo || '', barcodeValue: r.barcodeValue || '',
+                  barcodeCrop: (r.barcode && r.barcode.crop) || '',
                   needsLookup: !!r.needsLookup, source: r.source, ink: r.ink || null, pages: [r] };
       byValue.set(r.value, d);
       docs.push(d);
     } else {
       docs.push({ value: '', refNo: '', barcodeValue: r.barcodeValue || '',
+                  barcodeCrop: (r.barcode && r.barcode.crop) || '',
                   needsLookup: !!r.needsLookup, source: 'manual', ink: r.ink || null, pages: [r] });
     }
   });
@@ -727,6 +733,37 @@ export function groupPages(results) {
 export function classifyDoc(doc, csvIndex, helpers) {
   if (!doc.value) {
     return { tier: 'red', reason: 'no_value', head: 'ระบบอ่านไม่ได้ ต้องกรอกเอง' };
+  }
+
+  /* ตรวจสองทาง — หลักฐานที่แข็งที่สุดที่ระบบหาได้เอง
+   *
+   * บาร์โค้ดมี checksum ในตัว อ่านผิดแล้วจะไม่ผ่านการถอดรหัสเลย
+   * ส่วน OCR อ่านผิดได้เงียบ ๆ โดยเฉพาะ 8 กับ 9 ที่หางขาด
+   *
+   * ถ้าบาร์โค้ดชี้ไปที่แถวเดียวกับที่ OCR อ่านได้ = ยืนยันกันเอง ปล่อยผ่าน
+   * ถ้าชี้คนละแถว = เชื่อบาร์โค้ด แล้วเสนอค่าที่ถูกให้คนกดยืนยัน
+   */
+  const lookup = (v) => (helpers && helpers.searchCSV)
+    ? helpers.searchCSV(csvIndex, v) : null;
+
+  if (doc.barcodeValue && doc.refNo && doc.source === 'ocr') {
+    const byBarcode = lookup(doc.barcodeValue);
+    if (byBarcode) {
+      const trueRef = String(byBarcode.ref_no || '').trim().toUpperCase();
+      const readRef = String(doc.refNo).trim().toUpperCase();
+      if (trueRef && trueRef === readRef) {
+        return { tier: 'green', reason: 'cross_verified',
+                 head: 'บาร์โค้ดกับ OCR ตรงกัน — ยืนยันสองทาง' };
+      }
+      if (trueRef) {
+        return { tier: 'red', reason: 'cross_mismatch',
+                 head: 'OCR อ่านได้ ' + doc.refNo + ' แต่บาร์โค้ด ' +
+                       doc.barcodeValue + ' ชี้ไปที่ ' + trueRef +
+                       ' — บาร์โค้ดเชื่อถือได้มากกว่า',
+                 suggestion: byBarcode.ref_no,
+                 candidates: [byBarcode.ref_no, doc.refNo] };
+      }
+    }
   }
 
   // ไม่มีรายการอ้างอิง ยังทำงานต่อได้ แต่ยืนยันความถูกต้องไม่ได้
