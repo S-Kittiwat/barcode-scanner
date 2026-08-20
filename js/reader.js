@@ -260,7 +260,13 @@ export async function readBarcode(page, type) {
     maxNumberOfSymbols: 8, formats: ['Code39']
   };
 
+  /* สแกนทั้งหน้าเฉพาะความละเอียดสุดท้าย
+   *
+   * วัดกับเอกสารจริง: หน้าที่มีบาร์โค้ด 4 ตัวปนกับตัวหนังสือเต็มหน้า
+   * การสแกนทั้งหน้ากลับ "หาไม่เจอเลย" ทั้งที่ในกรอบอ่านได้ทันที
+   * การไล่สแกนทั้งหน้าทุกความละเอียดจึงเสียเวลาเปล่าเป็นส่วนใหญ่ */
   for (const dpi of [200, 300]) {
+    const isLast = (dpi === 300);
     const full = await renderPage(page, dpi, type.rotate);
     let found = [];
 
@@ -270,7 +276,7 @@ export async function readBarcode(page, type) {
       try { found = await Z.readBarcodes(imageData(c), opts); } catch (e) { found = []; }
       if (c !== full) { c.width = c.height = 0; }
     }
-    if (!found.length) {
+    if (!found.length && (isLast || !type.barcode)) {
       try { found = await Z.readBarcodes(imageData(full), opts); } catch (e) { found = []; }
     }
     full.width = full.height = 0;
@@ -438,12 +444,59 @@ export async function readOcr(page, type, onProgress, level) {
   const votes = [];
   let firstRaw = '', firstConf = 0, cropUrl = '', usedCropRot = cropRots[0];
 
+  // เตรียมภาพตัวอย่างไว้ก่อน เพื่อให้คนเห็นเสมอว่าระบบดูตรงไหน
+  // แม้กรณีที่อ่านไม่ได้เลยและต้องคืนผลก่อนกำหนด
+  try {
+    const pv = await renderPage(page, 200, type.rotate);
+    const pvc = crop(pv, type.ocr);
+    cropUrl = pvc.toDataURL('image/png');
+    pv.width = pv.height = 0;
+    if (pvc !== pv) { pvc.width = pvc.height = 0; }
+  } catch (e) { /* ไม่มีภาพก็ยังอ่านต่อได้ */ }
+
+  /* หามุมกรอบที่อ่านออกก่อน โดยลองที่ความละเอียดเดียว
+   *
+   * เดิมไล่ทุกความละเอียด × ทุกมุมกรอบ = สูงสุด 54 รอบต่อหน้า
+   * ซึ่งเสียเวลามหาศาลเมื่อกรอบไม่ตรงและไม่มีมุมไหนอ่านออกเลย
+   * ตอนนี้หามุมก่อนด้วยความละเอียดเดียว แล้วใช้มุมนั้นกับที่เหลือ
+   * ลดเหลือราว 3 + 12 = 15 รอบในกรณีแย่ที่สุด */
+  let lockedCropRot = null;
+  if (cropRots.length > 1) {
+    const probeFull = await renderPage(page, dpis[0], type.rotate);
+    const probeBase = crop(probeFull, type.ocr);
+    probeFull.width = probeFull.height = 0;
+
+    for (const cr of cropRots) {
+      const reg = rotateCanvas(probeBase, cr);
+      await worker.setParameters({
+        tessedit_char_whitelist: type.ocrWhitelist || '',
+        tessedit_pageseg_mode: '7'
+      });
+      const { data } = await worker.recognize(reg);
+      const text = (data.text || '').replace(/\s+/g, '');
+      if (reg !== probeBase) { reg.width = reg.height = 0; }
+      // เจอตัวอักษรพอสมควร = มุมนี้ใช้ได้
+      if (text.length >= 4) { lockedCropRot = cr; break; }
+    }
+    probeBase.width = probeBase.height = 0;
+
+    // ไม่มีมุมไหนเห็นตัวอักษรเลย แปลว่ากรอบไม่ตรง ไม่ใช่เรื่องมุม
+    // ลองต่อไปก็เสียเวลาเปล่า คืนผลว่างให้คนไปแก้กรอบ
+    if (lockedCropRot === null) {
+      return { value: '', raw: '', conf: 0, votes: [], candidates: [],
+               disagree: false, ambiguous: null, crop: cropUrl,
+               cropRotate: cropRots[0], noText: true };
+    }
+  }
+
+  const useCropRots = lockedCropRot !== null ? [lockedCropRot] : cropRots;
+
   for (const dpi of dpis) {
     const full = await renderPage(page, dpi, type.rotate);
     const base = crop(full, type.ocr);
     full.width = full.height = 0;
 
-    for (const cr of cropRots) {
+    for (const cr of useCropRots) {
       const region = rotateCanvas(base, cr);
       // ภาพที่โชว์ให้คนตรวจ ต้องเป็นภาพที่ OCR อ่านได้จริง ไม่ใช่ภาพก่อนหมุน
       if (!cropUrl || (votes.length === 0 && cr !== 0)) {
@@ -579,6 +632,8 @@ export async function readAllPages(pdfJs, type, opts = {}) {
     const page = await pdfJs.getPage(p);
     const res = { page: p, value: '', source: 'manual', barcode: null, ocr: null };
 
+    const t0 = Date.now();
+
     // ลองบาร์โค้ดก่อนเสมอ ยกเว้นผู้ใช้สั่งข้ามเอง
     // เอกสารชนิดเดียวกันอาจอ่านได้หรือไม่ได้ ขึ้นกับคุณภาพการสแกนแต่ละครั้ง
     if (!opts.skipBarcode) {
@@ -620,6 +675,7 @@ export async function readAllPages(pdfJs, type, opts = {}) {
       } catch (e) { res.ink = null; }
     }
 
+    res.ms = Date.now() - t0;
     page.cleanup();
     results.push(res);
     if (opts.onPage) opts.onPage(res, p, pdfJs.numPages);
