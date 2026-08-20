@@ -153,8 +153,15 @@ export async function releaseOcr() {
 
 /* ---------------- เรนเดอร์และตัดภาพ ---------------- */
 
+/**
+ * เรนเดอร์หน้าเป็น canvas
+ *
+ * pdf.js รับ rotation เป็นมุมสัมบูรณ์อยู่แล้ว ไม่ใช่มุมที่บวกเพิ่มจาก page.rotate
+ * เดิมผมเอา page.rotate มาบวกทับ ทำให้ไฟล์ที่มีมุมฝังในตัวเองหมุนเกินไป
+ * เช่นไฟล์ที่ page.rotate = 270 กับ preset 270 จะได้ 180 แทนที่จะเป็น 270
+ */
 async function renderPage(page, dpi, rotate) {
-  const rot = ((page.rotate || 0) + (rotate || 0) + 360) % 360;
+  const rot = ((rotate || 0) % 360 + 360) % 360;
   const vp = page.getViewport({ scale: dpi / 72, rotation: rot });
   const cv = document.createElement('canvas');
   cv.width = Math.floor(vp.width);
@@ -457,6 +464,50 @@ function wordConfidence(data) {
   return Math.round(w.reduce((s, x) => s + (x.confidence || 0), 0) / w.length);
 }
 
+/* ---------------- หามุมหมุนที่ถูกต้อง ---------------- */
+
+/**
+ * หามุมที่ทำให้อ่านได้ โดยลองทีละมุมกับหน้าแรก
+ *
+ * ทำไมต้องหาเอง: ค่า /Rotate ที่ฝังใน PDF ต่างกันตามเครื่องสแกนและวิธีวางกระดาษ
+ * ไฟล์ตัวอย่างสองชุดที่ทดสอบมีมุมไม่เหมือนกัน
+ * การตรึงค่าไว้ค่าเดียวจึงใช้ได้กับบางไฟล์เท่านั้น
+ *
+ * ถ้ามุมผิด กรอบอ่านจะไปครอบพื้นที่ว่าง แล้วได้ผลว่าง
+ * ซึ่งดูเหมือน OCR พัง ทั้งที่จริงแค่มองผิดที่
+ */
+export async function detectRotation(pdfJs, type, onProgress) {
+  const candidates = [type.rotate || 0, 0, 90, 180, 270]
+    .filter((v, i, a) => a.indexOf(v) === i);
+  const pages = Math.min(2, pdfJs.numPages);
+
+  for (const rot of candidates) {
+    const t = { ...type, rotate: rot };
+    for (let p = 1; p <= pages; p++) {
+      const page = await pdfJs.getPage(p);
+      try {
+        // บาร์โค้ดเร็วกว่า ใช้ตัดสินก่อน
+        const bc = await readBarcode(page, t);
+        if (bc.all && bc.all.length) {
+          onProgress && onProgress('พบมุมที่ถูกต้อง: หมุน ' + rot + ' องศา');
+          return rot;
+        }
+        // ไม่มีบาร์โค้ด ลอง OCR ในกรอบ
+        if (type.ocr) {
+          const oc = await readOcr(page, t, null, 'fast');
+          if (oc && oc.value) {
+            onProgress && onProgress('พบมุมที่ถูกต้อง: หมุน ' + rot + ' องศา');
+            return rot;
+          }
+        }
+      } catch (e) { /* มุมนี้ไม่ได้ ลองมุมถัดไป */ }
+      finally { page.cleanup(); }
+    }
+    onProgress && onProgress('ลองหมุน ' + rot + ' องศาแล้วยังอ่านไม่ได้');
+  }
+  return type.rotate || 0;   // หาไม่เจอ ใช้ค่าตั้งต้น
+}
+
 /* ---------------- ตรวจชนิดอัตโนมัติ ---------------- */
 
 /**
@@ -485,6 +536,16 @@ export async function detectType(pdfJs, types, sampleN = 3) {
  * onPage เรียกทุกหน้าเพื่ออัปเดตหน้าจอระหว่างทาง ผู้ใช้จะได้ไม่รู้สึกว่าค้าง
  */
 export async function readAllPages(pdfJs, type, opts = {}) {
+  // หามุมที่ถูกต้องก่อน ไม่งั้นกรอบอ่านจะครอบผิดที่ทั้งไฟล์
+  if (opts.autoRotate !== false) {
+    const rot = await detectRotation(pdfJs, type, opts.onProgress);
+    if (rot !== type.rotate) {
+      opts.onProgress && opts.onProgress('ปรับมุมจาก ' + type.rotate + ' เป็น ' + rot + ' องศา');
+      type = { ...type, rotate: rot };
+    }
+    if (opts.onRotate) opts.onRotate(rot);
+  }
+
   const results = [];
   for (let p = 1; p <= pdfJs.numPages; p++) {
     if (opts.signal && opts.signal.aborted) break;
