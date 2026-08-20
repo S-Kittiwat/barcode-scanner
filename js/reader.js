@@ -66,7 +66,10 @@ export const DOC_TYPES = {
     ocr: { x: 0.66, y: 0.045, w: 0.28, h: 0.165 },
     ocrWhitelist: 'T0123456789',
     ocrPattern: '[T1Il|]?\\s?(9\\d{6})',
-    ocrTemplate: 'T$1'
+    ocrTemplate: 'T$1',
+    // เลข Docket No. พิมพ์ตะแคงเทียบกับแนวของฟอร์ม
+    // ต้องหมุนเฉพาะภาพในกรอบอีกทอด ไม่ใช่หมุนทั้งหน้า
+    cropRotate: 'auto'
     // ไม่ตั้ง barcodeUnreliable — คุณภาพการสแกนต่างกันได้
     // ไฟล์ตัวอย่างชุดหนึ่งอ่านไม่ได้เลย แต่เครื่องสแกนอื่นหรือกระดาษที่ไม่ยับอาจอ่านได้
     // ระบบจะลองบาร์โค้ดก่อนเสมอ แล้วค่อยตกไป OCR ถ้าไม่ได้
@@ -203,6 +206,30 @@ function crop(cv, r) {
   out.width = w; out.height = h;
   out.getContext('2d', { willReadFrequently: true })
      .drawImage(cv, x, y, w, h, 0, 0, w, h);
+  return out;
+}
+
+/**
+ * หมุนภาพที่ตัดออกมา
+ *
+ * ทำไมต้องแยกจากการหมุนหน้า: บางฟอร์มพิมพ์ข้อความตะแคงเทียบกับหน้ากระดาษ
+ * เช่น LOSCAM ที่เลข Docket No. หมุน 90 องศาจากแนวของฟอร์ม
+ * พอหมุนหน้าให้เอกสารตั้งตรง เลขตัวนั้นกลับกลายเป็นแนวตั้ง
+ * ซึ่ง OCR อ่านไม่ได้เลย ได้แค่เศษตัวอักษร
+ */
+function rotateCanvas(cv, deg) {
+  const d = ((deg % 360) + 360) % 360;
+  if (!d) return cv;
+  const swap = (d === 90 || d === 270);
+  const out = document.createElement('canvas');
+  out.width  = swap ? cv.height : cv.width;
+  out.height = swap ? cv.width  : cv.height;
+  const ctx = out.getContext('2d', { willReadFrequently: true });
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, out.width, out.height);
+  ctx.translate(out.width / 2, out.height / 2);
+  ctx.rotate(d * Math.PI / 180);
+  ctx.drawImage(cv, -cv.width / 2, -cv.height / 2);
   return out;
 }
 
@@ -400,38 +427,60 @@ export async function readOcr(page, type, onProgress, level) {
   const mode = level === 'fast' ? 'fast' : 'accurate';
   const dpis = OCR_DPIS[mode];
   const pattern = safeRegex(type.ocrPattern);
+
+  /* มุมของข้อความในกรอบ แยกจากมุมของหน้า
+   * 'auto' = ลอง 0/90/270 แล้วใช้อันที่อ่านออก
+   * ตั้งเป็นตัวเลขได้ถ้ารู้แน่ชัด จะเร็วขึ้นสามเท่า */
+  const cropRots = (type.cropRotate === undefined || type.cropRotate === 'auto')
+    ? [0, 270, 90]
+    : [Number(type.cropRotate) || 0];
+
   const votes = [];
-  let firstRaw = '', firstConf = 0, cropUrl = '';
+  let firstRaw = '', firstConf = 0, cropUrl = '', usedCropRot = cropRots[0];
 
   for (const dpi of dpis) {
     const full = await renderPage(page, dpi, type.rotate);
-    const region = crop(full, type.ocr);
+    const base = crop(full, type.ocr);
     full.width = full.height = 0;
-    if (!cropUrl) cropUrl = region.toDataURL('image/png');
 
-    const variants = imageVariants(region, mode === 'fast' ? 'fast' : 'full');
-
-    for (const v of variants) {
-      for (const psm of ['7', '6', '13']) {
-        await worker.setParameters({
-          tessedit_char_whitelist: type.ocrWhitelist || '',
-          tessedit_pageseg_mode: psm
-        });
-        const { data } = await worker.recognize(v.canvas);
-        const text = (data.text || '').replace(/\s+/g, '');
-        const conf = wordConfidence(data);
-        if (!firstRaw) { firstRaw = text; firstConf = conf; }
-        const value = pattern ? applyTemplate(text.match(pattern), type.ocrTemplate) : text;
-        if (value) votes.push({ tag: dpi + '/' + v.name + ':' + psm, value, raw: text, conf });
+    for (const cr of cropRots) {
+      const region = rotateCanvas(base, cr);
+      // ภาพที่โชว์ให้คนตรวจ ต้องเป็นภาพที่ OCR อ่านได้จริง ไม่ใช่ภาพก่อนหมุน
+      if (!cropUrl || (votes.length === 0 && cr !== 0)) {
+        cropUrl = region.toDataURL('image/png');
+        usedCropRot = cr;
       }
+
+      const variants = imageVariants(region, mode === 'fast' ? 'fast' : 'full');
+      for (const v of variants) {
+        for (const psm of ['7', '6', '13']) {
+          await worker.setParameters({
+            tessedit_char_whitelist: type.ocrWhitelist || '',
+            tessedit_pageseg_mode: psm
+          });
+          const { data } = await worker.recognize(v.canvas);
+          const text = (data.text || '').replace(/\s+/g, '');
+          const conf = wordConfidence(data);
+          if (!firstRaw) { firstRaw = text; firstConf = conf; }
+          const value = pattern ? applyTemplate(text.match(pattern), type.ocrTemplate) : text;
+          if (value) {
+            votes.push({ tag: dpi + '/' + cr + '/' + v.name + ':' + psm, value, raw: text, conf });
+            usedCropRot = cr;
+          }
+        }
+      }
+      variants.forEach(v => { if (v.canvas !== region) { v.canvas.width = v.canvas.height = 0; } });
+      if (region !== base) { region.width = region.height = 0; }
+
+      // เจอมุมที่อ่านออกแล้ว ไม่ต้องลองมุมที่เหลือ
+      if (votes.length) break;
     }
-    variants.forEach(v => { if (v.canvas !== region) { v.canvas.width = v.canvas.height = 0; } });
-    region.width = region.height = 0;
+    base.width = base.height = 0;
   }
 
   if (!votes.length) {
     return { value: '', raw: firstRaw, conf: firstConf, votes: [], candidates: [],
-             disagree: false, ambiguous: null, crop: cropUrl };
+             disagree: false, ambiguous: null, crop: cropUrl, cropRotate: usedCropRot };
   }
 
   const tally = new Map();
@@ -472,7 +521,8 @@ export async function readOcr(page, type, onProgress, level) {
     candidates: ranked.map(r => ({ value: r[0], n: r[1] })),
     disagree: tally.size > 1,
     ambiguous: ambiguous,
-    crop: cropUrl
+    crop: cropUrl,
+    cropRotate: usedCropRot
   };
 }
 
