@@ -83,9 +83,21 @@ export function loadTypes() {
     Object.keys(saved).forEach(k => {
       if (out[k]) Object.assign(out[k], saved[k]);
       else out[k] = saved[k];
+      // ค่าที่คนตั้งเองมีอำนาจเหนือกว่าค่าตั้งต้นเสมอ
+      // ระบบต้องไม่ไปหมุนหรือขยับกรอบทับ ไม่งั้นที่ตั้งไว้จะไร้ความหมาย
+      if (out[k]) out[k]._custom = true;
     });
   } catch (e) { /* ค่าเสียก็ใช้ค่าเริ่มต้น */ }
   return out;
+}
+
+/** ลบค่าที่ตั้งเองของชนิดเดียว กลับไปใช้ค่าตั้งต้น */
+export function resetType(key) {
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem(LS_KEY) || '{}'); } catch (e) {}
+  delete saved[key];
+  localStorage.setItem(LS_KEY, JSON.stringify(saved));
+  return loadTypes();
 }
 
 export function saveType(key, patch) {
@@ -584,6 +596,15 @@ export async function readAllPages(pdfJs, type, opts = {}) {
       }
     }
 
+    // ตรวจลายเซ็นและตราประทับ ใช้ภาพความละเอียดต่ำก็พอ เพราะดูแค่ปริมาณหมึกสี
+    if (opts.inkRules) {
+      try {
+        const small = await renderPage(page, 150, type.rotate);
+        res.ink = opts.checkInk(small, opts.inkRules);
+        small.width = small.height = 0;
+      } catch (e) { res.ink = null; }
+    }
+
     page.cleanup();
     results.push(res);
     if (opts.onPage) opts.onPage(res, p, pdfJs.numPages);
@@ -611,12 +632,12 @@ export function groupPages(results) {
         return;
       }
       const d = { value: r.value, refNo: r.refNo || '', barcodeValue: r.barcodeValue || '',
-                  needsLookup: !!r.needsLookup, source: r.source, pages: [r] };
+                  needsLookup: !!r.needsLookup, source: r.source, ink: r.ink || null, pages: [r] };
       byValue.set(r.value, d);
       docs.push(d);
     } else {
       docs.push({ value: '', refNo: '', barcodeValue: r.barcodeValue || '',
-                  needsLookup: !!r.needsLookup, source: 'manual', pages: [r] });
+                  needsLookup: !!r.needsLookup, source: 'manual', ink: r.ink || null, pages: [r] });
     }
   });
 
