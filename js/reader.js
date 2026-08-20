@@ -757,11 +757,13 @@ export function classifyDoc(doc, csvIndex, helpers) {
       }
       if (trueRef) {
         return { tier: 'red', reason: 'cross_mismatch',
-                 head: 'OCR อ่านได้ ' + doc.refNo + ' แต่บาร์โค้ด ' +
-                       doc.barcodeValue + ' ชี้ไปที่ ' + trueRef +
-                       ' — บาร์โค้ดเชื่อถือได้มากกว่า',
+                 head: 'บาร์โค้ดกับ OCR ไม่ตรงกัน',
                  suggestion: byBarcode.ref_no,
-                 candidates: [byBarcode.ref_no, doc.refNo] };
+                 candidates: [byBarcode.ref_no, doc.refNo],
+                 candidateNotes: [
+                   'จากบาร์โค้ด ' + doc.barcodeValue + ' — เชื่อถือได้มากกว่า',
+                   'จาก OCR — อาจอ่านผิด'
+                 ] };
       }
     }
   }
@@ -799,11 +801,16 @@ export function classifyDoc(doc, csvIndex, helpers) {
   // ตัวเลขที่สับสนกันง่ายอย่าง 8 กับ 9 ต้องให้คนดูเสมอ
   // แม้ค่าที่ชนะโหวตจะพบในรายการอ้างอิง เพราะอีกค่าหนึ่งก็อาจมีอยู่จริงเช่นกัน
   if (ocr && ocr.ambiguous) {
+    const a = ocr.ambiguous;
+    const nA = (a.votes && a.votes[0]) || 0, nB = (a.votes && a.votes[1]) || 0;
     return { tier: 'red', reason: 'ambiguous_digit',
-             head: 'ตัวเลขหลักที่ ' + (ocr.ambiguous.pos + 1) + ' อ่านได้ทั้ง ' +
-                   ocr.ambiguous.chars.join(' และ ') + ' — ' +
-                   ocr.ambiguous.a + ' หรือ ' + ocr.ambiguous.b,
-             candidates: [ocr.ambiguous.a, ocr.ambiguous.b] };
+             head: 'ตัวเลขหลักที่ ' + (a.pos + 1) + ' อ่านได้ทั้ง ' +
+                   a.chars.join(' และ ') + ' — ต้องดูเอกสารตัดสิน',
+             candidates: [a.a, a.b],
+             candidateNotes: [
+               'OCR เห็นแบบนี้ ' + nA + ' ครั้ง',
+               'OCR เห็นแบบนี้ ' + nB + ' ครั้ง'
+             ] };
   }
 
   if (ocr && ocr.disagree) {
@@ -815,7 +822,9 @@ export function classifyDoc(doc, csvIndex, helpers) {
       ? helpers.findNearMiss(csvIndex, doc.value) : null;
     return near
       ? { tier: 'red', reason: 'near_miss', suggestion: near.barcode,
-          head: 'ไม่พบในรายการ แต่ใกล้เคียงกับ ' + near.barcode }
+          head: 'ไม่พบในรายการอ้างอิง',
+          candidates: [near.barcode, doc.value],
+          candidateNotes: ['มีอยู่จริงในรายการอ้างอิง', 'ค่าที่ระบบอ่านได้ — ไม่พบในรายการ'] }
       : { tier: 'red', reason: 'not_in_reference', head: 'ไม่พบในรายการอ้างอิง' };
   }
   /* เลขที่ออกเรียงลำดับจะมีเพื่อนบ้านต่างกันหลักเดียวเสมอ
