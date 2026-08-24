@@ -121,9 +121,28 @@ export async function uploadBatch(url, files, opts = {}) {
   const out = new Map();
   let done = 0;
 
-  for (let i = 0; i < files.length; i += o.uploadChunk) {
+  /* แบ่งชุดตามขนาดจริง ไม่ใช่จำนวนไฟล์
+   *
+   * เดิมแบ่งชุดละ 5 ไฟล์ตายตัว
+   * เอกสารที่รวมหลายสำเนาไว้ในไฟล์เดียวจะใหญ่กว่าปกติหลายเท่า
+   * ชุดหนึ่งอาจโตถึงหลาย MB แล้วส่งไม่ผ่านทั้งชุดพร้อมกัน
+   * ซึ่งตรงกับอาการที่ทุกไฟล์ล้มเหลวพร้อมกัน */
+  const MAX_CHUNK_BYTES = 1200000;   // ~1.2 MB ต่อคำขอ
+
+  const chunks = [];
+  let cur = [], curBytes = 0;
+  for (const f of files) {
+    const size = (f.image || '').length;
+    // ไฟล์เดียวที่ใหญ่เกินเกณฑ์ ต้องส่งเดี่ยว ไม่มีทางเลือกอื่น
+    if (cur.length && (curBytes + size > MAX_CHUNK_BYTES || cur.length >= o.uploadChunk)) {
+      chunks.push(cur); cur = []; curBytes = 0;
+    }
+    cur.push(f); curBytes += size;
+  }
+  if (cur.length) chunks.push(cur);
+
+  for (const chunk of chunks) {
     if (o.signal && o.signal.aborted) break;
-    const chunk = files.slice(i, i + o.uploadChunk);
 
     try {
       const res = await apiFetch(url, {
@@ -132,12 +151,14 @@ export async function uploadBatch(url, files, opts = {}) {
           client_id: f.client_id,
           barcode: f.barcode,
           ref_no: f.ref_no || f.barcode,
+          period: f.period,      // ไม่ส่งไป ไฟล์จะไปลงโฟลเดอร์เดือนปัจจุบันเสมอ
           image: f.image
         }))
       }, { ...o, timeoutMs: o.uploadTimeoutMs });
 
       for (const r of (res && res.results) || []) {
-        out.set(r.client_id, { ok: !!r.url, url: r.url || '', message: r.message || '' });
+        out.set(r.client_id, { ok: !!r.url, url: r.url || '',
+                               message: r.message || r.note || '' });
       }
       // รายการที่เซิร์ฟเวอร์ไม่ได้ตอบถึง ถือว่ายังไม่สำเร็จ
       for (const f of chunk) {
@@ -150,6 +171,27 @@ export async function uploadBatch(url, files, opts = {}) {
     done += chunk.length;
     if (o.onProgress) o.onProgress(done, files.length);
   }
+
+  /* ลองซ้ำเฉพาะที่ล้มเหลว โดยส่งทีละไฟล์
+   * คำขอเล็กลงมากจึงมีโอกาสผ่านสูงกว่า
+   * และ client_id กันไฟล์ซ้ำอยู่แล้ว ส่งซ้ำจึงปลอดภัย */
+  const failed = files.filter(f => { const r = out.get(f.client_id); return !r || !r.ok; });
+  if (failed.length && failed.length < files.length) {
+    for (const f of failed) {
+      if (o.signal && o.signal.aborted) break;
+      try {
+        const res = await apiFetch(url, {
+          action: 'uploadPhotos',
+          files: [{ client_id: f.client_id, barcode: f.barcode,
+                    ref_no: f.ref_no || f.barcode, period: f.period, image: f.image }]
+        }, { ...o, timeoutMs: o.uploadTimeoutMs });
+        for (const r of (res && res.results) || []) {
+          if (r.url) out.set(r.client_id, { ok: true, url: r.url, message: r.note || '' });
+        }
+      } catch (err) { /* ยังไม่ผ่าน ปล่อยผลเดิมไว้ */ }
+    }
+  }
+
   return out;
 }
 
