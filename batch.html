@@ -600,11 +600,11 @@ window.dispatchEvent(new Event('docscan-ready'));
             <th style="width:150px">Reference ที่อ่านได้</th>
             <th style="width:100px">ลายเซ็น</th>
             <th style="width:100px">ตราประทับ</th>
-            <th style="width:150px">ต้องเลือก</th>
             <th style="width:150px">Reference (ใช้ตั้งชื่อไฟล์)</th>
             <th style="width:125px">Barcode / Reference<div class="th-sub">ข้อมูลอ้างอิง</div></th>
             <th style="width:110px">ประเภท</th>
-            <th>โอนจาก / โอนไป</th>
+            <th style="min-width:200px">โอนจาก / โอนไป</th>
+            <th style="width:160px">ต้องเลือก</th>
             <th style="width:32px"></th>
           </tr>
         </thead>
@@ -1448,7 +1448,6 @@ function renderTable() {
       '<td>' + readHtml + '</td>' +
       '<td>' + inkCell(row, 'signature') + '</td>' +
       '<td>' + inkCell(row, 'stamp') + '</td>' +
-      '<td>' + pickHtml + '</td>' +
       '<td>' +
         '<input class="' + bcClass + '" value="' + esc(row.barcode) + '" ' +
           'placeholder="พิมพ์เลข Reference" ' +
@@ -1463,6 +1462,7 @@ function renderTable() {
       '<td class="ro">' + refIdCell(row.doc, row) + '</td>' +
       '<td class="ro">' + (esc(ev.itemName) || '—') + '</td>' +
       '<td class="ro">' + routeCell(ev) + '</td>' +
+      '<td>' + pickHtml + '</td>' +
       '<td><button class="remove-row-btn" onclick="removeRow(\'' + rid + '\')">✕</button></td>' +
     '</tr>';
   }).join('') ||
@@ -1822,6 +1822,9 @@ function applySuggestion(id, value) {
   var row = rows.find(function (r) { return r.id === Number(id); });
   if (!row) return;
   row.barcode = value;
+  // คนตัดสินแล้ว ต้องปลดล็อกปุ่มบันทึก
+  // ลืมบรรทัดนี้ = กดเลือกแล้วปุ่มยังล็อกอยู่ หาสาเหตุไม่เจอ
+  row.resolved = true;
   row.tier = 'yellow';
   row.why = 'คนเลือกค่านี้เอง';
   row.suggestion = '';
