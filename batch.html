@@ -2005,6 +2005,13 @@ async function submitBatch(){
         }
         str = 'data:application/pdf;base64,' + btoa(binary);
       }
+      // ไฟล์เดี่ยวที่ใหญ่มากต้องส่งเดี่ยว และอาจไม่ผ่านเลย
+      // บอกไว้ใน console จะได้รู้ว่าต้องลดความละเอียดหรือแยกหน้า
+      if (str.length > 1400000) {
+        console.warn('[DocScan] ไฟล์ใหญ่ผิดปกติ ' + r.barcode + ' ~' +
+          Math.round(str.length / 1024) + ' KB — อาจอัปไม่ผ่าน');
+      }
+
       uploadList.push({
         client_id: r.client_id,
         barcode: r.barcode,
