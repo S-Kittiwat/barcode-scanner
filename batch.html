@@ -410,15 +410,33 @@ tr.tier-yellow td{background:rgba(251,191,36,.06)}
   color:var(--muted);margin-bottom:8px}
 .vf-crop{display:block;max-width:100%;margin-bottom:8px;border:1px solid var(--border);
   border-radius:4px;background:#fff}
-.vf-choice{display:block;width:100%;text-align:left;background:var(--surface);
-  border:1.5px solid var(--border);border-radius:8px;padding:11px 13px;cursor:pointer;
-  font-family:var(--font);margin-bottom:8px}
-.vf-choice:hover{border-color:var(--accent)}
-.vf-choice.best{border-color:var(--success)}
-.vf-choice.on{background:var(--accent);border-color:var(--accent)}
-.vf-choice.on .vc-v,.vf-choice.on .vc-n{color:#0f172a}
-.vc-v{display:block;font-family:var(--mono);font-size:18px;font-weight:600;letter-spacing:.04em}
-.vc-n{display:block;font-size:11px;color:var(--muted);margin-top:3px;line-height:1.5}
+/* ปุ่มเลือกในหน้าตรวจ
+   ตัวที่ยังไม่ถูกเลือกต้องอ่านออกชัดเจนพอ ๆ กับตัวที่เลือกแล้ว
+   ไม่งั้นคนจะมองไม่เห็นตัวเลือกที่มี แล้วกดตัวที่สว่างกว่าโดยไม่ได้ตั้งใจ */
+.vf-choice{display:block;width:100%;text-align:left;background:#0f172a;
+  border:2px solid #475569;border-radius:8px;padding:12px 14px;cursor:pointer;
+  font-family:var(--font);margin-bottom:9px;position:relative;transition:border-color .12s}
+.vf-choice:hover{border-color:var(--accent);background:#16202f}
+.vf-choice .vc-v{color:#f1f5f9}
+.vf-choice .vc-n{color:#94a3b8}
+
+/* ตัวที่เลือกอยู่ ต้องบอกด้วยคำ ไม่ใช่แค่สี
+   เพราะสีอย่างเดียวทำให้ไม่แน่ใจว่ากดโดนหรือยัง */
+.vf-choice.on{background:var(--success);border-color:var(--success)}
+.vf-choice.on .vc-v,.vf-choice.on .vc-n{color:#0b3b2c}
+.vf-choice.on::after{content:'เลือกอยู่';position:absolute;top:10px;right:12px;
+  font-size:11px;font-weight:700;color:#0b3b2c;
+  background:rgba(255,255,255,.55);border-radius:10px;padding:2px 9px}
+.vf-choice.best:not(.on){border-color:var(--accent)}
+.vf-choice.best:not(.on)::after{content:'ระบบแนะนำ';position:absolute;top:10px;right:12px;
+  font-size:11px;color:var(--accent);border:1px solid var(--accent);
+  border-radius:10px;padding:1px 8px}
+.vc-d{background:rgba(251,191,36,.35);border-radius:3px;padding:0 3px;
+  outline:2px solid var(--warn)}
+.vf-choice.on .vc-d{background:rgba(255,255,255,.6);outline-color:#0b3b2c}
+.vc-hint{font-size:11.5px;color:var(--warn);margin-top:2px;line-height:1.5}
+.vc-v{display:block;font-family:var(--mono);font-size:20px;font-weight:700;letter-spacing:.06em}
+.vc-n{display:block;font-size:11.5px;margin-top:4px;line-height:1.5}
 .vf-input{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:6px;
   color:var(--text);font-family:var(--mono);font-size:15px;padding:9px 11px}
 .vf-note{font-size:12px;color:var(--muted);line-height:1.7}
@@ -910,12 +928,11 @@ async function lookupOne(id, value) {
     var doc = row.doc;
     if (doc) {
       row.tier = 'yellow';
-      row.why = 'คนกรอกเอง · พบในรายการอ้างอิง';
+      row.why = 'คนเลือกเอง · พบในรายการอ้างอิง';
     } else {
       row.tier = 'red';
       row.why = 'ไม่พบเลขนี้ในรายการอ้างอิง';
     }
-    row.candidates = [];
     row.crossMismatch = false;
     renderTable();
   }
@@ -1767,16 +1784,36 @@ async function drawVerify() {
   else rc.style.display = 'none';
 
   // ปุ่มเลือกวางข้างภาพเอกสาร จะได้ตัดสินจากสิ่งที่เห็นจริง
+  /* ทำตัวอักษรที่ต่างกันให้เด่น
+     สองค่าต่างกันหลักเดียวจากยี่สิบตัว ถ้าไม่ชี้ให้ชัดคนจะหาไม่เจอ
+     ต้องเพ่งอ่านทีละตัว ซึ่งเหนื่อยและพลาดง่าย */
+  var cands = row.candidates || [];
+  var diffAt = -1;
+  if (cands.length > 1 && cands[0].length === cands[1].length) {
+    for (var di = 0; di < cands[0].length; di++) {
+      if (cands[0][di] !== cands[1][di]) { diffAt = di; break; }
+    }
+  }
+  var mark = function (v) {
+    if (diffAt < 0 || diffAt >= v.length) return esc(v);
+    return esc(v.slice(0, diffAt)) +
+      '<span class="vc-d">' + esc(v[diffAt]) + '</span>' +
+      esc(v.slice(diffAt + 1));
+  };
+
   document.getElementById('vfChoices').innerHTML =
     '<div class="vf-k">เลือกเลขที่ตรงกับเอกสาร</div>' +
-    (row.candidates || []).map(function (c, ci) {
+    cands.map(function (c, ci) {
       var note = (row.candidateNotes && row.candidateNotes[ci]) || '';
       var on = String(c).toUpperCase() === String(row.barcode || '').toUpperCase();
       return '<button class="vf-choice' + (on ? ' on' : '') + (ci === 0 ? ' best' : '') +
         '" data-v="' + esc(c) + '">' +
-        '<span class="vc-v">' + esc(c) + '</span>' +
+        '<span class="vc-v">' + mark(String(c)) + '</span>' +
         (note ? '<span class="vc-n">' + esc(note) + '</span>' : '') + '</button>';
-    }).join('');
+    }).join('') +
+    (diffAt >= 0
+      ? '<div class="vc-hint">ต่างกันที่หลักที่ ' + (diffAt + 1) + ' — ดูตัวที่เน้นไว้</div>'
+      : '');
 
   document.getElementById('vfChoices').querySelectorAll('[data-v]').forEach(function (el) {
     el.addEventListener('click', function () { chooseVerify(el.dataset.v); });
@@ -1801,6 +1838,7 @@ function chooseVerify(v) {
   if (!row) return;
   row.resolved = true;
   applySuggestion(row.id, v);
+  showToast('เลือก ' + v + ' แล้ว', 'success');
   nextVerify();
 }
 
@@ -1823,13 +1861,15 @@ function applySuggestion(id, value) {
   if (!row) return;
   row.barcode = value;
   // คนตัดสินแล้ว ต้องปลดล็อกปุ่มบันทึก
-  // ลืมบรรทัดนี้ = กดเลือกแล้วปุ่มยังล็อกอยู่ หาสาเหตุไม่เจอ
   row.resolved = true;
   row.tier = 'yellow';
   row.why = 'คนเลือกค่านี้เอง';
   row.suggestion = '';
   row.editVals.refNo = value;
-  onBarcodeChange(row.id, value);
+
+  // ค่าที่เลือกอาจยังไม่เคยถูกถามจากเซิร์ฟเวอร์
+  // lookupOne จะถามให้ถ้าไม่มีในแคช แล้วเติมข้อมูลเอกสารให้ครบ
+  lookupOne(row.id, value);
   renderTable();
 }
 
@@ -2367,6 +2407,15 @@ async function applyReadResults(results, typeKey) {
     docs.forEach(function (d) {
       if (d.value) keys.push(d.value);
       if (d.barcodeValue) keys.push(d.barcodeValue);
+      // ต้องถามตัวเลือกรองด้วย ไม่ใช่แค่ตัวที่ชนะโหวต
+      // ถ้าไม่ถาม พอคนเลือกตัวรองจะขึ้นว่าไม่พบในรายการอ้างอิง
+      // ทั้งที่มีอยู่จริง เพราะไม่เคยถูกดึงมาเก็บไว้
+      var oc = d.pages && d.pages[0] && d.pages[0].ocr;
+      if (oc && oc.candidates) {
+        oc.candidates.forEach(function (c) {
+          if (c && c.value) keys.push(c.value);
+        });
+      }
     });
     refs = await fetchRefs(keys);
   } catch (err) {
