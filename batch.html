@@ -402,6 +402,11 @@ dialog[open]{
   max-height:92vh;
   overflow:auto;
 }
+/* เดิมกล่องนี้ตั้งสไตล์แบบ inline ซึ่งมีลำดับสูงกว่ากฎด้านบน
+   กล่องจึงไปติดมุมซ้ายบนแทนที่จะอยู่กลางจอ */
+#dlgPick{background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r);color:var(--text);padding:22px;max-width:900px;width:95vw}
+#dlgPick::backdrop{background:rgba(15,23,42,.82)}
 #dlgVerify{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
   color:var(--text);padding:18px;max-width:1200px;width:96vw}
 #dlgVerify::backdrop{background:rgba(15,23,42,.85)}
@@ -688,7 +693,7 @@ window.dispatchEvent(new Event('docscan-ready'));
   <div class="imgnote" id="imgNote"></div>
 </dialog>
 
-<dialog id="dlgPick" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);color:var(--text);padding:22px;max-width:900px;width:95vw">
+<dialog id="dlgPick">
   <div style="font-size:16px;font-weight:600;margin-bottom:4px">กำหนดพื้นที่อ่านเอง</div>
   <div style="font-size:12.5px;color:var(--muted);margin-bottom:16px;line-height:1.7">
     เลือกว่าจะลากกรอบอะไร แล้วลากบนหน้าเอกสาร — ลากใหม่ทับได้เรื่อย ๆ<br>
