@@ -392,6 +392,16 @@ tr.tier-yellow td{background:rgba(251,191,36,.06)}
 
 /* ---- เลือกพื้นที่อ่านเอง ---- */
 /* ต้องอยู่เหนือกล่องตั้งค่า เพราะเปิดซ้อนกันได้ */
+/* กล่องทั้งหมดต้องอยู่กลางจอ
+   dialog ที่เปิดด้วย showModal จะจัดกลางให้เองด้วย margin:auto
+   แต่ถ้ามีกฎอื่นไปตั้ง margin ทับ กล่องจะไปติดขอบบน
+   จึงกำหนดชัดเจนตรงนี้ทีเดียวสำหรับทุกกล่อง */
+dialog[open]{
+  margin:auto;
+  inset:0;
+  max-height:92vh;
+  overflow:auto;
+}
 #dlgVerify{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
   color:var(--text);padding:18px;max-width:1200px;width:96vw}
 #dlgVerify::backdrop{background:rgba(15,23,42,.85)}
@@ -1068,7 +1078,8 @@ async function processPDF(file, skippedFiles) {
 
     // 1. นับหน้าด้วย PDF.js
     var pdfJs  = await pdfjsLib.getDocument({ data: arrayBuf.slice(0) }).promise;
-  _lastPdfJs = pdfJs;   // เก็บไว้ให้ตัวอ่านอัตโนมัติใช้ซ้ำ ไม่ต้องเปิดไฟล์ใหม่
+    _lastPdfJs = pdfJs;      // ตัวอ่านอัตโนมัติใช้ซ้ำ ไม่ต้องเปิดไฟล์ใหม่
+    _lastPdfBytes = arrayBuf;   // สำรองไว้สร้างไฟล์ตอนบันทึก
     var numPages = pdfJs.numPages;
 
     // 2. ถ้า 1 หน้า — ไม่ต้อง split ใช้เหมือนเดิม
@@ -1168,6 +1179,19 @@ async function _extractPDFPage(pdfJs, pageNum) {
  * เดิมเก็บแค่หน้าแรกแล้วทิ้งสำเนาที่เหลือ ซึ่งทำให้เอกสารอย่าง CMD
  * ที่มีต้นฉบับกับสำเนาคนละใบ หายไปครึ่งหนึ่งโดยไม่มีใครรู้
  */
+/** เปิดเอกสารใหม่จากไบต์ที่เก็บไว้ ใช้เมื่อตัวเดิมใช้ไม่ได้แล้ว */
+async function ensurePdf() {
+  if (_lastPdfJs) {
+    try { await _lastPdfJs.getPage(1); return _lastPdfJs; }
+    catch (e) { /* ใช้ไม่ได้แล้ว เปิดใหม่ */ }
+  }
+  if (!_lastPdfBytes) return null;
+  try {
+    _lastPdfJs = await pdfjsLib.getDocument({ data: _lastPdfBytes.slice(0) }).promise;
+    return _lastPdfJs;
+  } catch (e) { return null; }
+}
+
 async function buildDocPdf(pdfJs, pageNos) {
   if (!pageNos || !pageNos.length) return null;
   if (pageNos.length === 1) return await _extractPDFPage(pdfJs, pageNos[0]);
@@ -1876,7 +1900,7 @@ function applySuggestion(id, value) {
 function removeRow(id){var idNum=Number(id);rows=rows.filter(function(r){return r.id!==idNum;});renderTable();updateBatchCounter();}
 function clearAll(){
   if(!rows.length||!confirm('ล้างทั้งหมด?'))return;
-  rows=[]; _lastPdfJs=null; _lastFileName='';
+  rows=[]; _lastPdfJs=null; _lastPdfBytes=null; _lastFileName='';
   renderTable(); updateBatchCounter(); showReaderPanel(false);
   document.getElementById('tableWrap').style.display='none';
   document.getElementById('beforeRead').style.display='none';
@@ -1937,22 +1961,35 @@ async function submitBatch(){
     // บีบไฟล์ตรงนี้ ไม่ใช่ตอนอัปโหลดเข้ามา
     // เพราะตอนนั้นยังไม่รู้ว่าหน้าไหนเป็นสำเนาของกัน จะบีบเสียเปล่า
     var uploadList = [];
+    var buildFail = [];
     for (var ri = 0; ri < ready.length; ri++) {
       var r = ready[ri];
       btn.textContent = 'กำลังเตรียมไฟล์ ' + (ri + 1) + '/' + ready.length;
 
       var d = r.pdfPageData;
-      if (!d && _lastPdfJs && r.pageNos && r.pageNos.length) {
-        d = await buildDocPdf(_lastPdfJs, r.pageNos);
-        r.pdfPageData = d;
-        r.compressedBytes = d ? d.length : 0;
-      } else if (!d && _lastPdfJs && r.pageNo) {
-        d = await _extractPDFPage(_lastPdfJs, r.pageNo);
-        r.pdfPageData = d;
-        r.compressedBytes = d.length;
+      try {
+        var pdfDoc = d ? null : await ensurePdf();
+        if (!d && pdfDoc && r.pageNos && r.pageNos.length) {
+          d = await buildDocPdf(pdfDoc, r.pageNos);
+        } else if (!d && pdfDoc && r.pageNo) {
+          d = await _extractPDFPage(pdfDoc, r.pageNo);
+        }
+        if (d) { r.pdfPageData = d; r.compressedBytes = d.length || 0; }
+      } catch (err) {
+        console.error('[DocScan] สร้างไฟล์ไม่สำเร็จ', r.barcode, err);
+        buildFail.push(r.barcode + ' (' + (err.message || err) + ')');
       }
+
       if (!d) d = r.photoData;
-      if (!d) continue;
+
+      /* เดิมข้ามไปเงียบ ๆ ตรงนี้
+         ผลคือข้อมูลลง Sheet ครบแต่ไม่มีไฟล์ขึ้น Drive เลย
+         และไม่มีอะไรบอกว่าเกิดอะไรขึ้น ซึ่งหาสาเหตุยากมาก
+         ต้องเก็บไว้แล้วรายงานทีเดียว */
+      if (!d) {
+        buildFail.push(r.barcode + ' (ไม่มีข้อมูลไฟล์)');
+        continue;
+      }
 
       var str = d;
       if (d instanceof Uint8Array) {
@@ -1972,12 +2009,30 @@ async function submitBatch(){
       });
       await new Promise(function (res) { setTimeout(res, 0); });
     }
+    // ต้องรู้ก่อนบันทึกว่าจะมีไฟล์ครบหรือไม่
+    // ถ้าปล่อยผ่านแล้วบันทึกไป จะได้รายการที่ไม่มีไฟล์แนบโดยไม่มีใครรู้
+    if (buildFail.length) {
+      var msg = 'เตรียมไฟล์ไม่สำเร็จ ' + buildFail.length + ' รายการ\n\n' +
+        buildFail.slice(0, 8).join('\n') +
+        (buildFail.length > 8 ? '\n… และอีก ' + (buildFail.length - 8) : '') +
+        '\n\nถ้าบันทึกต่อ รายการเหล่านี้จะไม่มีไฟล์แนบ\nบันทึกต่อไหม';
+      if (!confirm(msg)) { btn.disabled = false; updateSubmitBtn(); return; }
+    }
+
+    if (!uploadList.length) {
+      alert('ไม่มีไฟล์ที่จะอัปโหลดเลย\n\n' +
+            'มักเกิดเมื่อไฟล์ PDF ถูกปิดไปแล้ว เช่นรีเฟรชหน้าหลังอ่านเสร็จ\n' +
+            'กรุณาอัปโหลดไฟล์ใหม่แล้วอ่านอีกครั้ง');
+      btn.disabled = false; updateSubmitBtn();
+      return;
+    }
+
     btn.textContent = 'กำลังอัปโหลด...';
 
     var cs = DocScan.compressionSummary(ready);
     if (cs) console.log('[DocScan] บีบไฟล์: ' + cs.text);
 
-    if (uploadList.length) {
+    {
       var results = await DocScan.uploadBatch(API_URL, uploadList, {
         onProgress: function (d, t) { btn.textContent = 'อัปโหลด ' + d + '/' + t + '...'; }
       });
@@ -1989,8 +2044,16 @@ async function submitBatch(){
       });
       if (failed) {
         // ไม่หยุดทั้งชุด แต่ต้องบอกให้รู้ว่าบางไฟล์ไม่ขึ้น
-        alert('อัปโหลดไฟล์ไม่สำเร็จ ' + failed + ' รายการ\\n' +
-              'ข้อมูลจะยังถูกบันทึก แต่ไม่มีไฟล์แนบ กรุณาตรวจสอบภายหลัง');
+        var detail = [];
+        results.forEach(function (x, cid) {
+          if (x && !x.ok) detail.push(cid + ': ' + (x.message || 'ไม่ทราบสาเหตุ'));
+        });
+        console.error('[DocScan] อัปโหลดไม่สำเร็จ', detail);
+        alert('อัปโหลดไฟล์ไม่สำเร็จ ' + failed + ' รายการ\n\n' +
+              detail.slice(0, 5).join('\n') +
+              '\n\nข้อมูลจะยังถูกบันทึก แต่ไม่มีไฟล์แนบ');
+      } else {
+        console.log('[DocScan] อัปโหลดสำเร็จ ' + uploadList.length + ' ไฟล์');
       }
     }
 
@@ -2228,6 +2291,10 @@ function showToast(msg,type){var t=document.getElementById('toast');t.textConten
    บาร์โค้ดก่อน ถ้าไม่ได้ค่อย OCR แล้วเทียบกับรายการอ้างอิง
    ============================================================ */
 var _types = null, _readAbort = null, _lastPdfJs = null, _lastFileName = '';
+/* เก็บไบต์ต้นฉบับไว้ด้วย
+   pdf.js อาจถูกปิดหรือใช้ไม่ได้เมื่อถึงตอนบันทึก
+   ถ้าไม่มีสำรองไว้ จะสร้างไฟล์ไม่ได้เลยและไม่รู้สาเหตุ */
+var _lastPdfBytes = null;
 var _refNeighbors = {};
 window._refNeighbors = _refNeighbors;
 
