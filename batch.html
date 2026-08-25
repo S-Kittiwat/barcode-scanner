@@ -331,6 +331,8 @@ main{width:100%;max-width:100%;padding:20px 24px 100px;}
 .duplink{display:inline-block;font-size:11px;color:var(--accent);margin-top:4px}
 tr.needdup td{background:rgba(251,191,36,.10)}
 tr.needdup td:first-child{box-shadow:inset 3px 0 0 var(--warn)}
+tr.needink td{background:rgba(251,191,36,.06)}
+tr.needink td:first-child{box-shadow:inset 3px 0 0 var(--warn)}
 .pickhead{font-size:10.5px;color:var(--warn);font-weight:600;margin:0 0 4px;line-height:1.4}
 .needdo{font-size:11px;color:var(--danger);font-weight:600}
 .needconfirm{font-size:11px;color:var(--warn);font-weight:600}
@@ -365,11 +367,6 @@ tr.needdup td:first-child{box-shadow:inset 3px 0 0 var(--warn)}
 .inkno{color:var(--danger);font-weight:600;font-size:12.5px}
 .inkna{font-size:11.5px;color:var(--muted)}
 .inkpct{font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:2px}
-.inkopen{width:100%;margin-top:6px;background:var(--warn);border:none;color:#0f172a;
-  border-radius:5px;padding:5px 0;font-family:var(--font);font-size:10.5px;
-  font-weight:600;cursor:pointer}
-.inkopen.ghost{background:transparent;border:1px solid var(--border);
-  color:var(--muted);font-weight:400}
 .inkact{display:flex;gap:4px;margin-top:5px}
 .inkbtn{flex:1;background:var(--surface2);border:1px solid var(--border);color:var(--muted);
   border-radius:5px;padding:3px 0;font-family:var(--font);font-size:10.5px;cursor:pointer}
@@ -1626,7 +1623,11 @@ function renderTable() {
     // แถวที่ระบบไม่แน่ใจและคนยังไม่ตัดสิน ต้องเด่นและบันทึกไม่ได้
     var needFix = !!(!row.resolved &&
       ((row.candidates && row.candidates.length > 1) || !row.barcode));
+    // แถวที่ยังมีอะไรให้ทำ ต้องเห็นได้จากการกวาดสายตา ไม่ใช่ต้องอ่านทีละช่อง
     var needDup = !!(row.already && !row.confirmedOverwrite);
+    var needInk = !!(row.ink && !row.ink.ok && (row.ink.missing || []).some(function (c) {
+      return !(row.inkOverride || {})[c.key];
+    }));
     var pickHtml;
     if (needDup) {
       var pv = row.already;
@@ -1678,6 +1679,14 @@ function renderTable() {
         '<button class="fixbtn" style="background:transparent;border:1px solid var(--border);' +
         'color:var(--muted);margin-top:5px" onclick="setSample(' + rid + ',\'\')">' +
         'ยกเลิกผลตรวจ</button>';
+    } else if (needInk) {
+      /* ลายเซ็นหรือตราที่ระบบตรวจไม่พบ ต้องให้คนดูเอกสารก่อนตัดสิน
+         ภาพในกรอบที่แสดงในตารางเล็กเกินกว่าจะบอกได้ว่าจางหรือไม่มีจริง */
+      pickHtml = '<div class="needconfirm">ยืนยัน' +
+        row.ink.missing.map(function (c) { return esc(c.label); }).join('และ') +
+        '</div>' +
+        '<button class="fixbtn" style="background:var(--warn);color:#0f172a;margin-top:5px" ' +
+        'onclick="openVerify(\'' + rid + '\',\'ink\')">ดูเอกสารแล้วยืนยัน</button>';
     } else if (row.tier === 'yellow') {
       pickHtml = '<div class="needconfirm">ยืนยันกับเอกสาร</div>';
     } else {
@@ -1694,7 +1703,7 @@ function renderTable() {
                    row.readValue.toUpperCase() !== row.barcode.toUpperCase();
 
     return '<tr class="row-' + row.status + tierCls + (needFix ? ' needfix' : '') +
-      (needDup ? ' needdup' : '') + '" id="row-' + rid + '">' +
+      (needDup ? ' needdup' : (needInk ? ' needink' : '')) + '" id="row-' + rid + '">' +
       '<td class="no">' + (i + 1) + '</td>' +
       '<td><div style="display:flex;flex-direction:column;align-items:center;gap:2px">' +
         thumbHtml + '<div class="file-name" style="text-align:center">' + fileLabel + '</div>' +
@@ -1973,17 +1982,10 @@ function inkCell(row, key) {
     : '';
 
   // ให้ยืนยันเฉพาะตอนที่ระบบบอกว่าไม่พบ ไม่รบกวนใบที่ผ่านอยู่แล้ว
-  var act = '';
-  if (!ok && !ov) {
-    // ให้เปิดดูเอกสารก่อนตัดสิน ภาพในกรอบเล็กเกินกว่าจะดูออกว่าจางหรือไม่มี
-    act = '<button class="inkopen" onclick="openVerify(' + rid + ',\'ink\')">' +
-      'ดูเอกสารแล้วยืนยัน</button>';
-  } else if (!ok) {
-    act = '<button class="inkopen ghost" onclick="openVerify(' + rid + ',\'ink\')">' +
-      'เปิดดูอีกครั้ง</button>';
-  }
-
-  return head + img + '<div class="inkpct">' + c.value + '% / ' + c.min + '%</div>' + act;
+  /* ไม่มีปุ่มในช่องนี้
+     ทุกการกระทำรวมไว้ที่คอลัมน์ "ต้องเลือก" ที่เดียว
+     ถ้ากระจายปุ่มไปหลายช่อง คนจะไม่รู้ว่าต้องมองตรงไหนถึงจะครบ */
+  return head + img + '<div class="inkpct">' + c.value + '% / ' + c.min + '%</div>';
 }
 
 /**
