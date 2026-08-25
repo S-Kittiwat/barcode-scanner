@@ -311,6 +311,11 @@ main{width:100%;max-width:100%;padding:20px 24px 100px;}
   color:var(--text);font-family:var(--mono);font-size:14px;padding:9px 11px;letter-spacing:.04em}
 .ps-done{margin-top:14px;padding:10px;border-radius:6px;background:rgba(52,211,153,.12);
   color:var(--success);font-size:12.5px;text-align:center}
+.dupwarn{font-size:12px;color:var(--warn);font-weight:600}
+.dupinfo{font-size:10.5px;color:var(--muted);margin-top:3px;line-height:1.5}
+.duplink{display:inline-block;font-size:11px;color:var(--accent);margin-top:4px}
+tr.needdup td{background:rgba(251,191,36,.10)}
+tr.needdup td:first-child{box-shadow:inset 3px 0 0 var(--warn)}
 .pickhead{font-size:10.5px;color:var(--warn);font-weight:600;margin:0 0 4px;line-height:1.4}
 .needdo{font-size:11px;color:var(--danger);font-weight:600}
 .needconfirm{font-size:11px;color:var(--warn);font-weight:600}
@@ -1450,8 +1455,24 @@ function renderTable() {
        ถ้าปนอยู่กับผลการอ่าน จะกลืนไปกับข้อความอื่นแล้วมองข้าม */
     // แถวที่ระบบไม่แน่ใจและคนยังไม่ตัดสิน ต้องเด่นและบันทึกไม่ได้
     var needFix = !!(row.candidates && row.candidates.length > 1 && !row.resolved);
+    var needDup = !!(row.already && !row.confirmedOverwrite);
     var pickHtml;
-    if (needFix) {
+    if (needDup) {
+      var pv = row.already;
+      var whenTxt = pv.at ? new Date(pv.at).toLocaleDateString('th-TH',
+        { day: '2-digit', month: 'short', year: '2-digit' }) : 'ไม่ทราบวันที่';
+      pickHtml = '<div class="dupwarn">เคยสแกนแล้ว</div>' +
+        '<div class="dupinfo">' + esc(whenTxt) +
+          (pv.by ? ' · ' + esc(pv.by) : '') +
+          (pv.site ? '<br>' + esc(pv.site) : '') + '</div>' +
+        (pv.url ? '<a class="duplink" href="' + esc(pv.url) +
+          '" target="_blank">เปิดไฟล์เดิม</a>' : '') +
+        '<button class="fixbtn" style="margin-top:6px" ' +
+        'onclick="confirmOverwrite(\'' + rid + '\')">ยืนยันทับของเดิม</button>' +
+        '<button class="fixbtn" style="background:transparent;border:1px solid var(--border);' +
+        'color:var(--muted);margin-top:5px" onclick="removeRow(\'' + rid + '\')">' +
+        'ไม่นำเข้าใบนี้</button>';
+    } else if (needFix) {
       // ต้องเปิดดูเอกสารก่อนเลือก เพราะตัดสินจากตัวเลขอย่างเดียวไม่ได้
       // ตัวเลือกอยู่ข้างภาพในหน้าพรีวิว เทียบแล้วกดได้เลย
       pickHtml = '<div class="pickhead">' + esc(row.why || 'ต้องเลือกค่า') + '</div>' +
@@ -1485,7 +1506,7 @@ function renderTable() {
                    row.readValue.toUpperCase() !== row.barcode.toUpperCase();
 
     return '<tr class="row-' + row.status + tierCls + (needFix ? ' needfix' : '') +
-      '" id="row-' + rid + '">' +
+      (needDup ? ' needdup' : '') + '" id="row-' + rid + '">' +
       '<td class="no">' + (i + 1) + '</td>' +
       '<td><div style="display:flex;flex-direction:column;align-items:center;gap:2px">' +
         thumbHtml + '<div class="file-name" style="text-align:center">' + fileLabel + '</div>' +
@@ -1885,6 +1906,21 @@ function nextVerify() {
 }
 
 /** ใช้ค่าที่ระบบเสนอเมื่อเลขที่อ่านได้ใกล้เคียงกับรายการอ้างอิง */
+/** คนยืนยันแล้วว่าจะทับไฟล์เดิม */
+function confirmOverwrite(id) {
+  var row = rows.find(function (r) { return r.id === Number(id); });
+  if (!row) return;
+  var pv = row.already || {};
+  var when = pv.at ? new Date(pv.at).toLocaleString('th-TH') : 'ไม่ทราบวันที่';
+  if (!confirm('เอกสาร ' + (row.editVals.refNo || row.barcode) + ' เคยสแกนแล้ว\n\n' +
+      'เมื่อ ' + when + (pv.by ? '\nโดย ' + pv.by : '') + '\n\n' +
+      'ถ้าบันทึกต่อ ไฟล์เดิมจะถูกย้ายลงถังขยะและใช้ไฟล์ใหม่แทน\n' +
+      'กู้คืนได้ภายใน 30 วัน\n\nยืนยันทับของเดิมไหม')) return;
+  row.confirmedOverwrite = true;
+  row.why = 'ยืนยันทับของเดิมแล้ว';
+  renderTable();
+}
+
 function applySuggestion(id, value) {
   var row = rows.find(function (r) { return r.id === Number(id); });
   if (!row) return;
@@ -1927,6 +1963,15 @@ function updateSubmitBtn(){
   if (pending.length) {
     btn.disabled = true;
     btn.textContent = 'ต้องเลือกเลขให้ครบก่อน (' + pending.length + ' รายการ)';
+    return;
+  }
+
+  // เอกสารที่เคยสแกนแล้วต้องได้รับการยืนยันก่อน
+  // ไม่งั้นจะทับไฟล์เดิมโดยที่คนไม่รู้ตัว
+  var dup = rows.filter(function (r) { return r.already && !r.confirmedOverwrite; });
+  if (dup.length) {
+    btn.disabled = true;
+    btn.textContent = 'มีเอกสารที่เคยสแกนแล้ว ' + dup.length + ' รายการ';
     return;
   }
 
@@ -2503,6 +2548,21 @@ async function applyReadResults(results, typeKey) {
   }
   refs.index.forEach(function (v, k) { _lastRefIndex.set(k, v); });
   var idx = refs.index;
+
+  /* ตรวจว่าเลขไหนเคยสแกนเข้าระบบไปแล้ว
+     ถ้าไม่ตรวจ ระบบจะทับไฟล์เดิมเงียบ ๆ ตอนบันทึก
+     ซึ่งอาจทับของที่สแกนชัดกว่าโดยไม่มีใครรู้ */
+  var already = {};
+  try {
+    rprog(0.98, 'กำลังตรวจว่าเคยสแกนไปแล้วหรือยัง');
+    var chk = await apiPost({
+      action: 'docsScanned',
+      refs: docs.map(function (d) { return d.refNo || d.value; }).filter(Boolean)
+    });
+    already = (chk && chk.found) || {};
+  } catch (err) {
+    showToast('ตรวจรายการซ้ำไม่สำเร็จ: ' + (err.message || err), 'error');
+  }
   _refNeighbors = refs.neighbors || {};
   window._refNeighbors = _refNeighbors;
   var count = { green: 0, yellow: 0, red: 0, sampled: 0, noInk: 0, crossOk: 0 };
@@ -2553,6 +2613,14 @@ async function applyReadResults(results, typeKey) {
     first.readCrop = oc && oc.crop ? oc.crop : '';
     // ค่าที่ OCR ลังเล ให้คนเลือกด้วยคลิกเดียว เร็วกว่าพิมพ์ใหม่และพิมพ์ผิดยาก
     first.crossMismatch = (cls.reason === 'cross_mismatch');
+
+    // เคยสแกนไปแล้ว ต้องให้คนยืนยันก่อนทับ
+    var prev = already[String(first.editVals.refNo || first.barcode || '').toUpperCase()];
+    if (prev) {
+      first.already = prev;
+      first.confirmedOverwrite = false;
+      if (first.tier === 'green') first.tier = 'yellow';
+    }
     first.candidateNotes = cls.candidateNotes || [];
     first.candidates = (cls.candidates && cls.candidates.length)
       ? cls.candidates
