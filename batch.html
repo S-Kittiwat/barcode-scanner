@@ -365,6 +365,12 @@ tr.needdup td:first-child{box-shadow:inset 3px 0 0 var(--warn)}
 .inkno{color:var(--danger);font-weight:600;font-size:12.5px}
 .inkna{font-size:11.5px;color:var(--muted)}
 .inkpct{font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:2px}
+.inkact{display:flex;gap:4px;margin-top:5px}
+.inkbtn{flex:1;background:var(--surface2);border:1px solid var(--border);color:var(--muted);
+  border-radius:5px;padding:3px 0;font-family:var(--font);font-size:10.5px;cursor:pointer}
+.inkbtn:hover{border-color:var(--accent);color:var(--text)}
+.inkbtn.on{background:var(--success);border-color:var(--success);color:#0f172a;font-weight:600}
+.inkbtn.bad{background:var(--danger);border-color:var(--danger);color:#fff;font-weight:600}
 .inkimg{display:block;max-width:100%;max-height:40px;margin-top:3px;border:1px solid var(--border);
   border-radius:3px;background:#fff;cursor:zoom-in}
 .refout{font-size:11.5px;color:var(--muted);margin-top:5px;font-family:var(--mono)}
@@ -1389,32 +1395,72 @@ document.addEventListener('blur', function(e) {
  * ของที่มีปัญหาอยู่บนสุดเสมอ ไม่ต้องเลื่อนหา และยังเห็นทั้งชุด
  * ตัวกรองเก็บไว้เผื่ออยากดูเฉพาะกลุ่ม
  */
+/* ============================================================
+   ตัวกรองตามประเภทงาน
+   ============================================================
+   แต่ละงานใช้วิธีคิดคนละแบบ
+     กรอกเลข   ต้องอ่านเอกสารแล้วพิมพ์
+     เลือกเลข   ต้องเทียบสองค่ากับเอกสาร
+     ยืนยันทับ  ต้องตัดสินใจว่าจะเอาไฟล์ไหน
+   ทำทีละประเภทเร็วกว่าไล่ทีละแถวที่ปนกัน เพราะไม่ต้องสลับโหมดคิด
+
+   ปุ่มที่ไม่มีรายการจะถูกซ่อน งานจริงจึงเหลือ 3-4 ปุ่ม ไม่ใช่ทั้งเจ็ด
+   ============================================================ */
+
+var FILTER_DEFS = [
+  { key: 'all',    label: 'ทั้งหมด',       cls: '',  always: true,
+    test: function () { return true; } },
+
+  // ── บล็อกการบันทึก ต้องเคลียร์ให้หมด ──
+  { key: 'noread', label: 'ต้องกรอกเลข',   cls: 'r', block: true,
+    test: function (r) { return !r.barcode; } },
+  { key: 'choose', label: 'ต้องเลือกเลข',  cls: 'r', block: true,
+    test: function (r) { return !!(r.candidates && r.candidates.length > 1 && !r.resolved); } },
+  { key: 'dup',    label: 'เคยสแกนแล้ว',   cls: 'r', block: true,
+    test: function (r) { return !!(r.already && !r.confirmedOverwrite); } },
+
+  // ── ควรดู แต่ไม่บล็อก ──
+  { key: 'ink',    label: 'ลายเซ็น/ตรา',   cls: 'y',
+    test: function (r) {
+      if (!r.ink || r.ink.ok) return false;
+      var ov = r.inkOverride || {};
+      return (r.ink.missing || []).some(function (c) { return !ov[c.key]; });
+    } },
+  { key: 'noref',  label: 'ไม่พบในรายการ', cls: 'y',
+    test: function (r) { return !!r.barcode && !r.doc; } },
+  { key: 'sample', label: 'สุ่มตรวจ',      cls: 'y',
+    test: function (r) { return !!r.sampled; } },
+
+  { key: 'done',   label: 'ผ่านแล้ว',      cls: '',
+    test: function (r) {
+      return r.tier === 'green' && !r.sampled && !(r.already && !r.confirmedOverwrite);
+    } }
+];
+
 var _filter = 'all';
+
+function rowMatchesFilter(r) {
+  var def = FILTER_DEFS.filter(function (d) { return d.key === _filter; })[0];
+  return def ? def.test(r) : true;
+}
 
 var TIER_ORDER = { red: 0, yellow: 1, green: 3 };
 
 function rowPriority(r) {
   var p = TIER_ORDER[r.tier];
-  if (p === undefined) p = 2;          // ยังไม่ได้อ่าน อยู่กลาง ๆ
-  if (r.tier === 'green' && r.sampled) p = 2;   // สุ่มตรวจ ต้องดูแม้จะผ่าน
+  if (p === undefined) p = 2;
+  if (r.tier === 'green' && r.sampled) p = 2;
   return p;
 }
 
 function sortRowsForView(list) {
   return list.slice().sort(function (a, b) {
     var d = rowPriority(a) - rowPriority(b);
-    return d !== 0 ? d : (a.id - b.id);   // ลำดับเดิมเมื่อความสำคัญเท่ากัน
+    return d !== 0 ? d : (a.id - b.id);
   });
 }
 
-function rowMatchesFilter(r) {
-  if (_filter === 'all') return true;
-  if (_filter === 'red') return r.tier === 'red';
-  if (_filter === 'yellow') return r.tier === 'yellow' || (r.tier === 'green' && r.sampled);
-  if (_filter === 'green') return r.tier === 'green' && !r.sampled;
-  return true;
-}
-
+/** แถบสถานะการตรวจเอกสารซ้ำ ค้างไว้จนกว่าจะแก้ */
 function renderDupBanner() {
   var el = document.getElementById('dupBanner');
   if (!el) return;
@@ -1443,33 +1489,34 @@ function renderFilterBar() {
   if (!bar) return;
   if (!rows.length) { bar.style.display = 'none'; return; }
 
-  var n = { all: rows.length, red: 0, yellow: 0, green: 0 };
-  rows.forEach(function (r) {
-    if (r.tier === 'red') n.red++;
-    else if (r.tier === 'green' && r.sampled) n.yellow++;   // สุ่มตรวจนับรวมกับควรยืนยัน
-    else if (r.tier === 'yellow') n.yellow++;
-    else if (r.tier === 'green') n.green++;
+  var counts = {};
+  FILTER_DEFS.forEach(function (d) {
+    counts[d.key] = rows.filter(d.test).length;
   });
 
-  var b = function (key, label, cnt, cls) {
-    return '<button class="fbtn ' + (cls || '') + (_filter === key ? ' on' : '') +
-      '" data-f="' + key + '">' + label + '<b>' + cnt + '</b></button>';
-  };
+  // ตัวกรองที่เลือกอยู่ว่างเปล่า ให้กลับไปทั้งหมด ไม่ปล่อยให้จอโล่ง
+  if (_filter !== 'all' && !counts[_filter]) _filter = 'all';
 
-  var todo = n.red + n.yellow;
+  var html = FILTER_DEFS.map(function (d) {
+    // ซ่อนปุ่มที่ไม่มีรายการ เพื่อไม่ให้แถบรกด้วยตัวเลือกที่กดไปก็ว่าง
+    if (!d.always && !counts[d.key]) return '';
+    return '<button class="fbtn ' + d.cls + (_filter === d.key ? ' on' : '') +
+      '" data-f="' + d.key + '">' + d.label + '<b>' + counts[d.key] + '</b></button>';
+  }).join('');
+
+  var blocking = FILTER_DEFS
+    .filter(function (d) { return d.block; })
+    .reduce(function (n, d) { return n + counts[d.key]; }, 0);
+
   bar.style.display = 'flex';
-  bar.innerHTML =
-    b('all', 'ทั้งหมด', n.all) +
-    b('red', 'ต้องตรวจ', n.red, 'r') +
-    b('yellow', 'ควรยืนยัน', n.yellow, 'y') +
-    b('green', 'ผ่านแล้ว', n.green) +
-    (pendingRows().length
+  bar.innerHTML = html +
+    (blocking
       ? '<button class="fixbtn" style="width:auto;padding:6px 16px" ' +
-        'onclick="openVerify()">ตรวจทีละใบ (' + pendingRows().length + ')</button>'
+        'onclick="openVerify()">ตรวจทีละใบ</button>'
       : '') +
     '<span class="fnote">' +
-      (todo ? 'เรียงรายการที่ต้องดู ' + todo + ' รายการไว้บนสุดแล้ว'
-            : 'ทุกรายการผ่านแล้ว พร้อมบันทึก') + '</span>';
+      (blocking ? 'ต้องเคลียร์ ' + blocking + ' รายการก่อนบันทึก'
+                : 'เคลียร์ครบแล้ว พร้อมบันทึก') + '</span>';
 
   bar.querySelectorAll('[data-f]').forEach(function (el) {
     el.addEventListener('click', function () {
@@ -1845,6 +1892,16 @@ function refIdCell(doc, row) {
  * ช่องลายเซ็นหรือตราประทับ แยกคอลัมน์ละอย่าง
  * key = 'signature' หรือ 'stamp'
  */
+/**
+ * ช่องลายเซ็นหรือตราประทับ
+ *
+ * เมื่อระบบตรวจไม่พบ ให้คนยืนยันได้ว่าจริง ๆ มีหรือไม่มี
+ * เพราะหมึกจางกว่าเกณฑ์ไม่ได้แปลว่าไม่มีลายเซ็น
+ *
+ * สิ่งที่คนยืนยันถูกเก็บลงตารางเพื่อสองอย่าง
+ *   จูนเกณฑ์ให้แม่นขึ้นจากข้อมูลจริง แทนการเดาจากตัวอย่างไม่กี่ใบ
+ *   ตามเอกสารที่ขาดลายเซ็นจริง ซึ่งใช้เป็นหลักฐานไม่ได้
+ */
 function inkCell(row, key) {
   if (!row.ink || !row.ink.checks || !row.ink.checks.length) {
     return '<span class="inkna">ไม่ได้ตรวจ</span>';
@@ -1852,16 +1909,58 @@ function inkCell(row, key) {
   var c = row.ink.checks.filter(function (x) { return x.key === key; })[0];
   if (!c) return '<span class="inkna">ไม่ได้ตรวจ</span>';
 
+  var rid = row.id;
+  var ov = (row.inkOverride || {})[key] || '';
   var ok = c.pass;
-  return '<div class="' + (ok ? 'inkyes' : 'inkno') + '">' +
-      (ok ? 'มีแล้ว' : 'ยังไม่มี') + '</div>' +
-    (c.crop
-      ? '<img class="inkimg" src="' + c.crop + '" alt="' + esc(c.label) +
-        '" title="กดเพื่อดูขนาดเต็ม" onclick="openImage(this.src,\'' + esc(c.label) +
-        '\',\'' + (ok ? 'ตรวจพบ' : 'ไม่พบ') + ' · หมึก ' + c.value +
-        '% เกณฑ์ ' + c.min + '%\')">'
-      : '') +
-    '<div class="inkpct">' + c.value + '% / ' + c.min + '%</div>';
+
+  var head;
+  if (ov === 'present') head = '<div class="inkyes">มี (คนยืนยัน)</div>';
+  else if (ov === 'missing') head = '<div class="inkno">ไม่มีจริง</div>';
+  else head = '<div class="' + (ok ? 'inkyes' : 'inkno') + '">' +
+              (ok ? 'มีแล้ว' : 'ยังไม่มี') + '</div>';
+
+  var img = c.crop
+    ? '<img class="inkimg" src="' + c.crop + '" alt="' + esc(c.label) +
+      '" title="กดเพื่อดูขนาดเต็ม" onclick="openImage(this.src,\'' + esc(c.label) +
+      '\',\'' + (ok ? 'ตรวจพบ' : 'ไม่พบ') + ' · หมึก ' + c.value +
+      '% เกณฑ์ ' + c.min + '%\')">'
+    : '';
+
+  // ให้ยืนยันเฉพาะตอนที่ระบบบอกว่าไม่พบ ไม่รบกวนใบที่ผ่านอยู่แล้ว
+  var act = '';
+  if (!ok) {
+    act = '<div class="inkact">' +
+      '<button class="inkbtn' + (ov === 'present' ? ' on' : '') +
+        '" onclick="setInkOverride(' + rid + ',\'' + key + '\',\'present\')">มีจริง</button>' +
+      '<button class="inkbtn' + (ov === 'missing' ? ' bad' : '') +
+        '" onclick="setInkOverride(' + rid + ',\'' + key + '\',\'missing\')">ไม่มีจริง</button>' +
+      '</div>';
+  }
+
+  return head + img + '<div class="inkpct">' + c.value + '% / ' + c.min + '%</div>' + act;
+}
+
+/**
+ * สรุปผลหมึกของช่องหนึ่งเป็นข้อความเดียว เพื่อเก็บลงตาราง
+ * รูปแบบ  ผลระบบ|ค่าที่วัดได้|เกณฑ์|สิ่งที่คนยืนยัน
+ * เช่น    fail|0.32|0.50|present
+ */
+function inkVal(row, key) {
+  if (!row.ink || !row.ink.checks) return '';
+  var c = row.ink.checks.filter(function (x) { return x.key === key; })[0];
+  if (!c) return '';
+  var ov = (row.inkOverride || {})[key] || '';
+  return (c.pass ? 'pass' : 'fail') + '|' + c.value + '|' + c.min + '|' + ov;
+}
+
+/** บันทึกสิ่งที่คนยืนยัน */
+function setInkOverride(id, key, val) {
+  var row = rows.find(function (r) { return r.id === Number(id); });
+  if (!row) return;
+  row.inkOverride = row.inkOverride || {};
+  // กดซ้ำที่ปุ่มเดิม = ยกเลิกการยืนยัน
+  row.inkOverride[key] = (row.inkOverride[key] === val) ? '' : val;
+  renderTable();
 }
 
 /**
@@ -2415,6 +2514,11 @@ async function submitBatch(){
         human_edited: !!(row.readValue && row.barcode &&
                          row.readValue.toUpperCase() !== row.barcode.toUpperCase()),
         sampled: !!row.sampled,
+        /* ผลตรวจหมึกและสิ่งที่คนยืนยัน
+           เก็บค่าที่วัดได้ด้วย เพื่อให้ย้อนกลับมาจูนเกณฑ์ได้ภายหลัง
+           ถ้าเก็บแค่ผ่าน/ไม่ผ่าน จะรู้ว่าผิดแต่ไม่รู้ว่าควรปรับเท่าไหร่ */
+        ink_signature: inkVal(row, 'signature'),
+        ink_stamp: inkVal(row, 'stamp'),
         barcode      : row.barcode,
         ref_no       : ev.refNo        || '',
         item_name    : ev.itemName     || '',
