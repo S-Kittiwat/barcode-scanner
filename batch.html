@@ -2046,6 +2046,7 @@ async function submitBatch(){
 
     {
       var results = await DocScan.uploadBatch(API_URL, uploadList, {
+        token: (DocScanAuth.load() || {}).token,
         onProgress: function (d, t) { btn.textContent = 'อัปโหลด ' + d + '/' + t + '...'; }
       });
       var failed = 0;
