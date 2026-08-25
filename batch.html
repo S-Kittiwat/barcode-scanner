@@ -1527,13 +1527,12 @@ function renderFilterBar() {
       '" data-f="' + d.key + '">' + d.label + '<b>' + counts[d.key] + '</b></button>';
   }).join('');
 
-  var blocking = FILTER_DEFS
-    .filter(function (d) { return d.block; })
-    .reduce(function (n, d) { return n + counts[d.key]; }, 0);
+  // ใช้ตรรกะเดียวกับปุ่มบันทึก จะได้ไม่ขัดแย้งกันเอง
+  var blocks = blockingReasons();
 
   bar.style.display = 'flex';
   bar.innerHTML = html +
-    (blocking
+    (blocks.length && (counts.noread || counts.choose)
       ? '<button class="fixbtn" style="width:auto;padding:6px 16px" ' +
         'onclick="openVerify()">ตรวจทีละใบ</button>'
       : '') +
@@ -1548,8 +1547,11 @@ function renderFilterBar() {
         counts.ink + ')</button>'
       : '') +
     '<span class="fnote">' +
-      (blocking ? 'ต้องเคลียร์ ' + blocking + ' รายการก่อนบันทึก'
-                : 'เคลียร์ครบแล้ว พร้อมบันทึก') + '</span>';
+      (blocks.length
+        ? 'ยังบันทึกไม่ได้ — ' + blocks.map(function (b) {
+            return b.label + ' ' + b.count;
+          }).join(' · ')
+        : 'เคลียร์ครบแล้ว พร้อมบันทึก') + '</span>';
 
   bar.querySelectorAll('[data-f]').forEach(function (el) {
     el.addEventListener('click', function () {
@@ -2485,71 +2487,80 @@ function clearAll(){
   showToast('ล้างข้อมูลทั้งหมดแล้ว','success');
 }
 
-function updateSubmitBtn(){
+/* ============================================================
+   เหตุผลที่ยังบันทึกไม่ได้ — แหล่งเดียว
+   ============================================================
+   เดิมแถบกรองกับปุ่มบันทึกคำนวณแยกกัน
+   พอเงื่อนไขไม่ตรงกัน แถบบอกว่าพร้อมแต่ปุ่มยังปิดอยู่
+   และไม่มีทางรู้ว่าติดอะไร เพราะสองที่เล่าคนละเรื่อง
+
+   ทั้งสองที่ต้องอ่านจากฟังก์ชันนี้เท่านั้น
+   ============================================================ */
+function blockingReasons() {
+  var out = [];
+  var add = function (list, label, detail) {
+    if (list.length) out.push({ label: label, count: list.length, rows: list, detail: detail });
+  };
+
+  add(rows.filter(function (r) { return r.checking; }),
+      'กำลังตรวจอยู่', 'รอผลตรวจว่าเคยสแกนไปแล้วหรือยัง');
+
+  add(rows.filter(function (r) {
+        return !r.resolved && !r.barcode;
+      }), 'ยังไม่มีเลขที่เอกสาร', 'ระบบอ่านไม่ได้ ต้องกรอกเอง');
+
+  add(rows.filter(function (r) {
+        return !r.resolved && r.candidates && r.candidates.length > 1;
+      }), 'ยังไม่ได้เลือกเลข', 'มีสองค่าให้ตัดสิน');
+
+  add(rows.filter(function (r) { return r.already && !r.confirmedOverwrite; }),
+      'เคยสแกนแล้ว ยังไม่ยืนยัน', 'ต้องเลือกว่าจะทับของเดิมหรือไม่นำเข้า');
+
+  add(rows.filter(function (r) { return r.sampled && !r.sampleChecked; }),
+      'ยังไม่ได้สุ่มตรวจ', 'ต้องเทียบกับเอกสารแล้วกดผล');
+
+  add(rows.filter(function (r) { return r.sampleChecked === 'fix'; }),
+      'สุ่มตรวจพบไม่ตรง', 'ต้องแก้เลขให้ถูกก่อน');
+
+  /* ไม่มีรายการที่บันทึกได้เลย
+     เกิดเมื่อทุกแถวถูกตัดออกเพราะซ้ำกันเองในไฟล์ หรือไม่มีเลข
+     เดิมไม่มีตัวกรองไหนนับกรณีนี้ ปุ่มจึงปิดโดยไม่มีคำอธิบาย */
   var ready = rows.filter(function (r) { return r.status !== 'dup' && r.barcode; });
+  if (rows.length && !ready.length) {
+    out.push({ label: 'ไม่มีรายการที่บันทึกได้', count: rows.length, rows: rows,
+               detail: 'ทุกแถวถูกตัดออกเพราะซ้ำกันเองในไฟล์ หรือยังไม่มีเลขที่เอกสาร' });
+  }
+
+  return out;
+}
+
+function updateSubmitBtn(){
   var btn = document.getElementById('submitBtn');
   if (!btn) return;
 
-  /* ห้ามบันทึกถ้ายังมีรายการที่ระบบไม่แน่ใจและคนยังไม่ตัดสิน
-     ปล่อยผ่านคือได้ชื่อไฟล์ผิดโดยไม่มีใครรู้ ซึ่งแก้ทีหลังยากมาก
-     เพราะไฟล์ขึ้น Drive ไปแล้วและข้อมูลลง Sheet ไปแล้ว */
-  var pending = pendingRows();
-  if (pending.length) {
+  var blocks = blockingReasons();
+  if (blocks.length) {
+    var b = blocks[0];
     btn.disabled = true;
-    var noRead = pending.filter(function (r) { return !r.barcode; }).length;
-    btn.textContent = noRead === pending.length
-      ? 'ต้องกรอกเลขให้ครบก่อน (' + pending.length + ' รายการ)'
-      : 'ต้องตรวจให้ครบก่อน (' + pending.length + ' รายการ)';
+    btn.textContent = b.label + ' ' + b.count + ' รายการ' +
+      (blocks.length > 1 ? '  (ติดอีก ' + (blocks.length - 1) + ' เรื่อง)' : '');
+    btn.title = blocks.map(function (x) {
+      return x.label + ' ' + x.count + ' รายการ — ' + x.detail;
+    }).join('\n');
     return;
   }
 
-  // เอกสารที่เคยสแกนแล้วต้องได้รับการยืนยันก่อน
-  // ไม่งั้นจะทับไฟล์เดิมโดยที่คนไม่รู้ตัว
-  var checking = rows.filter(function (r) { return r.checking; });
-  if (checking.length) {
-    btn.disabled = true;
-    var names = checking.map(function (r) {
-      return r.editVals.refNo || r.barcode || ('แถว ' + r.id);
-    }).slice(0, 3).join(', ');
-    btn.textContent = 'กำลังตรวจ ' + names +
-      (checking.length > 3 ? ' และอีก ' + (checking.length - 3) : '');
-    return;
-  }
-
-  var dup = rows.filter(function (r) { return r.already && !r.confirmedOverwrite; });
-  if (dup.length) {
-    btn.disabled = true;
-    btn.textContent = 'มีเอกสารที่เคยสแกนแล้ว ' + dup.length + ' รายการ';
-    return;
-  }
-
-  // สุ่มตรวจต้องมีผลทุกใบ ไม่งั้นการสุ่มไม่มีความหมาย
-  var smp = uncheckedSamples();
-  if (smp.length) {
-    btn.disabled = true;
-    btn.textContent = 'ยังไม่ได้สุ่มตรวจ ' + smp.length + ' รายการ';
-    return;
-  }
-
-  /* สุ่มตรวจแล้วพบว่าผิด แปลว่าเลขที่จะบันทึกยังไม่ถูก
-     ต้องแก้เลขให้ถูกก่อน แล้วค่อยกดว่าถูกต้อง
-     ถ้าปล่อยให้บันทึกได้ ก็เท่ากับรู้ว่าผิดแล้วยังบันทึกลงไป */
-  var bad = rows.filter(function (r) { return r.sampleChecked === 'fix'; });
-  if (bad.length) {
-    btn.disabled = true;
-    btn.textContent = 'สุ่มตรวจพบไม่ตรง ' + bad.length + ' รายการ — แก้เลขก่อน';
-    return;
-  }
-
+  var ready = rows.filter(function (r) { return r.status !== 'dup' && r.barcode; });
   btn.disabled = ready.length === 0;
-  var unread = rows.filter(function (r) { return !r.barcode; }).length;
+  btn.title = '';
+
   var needCheck = rows.filter(function (r) {
-    return r.tier === 'red' || r.tier === 'yellow' || r.sampled;
+    return r.tier === 'red' || r.tier === 'yellow';
   }).length;
   btn.textContent = ready.length
     ? 'บันทึก ' + ready.length + ' รายการ' +
-      (needCheck ? '  (ยังไม่ได้ตรวจ ' + needCheck + ')' : '')
-    : (unread ? 'ยังไม่มีเลขที่เอกสาร' : 'บันทึก');
+      (needCheck ? '  (ควรดู ' + needCheck + ')' : '')
+    : 'ไม่มีรายการให้บันทึก';
 }
 
 /* ============================================================
