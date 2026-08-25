@@ -365,6 +365,11 @@ tr.needdup td:first-child{box-shadow:inset 3px 0 0 var(--warn)}
 .inkno{color:var(--danger);font-weight:600;font-size:12.5px}
 .inkna{font-size:11.5px;color:var(--muted)}
 .inkpct{font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:2px}
+.inkopen{width:100%;margin-top:6px;background:var(--warn);border:none;color:#0f172a;
+  border-radius:5px;padding:5px 0;font-family:var(--font);font-size:10.5px;
+  font-weight:600;cursor:pointer}
+.inkopen.ghost{background:transparent;border:1px solid var(--border);
+  color:var(--muted);font-weight:400}
 .inkact{display:flex;gap:4px;margin-top:5px}
 .inkbtn{flex:1;background:var(--surface2);border:1px solid var(--border);color:var(--muted);
   border-radius:5px;padding:3px 0;font-family:var(--font);font-size:10.5px;cursor:pointer}
@@ -467,6 +472,12 @@ dialog[open]{
 /* ปุ่มเลือกในหน้าตรวจ
    ตัวที่ยังไม่ถูกเลือกต้องอ่านออกชัดเจนพอ ๆ กับตัวที่เลือกแล้ว
    ไม่งั้นคนจะมองไม่เห็นตัวเลือกที่มี แล้วกดตัวที่สว่างกว่าโดยไม่ได้ตั้งใจ */
+.vf-inkblk{border:1px solid var(--border);border-radius:var(--rs);padding:12px;margin-bottom:10px}
+.vf-inkimg{display:block;max-width:100%;max-height:110px;margin:6px 0;border:1px solid var(--border);
+  border-radius:4px;background:#fff;cursor:zoom-in}
+.vf-inkmeta{display:flex;flex-direction:column;gap:2px;font-size:12px;margin-bottom:8px}
+.vf-inkmeta span{color:var(--muted);font-family:var(--mono);font-size:10.5px}
+.vf-inkhint{font-size:11.5px;color:var(--muted);line-height:1.7}
 .vf-none{font-size:12.5px;color:var(--warn);line-height:1.8;
   background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.4);
   border-radius:var(--rs);padding:12px 14px}
@@ -731,7 +742,7 @@ window.dispatchEvent(new Event('docscan-ready'));
         <img class="vf-crop" id="vfCropRef" alt="เลขที่เอกสาร" style="display:none">
       </div>
       <div class="vf-sec" id="vfChoices"></div>
-      <div class="vf-sec">
+      <div class="vf-sec" id="vfManualBox">
         <div class="vf-k">หรือพิมพ์เอง</div>
         <input class="vf-input" id="vfManual" placeholder="พิมพ์เลข Reference">
         <button class="rbtn" id="vfApply" style="width:100%;margin-top:8px">ใช้ค่าที่พิมพ์</button>
@@ -1527,6 +1538,12 @@ function renderFilterBar() {
       ? '<button class="fixbtn" style="width:auto;padding:6px 16px" ' +
         'onclick="openVerify()">ตรวจทีละใบ</button>'
       : '') +
+    (counts.ink
+      ? '<button class="fixbtn" style="width:auto;padding:6px 16px;' +
+        'background:var(--warn);color:#0f172a" ' +
+        'onclick="openVerify(undefined,\'ink\')">ตรวจลายเซ็นทีละใบ (' +
+        counts.ink + ')</button>'
+      : '') +
     '<span class="fnote">' +
       (blocking ? 'ต้องเคลียร์ ' + blocking + ' รายการก่อนบันทึก'
                 : 'เคลียร์ครบแล้ว พร้อมบันทึก') + '</span>';
@@ -1957,13 +1974,13 @@ function inkCell(row, key) {
 
   // ให้ยืนยันเฉพาะตอนที่ระบบบอกว่าไม่พบ ไม่รบกวนใบที่ผ่านอยู่แล้ว
   var act = '';
-  if (!ok) {
-    act = '<div class="inkact">' +
-      '<button class="inkbtn' + (ov === 'present' ? ' on' : '') +
-        '" onclick="setInkOverride(' + rid + ',\'' + key + '\',\'present\')">มีจริง</button>' +
-      '<button class="inkbtn' + (ov === 'missing' ? ' bad' : '') +
-        '" onclick="setInkOverride(' + rid + ',\'' + key + '\',\'missing\')">ไม่มีจริง</button>' +
-      '</div>';
+  if (!ok && !ov) {
+    // ให้เปิดดูเอกสารก่อนตัดสิน ภาพในกรอบเล็กเกินกว่าจะดูออกว่าจางหรือไม่มี
+    act = '<button class="inkopen" onclick="openVerify(' + rid + ',\'ink\')">' +
+      'ดูเอกสารแล้วยืนยัน</button>';
+  } else if (!ok) {
+    act = '<button class="inkopen ghost" onclick="openVerify(' + rid + ',\'ink\')">' +
+      'เปิดดูอีกครั้ง</button>';
   }
 
   return head + img + '<div class="inkpct">' + c.value + '% / ' + c.min + '%</div>' + act;
@@ -2040,7 +2057,12 @@ function inkHtml(row) {
    ตรวจเอกสารทีละใบ — ดูหน้าจริงแล้วเลือกเลย
    ตัดสินจากเอกสารย่อมถูกกว่าเดาจากตัวเลขสองตัวในตาราง
    ============================================================ */
-var _vfList = [], _vfPos = 0;
+/* กล่องตรวจใช้ได้สองโหมด
+   choice = เลือกเลขที่ถูกต้อง
+   ink    = ยืนยันลายเซ็นและตราประทับ
+   ใช้กล่องเดียวกันเพราะทั้งสองงานต้องดูเอกสารประกอบเหมือนกัน
+   และคนจะได้ไม่ต้องเรียนรู้หน้าจอสองแบบ */
+var _vfList = [], _vfPos = 0, _vfMode = 'choice';
 
 /** แถวที่ยังต้องให้คนตัดสิน */
 function pendingRows() {
@@ -2054,14 +2076,27 @@ function pendingRows() {
   });
 }
 
+/** แถวที่ระบบตรวจหมึกไม่พบ และยังไม่มีคนยืนยัน */
+function pendingInkRows() {
+  return rows.filter(function (r) {
+    if (!r.ink || r.ink.ok) return false;
+    var ov = r.inkOverride || {};
+    return (r.ink.missing || []).some(function (c) { return !ov[c.key]; });
+  });
+}
+
 /** แถวที่ถูกสุ่มตรวจแต่ยังไม่มีใครยืนยันผล */
 function uncheckedSamples() {
   return rows.filter(function (r) { return r.sampled && !r.sampleChecked; });
 }
 
-async function openVerify(id) {
-  _vfList = pendingRows();
-  if (!_vfList.length) { showToast('ไม่มีรายการที่ต้องเลือก', 'success'); return; }
+async function openVerify(id, mode) {
+  _vfMode = mode || 'choice';
+  _vfList = (_vfMode === 'ink') ? pendingInkRows() : pendingRows();
+  if (!_vfList.length) {
+    showToast(_vfMode === 'ink' ? 'ไม่มีรายการที่ต้องยืนยัน' : 'ไม่มีรายการที่ต้องเลือก', 'success');
+    return;
+  }
   var idx = (id === undefined) ? 0
     : _vfList.findIndex(function (r) { return r.id === Number(id); });
   _vfPos = idx >= 0 ? idx : 0;
@@ -2074,15 +2109,21 @@ async function drawVerify() {
   if (!row) { document.getElementById('dlgVerify').close(); return; }
 
   var noRead = !(row.candidates && row.candidates.length > 1);
-  document.getElementById('vfTitle').textContent = noRead
-    ? 'ระบบอ่านไม่ได้ — กรอกเลขจากเอกสาร'
+  document.getElementById('vfTitle').textContent =
+    _vfMode === 'ink' ? 'ตรวจลายเซ็นและตราประทับ'
+    : noRead ? 'ระบบอ่านไม่ได้ — กรอกเลขจากเอกสาร'
     : 'ตรวจเอกสาร — เลือกเลขที่ถูกต้อง';
   document.getElementById('vfSub').textContent =
-    'หน้า ' + (row.pageNos ? row.pageNos.join(', ') : (row.pageNo || '-'));
+    (row.editVals.refNo || row.barcode || '') + '  ·  หน้า ' +
+    (row.pageNos ? row.pageNos.join(', ') : (row.pageNo || '-'));
   document.getElementById('vfCount').textContent = (_vfPos + 1) + ' / ' + _vfList.length;
   document.getElementById('vfNote').textContent = row.why || '';
   document.getElementById('vfManual').value = row.barcode || '';
 
+  // โหมดตรวจหมึกใช้พื้นที่ฝั่งขวาต่างออกไป
+  if (_vfMode === 'ink') { drawVerifyInk(row); return drawVerifyPage(row); }
+
+  document.getElementById('vfManualBox').style.display = '';
   var bc = document.getElementById('vfCropBc');
   if (row.barcodeCrop) { bc.src = row.barcodeCrop; bc.style.display = 'block'; }
   else bc.style.display = 'none';
@@ -2138,6 +2179,16 @@ async function drawVerify() {
   });
 
   // หน้าเอกสารเต็ม ความละเอียดพอดูด้วยตา ไม่ต้องสูงเพราะไม่ได้เอาไปอ่านด้วยเครื่อง
+  await drawVerifyPage(row);
+
+  // อ่านไม่ได้เลย ให้เคอร์เซอร์อยู่ในช่องพิมพ์ทันที จะได้พิมพ์ต่อได้เลย
+  if (!(row.candidates && row.candidates.length > 1)) {
+    try { document.getElementById('vfManual').focus(); } catch (e) {}
+  }
+}
+
+/** วาดหน้าเอกสารเต็ม ใช้ร่วมกันทั้งสองโหมด */
+async function drawVerifyPage(row) {
   var img = document.getElementById('vfPage');
   img.removeAttribute('src');
   try {
@@ -2149,11 +2200,67 @@ async function drawVerify() {
     cv.width = cv.height = 0;
     page.cleanup();
   } catch (e) { /* ยังมีภาพครอปให้ดูอยู่ */ }
+}
 
-  // อ่านไม่ได้เลย ให้เคอร์เซอร์อยู่ในช่องพิมพ์ทันที จะได้พิมพ์ต่อได้เลย
-  if (!(row.candidates && row.candidates.length > 1)) {
-    try { document.getElementById('vfManual').focus(); } catch (e) {}
+/**
+ * ฝั่งขวาของกล่องเมื่อตรวจลายเซ็นและตราประทับ
+ * แสดงภาพในกรอบคู่กับค่าที่วัดได้ เทียบกับเอกสารเต็มด้านซ้ายได้ทันที
+ */
+function drawVerifyInk(row) {
+  document.getElementById('vfCropBc').style.display = 'none';
+  document.getElementById('vfCropRef').style.display = 'none';
+  document.getElementById('vfManualBox').style.display = 'none';
+
+  var ov = row.inkOverride || {};
+  var html = (row.ink.checks || []).map(function (c) {
+    var cur = ov[c.key] || '';
+    var verdict = cur === 'present' ? '<b style="color:var(--success)">มีจริง (คนยืนยัน)</b>'
+      : cur === 'missing' ? '<b style="color:var(--danger)">ไม่มีจริง (คนยืนยัน)</b>'
+      : (c.pass ? '<b style="color:var(--success)">ระบบตรวจพบ</b>'
+                : '<b style="color:var(--danger)">ระบบตรวจไม่พบ</b>');
+
+    return '<div class="vf-inkblk">' +
+      '<div class="vf-k">' + esc(c.label) + '</div>' +
+      (c.crop ? '<img class="vf-inkimg" src="' + c.crop + '" ' +
+        'onclick="openImage(this.src,\'' + esc(c.label) + '\')">' : '') +
+      '<div class="vf-inkmeta">' + verdict +
+        '<span>หมึก ' + c.value + '% · เกณฑ์ ' + c.min + '%</span></div>' +
+      (c.pass ? '' :
+        '<div class="inkact">' +
+        '<button class="inkbtn' + (cur === 'present' ? ' on' : '') +
+          '" data-ink="' + c.key + '" data-v="present">มีจริง</button>' +
+        '<button class="inkbtn' + (cur === 'missing' ? ' bad' : '') +
+          '" data-ink="' + c.key + '" data-v="missing">ไม่มีจริง</button>' +
+        '</div>') +
+      '</div>';
+  }).join('');
+
+  var box = document.getElementById('vfChoices');
+  box.innerHTML = html +
+    '<div class="vf-inkhint">ดูเอกสารด้านซ้ายเทียบกับภาพในกรอบ ' +
+    'ถ้าลายเซ็นจางกว่าเกณฑ์แต่มีจริง ให้กด "มีจริง"</div>';
+
+  box.querySelectorAll('[data-ink]').forEach(function (el) {
+    el.addEventListener('click', function () {
+      setInkOverride(row.id, el.dataset.ink, el.dataset.v);
+      // ยืนยันครบทุกช่องแล้วไปใบถัดไปเอง
+      if (!pendingInkRows().some(function (r) { return r.id === row.id; })) nextVerifyInk();
+      else drawVerifyInk(row);
+    });
+  });
+}
+
+function nextVerifyInk() {
+  var remain = pendingInkRows();
+  if (!remain.length) {
+    document.getElementById('dlgVerify').close();
+    showToast('ยืนยันลายเซ็นและตราประทับครบแล้ว', 'success');
+    renderTable();
+    return;
   }
+  _vfList = remain;
+  if (_vfPos >= _vfList.length) _vfPos = 0;
+  drawVerify();
 }
 
 function chooseVerify(v) {
