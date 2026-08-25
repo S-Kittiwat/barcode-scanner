@@ -35,14 +35,62 @@
   .btn.ghost{background:transparent;border:1px solid var(--border);color:var(--text);
     font-weight:400;padding:10px 16px;font-size:13px}
   .btn:disabled{opacity:.4;cursor:not-allowed}
-  .selbar{position:fixed;left:0;right:0;bottom:0;z-index:130;display:none;
-  background:var(--surface);border-top:1px solid var(--accent);
-  padding:12px 88px 12px 24px;align-items:center;gap:12px;flex-wrap:wrap;
-  box-shadow:0 -6px 20px rgba(0,0,0,.35)}
-.selbar.on{display:flex}
-.selcount{font-size:14px;font-weight:600}
-.selgrow{flex:1}
-.selchk{width:17px;height:17px;cursor:pointer;accent-color:var(--accent)}
+  /* ตะกร้า */
+.cart{position:fixed;right:0;top:0;bottom:0;width:300px;z-index:110;
+  background:var(--surface);border-left:1px solid var(--border);
+  display:flex;flex-direction:column;transform:translateX(300px);
+  transition:transform .18s ease}
+.cart.on{transform:translateX(0)}
+.chead{display:flex;align-items:center;gap:10px;padding:14px 16px;
+  border-bottom:1px solid var(--border)}
+.ctitle{font-size:15px;font-weight:600}
+.cbadge{background:var(--accent);color:#0f172a;border-radius:11px;
+  padding:1px 10px;font-family:var(--mono);font-size:13px;font-weight:700}
+.cclear{margin-left:auto;background:none;border:none;color:var(--muted);
+  font-family:var(--font);font-size:12.5px;cursor:pointer;text-decoration:underline}
+.csum{padding:11px 16px;font-size:12px;color:var(--muted);line-height:1.7;
+  border-bottom:1px solid var(--border)}
+.csum .cw{color:var(--warn)} .csum .cbad{color:var(--danger)}
+.clist{flex:1;overflow:auto;padding:8px}
+.citem{position:relative;padding:9px 30px 9px 11px;border-radius:var(--rs);
+  border:1px solid var(--border);margin-bottom:6px;background:var(--surface2)}
+.citem.nofile{border-color:rgba(251,191,36,.45)}
+.cref{font-family:var(--mono);font-size:13px;font-weight:600}
+.ctag{font-family:var(--font);font-size:9.5px;color:var(--warn);
+  border:1px solid var(--warn);border-radius:8px;padding:0 5px;margin-left:6px}
+.csub{font-size:11px;color:var(--muted);margin-top:2px}
+.cdel{position:absolute;right:6px;top:8px;background:none;border:none;
+  color:var(--muted);cursor:pointer;font-size:13px;padding:2px 5px}
+.cdel:hover{color:var(--danger)}
+.cempty{color:var(--muted);font-size:12.5px;text-align:center;padding:26px 14px;line-height:1.8}
+.cfoot{padding:12px 16px;border-top:1px solid var(--border);
+  display:flex;flex-direction:column;gap:8px}
+.cfoot .btn{width:100%;padding:11px}
+body.cart-on .wrap{padding-right:324px}
+
+/* กล่องวางรายการ */
+#dlgPaste{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+  color:var(--text);padding:22px;max-width:520px;width:92vw;margin:auto;inset:0}
+#dlgPaste::backdrop{background:rgba(15,23,42,.82)}
+.ptitle{font-size:16px;font-weight:600;margin-bottom:5px}
+.psub{font-size:12.5px;color:var(--muted);line-height:1.8;margin-bottom:14px}
+#pasteBox{width:100%;height:210px;background:var(--surface2);border:1px solid var(--border);
+  border-radius:var(--rs);color:var(--text);font-family:var(--mono);font-size:13.5px;
+  padding:12px;resize:vertical;line-height:1.8}
+.pcount{font-size:12px;color:var(--muted);margin-top:8px;font-family:var(--mono)}
+.pact{display:flex;gap:10px;justify-content:flex-end;margin-top:16px}
+.addbtn{width:26px;height:26px;border-radius:6px;border:1px solid var(--accent);
+  background:transparent;color:var(--accent);font-size:16px;line-height:1;cursor:pointer}
+.addbtn:hover{background:var(--accent);color:#0f172a}
+.inbag{display:inline-block;width:26px;height:26px;line-height:26px;text-align:center;
+  border-radius:6px;background:var(--success);color:#0f172a;font-weight:700}
+.addall{background:none;border:1px solid var(--border);color:var(--muted);
+  border-radius:6px;padding:3px 7px;font-family:var(--font);font-size:10.5px;cursor:pointer}
+.addall:hover{border-color:var(--accent);color:var(--accent)}
+.toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,20px);z-index:200;
+  background:var(--surface);border:1px solid var(--accent);border-radius:var(--r);
+  padding:11px 20px;font-size:13.5px;opacity:0;pointer-events:none;transition:.18s}
+.toast.on{opacity:1;transform:translate(-50%,0)}
 .zipnote{font-size:12px;color:var(--muted);line-height:1.7}
 .hint{font-size:12.5px;color:var(--muted);margin-top:12px;line-height:1.7}
   .hint code{font-family:var(--mono);color:var(--accent);background:var(--surface2);
@@ -148,6 +196,7 @@
         <input id="q" placeholder="เลข Reference, บาร์โค้ด, ชื่อลูกค้า หรือรหัสกล่อง" autocomplete="off">
       </div>
       <button class="btn" id="btnSearch">ค้นหา</button>
+      <button class="btn ghost" id="btnPaste">วางรายการทีละมาก</button>
     </div>
     <div class="hint" id="hint"></div>
     <div class="zipnote">
@@ -190,18 +239,40 @@
     </div>
   </div>
 
-  <!-- แถบนี้ขึ้นเมื่อเลือกรายการ ลอยอยู่ล่างจอเพื่อให้กดได้ทันที
-       ไม่ต้องเลื่อนกลับขึ้นไปหาปุ่มหลังเลือกครบ -->
-  <div class="selbar" id="selBar">
-    <span class="selcount" id="selCount">เลือก 0 รายการ</span>
-    <button class="btn ghost" id="btnSelNone">ยกเลิกการเลือก</button>
-    <div class="selgrow"></div>
-    <button class="btn ghost" id="btnSelExcel">Excel เฉพาะที่เลือก</button>
-    <button class="btn" id="btnSelZip">ดาวน์โหลดไฟล์ (ZIP)</button>
-  </div>
-
   <div id="view"></div>
 </div>
+
+<!-- ตะกร้าอยู่ข้างขวาตลอด เพื่อให้เห็นว่าสะสมอะไรไว้แล้วบ้าง
+     ถ้าซ่อนไว้ คนจะไม่รู้ว่ามีของค้างในตะกร้าจากการค้นรอบก่อน -->
+<div class="toast" id="toast"></div>
+
+<div class="cart" id="cartPanel">
+  <div class="chead">
+    <span class="ctitle">ตะกร้า</span>
+    <span class="cbadge" id="cartCount">0</span>
+    <button class="cclear" id="btnCartClear">ล้าง</button>
+  </div>
+  <div class="csum" id="cartSum">ยังไม่มีรายการ</div>
+  <div class="clist" id="cartList"></div>
+  <div class="cfoot">
+    <button class="btn ghost" id="btnXl" disabled>ดาวน์โหลด Excel</button>
+    <button class="btn" id="btnZip" disabled>ดาวน์โหลดไฟล์ (ZIP)</button>
+  </div>
+</div>
+
+<dialog id="dlgPaste">
+  <div class="ptitle">วางรายการเลขเอกสาร</div>
+  <div class="psub">
+    วางจาก Excel ได้เลย รองรับทั้งขึ้นบรรทัดใหม่ คอมมา และเว้นวรรค<br>
+    ค้นได้ทั้งเลข Reference และบาร์โค้ด · ครั้งละไม่เกิน 500 เลข
+  </div>
+  <textarea id="pasteBox" placeholder="T9515867&#10;T9515877&#10;T9515893"></textarea>
+  <div class="pcount" id="pasteCount">0 เลข</div>
+  <div class="pact">
+    <button class="btn ghost" id="btnPasteCancel">ยกเลิก</button>
+    <button class="btn" id="btnPasteGo">ค้นและเพิ่มเข้าตะกร้า</button>
+  </div>
+</dialog>
 
 <script type="module">
 import { requireAuth, authFetch, logout } from './js/auth.js?v=2.14.0';
@@ -387,8 +458,8 @@ function render(emptyMsg) {
   if (emptyMsg) { $('view').innerHTML = '<div class="empty">' + emptyMsg + '</div>'; return; }
 
   $('view').innerHTML = '<div class="tw"><table><thead><tr>' +
-    '<th style="width:36px"><input type="checkbox" class="selchk" id="selAll" ' +
-      'title="เลือกทั้งหมดในหน้านี้"></th>' +
+    '<th style="width:40px"><button class="addall" id="addAll" ' +
+      'title="เพิ่มทั้งหน้าเข้าตะกร้า">+ ทั้งหมด</button></th>' +
     '<th style="width:170px">Reference</th>' +
     '<th style="width:112px">วันที่เอกสาร</th>' +
     '<th style="width:200px">ปลายทาง</th>' +
@@ -398,62 +469,137 @@ function render(emptyMsg) {
     '</tr></thead><tbody>' +
     rowsData.map(rowHtml).join('') + '</tbody></table></div>';
 
-  /* คลิกที่แถวเพื่อกางรายละเอียด แต่ต้องไม่โดนตอนกดช่องเลือก
-     ไม่งั้นกดติ๊กแล้วรายละเอียดกางออกมาด้วย ซึ่งน่ารำคาญเวลาเลือกหลายใบ */
+  /* คลิกที่แถวเพื่อกางรายละเอียด แต่ต้องไม่โดนตอนกดปุ่มเพิ่ม
+     ไม่งั้นกดเพิ่มแล้วรายละเอียดกางออกมาด้วย ซึ่งน่ารำคาญเวลาเพิ่มหลายใบ */
   $('view').querySelectorAll('tr.main').forEach(tr =>
     tr.addEventListener('click', (e) => {
-      if (e.target.classList.contains('selchk')) return;
+      if (e.target.dataset && e.target.dataset.add) return;
       toggle(tr.dataset.ref);
     }));
 
-  $('view').querySelectorAll('.rowchk').forEach(cb =>
-    cb.addEventListener('change', () => {
-      if (cb.checked) selected.add(cb.dataset.ref);
-      else selected.delete(cb.dataset.ref);
-      updateSelBar();
+  $('view').querySelectorAll('[data-add]').forEach(b =>
+    b.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const d = rowsData.find(x => x.ref_no === b.dataset.add);
+      if (d) cartAdd([d]);
     }));
 
-  const all = $('selAll');
-  if (all) all.addEventListener('change', () => {
-    rowsData.forEach(d => {
-      if (all.checked) selected.add(d.ref_no); else selected.delete(d.ref_no);
-    });
-    $('view').querySelectorAll('.rowchk').forEach(cb => { cb.checked = all.checked; });
-    updateSelBar();
+  const all = $('addAll');
+  if (all) all.addEventListener('click', () => {
+    const r = cartAdd(rowsData.slice());
+    showToast(r.added ? 'เพิ่ม ' + r.added + ' รายการ' +
+      (r.dup ? ' · ซ้ำ ' + r.dup + ' ข้ามให้' : '') : 'อยู่ในตะกร้าครบแล้ว');
   });
-
-  updateSelBar();
 }
 
-/* ---------- เลือกหลายรายการ ---------- */
-const selected = new Set();
+function showToast(msg) {
+  const el = $('toast');
+  el.textContent = msg;
+  el.classList.add('on');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove('on'), 3200);
+}
 
-function updateSelBar() {
-  const n = selected.size;
-  $('selBar').classList.toggle('on', n > 0);
-  $('selCount').textContent = 'เลือก ' + n + ' รายการ';
+/* ============================================================
+   ตะกร้าเอกสาร
+   ============================================================
+   แยกจากผลการค้นหาโดยสิ้นเชิง
 
-  // เตือนตั้งแต่ตอนเลือก ไม่ใช่ตอนกดแล้วค่อยบอกว่าเกิน
-  const zip = $('btnSelZip');
-  const over = n > ZIP_MAX;
-  zip.disabled = over;
-  zip.textContent = over
-    ? 'เกิน ' + ZIP_MAX + ' ใบ — เลือกน้อยลง'
-    : 'ดาวน์โหลดไฟล์ (ZIP)';
+   เดิมผูกการเลือกไว้กับผลค้นหาปัจจุบัน พอค้นใหม่ของที่เลือกไว้ก็ใช้ไม่ได้
+   ทั้งที่ตัวเลขยังขึ้นอยู่ ซึ่งอันตรายเพราะดูเหมือนยังอยู่แต่โหลดออกมาไม่ครบ
 
-  const all = $('selAll');
-  if (all) {
-    const shown = rowsData.filter(d => selected.has(d.ref_no)).length;
-    all.checked = shown > 0 && shown === rowsData.length;
-    all.indeterminate = shown > 0 && shown < rowsData.length;
-  }
+   ตะกร้าเก็บข้อมูลทั้งแถวไว้เอง จึงค้นกี่รอบก็สะสมต่อได้
+   และเก็บลง localStorage เพื่อไม่ให้หายเมื่อเผลอรีเฟรช
+   ============================================================ */
+
+const CART_KEY = 'docscan.cart.v1';
+const ZIP_MAX = 150;
+const AVG_KB = 206;          // ขนาดไฟล์เฉลี่ยจากที่วัดได้จริง ใช้ประมาณขนาดซิป
+
+let cart = [];               // เก็บทั้งแถว ไม่ใช่แค่เลข
+
+function cartLoad() {
+  try {
+    const raw = localStorage.getItem(CART_KEY);
+    cart = raw ? JSON.parse(raw) : [];
+    if (!Array.isArray(cart)) cart = [];
+  } catch (e) { cart = []; }
+}
+
+function cartSave() {
+  try { localStorage.setItem(CART_KEY, JSON.stringify(cart)); }
+  catch (e) { /* พื้นที่เต็มก็ยังใช้งานต่อได้ในรอบนี้ */ }
+}
+
+function cartHas(ref) {
+  const k = String(ref).toUpperCase();
+  return cart.some(x => String(x.ref_no).toUpperCase() === k);
+}
+
+/** คืนจำนวนที่เพิ่มจริง เพื่อรายงานให้ตรงว่าซ้ำไปกี่ใบ */
+function cartAdd(list) {
+  let added = 0, dup = 0;
+  list.forEach(d => {
+    if (cartHas(d.ref_no)) { dup++; return; }
+    cart.push(d); added++;
+  });
+  cartSave(); renderCart(); render();
+  return { added, dup };
+}
+
+function cartRemove(ref) {
+  const k = String(ref).toUpperCase();
+  cart = cart.filter(x => String(x.ref_no).toUpperCase() !== k);
+  cartSave(); renderCart(); render();
+}
+
+function cartClear() {
+  if (!cart.length) return;
+  if (!confirm('ล้างตะกร้าทั้งหมด ' + cart.length + ' รายการ?')) return;
+  cart = []; cartSave(); renderCart(); render();
+}
+
+function renderCart() {
+  const n = cart.length;
+  const noFile = cart.filter(d => !d.pdf_url).length;
+  const withFile = n - noFile;
+  const mb = (withFile * AVG_KB / 1024).toFixed(1);
+
+  $('cartCount').textContent = n;
+  $('cartPanel').classList.toggle('on', n > 0);
+  // ขยับเนื้อหาหลักให้พ้นแผงตะกร้า ไม่งั้นคอลัมน์ขวาของตารางถูกบัง
+  document.body.classList.toggle('cart-on', n > 0);
+
+  const over = withFile > ZIP_MAX;
+  $('btnZip').disabled = !withFile || over;
+  $('btnXl').disabled = !n;
+
+  $('cartSum').innerHTML = n
+    ? withFile + ' ใบมีไฟล์ · ประมาณ ' + mb + ' MB' +
+      (noFile ? '<br><span class="cw">' + noFile + ' ใบไม่มีไฟล์แนบ — จะไม่อยู่ในซิป</span>' : '') +
+      (over ? '<br><span class="cbad">เกิน ' + ZIP_MAX + ' ใบ ต้องลดลงก่อนดาวน์โหลด</span>' : '')
+    : 'ยังไม่มีรายการ';
+
+  $('cartList').innerHTML = n
+    ? cart.map(d =>
+        '<div class="citem' + (d.pdf_url ? '' : ' nofile') + '">' +
+          '<div class="cref">' + esc(d.ref_no) +
+            (d.pdf_url ? '' : '<span class="ctag">ไม่มีไฟล์</span>') + '</div>' +
+          '<div class="csub">' + (esc(d.dest_warehouse) || '—') + ' · ' + fmt(d.doc_date) + '</div>' +
+          '<button class="cdel" data-ref="' + esc(d.ref_no) + '" title="เอาออก">✕</button>' +
+        '</div>').join('')
+    : '<div class="cempty">ค้นหาแล้วกดเพิ่ม หรือวางรายการเลขทีละมาก</div>';
+
+  $('cartList').querySelectorAll('.cdel').forEach(b =>
+    b.addEventListener('click', () => cartRemove(b.dataset.ref)));
 }
 
 function rowHtml(d) {
   return '<tr class="main" data-ref="' + esc(d.ref_no) + '">' +
-    '<td><input type="checkbox" class="selchk rowchk" data-ref="' + esc(d.ref_no) + '"' +
-      (selected.has(d.ref_no) ? ' checked' : '') +
-      (d.pdf_url ? '' : ' disabled title="ยังไม่มีไฟล์แนบ"') + '></td>' +
+    '<td>' + (cartHas(d.ref_no)
+      ? '<span class="inbag" title="อยู่ในตะกร้าแล้ว">✓</span>'
+      : '<button class="addbtn" data-add="' + esc(d.ref_no) + '" title="เพิ่มเข้าตะกร้า">+</button>')
+      + '</td>' +
     '<td><div class="ref">' + esc(d.ref_no) + '</div>' +
       '<div class="sub">' + (esc(d.barcode) || '—') + '</div></td>' +
     '<td class="mono">' + fmt(d.doc_date) + '</td>' +
@@ -618,8 +764,6 @@ async function printSlip(ref) {
    ดาวน์โหลด
    ============================================================ */
 
-const ZIP_MAX = 150;
-
 /** คอลัมน์ที่ส่งออก ตรงกับที่เห็นบนจอ */
 const XL_COLS = [
   ['ref_no',         'Reference'],
@@ -690,46 +834,97 @@ function loadScript(src) {
   });
 }
 
-$('btnExcel').addEventListener('click', () => downloadExcel(rowsData, 'all'));
-$('btnSelExcel').addEventListener('click', () =>
-  downloadExcel(rowsData.filter(r => selected.has(r.ref_no)), 'selected'));
+$('btnExcel').addEventListener('click', () => downloadExcel(rowsData, 'results'));
+$('btnXl').addEventListener('click', () => downloadExcel(cart, 'cart'));
+$('btnCartClear').addEventListener('click', cartClear);
 
-$('btnSelNone').addEventListener('click', () => {
-  selected.clear();
-  $('view').querySelectorAll('.rowchk').forEach(cb => { cb.checked = false; });
-  updateSelBar();
+/* ---------- วางรายการทีละมาก ---------- */
+
+/** แยกเลขจากข้อความที่วางมา รองรับทุกแบบที่คนวางจริง */
+function parseRefs(text) {
+  return String(text || '')
+    .split(/[\s,;|\t\r\n]+/)
+    .map(x => x.trim())
+    .filter(Boolean);
+}
+
+$('btnPaste').addEventListener('click', () => {
+  $('pasteBox').value = '';
+  $('pasteCount').textContent = '0 เลข';
+  $('dlgPaste').showModal();
+  $('pasteBox').focus();
 });
 
-/**
- * ดาวน์โหลดไฟล์เอกสารเป็น ZIP
- *
- * ต้องรวมที่เซิร์ฟเวอร์เพราะไฟล์อยู่บน Drive
- * เบราว์เซอร์ดึงข้ามโดเมนไม่ได้ และส่งกลับเป็นข้อมูลก็เกินขนาดที่รับได้
- * เซิร์ฟเวอร์จึงรวมแล้วเก็บลง Drive ส่งกลับมาแค่ลิงก์
- */
-$('btnSelZip').addEventListener('click', async () => {
-  const refs = rowsData.filter(r => selected.has(r.ref_no)).map(r => r.ref_no);
-  if (!refs.length) return;
+$('btnPasteCancel').addEventListener('click', () => $('dlgPaste').close());
 
-  const noFile = rowsData.filter(r => selected.has(r.ref_no) && !r.pdf_url).length;
-  if (noFile && !confirm(noFile + ' ใบยังไม่มีไฟล์แนบ จะถูกข้ามไป\n\nดาวน์โหลดต่อไหม')) return;
+$('pasteBox').addEventListener('input', () => {
+  const n = parseRefs($('pasteBox').value).length;
+  $('pasteCount').textContent = n + ' เลข' + (n > 500 ? '  — เกิน 500 ต้องแบ่งเป็นหลายรอบ' : '');
+});
 
-  const btn = $('btnSelZip');
+$('btnPasteGo').addEventListener('click', async () => {
+  const refs = parseRefs($('pasteBox').value);
+  if (!refs.length) { alert('ยังไม่ได้วางเลขเอกสาร'); return; }
+  if (refs.length > 500) { alert('ครั้งละไม่เกิน 500 เลข (วางมา ' + refs.length + ')'); return; }
+
+  const btn = $('btnPasteGo');
+  btn.disabled = true; btn.textContent = 'กำลังค้น ' + refs.length + ' เลข…';
+
+  try {
+    const r = await call('docsBulk', { refs }, 120000);
+    if (r.status !== 'ok') { alert(r.message || 'ค้นไม่สำเร็จ'); return; }
+
+    const res = cartAdd(r.found);
+    $('dlgPaste').close();
+
+    /* รายงานให้ครบทุกกรณี
+       วาง 50 ได้ 47 แล้วไม่รู้ว่าขาดตัวไหน คือปัญหาที่แก้ทีหลังยาก */
+    const noFile = r.found.filter(d => !d.pdf_url);
+    let msg = 'เพิ่มเข้าตะกร้า ' + res.added + ' ใบ';
+    if (res.dup) msg += '\nซ้ำกับที่มีอยู่ ' + res.dup + ' ใบ — ข้ามให้';
+    if (r.duplicates) msg += '\nวางมาซ้ำกันเอง ' + r.duplicates + ' เลข';
+    if (noFile.length) {
+      msg += '\n\nยังไม่มีไฟล์แนบ ' + noFile.length + ' ใบ (เพิ่มให้แล้ว แต่จะไม่อยู่ในซิป)\n' +
+             noFile.slice(0, 10).map(d => '  ' + d.ref_no).join('\n') +
+             (noFile.length > 10 ? '\n  และอีก ' + (noFile.length - 10) : '');
+    }
+    if (r.not_found.length) {
+      msg += '\n\nไม่พบในระบบ ' + r.not_found.length + ' เลข\n' +
+             r.not_found.slice(0, 15).map(x => '  ' + x).join('\n') +
+             (r.not_found.length > 15 ? '\n  และอีก ' + (r.not_found.length - 15) : '');
+    }
+    alert(msg);
+  } catch (e) {
+    alert('ค้นไม่สำเร็จ: ' + (e.message || e));
+  } finally {
+    btn.disabled = false; btn.textContent = 'ค้นและเพิ่มเข้าตะกร้า';
+  }
+});
+
+/* ---------- ดาวน์โหลดไฟล์เป็น ZIP ---------- */
+
+$('btnZip').addEventListener('click', async () => {
+  const withFile = cart.filter(d => d.pdf_url);
+  if (!withFile.length) { alert('ไม่มีรายการที่มีไฟล์แนบ'); return; }
+
+  const noFile = cart.length - withFile.length;
+  if (noFile && !confirm(noFile + ' ใบไม่มีไฟล์แนบ จะถูกข้ามไป\n\nดาวน์โหลดต่อไหม')) return;
+
+  const btn = $('btnZip');
   const old = btn.textContent;
   btn.disabled = true;
-  btn.textContent = 'กำลังรวมไฟล์ ' + refs.length + ' ใบ…';
+  btn.textContent = 'กำลังรวม ' + withFile.length + ' ไฟล์…';
 
   try {
     // งานนี้ใช้เวลาหลายสิบวินาที ต้องรอนานกว่าคำขอปกติ
-    const r = await call('docsZip', { refs: refs }, 180000);
+    const r = await call('docsZip', { refs: withFile.map(d => d.ref_no) }, 300000);
     if (r.status !== 'ok') { alert(r.message || 'รวมไฟล์ไม่สำเร็จ'); return; }
 
     const a = document.createElement('a');
     a.href = r.url; a.download = r.name;
     document.body.appendChild(a); a.click(); a.remove();
 
-    let msg = 'รวม ' + r.files + ' ไฟล์ (' +
-      (r.bytes / 1048576).toFixed(1) + ' MB) เรียบร้อย';
+    let msg = 'รวม ' + r.files + ' ไฟล์ (' + (r.bytes / 1048576).toFixed(1) + ' MB) เรียบร้อย';
     if (r.missing && r.missing.length) msg += '\nไม่พบในระบบ ' + r.missing.length + ' ใบ';
     if (r.no_file && r.no_file.length) msg += '\nยังไม่มีไฟล์แนบ ' + r.no_file.length + ' ใบ';
     msg += '\n\nถ้าเบราว์เซอร์ไม่เริ่มดาวน์โหลด เปิดจากลิงก์นี้ได้\n' + r.view_url;
@@ -739,9 +934,13 @@ $('btnSelZip').addEventListener('click', async () => {
           '\n\nถ้าเลือกไว้มาก ลองแบ่งเป็นหลายรอบ');
   } finally {
     btn.disabled = false; btn.textContent = old;
-    updateSelBar();
+    renderCart();
   }
 });
+
+// โหลดตะกร้าที่ค้างจากรอบก่อน ต้องทำหลังผูกปุ่มครบแล้ว
+cartLoad();
+renderCart();
 </script>
 </body>
 </html>
