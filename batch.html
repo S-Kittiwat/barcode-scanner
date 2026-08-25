@@ -2642,18 +2642,19 @@ function applySuggestion(id, value) {
 }
 
 function removeRow(id){var idNum=Number(id);rows=rows.filter(function(r){return r.id!==idNum;});renderTable();updateBatchCounter();}
-function clearAll(){
-  if(!rows.length||!confirm('ล้างทั้งหมด?\n\nไฟล์ที่อัปโหลดและผลการอ่านจะหายไปทั้งหมด'))return;
-
-  rows=[]; _lastPdfJs=null; _lastPdfBytes=null; _lastFileName='';
-  _filter = 'all'; _dupCheckError = ''; _dupChecked = 0;
+/**
+ * ล้างหน้าหลังบันทึกสำเร็จ
+ * ต่างจาก clearAll ตรงที่ไม่ถามยืนยัน เพราะงานเสร็จแล้ว ไม่มีอะไรให้เสีย
+ */
+function resetAfterSave() {
+  rows = []; _lastPdfJs = null; _lastPdfBytes = null; _lastFileName = '';
+  _filter = 'all'; _blockFocus = [];
+  _dupCheckError = ''; _dupChecked = 0;
   _lastRefIndex = new Map();
   _refNeighbors = {}; window._refNeighbors = _refNeighbors;
+  _saving = false;
 
-  /* ต้องล้างช่อง input ด้วย
-     เดิมล้างแต่ข้อมูลในหน่วยความจำ ช่องเลือกไฟล์ยังจำไฟล์เดิมไว้
-     ผลคือเลือกไฟล์เดิมซ้ำแล้วไม่เกิดอะไรขึ้น เพราะเบราว์เซอร์
-     ไม่ยิง onchange เมื่อค่าไม่เปลี่ยน ซึ่งดูเหมือนโปรแกรมค้าง */
+  // ต้องล้างช่อง input ด้วย ไม่งั้นเลือกไฟล์เดิมซ้ำแล้วไม่เกิดอะไรขึ้น
   var fi = document.getElementById('fileInput');
   if (fi) fi.value = '';
 
@@ -2662,17 +2663,25 @@ function clearAll(){
     var el = document.getElementById(id);
     if (el) el.style.display = 'none';
   });
-  document.getElementById('rprog').classList.remove('on');
-  document.getElementById('rtext').textContent = '';
-  document.getElementById('rbar').style.width = '0%';
+  var rp = document.getElementById('rprog');
+  if (rp) rp.classList.remove('on');
+  var rt = document.getElementById('rtext'); if (rt) rt.textContent = '';
+  var rb = document.getElementById('rbar');  if (rb) rb.style.width = '0%';
 
-  // เปิดพื้นที่อัปโหลดกลับมาให้พร้อมใช้ทันที
   var uz = document.getElementById('uploadZone');
   if (uz) { uz.classList.remove('blocked'); uz.style.display = ''; }
   var lb = document.getElementById('limitBanner');
   if (lb) lb.classList.remove('on');
 
-  showToast('ล้างข้อมูลทั้งหมดแล้ว','success');
+  // เลื่อนขึ้นบนสุด ให้เห็นพื้นที่อัปโหลดพร้อมใช้ทันที
+  try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) {}
+}
+
+function clearAll(){
+  if (!rows.length) return;
+  if (!confirm('ล้างทั้งหมด?\n\nไฟล์ที่อัปโหลดและผลการอ่านจะหายไปทั้งหมด')) return;
+  resetAfterSave();
+  showToast('ล้างข้อมูลทั้งหมดแล้ว', 'success');
 }
 
 /* ============================================================
@@ -3074,8 +3083,17 @@ async function submitBatch(){
     if(data.status==='ok'){
       var submittedIds=ready.map(function(r){return r.id;});
       rows=rows.filter(function(r){return submittedIds.indexOf(r.id)===-1;});
-      renderTable();
-      showToast('บันทึก '+ready.length+' รายการเรียบร้อย','success');
+
+      /* บันทึกครบทั้งไฟล์แล้ว ต้องล้างหน้าให้พร้อมรับไฟล์ถัดไป
+         เดิมลบแค่แถวในตาราง แต่ช่องเลือกไฟล์ เอกสารที่เปิดไว้
+         แถบกรอง และแบนเนอร์ยังค้างอยู่
+         คนจึงไม่แน่ใจว่าบันทึกไปแล้วจริงไหม และเลือกไฟล์เดิมซ้ำก็ไม่มีอะไรเกิดขึ้น */
+      if (!rows.length) resetAfterSave();
+      else renderTable();
+
+      showToast('บันทึก ' + ready.length + ' รายการเรียบร้อย' +
+        (rows.length ? ' · เหลืออีก ' + rows.length + ' รายการ' : ' · พร้อมรับไฟล์ถัดไป'),
+        'success');
     } else { showToast(data.message||'Error','error'); }
   }catch(err){
     showToast('เกิดข้อผิดพลาด: '+err.message,'error');
@@ -3280,7 +3298,7 @@ function showToast(msg,type){var t=document.getElementById('toast');t.textConten
    อ่านเอกสารอัตโนมัติ
    บาร์โค้ดก่อน ถ้าไม่ได้ค่อย OCR แล้วเทียบกับรายการอ้างอิง
    ============================================================ */
-var BUILD_TAG = '2.14.0-b13';
+var BUILD_TAG = '2.14.0-b14';
 var _types = null, _readAbort = null, _lastPdfJs = null, _lastFileName = '';
 /* เก็บไบต์ต้นฉบับไว้ด้วย
    pdf.js อาจถูกปิดหรือใช้ไม่ได้เมื่อถึงตอนบันทึก
