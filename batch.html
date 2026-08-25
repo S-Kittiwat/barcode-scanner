@@ -1038,10 +1038,10 @@ async function lookupOne(id, value) {
     var doc = row.doc;
     if (row.already) {
       row.tier = 'yellow';
-      row.why = 'คนเลือกเอง · เคยสแกนแล้ว ต้องยืนยันก่อนทับ';
+      row.why = 'คนเลือกเอง · เคยสแกนแล้ว';
     } else if (doc) {
       row.tier = 'yellow';
-      row.why = 'คนเลือกเอง · พบในรายการอ้างอิง';
+      row.why = 'คนเลือกเอง';
     } else {
       row.tier = 'red';
       row.why = 'ไม่พบเลขนี้ในรายการอ้างอิง';
@@ -1438,6 +1438,8 @@ var FILTER_DEFS = [
     test: function (r) { return !!(r.already && !r.confirmedOverwrite); } },
 
   // ── ควรดู แต่ไม่บล็อก ──
+  { key: 'checking', label: 'กำลังตรวจ',   cls: 'r', block: true,
+    test: function (r) { return !!r.checking; } },
   { key: 'ink',    label: 'ลายเซ็น/ตรา',   cls: 'y',
     test: function (r) {
       if (!r.ink || r.ink.ok) return false;
@@ -1534,6 +1536,10 @@ function renderFilterBar() {
     (blocking
       ? '<button class="fixbtn" style="width:auto;padding:6px 16px" ' +
         'onclick="openVerify()">ตรวจทีละใบ</button>'
+      : '') +
+    (counts.checking
+      ? '<button class="fixbtn" style="width:auto;padding:6px 16px" ' +
+        'onclick="cancelChecking()">ยกเลิกการตรวจที่ค้าง (' + counts.checking + ')</button>'
       : '') +
     (counts.ink
       ? '<button class="fixbtn" style="width:auto;padding:6px 16px;' +
@@ -1688,7 +1694,22 @@ function renderTable() {
         '<button class="fixbtn" style="background:var(--warn);color:#0f172a;margin-top:5px" ' +
         'onclick="openVerify(\'' + rid + '\',\'ink\')">ดูเอกสารแล้วยืนยัน</button>';
     } else if (row.tier === 'yellow') {
-      pickHtml = '<div class="needconfirm">ยืนยันกับเอกสาร</div>';
+      /* สีเหลืองมาได้หลายทาง ต้องบอกให้ตรงว่าทางไหน
+         เดิมเขียนว่า "ยืนยันกับเอกสาร" เหมือนกันหมด
+         ซึ่งไม่บอกว่าต้องยืนยันอะไร และไม่มีปุ่มให้ทำ
+         คนจึงไม่รู้ว่าควรทำอะไรต่อ */
+      var byHuman = /คนเลือก|คนกรอก|เลือกค่านี้/.test(row.why || '');
+
+      if (byHuman) {
+        // คนตัดสินไปแล้ว ไม่ใช่งานค้าง แค่บอกว่าค่านี้มาจากคน ไม่ใช่จากระบบ
+        pickHtml = '<div class="needok">' + esc(row.why) + '</div>';
+      } else {
+        pickHtml = '<div class="needconfirm">' +
+          esc(row.why || 'ควรเทียบกับเอกสารอีกครั้ง') + '</div>' +
+          '<button class="fixbtn" style="background:transparent;' +
+          'border:1px solid var(--warn);color:var(--warn);margin-top:5px" ' +
+          'onclick="openVerify(\'' + rid + '\',\'view\')">เปิดดูเอกสาร</button>';
+      }
     } else {
       pickHtml = '<div class="needok">—</div>';
     }
@@ -2012,7 +2033,7 @@ function setSample(id, val) {
   row.sampleChecked = (row.sampleChecked === val) ? '' : val;
   if (row.sampleChecked === 'fix') {
     row.tier = 'red';
-    row.why = 'สุ่มตรวจแล้วพบว่าไม่ตรง — ต้องแก้เลขให้ถูก';
+    row.why = 'สุ่มตรวจพบว่าไม่ตรง';
   } else if (row.sampleChecked === 'ok') {
     row.why = 'สุ่มตรวจแล้ว ถูกต้อง';
   }
@@ -2094,6 +2115,17 @@ function uncheckedSamples() {
 
 async function openVerify(id, mode) {
   _vfMode = mode || 'choice';
+
+  // โหมดดูอย่างเดียว เปิดเฉพาะใบที่กด ไม่ต้องไล่ทั้งชุด
+  if (_vfMode === 'view') {
+    var one = rows.find(function (r) { return r.id === Number(id); });
+    if (!one) return;
+    _vfList = [one]; _vfPos = 0;
+    document.getElementById('dlgVerify').showModal();
+    await drawVerify();
+    return;
+  }
+
   _vfList = (_vfMode === 'ink') ? pendingInkRows() : pendingRows();
   if (!_vfList.length) {
     showToast(_vfMode === 'ink' ? 'ไม่มีรายการที่ต้องยืนยัน' : 'ไม่มีรายการที่ต้องเลือก', 'success');
@@ -2113,6 +2145,7 @@ async function drawVerify() {
   var noRead = !(row.candidates && row.candidates.length > 1);
   document.getElementById('vfTitle').textContent =
     _vfMode === 'ink' ? 'ตรวจลายเซ็นและตราประทับ'
+    : _vfMode === 'view' ? 'ดูเอกสารเทียบกับเลขที่อ่านได้'
     : noRead ? 'ระบบอ่านไม่ได้ — กรอกเลขจากเอกสาร'
     : 'ตรวจเอกสาร — เลือกเลขที่ถูกต้อง';
   document.getElementById('vfSub').textContent =
@@ -2150,6 +2183,17 @@ async function drawVerify() {
       '<span class="vc-d">' + esc(v[diffAt]) + '</span>' +
       esc(v.slice(diffAt + 1));
   };
+
+  if (_vfMode === 'view') {
+    /* ดูอย่างเดียว แสดงเหตุผลที่ควรตรวจ พร้อมช่องแก้เลขถ้าพบว่าผิด */
+    document.getElementById('vfChoices').innerHTML =
+      '<div class="vf-k">ทำไมต้องดู</div>' +
+      '<div class="vf-none">' + esc(row.why || 'ระบบไม่แน่ใจ') + '</div>' +
+      '<div class="vc-hint" style="margin-top:8px">' +
+      'เทียบเลขในภาพกับเอกสารด้านซ้าย ถ้าตรงแล้วปิดหน้านี้ได้เลย ' +
+      'ถ้าไม่ตรงให้พิมพ์เลขที่ถูกในช่องด้านล่าง</div>';
+    return;
+  }
 
   if (!cands.length) {
     /* อ่านไม่ได้เลย ไม่มีอะไรให้เลือก
@@ -2277,6 +2321,24 @@ function chooseVerify(v) {
   nextVerify();
 }
 
+/**
+ * ยกเลิกการตรวจที่ค้าง
+ * ใช้เมื่อการตรวจไม่จบด้วยเหตุใดก็ตาม เช่นเน็ตหลุดกลางคัน
+ * ปล่อยให้คนทำงานต่อได้ แต่ต้องรู้ว่ากำลังข้ามการตรวจอะไรไป
+ */
+function cancelChecking() {
+  var stuck = rows.filter(function (r) { return r.checking; });
+  if (!stuck.length) return;
+  var names = stuck.map(function (r) {
+    return r.editVals.refNo || r.barcode || ('แถว ' + r.id);
+  }).join('\n');
+  if (!confirm('ยกเลิกการตรวจ ' + stuck.length + ' รายการ\n\n' + names +
+      '\n\nรายการเหล่านี้จะไม่ได้ตรวจว่าเคยสแกนไปแล้วหรือยัง\n' +
+      'กรุณาตรวจสอบเองก่อนบันทึก\n\nยืนยันไหม')) return;
+  stuck.forEach(function (r) { r.checking = false; r.checkingSince = 0; });
+  renderTable();
+}
+
 /** แถวที่ยังตรวจไม่เสร็จ ใช้กันไม่ให้บันทึกก่อนรู้ผล */
 function checkingRows() {
   return rows.filter(function (r) { return r.checking; });
@@ -2355,12 +2417,37 @@ function applySuggestion(id, value) {
 
   /* ทำเครื่องหมายว่ากำลังตรวจอยู่
      lookupOne ทำงานแบบไม่รอผล ระหว่างนั้นยังไม่รู้ว่าเลขใหม่เคยสแกนหรือยัง
-     ถ้าปล่อยให้กดบันทึกได้ตอนนี้ อาจทับไฟล์เดิมก่อนที่ผลตรวจจะกลับมา */
+     ถ้าปล่อยให้กดบันทึกได้ตอนนี้ อาจทับไฟล์เดิมก่อนที่ผลตรวจจะกลับมา
+
+     ต้องมีทางออกเสมอ ถ้าการตรวจค้างด้วยเหตุใดก็ตาม
+     สถานะนี้จะบล็อกการบันทึกไปตลอดโดยไม่มีอะไรบอกว่าค้างที่ใบไหน */
   row.checking = true;
-  lookupOne(row.id, value).finally(function () {
+  row.checkingSince = Date.now();
+  console.log('[DocScan] เริ่มตรวจ', row.editVals.refNo || row.barcode || row.id);
+
+  var done = false;
+  var clear = function (why) {
+    if (done) return;
+    done = true;
     row.checking = false;
+    row.checkingSince = 0;
+    console.log('[DocScan] จบตรวจ ' + (row.editVals.refNo || row.barcode || row.id) +
+      ' ใน ' + Math.round((Date.now() - (row.checkingSince || Date.now())) / 100) / 10 + ' วิ' +
+      (why ? ' — ' + why : ''));
     renderTable();
-  });
+  };
+
+  // กันค้าง ถ้าเกิน 30 วินาทีถือว่าไม่สำเร็จ ปล่อยให้คนทำงานต่อได้
+  var timer = setTimeout(function () {
+    clear('หมดเวลารอ 30 วินาที');
+    showToast('ตรวจ ' + (row.editVals.refNo || row.barcode) +
+              ' ไม่สำเร็จ — ตรวจสอบข้อมูลอ้างอิงด้วยตัวเองก่อนบันทึก', 'error');
+  }, 30000);
+
+  lookupOne(row.id, value)
+    .then(function () { clearTimeout(timer); clear(); })
+    .catch(function (e) { clearTimeout(timer); clear(e && e.message); });
+
   renderTable();
 }
 
@@ -2421,7 +2508,11 @@ function updateSubmitBtn(){
   var checking = rows.filter(function (r) { return r.checking; });
   if (checking.length) {
     btn.disabled = true;
-    btn.textContent = 'กำลังตรวจ ' + checking.length + ' รายการ...';
+    var names = checking.map(function (r) {
+      return r.editVals.refNo || r.barcode || ('แถว ' + r.id);
+    }).slice(0, 3).join(', ');
+    btn.textContent = 'กำลังตรวจ ' + names +
+      (checking.length > 3 ? ' และอีก ' + (checking.length - 3) : '');
     return;
   }
 
