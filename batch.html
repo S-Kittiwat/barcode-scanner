@@ -1450,10 +1450,18 @@ var FILTER_DEFS = [
       return !!(r.sampled && (!r.sampleChecked || r.sampleChecked === 'fix'));
     } },
 
+  /* "ผ่านแล้ว" คือทุกแถวที่ไม่เข้าหมวดอื่นเลย
+     เดิมเขียนเงื่อนไขเองว่าต้องเป็นสีเขียว
+     แถวที่คนแก้เองซึ่งเป็นสีเหลืองจึงตกหล่น ไม่อยู่ในหมวดไหนเลย
+     มองไม่เห็นและแก้ไม่ได้ ทั้งที่ยอดรวมนับมันอยู่
+
+     นิยามแบบนี้ทำให้ผลรวมของทุกหมวดเท่ากับจำนวนแถวเสมอ
+     และถ้าเพิ่มหมวดใหม่ในอนาคตก็ไม่ต้องมาแก้ตรงนี้อีก */
   { key: 'done',   label: 'ผ่านแล้ว',      cls: '',
     test: function (r) {
-      return r.tier === 'green' && (!r.sampled || r.sampleChecked === 'ok') &&
-             !(r.already && !r.confirmedOverwrite);
+      return !FILTER_DEFS.some(function (d) {
+        return d.key !== 'all' && d.key !== 'done' && d.test(r);
+      });
     } }
 ];
 
@@ -1517,6 +1525,19 @@ function renderFilterBar() {
   FILTER_DEFS.forEach(function (d) {
     counts[d.key] = rows.filter(d.test).length;
   });
+
+  /* กันแถวตกหล่นระหว่างหมวด
+     ถ้าผลรวมไม่เท่ากับจำนวนแถว แปลว่ามีแถวที่มองไม่เห็นในทุกตัวกรอง
+     ซึ่งคนจะแก้ไม่ได้เพราะหาไม่เจอ ต้องรู้ทันทีไม่ใช่ปล่อยเงียบ */
+  var covered = rows.filter(function (r) {
+    return FILTER_DEFS.some(function (d) { return d.key !== 'all' && d.test(r); });
+  }).length;
+  if (covered !== rows.length) {
+    console.error('[DocScan] มีแถวไม่อยู่ในหมวดใดเลย ' + (rows.length - covered) + ' แถว',
+      rows.filter(function (r) {
+        return !FILTER_DEFS.some(function (d) { return d.key !== 'all' && d.test(r); });
+      }));
+  }
 
   /* ตัวกรองที่เลือกอยู่ว่างเปล่า ให้กลับไปทั้งหมด ไม่ปล่อยให้จอโล่ง
      ยกเว้นโหมด block ซึ่งเป็นตัวกรองชั่วคราวจากการกดที่เหตุผล
@@ -2594,6 +2615,39 @@ function blockingReasons() {
   return out;
 }
 
+/**
+ * พิมพ์สถานะทุกแถวลง Console
+ * ใช้เมื่อปุ่มบันทึกกดไม่ได้แล้วหาสาเหตุไม่เจอ
+ * เรียกจาก Console ด้วย whyBlocked()
+ */
+function whyBlocked() {
+  var blocks = blockingReasons();
+  console.log('=== ทำไมบันทึกไม่ได้ ===');
+  if (!blocks.length) console.log('ไม่มีอะไรบล็อก');
+  blocks.forEach(function (b) {
+    console.log(b.label + ' ' + b.count + ' รายการ — ' + b.detail);
+    console.table(b.rows.map(function (r) {
+      return { id: r.id, ref: r.editVals.refNo || r.barcode, tier: r.tier, why: r.why };
+    }));
+  });
+  console.log('=== ทุกแถว ===');
+  console.table(rows.map(function (r) {
+    return {
+      id: r.id, ref: r.editVals.refNo || r.barcode || '(ว่าง)',
+      status: r.status, tier: r.tier,
+      resolved: !!r.resolved, checking: !!r.checking,
+      sampled: !!r.sampled, sampleChecked: r.sampleChecked || '',
+      already: !!r.already, confirmed: !!r.confirmedOverwrite,
+      inkOk: r.ink ? r.ink.ok : null,
+      inFilter: FILTER_DEFS.filter(function (d) {
+        return d.key !== 'all' && d.test(r);
+      }).map(function (d) { return d.key; }).join(',') || '(ไม่อยู่หมวดใด)',
+      why: r.why || ''
+    };
+  }));
+  return blocks.length + ' เรื่องที่ติด';
+}
+
 function updateSubmitBtn(){
   var btn = document.getElementById('submitBtn');
   if (!btn) return;
@@ -2612,7 +2666,9 @@ function updateSubmitBtn(){
 
   var ready = rows.filter(function (r) { return r.status !== 'dup' && r.barcode; });
   btn.disabled = ready.length === 0;
-  btn.title = '';
+  btn.title = btn.disabled
+    ? 'ไม่มีแถวที่บันทึกได้ — พิมพ์ whyBlocked() ใน Console เพื่อดูรายละเอียด'
+    : '';
 
   var needCheck = rows.filter(function (r) {
     return r.tier === 'red' || r.tier === 'yellow';
