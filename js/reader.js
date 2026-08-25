@@ -777,7 +777,7 @@ export function classifyDoc(doc, csvIndex, helpers) {
                      ' แต่ไม่มีรายการอ้างอิงให้แปลงเป็นเลข Reference — กรอกเอง' };
     }
     return { tier: 'yellow', reason: 'no_reference_data',
-             head: 'ไม่มีรายการอ้างอิงให้ตรวจสอบ — โปรดเทียบกับเอกสารเอง' };
+             head: 'ไม่มีรายการอ้างอิงให้ตรวจ' };
   }
 
   // อ่านบาร์โค้ดได้แต่ยังแปลงเป็น Reference ไม่ได้
@@ -837,7 +837,7 @@ export function classifyDoc(doc, csvIndex, helpers) {
   const unanimous = ocr && ocr.candidates && ocr.candidates.length === 1;
   if (risky && !unanimous) {
     return { tier: 'yellow', reason: 'collision_risk',
-             head: 'อ่านได้ไม่เป็นเอกฉันท์ และมีเลขต่างกันหลักเดียวในระบบ ควรยืนยันกับเอกสาร' };
+             head: 'มีเลขต่างกันหลักเดียวในระบบ' };
   }
   return { tier: 'green', reason: 'ocr_in_reference', head: 'OCR ตรงกับรายการอ้างอิง' };
 }
