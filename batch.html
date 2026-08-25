@@ -257,8 +257,11 @@ main{width:100%;max-width:100%;padding:20px 24px 100px;}
 .split-detail{font-size:11px;color:var(--muted);font-family:var(--mono);}
 
 /* ---- แถบบนแบบเรียบ แทนเมนูเดิมที่ซ้ำกับปุ่ม ☰ ---- */
+/* ตรึงไว้ด้านบน ไม่งั้นพอตารางยาวขึ้นหลังอ่านเสร็จ
+   ปุ่มกลับหน้าหลักจะเลื่อนหายไป แล้วต้องเลื่อนขึ้นสุดเพื่อออกจากหน้านี้ */
 .topbar{background:var(--surface);border-bottom:1px solid var(--border);
-  padding:12px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  padding:12px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+  position:sticky;top:0;z-index:150}
 .topbar .back{color:var(--accent);text-decoration:none;font-size:13.5px;white-space:nowrap}
 .topbar .back:hover{text-decoration:underline}
 .tb-title{border-left:1px solid var(--border);padding-left:16px}
@@ -402,6 +405,10 @@ td.ro .acc{font-family:var(--mono);font-size:11.5px;color:var(--muted);margin-to
 .fnote{margin-left:auto;font-size:12px;color:var(--muted)}
 .empty2{color:var(--muted);font-size:13px;padding:26px;text-align:center;line-height:1.9}
 .empty2 b{color:var(--text);display:block;font-size:15px;margin-bottom:6px}
+.readrow{display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+  margin-top:14px;padding-top:14px;border-top:1px solid var(--border)}
+.rbtn.big{padding:12px 26px;font-size:15px}
+.readhint{font-size:12px;color:var(--muted)}
 .csvst{font-size:12.5px;color:var(--muted);margin-top:10px;font-family:var(--mono)}
 .csvst.ok{color:var(--success)}
 .csvst.bad{color:var(--danger)}
@@ -452,6 +459,9 @@ dialog[open]{
 /* ปุ่มเลือกในหน้าตรวจ
    ตัวที่ยังไม่ถูกเลือกต้องอ่านออกชัดเจนพอ ๆ กับตัวที่เลือกแล้ว
    ไม่งั้นคนจะมองไม่เห็นตัวเลือกที่มี แล้วกดตัวที่สว่างกว่าโดยไม่ได้ตั้งใจ */
+.vf-none{font-size:12.5px;color:var(--warn);line-height:1.8;
+  background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.4);
+  border-radius:var(--rs);padding:12px 14px}
 .vf-choice{display:block;width:100%;text-align:left;background:#0f172a;
   border:2px solid #475569;border-radius:8px;padding:12px 14px;cursor:pointer;
   font-family:var(--font);margin-bottom:9px;position:relative;transition:border-color .12s}
@@ -622,12 +632,20 @@ window.dispatchEvent(new Event('docscan-ready'));
         <label for="samplePct">สุ่มตรวจ (%)</label>
         <input type="number" id="samplePct" min="0" max="100" step="5" value="10">
       </div>
-      <button class="rbtn" id="btnRead">อ่านเอกสารอัตโนมัติ</button>
       <button class="rbtn ghost" id="btnPick">กำหนดพื้นที่อ่านเอง</button>
-      <button class="rbtn ghost" id="btnCancelRead" style="display:none">หยุด</button>
     </div>
+
     <div class="csvst" id="customHint"></div>
     <div class="csvst" id="csvStatus">กำลังโหลดรายการอ้างอิง…</div>
+
+    <!-- ปุ่มอ่านอยู่ท้ายสุดโดยตั้งใจ
+         เพื่อให้ลำดับบนหน้าจอตรงกับลำดับการทำงานจริง
+         เลือกชนิด → ตั้งพื้นที่ → ดูสถานะว่าพร้อม → กดอ่าน -->
+    <div class="readrow">
+      <button class="rbtn big" id="btnRead">อ่านเอกสารอัตโนมัติ</button>
+      <button class="rbtn ghost" id="btnCancelRead" style="display:none">หยุด</button>
+      <span class="readhint">ขั้นตอนสุดท้ายของการตั้งค่า — กดเมื่อกรอบและมุมถูกต้องแล้ว</span>
+    </div>
     <div class="rprog" id="rprog">
       <div class="rbar"><i id="rbar"></i></div>
       <div class="rtext" id="rtext"></div>
@@ -1529,7 +1547,8 @@ function renderTable() {
     /* ช่อง "ต้องเลือก" — แยกออกมาเพราะเป็นงานที่คนต้องลงมือทำ
        ถ้าปนอยู่กับผลการอ่าน จะกลืนไปกับข้อความอื่นแล้วมองข้าม */
     // แถวที่ระบบไม่แน่ใจและคนยังไม่ตัดสิน ต้องเด่นและบันทึกไม่ได้
-    var needFix = !!(row.candidates && row.candidates.length > 1 && !row.resolved);
+    var needFix = !!(!row.resolved &&
+      ((row.candidates && row.candidates.length > 1) || !row.barcode));
     var needDup = !!(row.already && !row.confirmedOverwrite);
     var pickHtml;
     if (needDup) {
@@ -1546,7 +1565,7 @@ function renderTable() {
         '<button class="fixbtn" style="background:transparent;border:1px solid var(--border);' +
         'color:var(--muted);margin-top:5px" onclick="removeRow(\'' + rid + '\')">' +
         'ไม่นำเข้าใบนี้</button>';
-    } else if (needFix) {
+    } else if (needFix && row.candidates && row.candidates.length > 1) {
       // ต้องเปิดดูเอกสารก่อนเลือก เพราะตัดสินจากตัวเลขอย่างเดียวไม่ได้
       // ตัวเลือกอยู่ข้างภาพในหน้าพรีวิว เทียบแล้วกดได้เลย
       pickHtml = '<div class="pickhead">' + esc(row.why || 'ต้องเลือกค่า') + '</div>' +
@@ -1561,7 +1580,9 @@ function renderTable() {
         'color:var(--muted);margin-top:5px" onclick="openVerify(\'' + rid + '\')">' +
         'เปิดดูอีกครั้ง</button>';
     } else if (!row.barcode) {
-      pickHtml = '<div class="needdo">ต้องกรอกเลขเอง</div>';
+      pickHtml = '<div class="needdo">ระบบอ่านไม่ได้</div>' +
+        '<button class="fixbtn" style="margin-top:5px" ' +
+        'onclick="openVerify(\'' + rid + '\')">ดูเอกสารแล้วกรอกเอง</button>';
     } else if (row.tier === 'red') {
       pickHtml = '<div class="needdo">ต้องตรวจกับเอกสาร</div>';
     } else if (row.tier === 'yellow' || row.sampled) {
@@ -1593,7 +1614,10 @@ function renderTable() {
         '<input class="' + bcClass + '" value="' + esc(row.barcode) + '" ' +
           'placeholder="พิมพ์เลข Reference" ' +
           'oninput="handleBarcodeInput(\'' + rid + '\',this)" ' +
-          'onkeydown="if(event.key===\'Enter\'){event.preventDefault();lookupOne(\'' + rid + '\',this.value);}">' +
+          /* เดิมกด Enter แล้วกระโดดไปช่องถัดไป ทำไว้ตอนที่ใช้เครื่องอ่านบาร์โค้ด
+             ซึ่งยิงค่าแล้วต่อท้ายด้วย Enter อัตโนมัติ
+             ตอนนี้คนพิมพ์เองเป็นหลัก การกระโดดจึงทำให้แก้ผิดช่องโดยไม่รู้ตัว */
+          'onkeydown="if(event.key===\'Enter\'){event.preventDefault();this.blur();}">' +
         (mismatch ? '<div class="why" style="color:var(--warn)">แก้จากที่ระบบอ่านได้</div>' : '') +
         '<div style="margin-top:4px">' + statusHtml + '</div>' +
         (ev.refNo
@@ -1875,7 +1899,12 @@ var _vfList = [], _vfPos = 0;
 /** แถวที่ยังต้องให้คนตัดสิน */
 function pendingRows() {
   return rows.filter(function (r) {
-    return r.candidates && r.candidates.length > 1 && !r.resolved;
+    if (r.resolved) return false;
+    // มีตัวเลือกให้กด
+    if (r.candidates && r.candidates.length > 1) return true;
+    // อ่านไม่ได้เลย ต้องพิมพ์เอง — ใช้หน้าเดียวกันจะได้เห็นเอกสารประกอบ
+    if (!r.barcode) return true;
+    return false;
   });
 }
 
@@ -1893,7 +1922,10 @@ async function drawVerify() {
   var row = _vfList[_vfPos];
   if (!row) { document.getElementById('dlgVerify').close(); return; }
 
-  document.getElementById('vfTitle').textContent = 'ตรวจเอกสาร — เลือกเลขที่ถูกต้อง';
+  var noRead = !(row.candidates && row.candidates.length > 1);
+  document.getElementById('vfTitle').textContent = noRead
+    ? 'ระบบอ่านไม่ได้ — กรอกเลขจากเอกสาร'
+    : 'ตรวจเอกสาร — เลือกเลขที่ถูกต้อง';
   document.getElementById('vfSub').textContent =
     'หน้า ' + (row.pageNos ? row.pageNos.join(', ') : (row.pageNo || '-'));
   document.getElementById('vfCount').textContent = (_vfPos + 1) + ' / ' + _vfList.length;
@@ -1925,6 +1957,17 @@ async function drawVerify() {
       esc(v.slice(diffAt + 1));
   };
 
+  if (!cands.length) {
+    /* อ่านไม่ได้เลย ไม่มีอะไรให้เลือก
+       บอกสาเหตุที่รู้ แล้วให้พิมพ์จากเอกสารที่แสดงอยู่ข้าง ๆ */
+    document.getElementById('vfChoices').innerHTML =
+      '<div class="vf-k">ระบบอ่านไม่ได้</div>' +
+      '<div class="vf-none">' +
+        esc(row.why || 'ไม่พบเลขที่เอกสารในกรอบที่กำหนด') +
+        '<br><br>ดูเอกสารด้านซ้าย แล้วพิมพ์เลขในช่องด้านล่าง' +
+      '</div>';
+  }
+
   document.getElementById('vfChoices').innerHTML =
     '<div class="vf-k">เลือกเลขที่ตรงกับเอกสาร</div>' +
     cands.map(function (c, ci) {
@@ -1955,14 +1998,22 @@ async function drawVerify() {
     cv.width = cv.height = 0;
     page.cleanup();
   } catch (e) { /* ยังมีภาพครอปให้ดูอยู่ */ }
+
+  // อ่านไม่ได้เลย ให้เคอร์เซอร์อยู่ในช่องพิมพ์ทันที จะได้พิมพ์ต่อได้เลย
+  if (!(row.candidates && row.candidates.length > 1)) {
+    try { document.getElementById('vfManual').focus(); } catch (e) {}
+  }
 }
 
 function chooseVerify(v) {
   var row = _vfList[_vfPos];
   if (!row) return;
+  var wasEmpty = !row.barcode;
   row.resolved = true;
   applySuggestion(row.id, v);
-  showToast('เลือก ' + v + ' แล้ว', 'success');
+  // แยกข้อความให้ตรงกับสิ่งที่คนทำจริง จะได้ตรวจสอบย้อนหลังได้ถูก
+  row.why = wasEmpty ? 'คนกรอกเอง (ระบบอ่านไม่ได้)' : 'คนเลือกค่านี้เอง';
+  showToast((wasEmpty ? 'กรอก ' : 'เลือก ') + v + ' แล้ว', 'success');
   nextVerify();
 }
 
@@ -2053,16 +2104,36 @@ function applySuggestion(id, value) {
 
 function removeRow(id){var idNum=Number(id);rows=rows.filter(function(r){return r.id!==idNum;});renderTable();updateBatchCounter();}
 function clearAll(){
-  if(!rows.length||!confirm('ล้างทั้งหมด?'))return;
+  if(!rows.length||!confirm('ล้างทั้งหมด?\n\nไฟล์ที่อัปโหลดและผลการอ่านจะหายไปทั้งหมด'))return;
+
   rows=[]; _lastPdfJs=null; _lastPdfBytes=null; _lastFileName='';
-  renderTable(); updateBatchCounter(); showReaderPanel(false);
-  document.getElementById('tableWrap').style.display='none';
-  document.getElementById('beforeRead').style.display='none';
-  document.getElementById('filterBar').style.display='none';
-  document.getElementById('dupBanner').style.display='none';
   _filter = 'all'; _dupCheckError = ''; _dupChecked = 0;
-  document.getElementById('rsum').style.display='none';
+  _lastRefIndex = new Map();
+  _refNeighbors = {}; window._refNeighbors = _refNeighbors;
+
+  /* ต้องล้างช่อง input ด้วย
+     เดิมล้างแต่ข้อมูลในหน่วยความจำ ช่องเลือกไฟล์ยังจำไฟล์เดิมไว้
+     ผลคือเลือกไฟล์เดิมซ้ำแล้วไม่เกิดอะไรขึ้น เพราะเบราว์เซอร์
+     ไม่ยิง onchange เมื่อค่าไม่เปลี่ยน ซึ่งดูเหมือนโปรแกรมค้าง */
+  var fi = document.getElementById('fileInput');
+  if (fi) fi.value = '';
+
+  renderTable(); updateBatchCounter(); showReaderPanel(false);
+  ['tableWrap','beforeRead','filterBar','dupBanner','rsum'].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
   document.getElementById('rprog').classList.remove('on');
+  document.getElementById('rtext').textContent = '';
+  document.getElementById('rbar').style.width = '0%';
+
+  // เปิดพื้นที่อัปโหลดกลับมาให้พร้อมใช้ทันที
+  var uz = document.getElementById('uploadZone');
+  if (uz) { uz.classList.remove('blocked'); uz.style.display = ''; }
+  var lb = document.getElementById('limitBanner');
+  if (lb) lb.classList.remove('on');
+
+  showToast('ล้างข้อมูลทั้งหมดแล้ว','success');
 }
 
 function updateSubmitBtn(){
@@ -2076,7 +2147,10 @@ function updateSubmitBtn(){
   var pending = pendingRows();
   if (pending.length) {
     btn.disabled = true;
-    btn.textContent = 'ต้องเลือกเลขให้ครบก่อน (' + pending.length + ' รายการ)';
+    var noRead = pending.filter(function (r) { return !r.barcode; }).length;
+    btn.textContent = noRead === pending.length
+      ? 'ต้องกรอกเลขให้ครบก่อน (' + pending.length + ' รายการ)'
+      : 'ต้องตรวจให้ครบก่อน (' + pending.length + ' รายการ)';
     return;
   }
 
