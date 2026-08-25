@@ -2738,10 +2738,22 @@ async function applyReadResults(results, typeKey) {
     rprog(0.98, 'กำลังตรวจว่าเคยสแกนไปแล้วหรือยัง');
     var chk = await apiPost({
       action: 'docsScanned',
-      refs: docs.map(function (d) { return d.refNo || d.value; }).filter(Boolean)
+      /* ต้องส่งทุกค่าที่อาจใช้เป็นตัวเทียบ ไม่ใช่แค่ค่าเดียว
+         เพราะเอกสารที่ได้เลขจากบาร์โค้ด d.refNo จะว่าง
+         แต่ตอนค้นผลลัพธ์กลับใช้ ref_no ที่ได้จากรายการอ้างอิง
+         ถ้าส่งไม่ครบ คีย์จะไม่ตรงกันแล้วหาไม่เจอทั้งที่มีข้อมูล */
+      refs: docs.reduce(function (acc, d) {
+        [d.refNo, d.value, d.barcodeValue].forEach(function (v) {
+          if (v) acc.push(v);
+        });
+        return acc;
+      }, [])
     });
     already = (chk && chk.found) || {};
     _dupChecked = (chk && chk.checked) || 0;
+    // ไว้ให้ตรวจสอบเมื่อผลไม่เป็นอย่างที่คาด
+    console.log('[DocScan] ตรวจซ้ำ — ส่งไป', _dupChecked, 'คีย์ · พบ',
+      Object.keys(already).length, 'รายการ', already);
   } catch (err) {
     /* ล้มเหลวตรงนี้แปลว่าตัวกันข้อมูลหายถูกปิดอยู่
        ถ้าแจ้งด้วย toast ที่หายไปในไม่กี่วินาที คนจะไม่ทันเห็น
@@ -2802,7 +2814,13 @@ async function applyReadResults(results, typeKey) {
     first.crossMismatch = (cls.reason === 'cross_mismatch');
 
     // เคยสแกนไปแล้ว ต้องให้คนยืนยันก่อนทับ
-    var prev = already[String(first.editVals.refNo || first.barcode || '').toUpperCase()];
+    // ลองทุกคีย์ที่เป็นไปได้ เพราะแต่ละเส้นทางเก็บค่าไว้คนละที่
+    var prev = null;
+    [first.editVals.refNo, first.barcode, d.refNo, d.value, d.barcodeValue]
+      .forEach(function (k) {
+        if (prev || !k) return;
+        prev = already[String(k).trim().toUpperCase()] || null;
+      });
     if (prev) {
       first.already = prev;
       first.confirmedOverwrite = false;
