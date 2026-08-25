@@ -184,5 +184,9 @@ export function summarize(result) {
   if (result.ok) {
     return 'พบ' + result.checks.map(c => c.label).join('และ') + 'ครบ';
   }
-  return 'ไม่พบ' + result.missing.map(c => c.label).join('และ') + ' — โปรดตรวจกับเอกสาร';
+  // อ่านจาก checks เผื่อ missing หายไประหว่างส่งต่อ
+  const left = (result.missing && result.missing.length)
+    ? result.missing
+    : (result.checks || []).filter(c => !c.pass);
+  return 'ไม่พบ' + left.map(c => c.label).join('และ') + ' — โปรดตรวจกับเอกสาร';
 }
