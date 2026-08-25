@@ -415,6 +415,8 @@ td.ro .acc{font-family:var(--mono);font-size:11.5px;color:var(--muted);margin-to
   margin-top:14px;padding-top:14px;border-top:1px solid var(--border)}
 .rbtn.big{padding:12px 26px;font-size:15px}
 .readhint{font-size:12px;color:var(--muted)}
+.setval{font-size:13.5px;padding:9px 0;font-weight:600}
+.setlock{font-size:11px;color:var(--muted);font-weight:400;margin-left:6px}
 .csvst{font-size:12.5px;color:var(--muted);margin-top:10px;font-family:var(--mono)}
 .csvst.ok{color:var(--success)}
 .csvst.bad{color:var(--danger)}
@@ -621,10 +623,11 @@ window.dispatchEvent(new Event('docscan-ready'));
         <select id="docType"></select>
       </div>
       <div class="fld" style="min-width:150px">
-        <label for="ocrLevel">ความละเอียดการอ่าน</label>
-        <select id="ocrLevel">
-          <option value="accurate">ละเอียด — 9 รอบต่อหน้า</option>
-          <option value="fast">เร็ว — 3 รอบต่อหน้า</option>
+        <label>ความละเอียดการอ่าน</label>
+        <div class="setval" id="ocrLevelText">—</div>
+        <select id="ocrLevel" style="display:none">
+          <option value="accurate">ละเอียด — โหวต 300/400/500 dpi</option>
+          <option value="fast">เร็ว — 400 dpi เดียว</option>
         </select>
       </div>
       <div class="fld" style="min-width:170px">
@@ -635,8 +638,13 @@ window.dispatchEvent(new Event('docscan-ready'));
         </select>
       </div>
       <div class="fld" style="min-width:120px">
-        <label for="samplePct">สุ่มตรวจ (%)</label>
-        <input type="number" id="samplePct" min="0" max="100" step="5" value="10">
+        <label>สุ่มตรวจ</label>
+        <div class="setval" id="samplePctText">—</div>
+        <input type="number" id="samplePct" min="0" max="100" step="5" value="10" style="display:none">
+      </div>
+      <div class="fld" id="setAdminBox" style="display:none">
+        <label>&nbsp;</label>
+        <button class="rbtn ghost" id="btnSaveSettings">บันทึกค่ามาตรฐาน</button>
       </div>
       <button class="rbtn ghost" id="btnPick">กำหนดพื้นที่อ่านเอง</button>
     </div>
@@ -883,6 +891,7 @@ window.onload = function () {
   
   
   loadCSV();
+  loadSettings();
 };
 
 var CSV_CACHE_KEY = 'docScanCSV';
@@ -940,6 +949,7 @@ function clearCSVCache() {
   // ไม่มีแคชในเครื่องแล้ว ข้อมูลอ้างอิงถามจากเซิร์ฟเวอร์ทุกครั้งที่อ่านเอกสาร
   try { localStorage.removeItem(CSV_CACHE_KEY); } catch (e) {}
   loadCSV();
+  loadSettings();
   showToast('ตรวจรายการอ้างอิงใหม่แล้ว', 'success');
 }
 
@@ -2895,6 +2905,40 @@ function showCustomHint() {
   }
 }
 
+/* ค่ามาตรฐานมาจากผู้ดูแล ไม่ใช่ค่าที่คนหน้างานตั้งเอง
+   อัตราสุ่มตรวจและความละเอียดการอ่านกำหนดคุณภาพของงานทั้งชุด
+   ถ้าปรับเองได้ อัตราสุ่มจะเป็นศูนย์ในวันที่งานเยอะ */
+var _settings = { sample_pct: 10, ocr_level: 'accurate', can_edit: false };
+
+async function loadSettings() {
+  try {
+    var r = await apiPost({ action: 'appSettings' });
+    if (r && r.status === 'ok') _settings = r;
+  } catch (e) {
+    console.warn('[DocScan] โหลดค่ามาตรฐานไม่ได้ ใช้ค่าเริ่มต้น', e);
+  }
+  applySettings();
+}
+
+function applySettings() {
+  var pct = _settings.sample_pct, lvl = _settings.ocr_level;
+  document.getElementById('samplePct').value = pct;
+  document.getElementById('ocrLevel').value = lvl;
+
+  var lvlLabel = lvl === 'fast' ? 'เร็ว (400 dpi)' : 'ละเอียด (300/400/500 dpi)';
+  var lock = _settings.can_edit ? '' : '<span class="setlock">กำหนดโดยผู้ดูแล</span>';
+  document.getElementById('samplePctText').innerHTML = pct + '%' + lock;
+  document.getElementById('ocrLevelText').innerHTML = lvlLabel + lock;
+
+  // ผู้ดูแลแก้ได้ในหน้านี้เลย คนอื่นเห็นเป็นข้อความอย่างเดียว
+  var edit = !!_settings.can_edit;
+  document.getElementById('samplePct').style.display = edit ? '' : 'none';
+  document.getElementById('ocrLevel').style.display = edit ? '' : 'none';
+  document.getElementById('samplePctText').style.display = edit ? 'none' : '';
+  document.getElementById('ocrLevelText').style.display = edit ? 'none' : '';
+  document.getElementById('setAdminBox').style.display = edit ? '' : 'none';
+}
+
 function showReaderPanel(show) {
   document.getElementById('readerPanel').style.display = show ? 'block' : 'none';
   if (!show) return;
@@ -3243,6 +3287,25 @@ document.getElementById('imgClose').addEventListener('click', function () {
 document.getElementById('dlgImg').addEventListener('click', function (e) {
   // กดนอกภาพเพื่อปิด เหมือนกล่องดูรูปทั่วไป
   if (e.target === this) this.close();
+});
+
+document.getElementById('btnSaveSettings').addEventListener('click', async function () {
+  var pct = Number(document.getElementById('samplePct').value);
+  var lvl = document.getElementById('ocrLevel').value;
+  if (!isFinite(pct) || pct < 0 || pct > 100) {
+    showToast('อัตราสุ่มตรวจต้องอยู่ระหว่าง 0 ถึง 100', 'error'); return;
+  }
+  if (pct === 0 && !confirm('ตั้งอัตราสุ่มตรวจเป็น 0%\n\n' +
+      'จะไม่มีการสุ่มตรวจเลย และไม่มีข้อมูลวัดว่าระบบอ่านแม่นแค่ไหน\n\nยืนยันไหม')) return;
+  try {
+    var r = await apiPost({ action: 'saveSettings', sample_pct: pct, ocr_level: lvl });
+    if (r && r.status === 'ok') {
+      _settings.sample_pct = r.sample_pct;
+      _settings.ocr_level = r.ocr_level;
+      applySettings();
+      showToast('บันทึกค่ามาตรฐานแล้ว มีผลกับทุกคน', 'success');
+    } else showToast((r && r.message) || 'บันทึกไม่สำเร็จ', 'error');
+  } catch (e) { showToast('บันทึกไม่สำเร็จ: ' + (e.message || e), 'error'); }
 });
 
 (function bindPicker() {
