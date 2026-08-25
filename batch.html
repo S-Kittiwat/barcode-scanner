@@ -943,30 +943,61 @@ async function lookupOne(id, value) {
 
   var idNum = Number(id);
   var row = rows.find(function (r) { return r.id === idNum; });
-
-  if (_lastRefIndex.has(k)) { onBarcodeChange(id, value); return; }
-
-  // บอกให้รู้ว่ากำลังค้นอยู่ ไม่ใช่ค้างหรือหาไม่เจอ
   if (row) { row.status = 'looking'; _updateRowDOM(row); }
 
-  try {
-    var r = await fetchRefs([k]);
-    r.index.forEach(function (v, key) { _lastRefIndex.set(key, v); });
-    Object.keys(r.neighbors || {}).forEach(function (kk) {
-      _refNeighbors[kk] = r.neighbors[kk];
-    });
-    window._refNeighbors = _refNeighbors;
-  } catch (e) {
-    if (row) showToast('ค้นข้อมูลอ้างอิงไม่สำเร็จ: ' + (e.message || e), 'error');
+  // ── ข้อมูลอ้างอิง ── ใช้จากแคชถ้ามี ไม่งั้นถามเซิร์ฟเวอร์
+  if (!_lastRefIndex.has(k)) {
+    try {
+      var r = await fetchRefs([k]);
+      r.index.forEach(function (v, key) { _lastRefIndex.set(key, v); });
+      Object.keys(r.neighbors || {}).forEach(function (kk) {
+        _refNeighbors[kk] = r.neighbors[kk];
+      });
+      window._refNeighbors = _refNeighbors;
+    } catch (e) {
+      if (row) showToast('ค้นข้อมูลอ้างอิงไม่สำเร็จ: ' + (e.message || e), 'error');
+    }
   }
 
   onBarcodeChange(id, value);
 
-  // คนแก้เองแล้ว ต้องคิดชั้นความเชื่อมั่นใหม่ ไม่ใช่ค้างที่ผลเดิม
+  /* ── ตรวจว่าเลขใหม่นี้เคยสแกนไปแล้วหรือยัง ──
+   *
+   * ต้องตรวจทุกครั้งที่คนเปลี่ยนเลข ไม่ใช่แค่ตอนอ่านเสร็จครั้งเดียว
+   * เพราะเลขที่คนเลือกเองมักเป็นเลขที่ถูกต้องจริง
+   * จึงมีโอกาสสูงกว่าเดิมที่จะเคยสแกนไปแล้ว
+   *
+   * ถ้าไม่ตรวจซ้ำตรงนี้ จะทับไฟล์เดิมโดยไม่มีใครรู้
+   * ซึ่งเป็นกรณีที่อันตรายที่สุดของทั้งหน้านี้
+   */
   if (row) {
-    row.resolved = true;   // คนลงมือแก้เองแล้ว ถือว่าตัดสินแล้ว
+    row.resolved = true;
+    var refKey = String(row.editVals.refNo || row.barcode || '').trim().toUpperCase();
+
+    if (refKey && !_dupCheckError) {
+      try {
+        var chk = await apiPost({ action: 'docsScanned', refs: [refKey, k] });
+        var f = (chk && chk.found) || {};
+        var hit = f[refKey] || f[k] || null;
+        if (hit) {
+          // เลขใหม่เคยสแกนแล้ว ต้องยืนยันก่อนบันทึกเสมอ
+          row.already = hit;
+          row.confirmedOverwrite = false;
+        } else {
+          // เลขใหม่ยังไม่เคยสแกน ล้างสถานะเดิมทิ้ง
+          row.already = null;
+          row.confirmedOverwrite = false;
+        }
+      } catch (e) {
+        console.warn('[DocScan] ตรวจซ้ำหลังแก้เลขไม่สำเร็จ', e);
+      }
+    }
+
     var doc = row.doc;
-    if (doc) {
+    if (row.already) {
+      row.tier = 'yellow';
+      row.why = 'คนเลือกเอง · เคยสแกนแล้ว ต้องยืนยันก่อนทับ';
+    } else if (doc) {
       row.tier = 'yellow';
       row.why = 'คนเลือกเอง · พบในรายการอ้างอิง';
     } else {
@@ -1935,6 +1966,11 @@ function chooseVerify(v) {
   nextVerify();
 }
 
+/** แถวที่ยังตรวจไม่เสร็จ ใช้กันไม่ให้บันทึกก่อนรู้ผล */
+function checkingRows() {
+  return rows.filter(function (r) { return r.checking; });
+}
+
 function nextVerify() {
   var remain = pendingRows();
   if (!remain.length) {
@@ -2004,9 +2040,14 @@ function applySuggestion(id, value) {
   row.suggestion = '';
   row.editVals.refNo = value;
 
-  // ค่าที่เลือกอาจยังไม่เคยถูกถามจากเซิร์ฟเวอร์
-  // lookupOne จะถามให้ถ้าไม่มีในแคช แล้วเติมข้อมูลเอกสารให้ครบ
-  lookupOne(row.id, value);
+  /* ทำเครื่องหมายว่ากำลังตรวจอยู่
+     lookupOne ทำงานแบบไม่รอผล ระหว่างนั้นยังไม่รู้ว่าเลขใหม่เคยสแกนหรือยัง
+     ถ้าปล่อยให้กดบันทึกได้ตอนนี้ อาจทับไฟล์เดิมก่อนที่ผลตรวจจะกลับมา */
+  row.checking = true;
+  lookupOne(row.id, value).finally(function () {
+    row.checking = false;
+    renderTable();
+  });
   renderTable();
 }
 
@@ -2041,6 +2082,13 @@ function updateSubmitBtn(){
 
   // เอกสารที่เคยสแกนแล้วต้องได้รับการยืนยันก่อน
   // ไม่งั้นจะทับไฟล์เดิมโดยที่คนไม่รู้ตัว
+  var checking = rows.filter(function (r) { return r.checking; });
+  if (checking.length) {
+    btn.disabled = true;
+    btn.textContent = 'กำลังตรวจ ' + checking.length + ' รายการ...';
+    return;
+  }
+
   var dup = rows.filter(function (r) { return r.already && !r.confirmedOverwrite; });
   if (dup.length) {
     btn.disabled = true;
