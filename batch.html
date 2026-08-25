@@ -311,6 +311,18 @@ main{width:100%;max-width:100%;padding:20px 24px 100px;}
   color:var(--text);font-family:var(--mono);font-size:14px;padding:9px 11px;letter-spacing:.04em}
 .ps-done{margin-top:14px;padding:10px;border-radius:6px;background:rgba(52,211,153,.12);
   color:var(--success);font-size:12.5px;text-align:center}
+.saveeta{font-size:13px;color:var(--accent);margin-top:8px;font-weight:600;min-height:19px}
+.savesteps{display:flex;flex-direction:column;gap:6px;margin-top:16px;text-align:left}
+.savestep{display:flex;align-items:center;gap:9px;font-size:12.5px;color:var(--muted)}
+.savestep .dot{width:16px;height:16px;border-radius:50%;border:2px solid var(--border);
+  flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px}
+.savestep.now{color:var(--text)}
+.savestep.now .dot{border-color:var(--accent);border-top-color:transparent;
+  animation:spin .8s linear infinite}
+.savestep.done{color:var(--success)}
+.savestep.done .dot{border-color:var(--success);background:var(--success);color:#0f172a}
+.savenote{font-size:11.5px;color:var(--muted);margin-top:14px}
+@keyframes spin{to{transform:rotate(360deg)}}
 .dupwarn{font-size:12px;color:var(--warn);font-weight:600}
 .dupinfo{font-size:10.5px;color:var(--muted);margin-top:3px;line-height:1.5}
 .duplink{display:inline-block;font-size:11px;color:var(--accent);margin-top:4px}
@@ -368,6 +380,13 @@ tr.needdup td:first-child{box-shadow:inset 3px 0 0 var(--warn)}
 .readnone{font-size:12px;color:var(--muted);line-height:1.6}
 td.ro{font-size:13px;color:var(--text);vertical-align:top}
 td.ro .acc{font-family:var(--mono);font-size:11.5px;color:var(--muted);margin-top:2px}
+.dupbanner{border-radius:var(--r);padding:12px 16px;margin-bottom:12px;font-size:12.5px;
+  line-height:1.7;border:1px solid var(--border);background:var(--surface)}
+.dupbanner b{display:block;font-size:13.5px;margin-bottom:3px}
+.dupbanner.ok{color:var(--muted)}
+.dupbanner.warn{border-color:var(--warn);color:var(--warn)}
+.dupbanner.bad{border-color:var(--danger);color:var(--danger);
+  background:rgba(248,113,113,.08)}
 .filterbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;
   padding:12px 16px;background:var(--surface);border:1px solid var(--border);
   border-radius:var(--r);margin-bottom:12px}
@@ -627,6 +646,7 @@ window.dispatchEvent(new Event('docscan-ready'));
     </div>
     <div class="batch-table-wrap" id="batchTableWrap" style="display:none;">
       <div class="empty2" id="beforeRead" style="display:none"></div>
+      <div class="dupbanner" id="dupBanner" style="display:none"></div>
       <div class="filterbar" id="filterBar" style="display:none"></div>
       <div id="tableWrap" style="display:none">
       <table>
@@ -1346,6 +1366,29 @@ function rowMatchesFilter(r) {
   return true;
 }
 
+function renderDupBanner() {
+  var el = document.getElementById('dupBanner');
+  if (!el) return;
+  if (!rows.length) { el.style.display = 'none'; return; }
+
+  if (_dupCheckError) {
+    el.style.display = 'block';
+    el.className = 'dupbanner bad';
+    el.innerHTML = '<b>ตรวจเอกสารซ้ำไม่ได้</b>' +
+      esc(_dupCheckError) + '<br>' +
+      'ระบบจะไม่รู้ว่าเอกสารใบไหนเคยสแกนไปแล้ว และอาจทับไฟล์เดิมโดยไม่แจ้ง<br>' +
+      'มักเกิดเมื่อยังไม่ได้อัป Documents.gs และ Integration.gs แล้ว Deploy ใหม่';
+  } else {
+    var n = rows.filter(function (r) { return r.already; }).length;
+    el.style.display = 'block';
+    el.className = 'dupbanner ' + (n ? 'warn' : 'ok');
+    el.innerHTML = n
+      ? '<b>พบเอกสารที่เคยสแกนแล้ว ' + n + ' รายการ</b>' +
+        'ต้องยืนยันทีละใบก่อนบันทึก ดูที่คอลัมน์ขวาสุด'
+      : 'ตรวจแล้ว ' + _dupChecked + ' รายการ · ไม่มีเอกสารที่เคยสแกนซ้ำ';
+  }
+}
+
 function renderFilterBar() {
   var bar = document.getElementById('filterBar');
   if (!bar) return;
@@ -1392,6 +1435,7 @@ function renderTable() {
   if (rows.length===0){wrap.style.display='none';empty.style.display='block';updateSubmitBtn();return;}
   wrap.style.display='block';empty.style.display='none';
   renderFilterBar();
+  renderDupBanner();
   var tbody=document.getElementById('batchBody');
   var shown = sortRowsForView(rows.filter(rowMatchesFilter));
   tbody.innerHTML=shown.map(function(row,i){
@@ -1459,8 +1503,7 @@ function renderTable() {
     var pickHtml;
     if (needDup) {
       var pv = row.already;
-      var whenTxt = pv.at ? new Date(pv.at).toLocaleDateString('th-TH',
-        { day: '2-digit', month: 'short', year: '2-digit' }) : 'ไม่ทราบวันที่';
+      var whenTxt = thaiWhen(pv.at, false);
       pickHtml = '<div class="dupwarn">เคยสแกนแล้ว</div>' +
         '<div class="dupinfo">' + esc(whenTxt) +
           (pv.by ? ' · ' + esc(pv.by) : '') +
@@ -1906,12 +1949,41 @@ function nextVerify() {
 }
 
 /** ใช้ค่าที่ระบบเสนอเมื่อเลขที่อ่านได้ใกล้เคียงกับรายการอ้างอิง */
+/**
+ * วันเวลาแบบไทย อ่านแล้วเข้าใจทันที
+ * withTime = true จะมีเวลาด้วย ใช้ในกล่องยืนยันที่ต้องการความแม่นยำ
+ * ในตารางไม่ต้องมีเวลา เพราะกินที่และไม่ได้ช่วยตัดสินใจ
+ *
+ * แสดง "วันนี้ / เมื่อวาน" เมื่อใกล้ ๆ เพราะคนเทียบวันที่เองช้ากว่า
+ * และเอกสารที่เพิ่งสแกนไปเมื่อวานคือกรณีที่ต้องระวังที่สุด
+ */
+function thaiWhen(v, withTime) {
+  if (!v) return 'ไม่ทราบวันที่';
+  var d = new Date(v);
+  if (isNaN(d.getTime())) return String(v);
+
+  var now = new Date();
+  var dayMs = 86400000;
+  var d0 = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  var n0 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  var diff = Math.round((n0 - d0) / dayMs);
+
+  var time = d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+  if (diff === 0) return 'วันนี้ ' + time + ' น.';
+  if (diff === 1) return 'เมื่อวาน ' + time + ' น.';
+  if (diff > 1 && diff <= 7) return diff + ' วันก่อน';
+
+  var date = d.toLocaleDateString('th-TH',
+    { day: 'numeric', month: 'short', year: '2-digit' });
+  return withTime ? date + ' ' + time + ' น.' : date;
+}
+
 /** คนยืนยันแล้วว่าจะทับไฟล์เดิม */
 function confirmOverwrite(id) {
   var row = rows.find(function (r) { return r.id === Number(id); });
   if (!row) return;
   var pv = row.already || {};
-  var when = pv.at ? new Date(pv.at).toLocaleString('th-TH') : 'ไม่ทราบวันที่';
+  var when = thaiWhen(pv.at, true);
   if (!confirm('เอกสาร ' + (row.editVals.refNo || row.barcode) + ' เคยสแกนแล้ว\n\n' +
       'เมื่อ ' + when + (pv.by ? '\nโดย ' + pv.by : '') + '\n\n' +
       'ถ้าบันทึกต่อ ไฟล์เดิมจะถูกย้ายลงถังขยะและใช้ไฟล์ใหม่แทน\n' +
@@ -1946,7 +2018,8 @@ function clearAll(){
   document.getElementById('tableWrap').style.display='none';
   document.getElementById('beforeRead').style.display='none';
   document.getElementById('filterBar').style.display='none';
-  _filter = 'all';
+  document.getElementById('dupBanner').style.display='none';
+  _filter = 'all'; _dupCheckError = ''; _dupChecked = 0;
   document.getElementById('rsum').style.display='none';
   document.getElementById('rprog').classList.remove('on');
 }
@@ -1986,6 +2059,92 @@ function updateSubmitBtn(){
     : (unread ? 'ยังไม่มีเลขที่เอกสาร' : 'บันทึก');
 }
 
+/* ============================================================
+   แสดงความคืบหน้าตอนบันทึก
+   ขั้นตอนบีบไฟล์กับอัปโหลดใช้เวลาเป็นนาทีเมื่อมีหลายรายการ
+   ถ้าไม่มีอะไรขยับ คนจะคิดว่าโปรแกรมค้างแล้วกดซ้ำหรือปิดหน้าไป
+   ============================================================ */
+var SAVE_STEPS = [
+  { key: 'prep',   label: 'เตรียมและบีบไฟล์' },
+  { key: 'upload', label: 'อัปโหลดไฟล์ขึ้น Drive' },
+  { key: 'save',   label: 'บันทึกข้อมูลลงตาราง' }
+];
+
+/* ประมาณเวลาที่เหลือจากความเร็วจริงที่วัดได้
+ *
+ * ไม่ใช้ค่าคงที่ตายตัว เพราะความเร็วต่างกันมากตามเครื่อง เน็ต และขนาดไฟล์
+ * ใช้ค่าเฉลี่ยเคลื่อนที่แทนค่าเฉลี่ยรวม เพราะช่วงแรกมักช้ากว่าปกติ
+ * (เบราว์เซอร์ยังอุ่นเครื่องอยู่) ถ้าใช้ค่าเฉลี่ยรวมจะประมาณสูงเกินจริงตลอด
+ */
+var _saveT0 = 0, _saveMarks = [];
+
+function saveShow(on) {
+  document.getElementById('saveOverlay').classList.toggle('show', !!on);
+  if (on) {
+    document.getElementById('saveBarFill').style.width = '0%';
+    document.getElementById('saveDetail').textContent = '';
+    document.getElementById('saveSub').textContent = '';
+    document.getElementById('saveEta').textContent = '';
+    _saveT0 = Date.now();
+    _saveMarks = [];
+  }
+}
+
+/** แปลงวินาทีเป็นข้อความที่คนอ่านแล้วตัดสินใจได้ทันที */
+function etaText(sec) {
+  if (sec < 10) return 'อีกไม่ถึง 10 วินาที';
+  if (sec < 60) return 'อีกประมาณ ' + (Math.ceil(sec / 10) * 10) + ' วินาที';
+  var m = Math.ceil(sec / 60);
+  return 'อีกประมาณ ' + m + ' นาที' + (m >= 3 ? ' — ไปทำอย่างอื่นก่อนได้' : '');
+}
+
+function saveEta(done, total) {
+  var el = document.getElementById('saveEta');
+  if (!el) return;
+  if (done <= 0 || done >= total) { el.textContent = ''; return; }
+
+  _saveMarks.push({ n: done, t: Date.now() });
+  if (_saveMarks.length > 6) _saveMarks.shift();
+  if (_saveMarks.length < 2) { el.textContent = 'กำลังคำนวณเวลาที่เหลือ'; return; }
+
+  var a = _saveMarks[0], b = _saveMarks[_saveMarks.length - 1];
+  var perItem = (b.t - a.t) / Math.max(1, b.n - a.n);
+  // เร็วจนวัดไม่ทัน ให้คงข้อความเดิมไว้ ไม่ปล่อยให้กะพริบหาย
+  if (!isFinite(perItem) || perItem <= 0) {
+    if (!el.textContent) el.textContent = 'กำลังคำนวณเวลาที่เหลือ';
+    return;
+  }
+
+  var sec = Math.round(perItem * (total - done) / 1000);
+  el.textContent = etaText(sec);
+}
+
+function saveStep(key, sub) {
+  var at = SAVE_STEPS.findIndex(function (s) { return s.key === key; });
+  document.getElementById('saveSteps').innerHTML = SAVE_STEPS.map(function (s, i) {
+    var cls = i < at ? 'done' : (i === at ? 'now' : '');
+    return '<div class="savestep ' + cls + '"><span class="dot">' +
+      (i < at ? '✓' : '') + '</span>' + esc(s.label) + '</div>';
+  }).join('');
+  document.getElementById('saveTitle').textContent =
+    (SAVE_STEPS[at] || {}).label || 'กำลังบันทึก...';
+  if (sub !== undefined) document.getElementById('saveSub').textContent = sub;
+
+  // ความเร็วของแต่ละขั้นต่างกันคนละเรื่อง
+  // บีบไฟล์ขึ้นกับซีพียู อัปโหลดขึ้นกับเน็ต
+  // ถ้าเอามาเฉลี่ยรวมกันจะประมาณผิดทั้งสองขั้น
+  _saveMarks = [];
+  document.getElementById('saveEta').textContent = '';
+}
+
+function saveProgress(done, total, sub) {
+  var pct = total ? Math.round(done / total * 100) : 0;
+  document.getElementById('saveBarFill').style.width = pct + '%';
+  document.getElementById('saveDetail').textContent = done + ' / ' + total + '  (' + pct + '%)';
+  if (sub !== undefined) document.getElementById('saveSub').textContent = sub;
+  saveEta(done, total);
+}
+
 async function submitBatch(){
   // หน้านี้ยืนยันแค่เลขที่เอกสาร ข้อมูลอื่นมาจากรายการอ้างอิงอัตโนมัติ
   // จึงต้องการแค่ barcode ที่ไม่ซ้ำและหาเจอในระบบ
@@ -2010,11 +2169,15 @@ async function submitBatch(){
     // ตอนนี้เหลือ 10 คำขอ และมี client_id กันไฟล์ซ้ำเมื่อ retry
     // บีบไฟล์ตรงนี้ ไม่ใช่ตอนอัปโหลดเข้ามา
     // เพราะตอนนั้นยังไม่รู้ว่าหน้าไหนเป็นสำเนาของกัน จะบีบเสียเปล่า
+    saveShow(true);
+    saveStep('prep');
+
     var uploadList = [];
     var buildFail = [];
     for (var ri = 0; ri < ready.length; ri++) {
       var r = ready[ri];
       btn.textContent = 'กำลังเตรียมไฟล์ ' + (ri + 1) + '/' + ready.length;
+      saveProgress(ri, ready.length, r.editVals.refNo || r.barcode || '—');
 
       var d = r.pdfPageData;
       try {
@@ -2084,6 +2247,8 @@ async function submitBatch(){
       return;
     }
 
+    saveProgress(ready.length, ready.length, 'เตรียมไฟล์ครบแล้ว');
+    saveStep('upload');
     btn.textContent = 'กำลังอัปโหลด...';
 
     var cs = DocScan.compressionSummary(ready);
@@ -2092,6 +2257,9 @@ async function submitBatch(){
     {
       var results = await DocScan.uploadBatch(API_URL, uploadList, {
         token: (DocScanAuth.load() || {}).token,
+        onProgress: function (d, t) {
+          saveProgress(d, t, 'อัปโหลดแล้ว ' + d + ' จาก ' + t + ' ไฟล์');
+        },
         onProgress: function (d, t) { btn.textContent = 'อัปโหลด ' + d + '/' + t + '...'; }
       });
       var failed = 0;
@@ -2144,16 +2312,27 @@ async function submitBatch(){
         photo_url    : row.photoUrl    || ''
       };
     });
+    saveStep('save', 'กำลังบันทึก ' + items.length + ' รายการ');
+    saveProgress(0, 1, 'รอเซิร์ฟเวอร์ตอบกลับ');
+
     var res=await apiPost({action:'updateItems',items:items});
     var data = res;
+    saveProgress(1, 1, 'บันทึกแล้ว');
+
     if(data.status==='ok'){
       var submittedIds=ready.map(function(r){return r.id;});
       rows=rows.filter(function(r){return submittedIds.indexOf(r.id)===-1;});
       renderTable();
       showToast('บันทึก '+ready.length+' รายการเรียบร้อย','success');
     } else { showToast(data.message||'Error','error'); }
-  }catch(err){ showToast('เกิดข้อผิดพลาด: '+err.message,'error'); }
-  updateSubmitBtn();
+  }catch(err){
+    showToast('เกิดข้อผิดพลาด: '+err.message,'error');
+  }finally{
+    // ปิดกล่องที่เดียว ครอบทุกทางออกรวมถึงตอนเกิดข้อผิดพลาด
+    // ถ้ากระจายไปปิดหลายที่ จะมีทางใดทางหนึ่งหลุดแล้วกล่องค้างจนต้องรีเฟรช
+    saveShow(false);
+    updateSubmitBtn();
+  }
 }
 
 // uploadPhoto เดิมถูกแทนด้วย DocScan.uploadBatch แล้ว
@@ -2354,6 +2533,7 @@ var _types = null, _readAbort = null, _lastPdfJs = null, _lastFileName = '';
    ถ้าไม่มีสำรองไว้ จะสร้างไฟล์ไม่ได้เลยและไม่รู้สาเหตุ */
 var _lastPdfBytes = null;
 var _refNeighbors = {};
+var _dupCheckError = '', _dupChecked = 0;
 window._refNeighbors = _refNeighbors;
 
 function initReader() {
@@ -2553,6 +2733,7 @@ async function applyReadResults(results, typeKey) {
      ถ้าไม่ตรวจ ระบบจะทับไฟล์เดิมเงียบ ๆ ตอนบันทึก
      ซึ่งอาจทับของที่สแกนชัดกว่าโดยไม่มีใครรู้ */
   var already = {};
+  _dupCheckError = '';
   try {
     rprog(0.98, 'กำลังตรวจว่าเคยสแกนไปแล้วหรือยัง');
     var chk = await apiPost({
@@ -2560,8 +2741,14 @@ async function applyReadResults(results, typeKey) {
       refs: docs.map(function (d) { return d.refNo || d.value; }).filter(Boolean)
     });
     already = (chk && chk.found) || {};
+    _dupChecked = (chk && chk.checked) || 0;
   } catch (err) {
-    showToast('ตรวจรายการซ้ำไม่สำเร็จ: ' + (err.message || err), 'error');
+    /* ล้มเหลวตรงนี้แปลว่าตัวกันข้อมูลหายถูกปิดอยู่
+       ถ้าแจ้งด้วย toast ที่หายไปในไม่กี่วินาที คนจะไม่ทันเห็น
+       แล้วบันทึกทับไฟล์เดิมโดยไม่รู้ว่าการตรวจไม่ได้ทำงาน
+       จึงต้องค้างไว้บนหน้าจอจนกว่าจะแก้ */
+    _dupCheckError = err.message || String(err);
+    _dupChecked = 0;
   }
   _refNeighbors = refs.neighbors || {};
   window._refNeighbors = _refNeighbors;
@@ -2970,6 +3157,18 @@ document.getElementById('dlgImg').addEventListener('click', function (e) {
 </div>
 
 <!-- PDF Split Progress Overlay -->
+<div class="split-overlay" id="saveOverlay">
+  <div class="split-box" style="max-width:460px">
+    <div class="split-title" id="saveTitle">กำลังบันทึก...</div>
+    <div class="split-sub" id="saveSub">—</div>
+    <div class="split-bar-wrap"><div class="split-bar-fill" id="saveBarFill" style="width:0%"></div></div>
+    <div class="split-detail" id="saveDetail">0 / 0</div>
+    <div class="saveeta" id="saveEta"></div>
+    <div class="savesteps" id="saveSteps"></div>
+    <div class="savenote">อย่าปิดหน้านี้จนกว่าจะเสร็จ</div>
+  </div>
+</div>
+
 <div class="split-overlay" id="splitOverlay">
   <div class="split-box">
     <div class="split-title">กำลังแยกหน้า PDF...</div>
