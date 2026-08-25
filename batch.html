@@ -600,7 +600,7 @@ window.dispatchEvent(new Event('docscan-ready'));
   <a class="back" href="home.html">← หน้าหลัก</a>
   <div class="tb-title">
     <div class="tb-name">นำเข้าเอกสาร</div>
-    <div class="tb-sub">สแกนเอกสารเข้าระบบ</div>
+    <div class="tb-sub">สแกนเอกสารเข้าระบบ · <span id="buildTag">—</span></div>
   </div>
   <div class="tb-user">
     <div id="sidebarName">—</div>
@@ -828,6 +828,7 @@ window.dispatchEvent(new Event('docscan-ready'));
 <!-- กล่องแจ้งปัญหาย้ายไปหน้ารับเอกสาร (receive.html) แล้ว -->
 
 <div class="submit-bar">
+  <button class="rbtn ghost" id="btnWhy" style="display:none">ทำไมบันทึกไม่ได้</button>
   <button class="clear-all-btn" onclick="clearAll()">ล้างทั้งหมด</button>
   <button class="submit-btn" id="submitBtn" onclick="submitBatch()" disabled>ยืนยัน 0 รายการ สู่ Google Sheet</button>
 </div>
@@ -907,6 +908,10 @@ window.onload = function () {
   
   loadCSV();
   loadSettings();
+  // บอกเวอร์ชันไฟล์ที่เบราว์เซอร์โหลดอยู่จริง
+  // เวลาแก้แล้วยังเจอปัญหาเดิม จะได้แยกออกว่าเป็นเพราะยังใช้ไฟล์เก่า
+  var bt = document.getElementById('buildTag');
+  if (bt) bt.textContent = 'build ' + BUILD_TAG;
 };
 
 var CSV_CACHE_KEY = 'docScanCSV';
@@ -965,6 +970,10 @@ function clearCSVCache() {
   try { localStorage.removeItem(CSV_CACHE_KEY); } catch (e) {}
   loadCSV();
   loadSettings();
+  // บอกเวอร์ชันไฟล์ที่เบราว์เซอร์โหลดอยู่จริง
+  // เวลาแก้แล้วยังเจอปัญหาเดิม จะได้แยกออกว่าเป็นเพราะยังใช้ไฟล์เก่า
+  var bt = document.getElementById('buildTag');
+  if (bt) bt.textContent = 'build ' + BUILD_TAG;
   showToast('ตรวจรายการอ้างอิงใหม่แล้ว', 'success');
 }
 
@@ -1438,11 +1447,7 @@ var FILTER_DEFS = [
   { key: 'checking', label: 'กำลังตรวจ',   cls: 'r', block: true,
     test: function (r) { return !!r.checking; } },
   { key: 'ink',    label: 'ลายเซ็น/ตรา',   cls: 'y',
-    test: function (r) {
-      if (!r.ink || r.ink.ok) return false;
-      var ov = r.inkOverride || {};
-      return (r.ink.missing || []).some(function (c) { return !ov[c.key]; });
-    } },
+    test: function (r) { return inkPending(r).length > 0; } },
   { key: 'noref',  label: 'ไม่พบในรายการ', cls: 'y',
     test: function (r) { return !!r.barcode && !r.doc; } },
   { key: 'sample', label: 'สุ่มตรวจ',      cls: 'r', block: true,
@@ -1675,9 +1680,8 @@ function renderTable() {
       ((row.candidates && row.candidates.length > 1) || !row.barcode));
     // แถวที่ยังมีอะไรให้ทำ ต้องเห็นได้จากการกวาดสายตา ไม่ใช่ต้องอ่านทีละช่อง
     var needDup = !!(row.already && !row.confirmedOverwrite);
-    var needInk = !!(row.ink && !row.ink.ok && (row.ink.missing || []).some(function (c) {
-      return !(row.inkOverride || {})[c.key];
-    }));
+    var inkLeft = inkPending(row);
+    var needInk = inkLeft.length > 0;
     var pickHtml;
     if (needDup) {
       var pv = row.already;
@@ -1733,7 +1737,7 @@ function renderTable() {
       /* ลายเซ็นหรือตราที่ระบบตรวจไม่พบ ต้องให้คนดูเอกสารก่อนตัดสิน
          ภาพในกรอบที่แสดงในตารางเล็กเกินกว่าจะบอกได้ว่าจางหรือไม่มีจริง */
       pickHtml = '<div class="needconfirm">ยืนยัน' +
-        row.ink.missing.map(function (c) { return esc(c.label); }).join('และ') +
+        inkLeft.map(function (c) { return esc(c.label); }).join('และ') +
         '</div>' +
         '<button class="fixbtn" style="background:var(--warn);color:#0f172a;margin-top:5px" ' +
         'onclick="openVerify(\'' + rid + '\',\'ink\')">ดูเอกสารแล้วยืนยัน</button>';
@@ -2112,7 +2116,7 @@ function inkHtml(row) {
       row.ink.checks.map(function (c) { return esc(c.label); }).join('และ') + '</div>';
   }
   return '<div class="why warn">⚠ ไม่พบ' +
-    row.ink.missing.map(function (c) { return esc(c.label); }).join('และ') +
+    inkPending(row).map(function (c) { return esc(c.label); }).join('และ') +
     ' — โปรดตรวจกับเอกสารตัวจริง</div>';
 }
 
@@ -2139,13 +2143,24 @@ function pendingRows() {
   });
 }
 
+/**
+ * ช่องหมึกที่ยังไม่ผ่านและยังไม่มีคนยืนยัน
+ *
+ * คำนวณจาก checks โดยตรง ไม่พึ่ง ink.missing
+ * เพราะถ้า missing หายไประหว่างทาง (r.ink.missing || []) จะเป็นอาร์เรย์ว่าง
+ * แล้วระบบจะเงียบทั้งที่ ok เป็น false — การตรวจหมึกจะไร้ผลโดยไม่มีใครรู้
+ *
+ * checks เป็นข้อมูลต้นทางที่ทุกช่องต้องมี จึงเชื่อถือได้กว่า
+ */
+function inkPending(row) {
+  if (!row || !row.ink || !row.ink.checks) return [];
+  var ov = row.inkOverride || {};
+  return row.ink.checks.filter(function (c) { return !c.pass && !ov[c.key]; });
+}
+
 /** แถวที่ระบบตรวจหมึกไม่พบ และยังไม่มีคนยืนยัน */
 function pendingInkRows() {
-  return rows.filter(function (r) {
-    if (!r.ink || r.ink.ok) return false;
-    var ov = r.inkOverride || {};
-    return (r.ink.missing || []).some(function (c) { return !ov[c.key]; });
-  });
+  return rows.filter(function (r) { return inkPending(r).length > 0; });
 }
 
 /** แถวที่ถูกสุ่มตรวจแต่ยังไม่มีใครยืนยันผล */
@@ -2372,11 +2387,7 @@ function chooseVerify(v) {
 function recomputeRow(row) {
   if (!row) return;
 
-  var inkLeft = (row.ink && !row.ink.ok)
-    ? (row.ink.missing || []).filter(function (c) {
-        return !(row.inkOverride || {})[c.key];
-      })
-    : [];
+  var inkLeft = inkPending(row);
 
   // เรียงตามความสำคัญ อันที่ต้องทำก่อนอยู่บนสุด
   if (!row.barcode) {
@@ -2620,7 +2631,7 @@ function blockingReasons() {
  * ใช้เมื่อปุ่มบันทึกกดไม่ได้แล้วหาสาเหตุไม่เจอ
  * เรียกจาก Console ด้วย whyBlocked()
  */
-function whyBlocked() {
+window.whyBlocked = function whyBlocked() {
   var blocks = blockingReasons();
   console.log('=== ทำไมบันทึกไม่ได้ ===');
   if (!blocks.length) console.log('ไม่มีอะไรบล็อก');
@@ -2639,6 +2650,7 @@ function whyBlocked() {
       sampled: !!r.sampled, sampleChecked: r.sampleChecked || '',
       already: !!r.already, confirmed: !!r.confirmedOverwrite,
       inkOk: r.ink ? r.ink.ok : null,
+      inkLeft: inkPending(r).map(function (c) { return c.key; }).join(',') || '-',
       inFilter: FILTER_DEFS.filter(function (d) {
         return d.key !== 'all' && d.test(r);
       }).map(function (d) { return d.key; }).join(',') || '(ไม่อยู่หมวดใด)',
@@ -2646,13 +2658,16 @@ function whyBlocked() {
     };
   }));
   return blocks.length + ' เรื่องที่ติด';
-}
+};
 
 function updateSubmitBtn(){
   var btn = document.getElementById('submitBtn');
   if (!btn) return;
 
+  var why = document.getElementById('btnWhy');
   var blocks = blockingReasons();
+  if (why) why.style.display = blocks.length ? '' : 'none';
+
   if (blocks.length) {
     var b = blocks[0];
     btn.disabled = true;
@@ -3153,6 +3168,7 @@ function showToast(msg,type){var t=document.getElementById('toast');t.textConten
    อ่านเอกสารอัตโนมัติ
    บาร์โค้ดก่อน ถ้าไม่ได้ค่อย OCR แล้วเทียบกับรายการอ้างอิง
    ============================================================ */
+var BUILD_TAG = '2.14.0-b12';
 var _types = null, _readAbort = null, _lastPdfJs = null, _lastFileName = '';
 /* เก็บไบต์ต้นฉบับไว้ด้วย
    pdf.js อาจถูกปิดหรือใช้ไม่ได้เมื่อถึงตอนบันทึก
@@ -3434,7 +3450,8 @@ async function applyReadResults(results, typeKey) {
     if (d.ink && !d.ink.ok && cls.tier === 'green') {
       cls = { tier: 'yellow', reason: 'ink_missing',
               head: 'เลขที่ถูกต้อง แต่ไม่พบ' +
-                    d.ink.missing.map(function (c) { return c.label; }).join('และ') };
+                    (d.ink.checks || []).filter(function (c) { return !c.pass; })
+                      .map(function (c) { return c.label; }).join('และ') };
     }
     var sampled = cls.tier === 'green' &&
                   DocScan.Reader.sampleFlag(d.value || ('p' + d.pages[0].page), pct);
@@ -3615,6 +3632,27 @@ document.getElementById('imgClose').addEventListener('click', function () {
 document.getElementById('dlgImg').addEventListener('click', function (e) {
   // กดนอกภาพเพื่อปิด เหมือนกล่องดูรูปทั่วไป
   if (e.target === this) this.close();
+});
+
+/* ปุ่มบอกสาเหตุในหน้า
+   ไม่ใช่ทุกคนเปิด Console เป็น และการให้พิมพ์คำสั่งเพื่อดูว่าติดอะไร
+   ไม่ใช่สิ่งที่ควรขอจากคนหน้างาน */
+document.getElementById('btnWhy').addEventListener('click', function () {
+  var blocks = blockingReasons();
+  if (!blocks.length) { showToast('ไม่มีอะไรบล็อกแล้ว ลองกดบันทึกอีกครั้ง', 'success'); return; }
+
+  var lines = blocks.map(function (b) {
+    var refs = b.rows.slice(0, 5).map(function (r) {
+      return '   · ' + (r.editVals.refNo || r.barcode || 'แถว ' + r.id) +
+             (r.why ? '  (' + r.why + ')' : '');
+    }).join('\n');
+    return b.label + ' ' + b.count + ' รายการ\n   ' + b.detail + '\n' + refs +
+           (b.rows.length > 5 ? '\n   · และอีก ' + (b.rows.length - 5) : '');
+  }).join('\n\n');
+
+  alert('ยังบันทึกไม่ได้เพราะ\n\n' + lines +
+        '\n\nกดที่ชื่อเหตุผลในแถบด้านบน เพื่อกรองไปดูรายการนั้นได้');
+  console.log(whyBlocked());
 });
 
 document.getElementById('btnSaveSettings').addEventListener('click', async function () {
