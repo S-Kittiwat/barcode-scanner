@@ -191,7 +191,11 @@ main{width:100%;max-width:100%;padding:20px 24px 100px;}
 .site-confirm-btn{width:100%;background:var(--accent);border:none;color:#0f172a;border-radius:var(--rs);padding:12px;font-family:var(--font);font-size:15px;font-weight:600;cursor:pointer;}
 .site-confirm-btn:disabled{opacity:0.35;cursor:not-allowed;}
 .site-badge{background:rgba(56,189,248,0.12);border:1px solid rgba(56,189,248,0.3);color:var(--accent);font-size:12px;padding:3px 10px;border-radius:6px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px;}
-.submit-bar{position:fixed;bottom:0;left:var(--sidebar);right:0;background:var(--surface);border-top:1px solid var(--border);padding:12px 24px;display:flex;gap:12px;align-items:center;}
+/* เว้นที่ขวามือให้ปุ่มเมนูลอย ไม่งั้นมันทับปุ่มบันทึกพอดี
+   ปุ่มเมนูอยู่ที่ right:18px กว้าง 52px จึงต้องเว้นราว 88px */
+.submit-bar{position:fixed;bottom:0;left:var(--sidebar);right:0;background:var(--surface);
+  border-top:1px solid var(--border);padding:12px 88px 12px 24px;display:flex;gap:12px;
+  align-items:center;z-index:120;}
 .submit-btn{flex:1;background:var(--success);border:none;color:#0f172a;border-radius:var(--rs);padding:11px;font-family:var(--font);font-size:14px;font-weight:600;cursor:pointer;max-width:480px;}
 .submit-btn:disabled{opacity:0.35;cursor:not-allowed;}
 .clear-all-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:var(--rs);padding:11px 20px;font-family:var(--font);font-size:13px;cursor:pointer;}
@@ -411,6 +415,8 @@ td.ro .acc{font-family:var(--mono);font-size:11.5px;color:var(--muted);margin-to
 .fbtn.y.on{background:var(--warn);border-color:var(--warn);color:#0f172a}
 .fbtn b{font-family:var(--mono);margin-left:5px}
 .fnote{margin-left:auto;font-size:12px;color:var(--muted)}
+.blocklink{color:var(--danger);text-decoration:underline;cursor:pointer}
+.blocklink:hover{color:var(--warn)}
 .empty2{color:var(--muted);font-size:13px;padding:26px;text-align:center;line-height:1.9}
 .empty2 b{color:var(--text);display:block;font-size:15px;margin-bottom:6px}
 .readrow{display:flex;align-items:center;gap:12px;flex-wrap:wrap;
@@ -1035,18 +1041,8 @@ async function lookupOne(id, value) {
       }
     }
 
-    var doc = row.doc;
-    if (row.already) {
-      row.tier = 'yellow';
-      row.why = 'คนเลือกเอง · เคยสแกนแล้ว';
-    } else if (doc) {
-      row.tier = 'yellow';
-      row.why = 'คนเลือกเอง';
-    } else {
-      row.tier = 'red';
-      row.why = 'ไม่พบเลขนี้ในรายการอ้างอิง';
-    }
     row.crossMismatch = false;
+    recomputeRow(row);
     renderTable();
   }
 }
@@ -1461,8 +1457,12 @@ var FILTER_DEFS = [
 ];
 
 var _filter = 'all';
+/* รายการที่กำลังโฟกัสจากการกดที่เหตุผลด้านล่าง
+   ใช้ตัวกรองชั่วคราวเพื่อพาไปดูแถวที่ติดโดยตรง */
+var _blockFocus = [];
 
 function rowMatchesFilter(r) {
+  if (_filter === 'block') return _blockFocus.indexOf(r.id) >= 0;
   var def = FILTER_DEFS.filter(function (d) { return d.key === _filter; })[0];
   return def ? def.test(r) : true;
 }
@@ -1517,8 +1517,14 @@ function renderFilterBar() {
     counts[d.key] = rows.filter(d.test).length;
   });
 
-  // ตัวกรองที่เลือกอยู่ว่างเปล่า ให้กลับไปทั้งหมด ไม่ปล่อยให้จอโล่ง
-  if (_filter !== 'all' && !counts[_filter]) _filter = 'all';
+  /* ตัวกรองที่เลือกอยู่ว่างเปล่า ให้กลับไปทั้งหมด ไม่ปล่อยให้จอโล่ง
+     ยกเว้นโหมด block ซึ่งเป็นตัวกรองชั่วคราวจากการกดที่เหตุผล
+     ไม่มีในรายการปุ่ม จึงไม่มี counts และจะถูกรีเซ็ตทิ้งถ้าไม่ยกเว้น */
+  if (_filter === 'block') {
+    if (!_blockFocus.length) _filter = 'all';
+  } else if (_filter !== 'all' && !counts[_filter]) {
+    _filter = 'all';
+  }
 
   var html = FILTER_DEFS.map(function (d) {
     // ซ่อนปุ่มที่ไม่มีรายการ เพื่อไม่ให้แถบรกด้วยตัวเลือกที่กดไปก็ว่าง
@@ -1548,14 +1554,28 @@ function renderFilterBar() {
       : '') +
     '<span class="fnote">' +
       (blocks.length
-        ? 'ยังบันทึกไม่ได้ — ' + blocks.map(function (b) {
-            return b.label + ' ' + b.count;
+        ? 'ยังบันทึกไม่ได้ — ' + blocks.map(function (b, bi) {
+            // กดแล้วกระโดดไปดูแถวนั้นเลย ไม่ต้องไล่หาเองว่าอยู่ตรงไหน
+            return '<a href="#" class="blocklink" data-b="' + bi + '">' +
+                   esc(b.label) + ' ' + b.count + '</a>';
           }).join(' · ')
         : 'เคลียร์ครบแล้ว พร้อมบันทึก') + '</span>';
+
+  bar.querySelectorAll('[data-b]').forEach(function (el) {
+    el.addEventListener('click', function (e) {
+      e.preventDefault();
+      var b = blockingReasons()[Number(el.dataset.b)];
+      if (!b) return;
+      _blockFocus = b.rows.map(function (r) { return r.id; });
+      _filter = 'block';
+      renderTable();
+    });
+  });
 
   bar.querySelectorAll('[data-f]').forEach(function (el) {
     el.addEventListener('click', function () {
       _filter = el.dataset.f;
+      _blockFocus = [];
       renderTable();
     });
   });
@@ -2033,12 +2053,7 @@ function setSample(id, val) {
   var row = rows.find(function (r) { return r.id === Number(id); });
   if (!row) return;
   row.sampleChecked = (row.sampleChecked === val) ? '' : val;
-  if (row.sampleChecked === 'fix') {
-    row.tier = 'red';
-    row.why = 'สุ่มตรวจพบว่าไม่ตรง';
-  } else if (row.sampleChecked === 'ok') {
-    row.why = 'สุ่มตรวจแล้ว ถูกต้อง';
-  }
+  recomputeRow(row);
   renderTable();
 }
 
@@ -2049,6 +2064,7 @@ function setInkOverride(id, key, val) {
   row.inkOverride = row.inkOverride || {};
   // กดซ้ำที่ปุ่มเดิม = ยกเลิกการยืนยัน
   row.inkOverride[key] = (row.inkOverride[key] === val) ? '' : val;
+  recomputeRow(row);
   renderTable();
 }
 
@@ -2317,10 +2333,51 @@ function chooseVerify(v) {
   var wasEmpty = !row.barcode;
   row.resolved = true;
   applySuggestion(row.id, v);
-  // แยกข้อความให้ตรงกับสิ่งที่คนทำจริง จะได้ตรวจสอบย้อนหลังได้ถูก
-  row.why = wasEmpty ? 'คนกรอกเอง (ระบบอ่านไม่ได้)' : 'คนเลือกค่านี้เอง';
   showToast((wasEmpty ? 'กรอก ' : 'เลือก ') + v + ' แล้ว', 'success');
   nextVerify();
+}
+
+/* ============================================================
+   คำนวณสถานะของแถวใหม่จากค่าปัจจุบัน
+   ============================================================
+   เดิมตั้ง tier และ why ตอนอ่านเสร็จครั้งเดียว แล้วแก้ทีละจุดเมื่อคนกดอะไร
+   ผลคือข้อความค้างอยู่กับเหตุผลเก่า เช่นยืนยันลายเซ็นไปแล้ว
+   แต่ยังขึ้นว่าไม่พบตราประทับ เพราะไม่มีใครไปล้างข้อความเดิม
+
+   ตรงนี้คำนวณใหม่ทั้งหมดจากสิ่งที่เป็นจริงตอนนี้
+   ทุกครั้งที่คนกดอะไร ให้เรียกตัวนี้แทนการแก้ทีละฟิลด์
+   ============================================================ */
+function recomputeRow(row) {
+  if (!row) return;
+
+  var inkLeft = (row.ink && !row.ink.ok)
+    ? (row.ink.missing || []).filter(function (c) {
+        return !(row.inkOverride || {})[c.key];
+      })
+    : [];
+
+  // เรียงตามความสำคัญ อันที่ต้องทำก่อนอยู่บนสุด
+  if (!row.barcode) {
+    row.tier = 'red'; row.why = 'ระบบอ่านไม่ได้ ต้องกรอกเอง';
+  } else if (row.candidates && row.candidates.length > 1 && !row.resolved) {
+    row.tier = 'red'; row.why = row.crossMismatch ? 'บาร์โค้ดกับ OCR ไม่ตรงกัน' : 'ต้องเลือกเลข';
+  } else if (row.sampleChecked === 'fix') {
+    row.tier = 'red'; row.why = 'สุ่มตรวจพบว่าไม่ตรง';
+  } else if (!row.doc) {
+    row.tier = 'red'; row.why = 'ไม่พบในรายการอ้างอิง';
+  } else if (row.already && !row.confirmedOverwrite) {
+    row.tier = 'yellow'; row.why = 'เคยสแกนแล้ว';
+  } else if (row.sampled && !row.sampleChecked) {
+    row.tier = 'yellow'; row.why = 'ถูกสุ่มตรวจ';
+  } else if (inkLeft.length) {
+    row.tier = 'yellow';
+    row.why = 'ไม่พบ' + inkLeft.map(function (c) { return c.label; }).join('และ');
+  } else if (row.resolved) {
+    row.tier = 'yellow'; row.why = 'คนเลือกเอง · เลขถูกต้อง';
+  } else {
+    row.tier = 'green';
+    row.why = row.crossVerified ? 'บาร์โค้ดกับ OCR ตรงกัน' : 'ตรงกับรายการอ้างอิง';
+  }
 }
 
 /**
@@ -2400,7 +2457,7 @@ function confirmOverwrite(id) {
       'ถ้าบันทึกต่อ ไฟล์เดิมจะถูกย้ายลงถังขยะและใช้ไฟล์ใหม่แทน\n' +
       'กู้คืนได้ภายใน 30 วัน\n\nยืนยันทับของเดิมไหม')) return;
   row.confirmedOverwrite = true;
-  row.why = 'ยืนยันทับของเดิมแล้ว';
+  recomputeRow(row);
   renderTable();
 }
 
@@ -2410,10 +2467,9 @@ function applySuggestion(id, value) {
   row.barcode = value;
   // คนตัดสินแล้ว ต้องปลดล็อกปุ่มบันทึก
   row.resolved = true;
-  row.tier = 'yellow';
-  row.why = 'คนเลือกค่านี้เอง';
   row.suggestion = '';
   row.editVals.refNo = value;
+  recomputeRow(row);
   // ผลสุ่มตรวจเดิมเป็นของเลขเก่า ใช้กับเลขใหม่ไม่ได้
   if (row.sampleChecked === 'fix') row.sampleChecked = '';
 
@@ -2431,20 +2487,23 @@ function applySuggestion(id, value) {
   var clear = function (why) {
     if (done) return;
     done = true;
+    // อ่านเวลาก่อนล้าง ไม่งั้น log จะขึ้น 0 วินาทีเสมอ
+    var took = Math.round((Date.now() - (row.checkingSince || Date.now())) / 100) / 10;
     row.checking = false;
     row.checkingSince = 0;
     console.log('[DocScan] จบตรวจ ' + (row.editVals.refNo || row.barcode || row.id) +
-      ' ใน ' + Math.round((Date.now() - (row.checkingSince || Date.now())) / 100) / 10 + ' วิ' +
-      (why ? ' — ' + why : ''));
+      ' ใน ' + took + ' วิ' + (why ? ' — ' + why : ''));
     renderTable();
   };
 
-  // กันค้าง ถ้าเกิน 30 วินาทีถือว่าไม่สำเร็จ ปล่อยให้คนทำงานต่อได้
+  /* ต้องรอนานกว่า timeout ของคำขอ (30 วินาที)
+     ไม่งั้นตัวกันค้างจะตัดก่อนที่คำขอจะได้ตอบกลับ
+     แล้วเราจะไม่มีวันรู้ว่าคำขอสำเร็จหรือไม่ */
   var timer = setTimeout(function () {
-    clear('หมดเวลารอ 30 วินาที');
+    clear('หมดเวลารอ 45 วินาที');
     showToast('ตรวจ ' + (row.editVals.refNo || row.barcode) +
               ' ไม่สำเร็จ — ตรวจสอบข้อมูลอ้างอิงด้วยตัวเองก่อนบันทึก', 'error');
-  }, 30000);
+  }, 45000);
 
   lookupOne(row.id, value)
     .then(function () { clearTimeout(timer); clear(); })
@@ -3370,6 +3429,7 @@ async function applyReadResults(results, typeKey) {
       first.confirmedOverwrite = false;
       if (first.tier === 'green') first.tier = 'yellow';
     }
+    first.crossVerified = (cls.reason === 'cross_verified');
     first.candidateNotes = cls.candidateNotes || [];
     first.candidates = (cls.candidates && cls.candidates.length)
       ? cls.candidates
