@@ -116,10 +116,27 @@ export async function apiFetch(url, payload, opts = {}) {
  * แบ่งเป็นก้อนเล็กเพราะ GAS มีเพดานเวลารันต่อครั้ง ยัดมากเกินไปจะ timeout ทั้งก้อน
  * คืนผลรายรายการเสมอ ไม่สรุปรวมว่าสำเร็จทั้งหมด
  */
+/**
+ * อัปโหลดไฟล์เป็นชุด
+ *
+ * ต้องส่ง opts.token มาด้วยเสมอ
+ * เดิมเรียก apiFetch ตรง ๆ โดยไม่มี token ทำให้เซิร์ฟเวอร์ปฏิเสธทุกคำขอ
+ * ด้วยข้อความว่าเซสชันหมดอายุ ทั้งที่ผู้ใช้ยังล็อกอินอยู่
+ * ผลคือข้อมูลลง Sheet ได้ (เพราะเส้นทางนั้นใช้ authFetch) แต่ไฟล์ไม่เคยขึ้นเลย
+ */
 export async function uploadBatch(url, files, opts = {}) {
   const o = { ...DEFAULTS, ...opts };
   const out = new Map();
   let done = 0;
+
+  if (!o.token) {
+    // ล้มเร็วดีกว่าปล่อยให้ทุกคำขอถูกปฏิเสธทีละอัน
+    for (const f of files) {
+      out.set(f.client_id, { ok: false, url: '',
+        message: 'ไม่ได้ส่ง token มาด้วย — เรียก uploadBatch ผิดวิธี' });
+    }
+    return out;
+  }
 
   /* แบ่งชุดตามขนาดจริง ไม่ใช่จำนวนไฟล์
    *
@@ -147,6 +164,7 @@ export async function uploadBatch(url, files, opts = {}) {
     try {
       const res = await apiFetch(url, {
         action: 'uploadPhotos',
+        token: o.token,
         files: chunk.map(f => ({
           client_id: f.client_id,
           barcode: f.barcode,
@@ -182,6 +200,7 @@ export async function uploadBatch(url, files, opts = {}) {
       try {
         const res = await apiFetch(url, {
           action: 'uploadPhotos',
+          token: o.token,
           files: [{ client_id: f.client_id, barcode: f.barcode,
                     ref_no: f.ref_no || f.barcode, period: f.period, image: f.image }]
         }, { ...o, timeoutMs: o.uploadTimeoutMs });
