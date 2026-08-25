@@ -1428,12 +1428,15 @@ var FILTER_DEFS = [
     } },
   { key: 'noref',  label: 'ไม่พบในรายการ', cls: 'y',
     test: function (r) { return !!r.barcode && !r.doc; } },
-  { key: 'sample', label: 'สุ่มตรวจ',      cls: 'y',
-    test: function (r) { return !!r.sampled; } },
+  { key: 'sample', label: 'สุ่มตรวจ',      cls: 'r', block: true,
+    test: function (r) {
+      return !!(r.sampled && (!r.sampleChecked || r.sampleChecked === 'fix'));
+    } },
 
   { key: 'done',   label: 'ผ่านแล้ว',      cls: '',
     test: function (r) {
-      return r.tier === 'green' && !r.sampled && !(r.already && !r.confirmedOverwrite);
+      return r.tier === 'green' && (!r.sampled || r.sampleChecked === 'ok') &&
+             !(r.already && !r.confirmedOverwrite);
     } }
 ];
 
@@ -1632,7 +1635,23 @@ function renderTable() {
         'onclick="openVerify(\'' + rid + '\')">ดูเอกสารแล้วกรอกเอง</button>';
     } else if (row.tier === 'red') {
       pickHtml = '<div class="needdo">ต้องตรวจกับเอกสาร</div>';
-    } else if (row.tier === 'yellow' || row.sampled) {
+    } else if (row.sampled && !row.sampleChecked) {
+      /* สุ่มตรวจต้องมีการยืนยันจริงและเก็บผลไว้
+         ถ้าข้ามได้และไม่ทิ้งร่องรอย ก็ไม่ใช่การตรวจ
+         เป็นแค่ป้ายที่ทุกคนเรียนรู้ที่จะมองข้าม */
+      pickHtml = '<div class="needconfirm">สุ่มตรวจ — เทียบกับเอกสาร</div>' +
+        '<div class="inkact" style="margin-top:6px">' +
+        '<button class="inkbtn" onclick="setSample(' + rid + ',\'ok\')">ถูกต้อง</button>' +
+        '<button class="inkbtn" onclick="setSample(' + rid + ',\'fix\')">ต้องแก้</button>' +
+        '</div>';
+    } else if (row.sampled && row.sampleChecked) {
+      pickHtml = '<div class="' + (row.sampleChecked === 'ok' ? 'inkyes' : 'inkno') + '">' +
+        (row.sampleChecked === 'ok' ? 'สุ่มตรวจแล้ว ถูกต้อง' : 'สุ่มตรวจแล้ว ต้องแก้') +
+        '</div>' +
+        '<button class="fixbtn" style="background:transparent;border:1px solid var(--border);' +
+        'color:var(--muted);margin-top:5px" onclick="setSample(' + rid + ',\'\')">' +
+        'ยกเลิกผลตรวจ</button>';
+    } else if (row.tier === 'yellow') {
       pickHtml = '<div class="needconfirm">ยืนยันกับเอกสาร</div>';
     } else {
       pickHtml = '<div class="needok">—</div>';
@@ -1953,6 +1972,24 @@ function inkVal(row, key) {
   return (c.pass ? 'pass' : 'fail') + '|' + c.value + '|' + c.min + '|' + ov;
 }
 
+/**
+ * บันทึกผลการสุ่มตรวจ
+ * ok  = เทียบกับเอกสารแล้วถูกต้อง
+ * fix = พบว่าไม่ตรง ต้องแก้ก่อนบันทึก
+ */
+function setSample(id, val) {
+  var row = rows.find(function (r) { return r.id === Number(id); });
+  if (!row) return;
+  row.sampleChecked = (row.sampleChecked === val) ? '' : val;
+  if (row.sampleChecked === 'fix') {
+    row.tier = 'red';
+    row.why = 'สุ่มตรวจแล้วพบว่าไม่ตรง — ต้องแก้เลขให้ถูก';
+  } else if (row.sampleChecked === 'ok') {
+    row.why = 'สุ่มตรวจแล้ว ถูกต้อง';
+  }
+  renderTable();
+}
+
 /** บันทึกสิ่งที่คนยืนยัน */
 function setInkOverride(id, key, val) {
   var row = rows.find(function (r) { return r.id === Number(id); });
@@ -2005,6 +2042,11 @@ function pendingRows() {
     if (!r.barcode) return true;
     return false;
   });
+}
+
+/** แถวที่ถูกสุ่มตรวจแต่ยังไม่มีใครยืนยันผล */
+function uncheckedSamples() {
+  return rows.filter(function (r) { return r.sampled && !r.sampleChecked; });
 }
 
 async function openVerify(id) {
@@ -2189,6 +2231,8 @@ function applySuggestion(id, value) {
   row.why = 'คนเลือกค่านี้เอง';
   row.suggestion = '';
   row.editVals.refNo = value;
+  // ผลสุ่มตรวจเดิมเป็นของเลขเก่า ใช้กับเลขใหม่ไม่ได้
+  if (row.sampleChecked === 'fix') row.sampleChecked = '';
 
   /* ทำเครื่องหมายว่ากำลังตรวจอยู่
      lookupOne ทำงานแบบไม่รอผล ระหว่างนั้นยังไม่รู้ว่าเลขใหม่เคยสแกนหรือยัง
@@ -2266,6 +2310,24 @@ function updateSubmitBtn(){
   if (dup.length) {
     btn.disabled = true;
     btn.textContent = 'มีเอกสารที่เคยสแกนแล้ว ' + dup.length + ' รายการ';
+    return;
+  }
+
+  // สุ่มตรวจต้องมีผลทุกใบ ไม่งั้นการสุ่มไม่มีความหมาย
+  var smp = uncheckedSamples();
+  if (smp.length) {
+    btn.disabled = true;
+    btn.textContent = 'ยังไม่ได้สุ่มตรวจ ' + smp.length + ' รายการ';
+    return;
+  }
+
+  /* สุ่มตรวจแล้วพบว่าผิด แปลว่าเลขที่จะบันทึกยังไม่ถูก
+     ต้องแก้เลขให้ถูกก่อน แล้วค่อยกดว่าถูกต้อง
+     ถ้าปล่อยให้บันทึกได้ ก็เท่ากับรู้ว่าผิดแล้วยังบันทึกลงไป */
+  var bad = rows.filter(function (r) { return r.sampleChecked === 'fix'; });
+  if (bad.length) {
+    btn.disabled = true;
+    btn.textContent = 'สุ่มตรวจพบไม่ตรง ' + bad.length + ' รายการ — แก้เลขก่อน';
     return;
   }
 
@@ -2517,6 +2579,7 @@ async function submitBatch(){
         /* ผลตรวจหมึกและสิ่งที่คนยืนยัน
            เก็บค่าที่วัดได้ด้วย เพื่อให้ย้อนกลับมาจูนเกณฑ์ได้ภายหลัง
            ถ้าเก็บแค่ผ่าน/ไม่ผ่าน จะรู้ว่าผิดแต่ไม่รู้ว่าควรปรับเท่าไหร่ */
+        sample_result: row.sampled ? (row.sampleChecked || 'unchecked') : '',
         ink_signature: inkVal(row, 'signature'),
         ink_stamp: inkVal(row, 'stamp'),
         barcode      : row.barcode,
