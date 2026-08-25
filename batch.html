@@ -476,6 +476,9 @@ dialog[open]{
 /* ปุ่มเลือกในหน้าตรวจ
    ตัวที่ยังไม่ถูกเลือกต้องอ่านออกชัดเจนพอ ๆ กับตัวที่เลือกแล้ว
    ไม่งั้นคนจะมองไม่เห็นตัวเลือกที่มี แล้วกดตัวที่สว่างกว่าโดยไม่ได้ตั้งใจ */
+.vf-bignum{font-family:var(--mono);font-size:26px;font-weight:700;letter-spacing:.08em;
+  color:var(--text);background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--rs);padding:12px;text-align:center}
 .vf-inkblk{border:1px solid var(--border);border-radius:var(--rs);padding:12px;margin-bottom:10px}
 .vf-inkimg{display:block;max-width:100%;max-height:110px;margin:6px 0;border:1px solid var(--border);
   border-radius:4px;background:#fff;cursor:zoom-in}
@@ -908,6 +911,13 @@ window.onload = function () {
   
   loadCSV();
   loadSettings();
+
+  /* คำนวณสถานะปุ่มใหม่เป็นระยะ
+     เป็นตาข่ายรองรับกรณีที่มีเส้นทางไหนเปลี่ยนข้อมูลแล้วลืมเรียก
+     ราคาถูกมากเพราะเป็นการอ่านค่าในหน่วยความจำล้วน ๆ */
+  setInterval(function () {
+    if (rows.length) updateSubmitBtn();
+  }, 2000);
   // บอกเวอร์ชันไฟล์ที่เบราว์เซอร์โหลดอยู่จริง
   // เวลาแก้แล้วยังเจอปัญหาเดิม จะได้แยกออกว่าเป็นเพราะยังใช้ไฟล์เก่า
   var bt = document.getElementById('buildTag');
@@ -970,6 +980,13 @@ function clearCSVCache() {
   try { localStorage.removeItem(CSV_CACHE_KEY); } catch (e) {}
   loadCSV();
   loadSettings();
+
+  /* คำนวณสถานะปุ่มใหม่เป็นระยะ
+     เป็นตาข่ายรองรับกรณีที่มีเส้นทางไหนเปลี่ยนข้อมูลแล้วลืมเรียก
+     ราคาถูกมากเพราะเป็นการอ่านค่าในหน่วยความจำล้วน ๆ */
+  setInterval(function () {
+    if (rows.length) updateSubmitBtn();
+  }, 2000);
   // บอกเวอร์ชันไฟล์ที่เบราว์เซอร์โหลดอยู่จริง
   // เวลาแก้แล้วยังเจอปัญหาเดิม จะได้แยกออกว่าเป็นเพราะยังใช้ไฟล์เก่า
   var bt = document.getElementById('buildTag');
@@ -1573,6 +1590,12 @@ function renderFilterBar() {
       ? '<button class="fixbtn" style="width:auto;padding:6px 16px" ' +
         'onclick="cancelChecking()">ยกเลิกการตรวจที่ค้าง (' + counts.checking + ')</button>'
       : '') +
+    (counts.sample
+      ? '<button class="fixbtn" style="width:auto;padding:6px 16px;' +
+        'background:var(--warn);color:#0f172a" ' +
+        'onclick="openVerify(undefined,\'sample\')">สุ่มตรวจทีละใบ (' +
+        counts.sample + ')</button>'
+      : '') +
     (counts.ink
       ? '<button class="fixbtn" style="width:auto;padding:6px 16px;' +
         'background:var(--warn);color:#0f172a" ' +
@@ -1721,18 +1744,16 @@ function renderTable() {
       /* สุ่มตรวจต้องมีการยืนยันจริงและเก็บผลไว้
          ถ้าข้ามได้และไม่ทิ้งร่องรอย ก็ไม่ใช่การตรวจ
          เป็นแค่ป้ายที่ทุกคนเรียนรู้ที่จะมองข้าม */
-      pickHtml = '<div class="needconfirm">สุ่มตรวจ — เทียบกับเอกสาร</div>' +
-        '<div class="inkact" style="margin-top:6px">' +
-        '<button class="inkbtn" onclick="setSample(' + rid + ',\'ok\')">ถูกต้อง</button>' +
-        '<button class="inkbtn" onclick="setSample(' + rid + ',\'fix\')">ต้องแก้</button>' +
-        '</div>';
+      pickHtml = '<div class="needconfirm">ถูกสุ่มตรวจ</div>' +
+        '<button class="fixbtn" style="background:var(--warn);color:#0f172a;margin-top:5px" ' +
+        'onclick="openVerify(\'' + rid + '\',\'sample\')">ดูเอกสารแล้วเทียบ</button>';
     } else if (row.sampled && row.sampleChecked) {
       pickHtml = '<div class="' + (row.sampleChecked === 'ok' ? 'inkyes' : 'inkno') + '">' +
         (row.sampleChecked === 'ok' ? 'สุ่มตรวจแล้ว ถูกต้อง' : 'สุ่มตรวจแล้ว ต้องแก้') +
         '</div>' +
         '<button class="fixbtn" style="background:transparent;border:1px solid var(--border);' +
-        'color:var(--muted);margin-top:5px" onclick="setSample(' + rid + ',\'\')">' +
-        'ยกเลิกผลตรวจ</button>';
+        'color:var(--muted);margin-top:5px" onclick="openVerify(\'' + rid + '\',\'sample\')">' +
+        'เปิดดูอีกครั้ง</button>';
     } else if (needInk) {
       /* ลายเซ็นหรือตราที่ระบบตรวจไม่พบ ต้องให้คนดูเอกสารก่อนตัดสิน
          ภาพในกรอบที่แสดงในตารางเล็กเกินกว่าจะบอกได้ว่าจางหรือไม่มีจริง */
@@ -2171,6 +2192,16 @@ function uncheckedSamples() {
 async function openVerify(id, mode) {
   _vfMode = mode || 'choice';
 
+  if (_vfMode === 'sample') {
+    _vfList = id === undefined ? uncheckedSamples()
+      : rows.filter(function (r) { return r.id === Number(id); });
+    if (!_vfList.length) { showToast('ไม่มีรายการที่ต้องสุ่มตรวจ', 'success'); return; }
+    _vfPos = 0;
+    document.getElementById('dlgVerify').showModal();
+    await drawVerify();
+    return;
+  }
+
   // โหมดดูอย่างเดียว เปิดเฉพาะใบที่กด ไม่ต้องไล่ทั้งชุด
   if (_vfMode === 'view') {
     var one = rows.find(function (r) { return r.id === Number(id); });
@@ -2199,7 +2230,8 @@ async function drawVerify() {
 
   var noRead = !(row.candidates && row.candidates.length > 1);
   document.getElementById('vfTitle').textContent =
-    _vfMode === 'ink' ? 'ตรวจลายเซ็นและตราประทับ'
+    _vfMode === 'sample' ? 'สุ่มตรวจ — เทียบเลขกับเอกสาร'
+    : _vfMode === 'ink' ? 'ตรวจลายเซ็นและตราประทับ'
     : _vfMode === 'view' ? 'ดูเอกสารเทียบกับเลขที่อ่านได้'
     : noRead ? 'ระบบอ่านไม่ได้ — กรอกเลขจากเอกสาร'
     : 'ตรวจเอกสาร — เลือกเลขที่ถูกต้อง';
@@ -2212,6 +2244,7 @@ async function drawVerify() {
 
   // โหมดตรวจหมึกใช้พื้นที่ฝั่งขวาต่างออกไป
   if (_vfMode === 'ink') { drawVerifyInk(row); return drawVerifyPage(row); }
+  if (_vfMode === 'sample') { drawVerifySample(row); return drawVerifyPage(row); }
 
   document.getElementById('vfManualBox').style.display = '';
   var bc = document.getElementById('vfCropBc');
@@ -2349,6 +2382,69 @@ function drawVerifyInk(row) {
       else drawVerifyInk(row);
     });
   });
+}
+
+/**
+ * ฝั่งขวาเมื่อสุ่มตรวจ
+ *
+ * เดิมให้กดถูก/ผิดจากในตารางโดยไม่ได้เห็นเอกสาร
+ * ซึ่งเท่ากับกดโดยไม่ได้ตรวจ ผิดวัตถุประสงค์ของการสุ่มทั้งหมด
+ *
+ * ตรงนี้แสดงเลขที่จะบันทึกคู่กับภาพที่ระบบอ่าน
+ * และมีเอกสารเต็มหน้าอยู่ด้านซ้ายให้เทียบ
+ */
+function drawVerifySample(row) {
+  document.getElementById('vfCropBc').style.display = 'none';
+  document.getElementById('vfCropRef').style.display = 'none';
+  document.getElementById('vfManualBox').style.display = '';
+
+  var refNo = row.editVals.refNo || row.barcode || '';
+  var cur = row.sampleChecked || '';
+
+  document.getElementById('vfChoices').innerHTML =
+    '<div class="vf-k">เลขที่จะบันทึก</div>' +
+    '<div class="vf-bignum">' + esc(refNo) + '</div>' +
+    (row.readCrop
+      ? '<div class="vf-k" style="margin-top:10px">ภาพที่ระบบอ่าน</div>' +
+        '<img class="vf-inkimg" src="' + row.readCrop + '" ' +
+        'onclick="openImage(this.src,\'พื้นที่เลขที่เอกสาร\')">'
+      : '') +
+    '<div class="vf-inkhint" style="margin:10px 0">' +
+      'เทียบเลขด้านบนกับเลขที่พิมพ์บนเอกสารด้านซ้าย ' +
+      'ถ้าตรงกันกด "ถูกต้อง" ถ้าไม่ตรงกด "ต้องแก้" แล้วพิมพ์เลขที่ถูก' +
+    '</div>' +
+    '<div class="inkact">' +
+      '<button class="inkbtn' + (cur === 'ok' ? ' on' : '') +
+        '" data-s="ok">ถูกต้อง</button>' +
+      '<button class="inkbtn' + (cur === 'fix' ? ' bad' : '') +
+        '" data-s="fix">ต้องแก้</button>' +
+    '</div>';
+
+  document.getElementById('vfChoices').querySelectorAll('[data-s]').forEach(function (el) {
+    el.addEventListener('click', function () {
+      setSample(row.id, el.dataset.s);
+      if (el.dataset.s === 'ok') nextVerifySample();
+      else {
+        // พบว่าไม่ตรง ให้แก้เลขต่อในหน้าเดียวกันได้เลย
+        showToast('บันทึกว่าไม่ตรงแล้ว — พิมพ์เลขที่ถูกด้านล่าง', 'error');
+        drawVerifySample(row);
+        try { document.getElementById('vfManual').focus(); } catch (e) {}
+      }
+    });
+  });
+}
+
+function nextVerifySample() {
+  var remain = uncheckedSamples();
+  if (!remain.length) {
+    document.getElementById('dlgVerify').close();
+    showToast('สุ่มตรวจครบทุกรายการแล้ว', 'success');
+    renderTable();
+    return;
+  }
+  _vfList = remain;
+  if (_vfPos >= _vfList.length) _vfPos = 0;
+  drawVerify();
 }
 
 function nextVerifyInk() {
@@ -2660,9 +2756,20 @@ window.whyBlocked = function whyBlocked() {
   return blocks.length + ' เรื่องที่ติด';
 };
 
+/* กำลังบันทึกอยู่หรือไม่
+   ใช้ตัวแปรเดียวแทนการสั่งเปิดปิดปุ่มกระจายหลายที่
+   เดิมมีห้าจุดที่แตะปุ่มโดยตรง พอทางใดทางหนึ่งปิดแล้วไม่มีใครเปิดคืน
+   ปุ่มจะค้างปิดทั้งที่ไม่มีอะไรบล็อก และหาสาเหตุไม่ได้ */
+var _saving = false;
+
 function updateSubmitBtn(){
   var btn = document.getElementById('submitBtn');
   if (!btn) return;
+
+  if (_saving) {
+    btn.disabled = true;
+    return;
+  }
 
   var why = document.getElementById('btnWhy');
   var blocks = blockingReasons();
@@ -2792,12 +2899,17 @@ async function submitBatch(){
   if (noRef.length) {
     if (!confirm(noRef.length + ' รายการยังไม่มีเลข Reference\n' +
         'ไฟล์จะถูกตั้งชื่อด้วยบาร์โค้ดแทน ซึ่งอาจหาไม่เจอภายหลัง\n\nบันทึกต่อไหม')) {
-      document.getElementById('submitBtn').disabled = false;
       return;
     }
   }
-  if(!ready.length)return;
-  var btn=document.getElementById('submitBtn');btn.disabled=true;
+  if (!ready.length) {
+    alert('ไม่มีรายการที่บันทึกได้\n\n' +
+          'ทุกแถวถูกตัดออกเพราะซ้ำกันเองในไฟล์ หรือยังไม่มีเลขที่เอกสาร');
+    return;
+  }
+
+  var btn = document.getElementById('submitBtn');
+  _saving = true; updateSubmitBtn();
   try{
     // ── อัปโหลดเป็นชุด ชุดละ 5 ไฟล์ ────────────────────
     // เดิมยิงหนึ่งคำขอต่อหนึ่งไฟล์ 50 หน้า = 50 คำขอ
@@ -2871,14 +2983,13 @@ async function submitBatch(){
         buildFail.slice(0, 8).join('\n') +
         (buildFail.length > 8 ? '\n… และอีก ' + (buildFail.length - 8) : '') +
         '\n\nถ้าบันทึกต่อ รายการเหล่านี้จะไม่มีไฟล์แนบ\nบันทึกต่อไหม';
-      if (!confirm(msg)) { btn.disabled = false; updateSubmitBtn(); return; }
+      if (!confirm(msg)) return;
     }
 
     if (!uploadList.length) {
       alert('ไม่มีไฟล์ที่จะอัปโหลดเลย\n\n' +
             'มักเกิดเมื่อไฟล์ PDF ถูกปิดไปแล้ว เช่นรีเฟรชหน้าหลังอ่านเสร็จ\n' +
             'กรุณาอัปโหลดไฟล์ใหม่แล้วอ่านอีกครั้ง');
-      btn.disabled = false; updateSubmitBtn();
       return;
     }
 
@@ -2969,8 +3080,9 @@ async function submitBatch(){
   }catch(err){
     showToast('เกิดข้อผิดพลาด: '+err.message,'error');
   }finally{
-    // ปิดกล่องที่เดียว ครอบทุกทางออกรวมถึงตอนเกิดข้อผิดพลาด
-    // ถ้ากระจายไปปิดหลายที่ จะมีทางใดทางหนึ่งหลุดแล้วกล่องค้างจนต้องรีเฟรช
+    /* คืนสถานะที่เดียว ครอบทุกทางออกรวมถึงตอนเกิดข้อผิดพลาด
+       ถ้ากระจายไปคืนหลายที่ จะมีทางใดทางหนึ่งหลุดแล้วค้างจนต้องรีเฟรช */
+    _saving = false;
     saveShow(false);
     updateSubmitBtn();
   }
@@ -3168,7 +3280,7 @@ function showToast(msg,type){var t=document.getElementById('toast');t.textConten
    อ่านเอกสารอัตโนมัติ
    บาร์โค้ดก่อน ถ้าไม่ได้ค่อย OCR แล้วเทียบกับรายการอ้างอิง
    ============================================================ */
-var BUILD_TAG = '2.14.0-b12';
+var BUILD_TAG = '2.14.0-b13';
 var _types = null, _readAbort = null, _lastPdfJs = null, _lastFileName = '';
 /* เก็บไบต์ต้นฉบับไว้ด้วย
    pdf.js อาจถูกปิดหรือใช้ไม่ได้เมื่อถึงตอนบันทึก
@@ -3319,6 +3431,7 @@ async function runAutoRead() {
   var btn = document.getElementById('btnRead');
   var cancel = document.getElementById('btnCancelRead');
   btn.disabled = true; cancel.style.display = 'inline-block';
+  _saving = true; updateSubmitBtn();   // ระหว่างอ่าน ยังบันทึกไม่ได้
   _readAbort = new AbortController();
 
   try {
@@ -3367,6 +3480,7 @@ async function runAutoRead() {
     rprog(1, 'อ่านไม่สำเร็จ: ' + (err.message || err));
   } finally {
     btn.disabled = false; cancel.style.display = 'none'; _readAbort = null;
+    _saving = false; updateSubmitBtn();
   }
 }
 
@@ -3639,7 +3753,15 @@ document.getElementById('dlgImg').addEventListener('click', function (e) {
    ไม่ใช่สิ่งที่ควรขอจากคนหน้างาน */
 document.getElementById('btnWhy').addEventListener('click', function () {
   var blocks = blockingReasons();
-  if (!blocks.length) { showToast('ไม่มีอะไรบล็อกแล้ว ลองกดบันทึกอีกครั้ง', 'success'); return; }
+  if (!blocks.length) {
+    /* ไม่มีอะไรบล็อกแล้วแต่ปุ่มยังปิดอยู่ แปลว่าสถานะบนจอค้างจากรอบก่อน
+       คำนวณใหม่ให้เลย ดีกว่าบอกให้คนไปกดเองแล้วกดไม่ได้อีก */
+    _saving = false;
+    renderTable();
+    updateSubmitBtn();
+    showToast('ปรับสถานะให้แล้ว กดบันทึกได้เลย', 'success');
+    return;
+  }
 
   var lines = blocks.map(function (b) {
     var refs = b.rows.slice(0, 5).map(function (r) {
