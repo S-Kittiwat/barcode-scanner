@@ -35,7 +35,16 @@
   .btn.ghost{background:transparent;border:1px solid var(--border);color:var(--text);
     font-weight:400;padding:10px 16px;font-size:13px}
   .btn:disabled{opacity:.4;cursor:not-allowed}
-  .hint{font-size:12.5px;color:var(--muted);margin-top:12px;line-height:1.7}
+  .selbar{position:fixed;left:0;right:0;bottom:0;z-index:130;display:none;
+  background:var(--surface);border-top:1px solid var(--accent);
+  padding:12px 88px 12px 24px;align-items:center;gap:12px;flex-wrap:wrap;
+  box-shadow:0 -6px 20px rgba(0,0,0,.35)}
+.selbar.on{display:flex}
+.selcount{font-size:14px;font-weight:600}
+.selgrow{flex:1}
+.selchk{width:17px;height:17px;cursor:pointer;accent-color:var(--accent)}
+.zipnote{font-size:12px;color:var(--muted);line-height:1.7}
+.hint{font-size:12.5px;color:var(--muted);margin-top:12px;line-height:1.7}
   .hint code{font-family:var(--mono);color:var(--accent);background:var(--surface2);
     padding:1px 7px;border-radius:4px;cursor:pointer}
 
@@ -141,6 +150,10 @@
       <button class="btn" id="btnSearch">ค้นหา</button>
     </div>
     <div class="hint" id="hint"></div>
+    <div class="zipnote">
+      เลือกหลายรายการเพื่อดาวน์โหลดพร้อมกัน — ไฟล์จะถูกรวมเป็น ZIP
+      ตั้งชื่อตามเลข Reference · ครั้งละไม่เกิน 150 ใบ
+    </div>
     <div class="filters">
       <div class="fld"><label for="fPdf">สถานะ PDF</label>
         <select id="fPdf">
@@ -172,9 +185,19 @@
     <h2 id="rTitle">รายการที่ต้องดำเนินการ</h2>
     <span class="c" id="rCount"></span>
     <div class="r">
-      <button class="btn ghost" id="btnCsv">ดาวน์โหลด CSV</button>
+      <button class="btn ghost" id="btnExcel">ดาวน์โหลด Excel</button>
       <button class="btn ghost" id="btnReload">รีเฟรช</button>
     </div>
+  </div>
+
+  <!-- แถบนี้ขึ้นเมื่อเลือกรายการ ลอยอยู่ล่างจอเพื่อให้กดได้ทันที
+       ไม่ต้องเลื่อนกลับขึ้นไปหาปุ่มหลังเลือกครบ -->
+  <div class="selbar" id="selBar">
+    <span class="selcount" id="selCount">เลือก 0 รายการ</span>
+    <button class="btn ghost" id="btnSelNone">ยกเลิกการเลือก</button>
+    <div class="selgrow"></div>
+    <button class="btn ghost" id="btnSelExcel">Excel เฉพาะที่เลือก</button>
+    <button class="btn" id="btnSelZip">ดาวน์โหลดไฟล์ (ZIP)</button>
   </div>
 
   <div id="view"></div>
@@ -199,9 +222,16 @@ if (session) {
 const esc = s => String(s == null ? '' : s)
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
-async function call(action, payload = {}) {
-  try { return await authFetch(API, { action, ...payload }); }
-  catch (err) {
+/**
+ * เรียก API
+ * timeoutMs ปรับได้ เพราะงานรวม ZIP ใช้เวลาหลายสิบวินาที
+ * ถ้าใช้ค่าปกติ 30 วินาที จะถูกตัดกลางคันแล้วเซิร์ฟเวอร์ทำงานต่อโดยเปล่าประโยชน์
+ */
+async function call(action, payload = {}, timeoutMs) {
+  try {
+    return await authFetch(API, { action, ...payload },
+      timeoutMs ? { timeoutMs: timeoutMs } : undefined);
+  } catch (err) {
     if (err.code === 'auth_required') { alert('เซสชันหมดอายุ'); location.href = 'login.html'; }
     throw err;
   }
@@ -357,6 +387,8 @@ function render(emptyMsg) {
   if (emptyMsg) { $('view').innerHTML = '<div class="empty">' + emptyMsg + '</div>'; return; }
 
   $('view').innerHTML = '<div class="tw"><table><thead><tr>' +
+    '<th style="width:36px"><input type="checkbox" class="selchk" id="selAll" ' +
+      'title="เลือกทั้งหมดในหน้านี้"></th>' +
     '<th style="width:170px">Reference</th>' +
     '<th style="width:112px">วันที่เอกสาร</th>' +
     '<th style="width:200px">ปลายทาง</th>' +
@@ -366,12 +398,62 @@ function render(emptyMsg) {
     '</tr></thead><tbody>' +
     rowsData.map(rowHtml).join('') + '</tbody></table></div>';
 
+  /* คลิกที่แถวเพื่อกางรายละเอียด แต่ต้องไม่โดนตอนกดช่องเลือก
+     ไม่งั้นกดติ๊กแล้วรายละเอียดกางออกมาด้วย ซึ่งน่ารำคาญเวลาเลือกหลายใบ */
   $('view').querySelectorAll('tr.main').forEach(tr =>
-    tr.addEventListener('click', () => toggle(tr.dataset.ref)));
+    tr.addEventListener('click', (e) => {
+      if (e.target.classList.contains('selchk')) return;
+      toggle(tr.dataset.ref);
+    }));
+
+  $('view').querySelectorAll('.rowchk').forEach(cb =>
+    cb.addEventListener('change', () => {
+      if (cb.checked) selected.add(cb.dataset.ref);
+      else selected.delete(cb.dataset.ref);
+      updateSelBar();
+    }));
+
+  const all = $('selAll');
+  if (all) all.addEventListener('change', () => {
+    rowsData.forEach(d => {
+      if (all.checked) selected.add(d.ref_no); else selected.delete(d.ref_no);
+    });
+    $('view').querySelectorAll('.rowchk').forEach(cb => { cb.checked = all.checked; });
+    updateSelBar();
+  });
+
+  updateSelBar();
+}
+
+/* ---------- เลือกหลายรายการ ---------- */
+const selected = new Set();
+
+function updateSelBar() {
+  const n = selected.size;
+  $('selBar').classList.toggle('on', n > 0);
+  $('selCount').textContent = 'เลือก ' + n + ' รายการ';
+
+  // เตือนตั้งแต่ตอนเลือก ไม่ใช่ตอนกดแล้วค่อยบอกว่าเกิน
+  const zip = $('btnSelZip');
+  const over = n > ZIP_MAX;
+  zip.disabled = over;
+  zip.textContent = over
+    ? 'เกิน ' + ZIP_MAX + ' ใบ — เลือกน้อยลง'
+    : 'ดาวน์โหลดไฟล์ (ZIP)';
+
+  const all = $('selAll');
+  if (all) {
+    const shown = rowsData.filter(d => selected.has(d.ref_no)).length;
+    all.checked = shown > 0 && shown === rowsData.length;
+    all.indeterminate = shown > 0 && shown < rowsData.length;
+  }
 }
 
 function rowHtml(d) {
   return '<tr class="main" data-ref="' + esc(d.ref_no) + '">' +
+    '<td><input type="checkbox" class="selchk rowchk" data-ref="' + esc(d.ref_no) + '"' +
+      (selected.has(d.ref_no) ? ' checked' : '') +
+      (d.pdf_url ? '' : ' disabled title="ยังไม่มีไฟล์แนบ"') + '></td>' +
     '<td><div class="ref">' + esc(d.ref_no) + '</div>' +
       '<div class="sub">' + (esc(d.barcode) || '—') + '</div></td>' +
     '<td class="mono">' + fmt(d.doc_date) + '</td>' +
@@ -384,7 +466,7 @@ function rowHtml(d) {
       : '<span style="color:var(--muted)">ยังไม่เข้ากล่อง</span>') +
       (d.reason ? '<div class="sub" style="color:var(--danger)">' + esc(d.reason) + '</div>' : '') +
     '</td></tr>' +
-    '<tr class="detail" data-d="' + esc(d.ref_no) + '" style="display:none"><td colspan="6"></td></tr>';
+    '<tr class="detail" data-d="' + esc(d.ref_no) + '" style="display:none"><td colspan="7"></td></tr>';
 }
 
 /* ---------- รายละเอียดกางในตาราง ---------- */
@@ -532,22 +614,133 @@ async function printSlip(ref) {
 }
 
 /* ---------- ดาวน์โหลด CSV ---------- */
-$('btnCsv').addEventListener('click', () => {
-  if (!rowsData.length) { alert('ไม่มีข้อมูลให้ดาวน์โหลด'); return; }
-  const cols = ['ref_no','barcode','doc_date','dest_warehouse','pdf_status',
-                'sla_pdf_days','paper_status','sla_paper_days','box_id'];
-  const head = ['Reference','บาร์โค้ด','วันที่เอกสาร','ปลายทาง','สถานะ PDF',
-                'PDF (วัน)','สถานะกระดาษ','กระดาษ (วัน)','กล่องจัดเก็บ'];
-  const q = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
-  // ใส่ BOM เพื่อให้ Excel เปิดภาษาไทยไม่เพี้ยน
-  const csv = '\ufeff' + [head.map(q).join(',')]
-    .concat(rowsData.map(r => cols.map(c => q(r[c])).join(','))).join('\r\n');
+/* ============================================================
+   ดาวน์โหลด
+   ============================================================ */
 
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
-  a.download = 'docscan-' + new Date().toISOString().slice(0, 10) + '.csv';
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+const ZIP_MAX = 150;
+
+/** คอลัมน์ที่ส่งออก ตรงกับที่เห็นบนจอ */
+const XL_COLS = [
+  ['ref_no',         'Reference'],
+  ['barcode',        'บาร์โค้ด'],
+  ['doc_date',       'วันที่เอกสาร'],
+  ['item_name',      'ประเภท'],
+  ['transfer_from',  'โอนจาก'],
+  ['transfer_to',    'โอนไป'],
+  ['sent_qty',       'จำนวน'],
+  ['site',           'คลัง'],
+  ['dest_warehouse', 'ปลายทาง'],
+  ['pdf_status',     'สถานะ PDF'],
+  ['sla_pdf_days',   'PDF (วัน)'],
+  ['paper_status',   'สถานะเอกสารตัวจริง'],
+  ['sla_paper_days', 'กระดาษ (วัน)'],
+  ['box_id',         'กล่องจัดเก็บ'],
+  ['pdf_url',        'ลิงก์ไฟล์']
+];
+
+const PDF_TXT   = { scanned:'สแกนแล้ว', verified:'ตรวจแล้ว', sent:'ส่งต่อแล้ว', closed:'ปิดงาน' };
+const PAPER_TXT = { held:'อยู่ที่จัดส่ง', shipped:'ส่งแล้ว', received:'คลังรับแล้ว', boxed:'เข้ากล่องแล้ว' };
+
+function xlValue(row, key) {
+  var v = row[key];
+  if (key === 'pdf_status')   return PDF_TXT[v] || v || '';
+  if (key === 'paper_status') return PAPER_TXT[v] || v || '';
+  return v == null ? '' : v;
+}
+
+/**
+ * สร้างไฟล์ Excel ฝั่งเบราว์เซอร์
+ *
+ * ใช้ SheetJS ซึ่งได้ .xlsx จริง ไม่ใช่ CSV เปลี่ยนนามสกุล
+ * ข้อดีคือภาษาไทยไม่เพี้ยนแน่นอน และคอลัมน์กว้างพอดีตั้งแต่เปิด
+ * ไม่ต้องพึ่งเซิร์ฟเวอร์จึงไม่กินโควตาและได้ผลทันที
+ */
+async function downloadExcel(list, tag) {
+  if (!list.length) { alert('ไม่มีข้อมูลให้ดาวน์โหลด'); return; }
+
+  if (!window.XLSX) {
+    try { await loadScript('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'); }
+    catch (e) { alert('โหลดตัวสร้างไฟล์ Excel ไม่ได้ ตรวจการเชื่อมต่ออินเทอร์เน็ต'); return; }
+  }
+
+  const head = XL_COLS.map(c => c[1]);
+  const body = list.map(r => XL_COLS.map(c => xlValue(r, c[0])));
+  const ws = XLSX.utils.aoa_to_sheet([head].concat(body));
+
+  // ความกว้างคอลัมน์ตามความยาวจริงของข้อมูล จะได้ไม่ต้องลากปรับเอง
+  ws['!cols'] = XL_COLS.map((c, i) => {
+    const len = Math.max(c[1].length, ...body.map(r => String(r[i] || '').length));
+    return { wch: Math.min(Math.max(len + 2, 9), 42) };
+  });
+  ws['!freeze'] = { xSplit: 0, ySplit: 1 };
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'เอกสาร');
+  const name = 'docscan-' + (tag || 'list') + '-' +
+    new Date().toISOString().slice(0, 10) + '.xlsx';
+  XLSX.writeFile(wb, name);
+}
+
+function loadScript(src) {
+  return new Promise((res, rej) => {
+    const el = document.createElement('script');
+    el.src = src; el.onload = res; el.onerror = rej;
+    document.head.appendChild(el);
+  });
+}
+
+$('btnExcel').addEventListener('click', () => downloadExcel(rowsData, 'all'));
+$('btnSelExcel').addEventListener('click', () =>
+  downloadExcel(rowsData.filter(r => selected.has(r.ref_no)), 'selected'));
+
+$('btnSelNone').addEventListener('click', () => {
+  selected.clear();
+  $('view').querySelectorAll('.rowchk').forEach(cb => { cb.checked = false; });
+  updateSelBar();
+});
+
+/**
+ * ดาวน์โหลดไฟล์เอกสารเป็น ZIP
+ *
+ * ต้องรวมที่เซิร์ฟเวอร์เพราะไฟล์อยู่บน Drive
+ * เบราว์เซอร์ดึงข้ามโดเมนไม่ได้ และส่งกลับเป็นข้อมูลก็เกินขนาดที่รับได้
+ * เซิร์ฟเวอร์จึงรวมแล้วเก็บลง Drive ส่งกลับมาแค่ลิงก์
+ */
+$('btnSelZip').addEventListener('click', async () => {
+  const refs = rowsData.filter(r => selected.has(r.ref_no)).map(r => r.ref_no);
+  if (!refs.length) return;
+
+  const noFile = rowsData.filter(r => selected.has(r.ref_no) && !r.pdf_url).length;
+  if (noFile && !confirm(noFile + ' ใบยังไม่มีไฟล์แนบ จะถูกข้ามไป\n\nดาวน์โหลดต่อไหม')) return;
+
+  const btn = $('btnSelZip');
+  const old = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'กำลังรวมไฟล์ ' + refs.length + ' ใบ…';
+
+  try {
+    // งานนี้ใช้เวลาหลายสิบวินาที ต้องรอนานกว่าคำขอปกติ
+    const r = await call('docsZip', { refs: refs }, 180000);
+    if (r.status !== 'ok') { alert(r.message || 'รวมไฟล์ไม่สำเร็จ'); return; }
+
+    const a = document.createElement('a');
+    a.href = r.url; a.download = r.name;
+    document.body.appendChild(a); a.click(); a.remove();
+
+    let msg = 'รวม ' + r.files + ' ไฟล์ (' +
+      (r.bytes / 1048576).toFixed(1) + ' MB) เรียบร้อย';
+    if (r.missing && r.missing.length) msg += '\nไม่พบในระบบ ' + r.missing.length + ' ใบ';
+    if (r.no_file && r.no_file.length) msg += '\nยังไม่มีไฟล์แนบ ' + r.no_file.length + ' ใบ';
+    msg += '\n\nถ้าเบราว์เซอร์ไม่เริ่มดาวน์โหลด เปิดจากลิงก์นี้ได้\n' + r.view_url;
+    alert(msg);
+  } catch (e) {
+    alert('รวมไฟล์ไม่สำเร็จ: ' + (e.message || e) +
+          '\n\nถ้าเลือกไว้มาก ลองแบ่งเป็นหลายรอบ');
+  } finally {
+    btn.disabled = false; btn.textContent = old;
+    updateSelBar();
+  }
 });
 </script>
 </body>
