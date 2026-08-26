@@ -182,10 +182,21 @@ function loadScript(src) {
   });
 }
 
+/**
+ * โหลดตัวอ่านบาร์โค้ด
+ *
+ * ถ้าโหลดไม่สำเร็จต้องโยน error ออกไป ไม่ใช่คืนค่าว่าง
+ * เพราะผู้เรียกจะแยกไม่ออกระหว่าง "ไม่มีบาร์โค้ดในภาพ"
+ * กับ "ตัวอ่านใช้ไม่ได้" ซึ่งเป็นคนละปัญหาและแก้คนละแบบ
+ */
 async function zxing() {
   if (_zxing) return _zxing;
   if (!window.ZXingWASM) {
     await loadScript('https://cdn.jsdelivr.net/npm/zxing-wasm@1.2.14/dist/iife/reader/index.js');
+  }
+  if (!window.ZXingWASM || typeof window.ZXingWASM.readBarcodes !== 'function') {
+    throw new Error('โหลดตัวอ่านบาร์โค้ดไม่สำเร็จ — ตรวจการเชื่อมต่ออินเทอร์เน็ต ' +
+                    'หรือระบบอาจบล็อก cdn.jsdelivr.net');
   }
   _zxing = window.ZXingWASM;
   return _zxing;
@@ -318,6 +329,7 @@ export async function readBarcode(page, type) {
    * การสแกนทั้งหน้ากลับ "หาไม่เจอเลย" ทั้งที่ในกรอบอ่านได้ทันที
    * การไล่สแกนทั้งหน้าทุกความละเอียดจึงเสียเวลาเปล่าเป็นส่วนใหญ่ */
   let cropUrl = '';
+  let lastError = null;
 
   for (const dpi of [200, 300]) {
     const isLast = (dpi === 300);
@@ -329,11 +341,26 @@ export async function readBarcode(page, type) {
       const c = crop(full, type.barcode);
       // เก็บภาพไว้ให้คนตรวจว่ากรอบครอบตรงบาร์โค้ดไหม
       if (!cropUrl) { try { cropUrl = c.toDataURL('image/jpeg', 0.7); } catch (e) {} }
-      try { found = await Z.readBarcodes(imageData(c), opts); } catch (e) { found = []; }
+      /* แยกความล้มเหลวสองแบบออกจากกัน
+         อ่านไม่เจอในภาพ = เรื่องปกติ ไปลองวิธีอื่นต่อได้
+         ตัวอ่านพัง = ต้องบอกให้รู้ ไม่ใช่เงียบแล้วรายงานว่าไม่มีบาร์โค้ด */
+      try {
+        found = await Z.readBarcodes(imageData(c), opts);
+      } catch (e) {
+        found = [];
+        lastError = e;
+        console.warn('[DocScan] อ่านบาร์โค้ดในกรอบล้มเหลว', e);
+      }
       if (c !== full) { c.width = c.height = 0; }
     }
     if (!found.length && (isLast || !type.barcode)) {
-      try { found = await Z.readBarcodes(imageData(full), opts); } catch (e) { found = []; }
+      try {
+        found = await Z.readBarcodes(imageData(full), opts);
+      } catch (e) {
+        found = [];
+        lastError = e;
+        console.warn('[DocScan] อ่านบาร์โค้ดทั้งหน้าล้มเหลว', e);
+      }
     }
     full.width = full.height = 0;
 
@@ -350,7 +377,8 @@ export async function readBarcode(page, type) {
       return { value: '', raw: found[0].text, all: texts, dpi, matched: false, crop: cropUrl };
     }
   }
-  return { value: '', raw: '', all: [], dpi: null, matched: false, crop: cropUrl };
+  return { value: '', raw: '', all: [], dpi: null, matched: false, crop: cropUrl,
+           error: lastError ? (lastError.message || String(lastError)) : '' };
 }
 
 /* ---------------- อ่านด้วย OCR ---------------- */
@@ -1019,4 +1047,59 @@ export function sampleFlag(key, ratePct) {
   const s = String(key);
   for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
   return (h >>> 0) % 100 < ratePct;
+}
+
+
+/**
+ * ตรวจว่าตัวอ่านบาร์โค้ดใช้งานได้จริงหรือไม่
+ *
+ * สร้างภาพบาร์โค้ด Code39 ขึ้นมาเองแล้วให้ระบบอ่าน
+ * ถ้าอ่านภาพที่เราสร้างเองไม่ได้ แปลว่าตัวอ่านมีปัญหา ไม่ใช่เอกสาร
+ * แยกสองเรื่องนี้ออกจากกันได้โดยไม่ต้องเดา
+ */
+export async function selfTestBarcode() {
+  const out = { loaded: false, canRead: false, error: '', version: '' };
+
+  let Z;
+  try {
+    Z = await zxing();
+    out.loaded = true;
+    out.version = (window.ZXingWASM && window.ZXingWASM.ZXING_WASM_VERSION) || 'ไม่ทราบ';
+  } catch (e) {
+    out.error = e.message || String(e);
+    return out;
+  }
+
+  // วาดบาร์โค้ด Code39 ของคำว่า TEST123 ด้วยมือ
+  const CODE39 = {
+    '*': '100101101101', 'T': '110100101011', 'E': '101101010011',
+    'S': '100110101011', '1': '110100101011', '2': '101100101011',
+    '3': '110110010101'
+  };
+  const bits = ('*TEST123*').split('').map(c => CODE39[c] || CODE39['*']).join('0');
+
+  const scale = 3, h = 90;
+  const cv = document.createElement('canvas');
+  cv.width = bits.length * scale + 40;
+  cv.height = h;
+  const ctx = cv.getContext('2d', { willReadFrequently: true });
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, cv.width, cv.height);
+  ctx.fillStyle = '#000';
+  let x = 20;
+  for (const b of bits) {
+    if (b === '1') ctx.fillRect(x, 10, scale, h - 20);
+    x += scale;
+  }
+
+  try {
+    const r = await Z.readBarcodes(imageData(cv), {
+      tryHarder: true, tryRotate: true, formats: ['Code39']
+    });
+    out.canRead = !!(r && r.length);
+    if (!out.canRead) out.error = 'ตัวอ่านทำงานได้ แต่อ่านภาพทดสอบไม่ออก';
+  } catch (e) {
+    out.error = 'เรียกตัวอ่านแล้วเกิดข้อผิดพลาด: ' + (e.message || e);
+  }
+  cv.width = cv.height = 0;
+  return out;
 }
