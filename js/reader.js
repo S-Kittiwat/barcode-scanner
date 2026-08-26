@@ -54,7 +54,16 @@ export const DOC_TYPES = {
   },
   loscam: {
     name: 'LOSCAM — Equipment Control Docket',
-    rotate: 270,
+
+    /* ไม่ต้องหมุนเพิ่มจากที่ไฟล์กำหนดไว้เอง
+     *
+     * เดิมตั้ง 270 จากเอกสารชุดแรกที่วางตะแคง
+     * แต่ rotate คือ "ส่วนต่างจากมุมเดิมของไฟล์" ไม่ใช่มุมสัมบูรณ์
+     * ไฟล์ชุดนี้ฝัง /Rotate 270 มาแล้ว จึงเปิดมาตั้งตรงอยู่แล้ว
+     * การบวก 270 เข้าไปอีกทำให้หน้ากลับหัว (270+270=540→180)
+     * กรอบทั้งหมดจึงไปครอบพื้นที่ว่างเปล่า อ่านไม่ได้ทั้งบาร์โค้ดและ OCR
+     */
+    rotate: 0,
     // บาร์โค้ดเป็นรหัสภายใน (เช่น B05EEA) ไม่ใช่เลข T ที่ใช้ตั้งชื่อไฟล์
     barcodeIsRef: false,
     /* บาร์โค้ดอยู่ซ้ายมือ ระดับกลางค่อนล่างของฟอร์ม
@@ -94,8 +103,19 @@ export const DOC_TYPES = {
      * บังคับต้องมีตัวนำหน้าเสมอ ไม่งั้นจะไปจับเลข DO (4009121114)
      * และวันที่ (15082026) ที่อยู่ในฟอร์มเดียวกัน
      */
-    ocrPattern: '(?:[T7Il|\\]1]\\s?(9\\d{6}))|(?:[T7Il|\\]]\\s?(1\\d{7}))',
-    ocrTemplate: 'T$1$2',
+    /* จับให้กว้างก่อน แล้วค่อยแก้และตรวจ
+     *
+     * เดิมรูปแบบเข้มงวดตั้งแต่แรก จึงปฏิเสธค่าที่ OCR อ่านเพี้ยนทิ้งไปเลย
+     * กฎแก้เลขที่เขียนไว้จึงไม่มีโอกาสได้ทำงาน
+     *   T0074070  เลข 1 หายไป      → ถูกทิ้ง
+     *   T40074070 อ่าน 1 เป็น 4    → ถูกทิ้ง
+     *   10075461  ไม่มี T นำหน้า   → ถูกทิ้ง
+     *
+     * ลำดับที่ถูกคือ จับกว้าง → แก้ตามโครงสร้าง → ตรวจว่าถูกต้อง
+     */
+    ocrPattern: '(?:^|\\D)[T7Il|\\]]?\\s?(\\d{7,8})(?!\\d)',
+    ocrTemplate: '$1',
+    ocrValidate: '^T(?:9\\d{6}|10\\d{6})$',
 
     // แก้หลักแรกที่ OCR อ่านผิดบ่อย ดู fixLoscamDigits ด้านล่าง
     ocrFix: 'loscam',
@@ -469,10 +489,16 @@ export function fixLoscamDigits(value) {
   if (!value) return value;
   const m = String(value).match(/^T?(\d+)$/);
   if (!m) return value;
-  let d = m[1];
+  const d = m[1];
 
-  if (d.length === 8 && d[1] === '0' && d[0] !== '1') d = '1' + d.slice(1);
-  else if (d.length === 7 && d[0] === '0') d = '1' + d;
+  // 8 หลักขึ้นต้น 19 = T ถูกอ่านเป็น 1 แล้วตามด้วยเลขชุด 9
+  if (d.length === 8 && d[0] === '1' && d[1] === '9') return 'T' + d.slice(1);
+
+  // 8 หลักที่หลักสองเป็น 0 แต่หลักแรกไม่ใช่ 1 = อ่านหลักแรกผิด
+  if (d.length === 8 && d[1] === '0' && d[0] !== '1') return 'T1' + d.slice(1);
+
+  // 7 หลักขึ้นต้นด้วย 0 = หลักแรกหายไปเลย
+  if (d.length === 7 && d[0] === '0') return 'T1' + d;
 
   return 'T' + d;
 }
@@ -510,6 +536,7 @@ export async function readOcr(page, type, onProgress, level) {
   const mode = level === 'fast' ? 'fast' : 'accurate';
   const dpis = OCR_DPIS[mode];
   const pattern = safeRegex(type.ocrPattern);
+  const validate = type.ocrValidate ? safeRegex(type.ocrValidate) : null;
 
   /* มุมของข้อความในกรอบ แยกจากมุมของหน้า
    * 'auto' = ลอง 0/90/270 แล้วใช้อันที่อ่านออก
@@ -595,6 +622,9 @@ export async function readOcr(page, type, onProgress, level) {
           let value = pattern ? applyTemplate(text.match(pattern), type.ocrTemplate) : text;
           // แก้หลักที่อ่านผิดตามโครงสร้างของเลขชนิดนั้น ก่อนนับโหวต
           if (value && type.ocrFix === 'loscam') value = fixLoscamDigits(value);
+          /* ตรวจหลังแก้ ไม่ใช่ก่อน
+             ถ้าตรวจก่อน ค่าที่แก้ได้จะถูกทิ้งไปตั้งแต่ต้น */
+          if (value && validate && !validate.test(value)) value = '';
           if (value) {
             votes.push({ tag: dpi + '/' + cr + '/' + v.name + ':' + psm, value, raw: text, conf });
             usedCropRot = cr;
@@ -698,6 +728,24 @@ export async function detectType(pdfJs, types, sampleN = 3) {
  * onPage เรียกทุกหน้าเพื่ออัปเดตหน้าจอระหว่างทาง ผู้ใช้จะได้ไม่รู้สึกว่าค้าง
  */
 export async function readAllPages(pdfJs, type, opts = {}) {
+  /* เตือนเมื่อหน้าวางผิดแนวจากที่กรอบคาดไว้
+   *
+   * กรอบเก็บเป็นสัดส่วนของหน้า ถ้าหน้าหมุนผิดแนว
+   * กรอบจะไปครอบพื้นที่ว่างและอ่านไม่ได้ทั้งไฟล์ โดยไม่มีอะไรบอกสาเหตุ
+   *
+   * เอกสารชุดนี้เป็นแนวตั้ง ถ้าเรนเดอร์ออกมาเป็นแนวนอนแปลว่ามุมผิด
+   */
+  try {
+    const p1 = await pdfJs.getPage(1);
+    const probe = await renderPage(p1, 60, type.rotate);
+    const landscape = probe.width > probe.height;
+    probe.width = probe.height = 0;
+    p1.cleanup();
+    if (landscape && opts.onProgress) {
+      opts.onProgress('เตือน: หน้าออกมาเป็นแนวนอน ถ้าอ่านไม่ได้ให้ลองปรับมุมในหน้าตั้งค่า');
+    }
+  } catch (e) { /* ตรวจไม่ได้ก็อ่านต่อไป */ }
+
   // ไม่มีการเดามุมแล้ว ใช้มุมและกรอบที่คนกำหนดไว้ตรง ๆ
   // การเดาเคยไปหมุนทับค่าที่คนตั้งไว้ ทำให้กรอบครอบผิดที่แล้วได้เลขผิด
   // ซึ่งแย่กว่าอ่านไม่ได้ เพราะมันดูเหมือนทำงานปกติ
