@@ -539,6 +539,14 @@ tr.needfix:hover td{background:rgba(248,113,113,.14)}
 .pickwrap{position:relative;display:inline-block;line-height:0;border:1px solid var(--border);
   cursor:crosshair;max-width:100%;touch-action:none;background:#fff}
 #pickCanvas{display:block;max-width:100%;height:auto}
+.tsec{border:1px solid var(--border);border-radius:var(--rs);padding:11px;margin-bottom:10px}
+.tlab{font-size:11px;font-family:var(--mono);letter-spacing:.06em;text-transform:uppercase;
+  color:var(--muted);margin-bottom:7px}
+.timg{display:block;max-width:100%;max-height:70px;border:1px solid var(--border);
+  border-radius:4px;background:#fff;cursor:zoom-in;margin-bottom:7px}
+.tval{font-family:var(--mono);font-size:15px}
+.tsub{font-size:11px;color:var(--muted);margin-top:3px;line-height:1.6}
+.twarn{font-size:11.5px;color:var(--warn);margin-top:5px;line-height:1.6}
 .pickbox{position:absolute;pointer-events:none;display:none}
 #pkB{border:2px solid var(--accent);background:rgba(56,189,248,.14)}
 #pkO{border:2px solid var(--warn);background:rgba(251,191,36,.14)}
@@ -644,7 +652,7 @@ window.dispatchEvent(new Event('docscan-ready'));
         <label>ความละเอียดการอ่าน</label>
         <div class="setval" id="ocrLevelText">—</div>
         <select id="ocrLevel" style="display:none">
-          <option value="accurate">ละเอียด — โหวต 300/400/500 dpi</option>
+          <option value="accurate">ละเอียด — โหวต 300/350/400 dpi</option>
           <option value="fast">เร็ว — 400 dpi เดียว</option>
         </select>
       </div>
@@ -3298,7 +3306,7 @@ function showToast(msg,type){var t=document.getElementById('toast');t.textConten
    อ่านเอกสารอัตโนมัติ
    บาร์โค้ดก่อน ถ้าไม่ได้ค่อย OCR แล้วเทียบกับรายการอ้างอิง
    ============================================================ */
-var BUILD_TAG = '2.14.0-b14';
+var BUILD_TAG = '2.14.0-b16';
 var _types = null, _readAbort = null, _lastPdfJs = null, _lastFileName = '';
 /* เก็บไบต์ต้นฉบับไว้ด้วย
    pdf.js อาจถูกปิดหรือใช้ไม่ได้เมื่อถึงตอนบันทึก
@@ -3398,7 +3406,7 @@ function applySettings() {
   document.getElementById('samplePct').value = pct;
   document.getElementById('ocrLevel').value = lvl;
 
-  var lvlLabel = lvl === 'fast' ? 'เร็ว (400 dpi)' : 'ละเอียด (300/400/500 dpi)';
+  var lvlLabel = lvl === 'fast' ? 'เร็ว (400 dpi)' : 'ละเอียด (300/350/400 dpi)';
   var lock = _settings.can_edit ? '' : '<span class="setlock">กำหนดโดยผู้ดูแล</span>';
   document.getElementById('samplePctText').innerHTML = pct + '%' + lock;
   document.getElementById('ocrLevelText').innerHTML = lvlLabel + lock;
@@ -3912,42 +3920,66 @@ document.getElementById('btnSaveSettings').addEventListener('click', async funct
       page.cleanup();
 
       var html = '';
-      // แสดงภาพที่ระบบอ่านจริง สำคัญที่สุด เพราะถ้ากรอบผิดจะเห็นทันที
-      if (oc && oc.crop) {
-        html += '<div style="margin-bottom:8px">ภาพที่ระบบอ่าน' +
-                (oc.cropRotate ? ' (หมุนกรอบ ' + oc.cropRotate + '°)' : '') + ':</div>' +
-                '<img src="' + oc.crop + '" title="กดเพื่อดูขนาดเต็ม" ' +
-                'onclick="openImage(this.src,\'พื้นที่เลขที่เอกสาร\')" ' +
-                'style="max-width:100%;border:1px solid var(--border);cursor:zoom-in;' +
-                'border-radius:4px;background:#fff;display:block;margin-bottom:10px">';
+
+      /* บาร์โค้ดต้องมีภาพให้ดูเหมือน OCR
+         เดิมแสดงแค่ผลลัพธ์ ถ้าอ่านไม่ได้ก็ไม่รู้ว่ากรอบผิดหรือบาร์โค้ดเสีย
+         ซึ่งเป็นคนละปัญหาและแก้คนละแบบ
+         และบาร์โค้ดเป็นเส้นทางหลัก จึงควรอยู่บนสุด */
+      html += '<div class="tsec"><div class="tlab">บาร์โค้ด</div>';
+      if (bc && bc.crop) {
+        html += '<img src="' + bc.crop + '" title="กดเพื่อดูขนาดเต็ม" ' +
+                'onclick="openImage(this.src,\'พื้นที่บาร์โค้ด\')" class="timg">';
+      } else {
+        html += '<div class="twarn">ไม่มีภาพ — ยังไม่ได้ลากกรอบบาร์โค้ด</div>';
       }
-      html += 'บาร์โค้ด: ' + (bc && bc.value ? esc(bc.value)
-        : (bc && bc.all.length ? esc(bc.all.join(', ')) + ' (ไม่ตรงรูปแบบที่ตั้งไว้)'
-                               : 'อ่านไม่ได้'));
+      html += '<div class="tval">' + (bc && bc.value
+        ? '<b style="color:var(--success)">' + esc(bc.value) + '</b>'
+        : (bc && bc.all.length
+            ? esc(bc.all.join(', ')) +
+              '<div class="twarn">อ่านได้แต่ไม่ตรงรูปแบบ ' +
+              esc(_types[_pickKey].barcodePattern) + '</div>'
+            : '<span style="color:var(--danger)">อ่านไม่ได้</span>')) + '</div>';
+      if (bc && !bc.value && !bc.all.length) {
+        html += '<div class="twarn">ถ้าภาพด้านบนไม่มีบาร์โค้ด แปลว่ากรอบไม่ตรง — ' +
+                'ถ้ามีบาร์โค้ดแต่อ่านไม่ได้ ให้ลองเพิ่มขนาดกรอบเผื่อขอบ</div>';
+      }
+      html += '</div>';
+
+      html += '<div class="tsec"><div class="tlab">เลขที่เอกสาร (OCR)</div>';
+      if (oc && oc.crop) {
+        html += '<img src="' + oc.crop + '" title="กดเพื่อดูขนาดเต็ม" ' +
+                'onclick="openImage(this.src,\'พื้นที่เลขที่เอกสาร\')" class="timg">' +
+                (oc.cropRotate ? '<div class="tsub">หมุนกรอบ ' + oc.cropRotate + '°</div>' : '');
+      }
       if (oc) {
-        html += '<br>OCR: ' + (oc.value
+        html += '<div class="tval">' + (oc.value
           ? '<b style="color:var(--success)">' + esc(oc.value) + '</b>'
-          : '<span style="color:var(--danger)">อ่านไม่ได้</span>');
-        if (oc.raw) html += '<br><span style="opacity:.7">ตัวอักษรดิบที่เห็น: "' +
-                            esc(oc.raw) + '"</span>';
+          : '<span style="color:var(--danger)">อ่านไม่ได้</span>') + '</div>';
+        if (oc.raw) html += '<div class="tsub">ตัวอักษรดิบที่เห็น: "' +
+                            esc(oc.raw) + '"</div>';
         if (oc.candidates && oc.candidates.length > 1) {
-          html += '<br>ค่าที่เป็นไปได้: ' + oc.candidates.map(esc).join(' · ');
+          html += '<div class="tsub">ค่าที่เป็นไปได้: ' +
+                  oc.candidates.map(function (c) {
+                    return esc(c && c.value ? c.value : c);
+                  }).join(' · ') + '</div>';
         }
         if (!oc.value && oc.raw) {
-          html += '<br><span style="color:var(--warn)">อ่านเจอตัวอักษรแต่ไม่ตรงรูปแบบ ' +
-                  esc(_types[_pickKey].ocrPattern) + ' — อาจเลือกชนิดเอกสารผิด</span>';
+          html += '<div class="twarn">อ่านเจอตัวอักษรแต่ไม่ตรงรูปแบบที่ตั้งไว้ — ' +
+                  'อาจเลือกชนิดเอกสารผิด</div>';
         }
         if (!oc.value && !oc.raw) {
-          html += '<br><span style="color:var(--warn)">ไม่เห็นตัวอักษรเลย ' +
-                  'กรอบน่าจะไม่ตรงตำแหน่ง</span>';
+          html += '<div class="twarn">ไม่เห็นตัวอักษรเลย กรอบน่าจะไม่ตรงตำแหน่ง</div>';
         }
+      } else {
+        html += '<div class="twarn">ยังไม่ได้ลากกรอบเลขที่เอกสาร</div>';
         // ถ้าภาพที่อ่านเป็นแนวตั้ง OCR จะอ่านไม่ออก
         if (!oc.value && oc.raw && oc.raw.length <= 3) {
-          html += '<br><span style="color:var(--warn)">' +
-                  'ได้ตัวอักษรน้อยมาก — ถ้าภาพด้านบนเป็นแนวตั้ง ' +
-                  'ลองเปลี่ยน "หมุนข้อความในกรอบ" เป็น 90 หรือ 270</span>';
+          html += '<div class="twarn">ได้ตัวอักษรน้อยมาก — ' +
+                  'ถ้าภาพด้านบนเป็นแนวตั้ง ลองเปลี่ยน "หมุนข้อความในกรอบ"</div>';
         }
       }
+      html += '</div>';
+
       // ตรวจลายเซ็นและตราในหน้าเดียวกัน ให้เห็นภาพและผลพร้อมกัน
       if (_pickRegions.signature || _pickRegions.stamp) {
         var rules = {};
