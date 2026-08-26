@@ -464,8 +464,10 @@ dialog[open]{
 .vf-nav{margin-left:auto;display:flex;gap:8px;align-items:center}
 .vf-count{font-family:var(--mono);font-size:12.5px;color:var(--muted)}
 .vf-body{display:grid;grid-template-columns:1fr 300px;gap:16px}
-.vf-doc{background:#fff;border:1px solid var(--border);border-radius:var(--rs);
+.vf-doc{position:relative;background:#fff;border:1px solid var(--border);border-radius:var(--rs);
   overflow:auto;max-height:72vh;display:flex;align-items:flex-start;justify-content:center}
+.vf-pageno{position:absolute;left:8px;top:8px;z-index:2;background:rgba(15,23,42,.82);
+  color:#f1f5f9;font-family:var(--mono);font-size:11.5px;border-radius:5px;padding:3px 9px}
 #vfPage{max-width:100%;display:block}
 .vf-side{display:flex;flex-direction:column;gap:14px;max-height:72vh;overflow:auto}
 .vf-sec{background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);padding:12px}
@@ -748,6 +750,7 @@ window.dispatchEvent(new Event('docscan-ready'));
   </div>
   <div class="vf-body">
     <div class="vf-doc">
+      <div class="vf-pageno" id="vfPageNo"></div>
       <img id="vfPage" alt="หน้าเอกสาร">
     </div>
     <div class="vf-side">
@@ -2249,9 +2252,11 @@ async function drawVerify() {
     : _vfMode === 'view' ? 'ดูเอกสารเทียบกับเลขที่อ่านได้'
     : noRead ? 'ระบบอ่านไม่ได้ — กรอกเลขจากเอกสาร'
     : 'ตรวจเอกสาร — เลือกเลขที่ถูกต้อง';
+  /* บอกให้ชัดว่ากำลังดูใบไหนและหน้าไหน
+     เพราะถ้าแสดงผิดใบ ต้องเห็นได้ทันทีโดยไม่ต้องเดา */
   document.getElementById('vfSub').textContent =
-    (row.editVals.refNo || row.barcode || '') + '  ·  หน้า ' +
-    (row.pageNos ? row.pageNos.join(', ') : (row.pageNo || '-'));
+    (row.editVals.refNo || row.barcode || '(ยังไม่มีเลข)') + '  ·  หน้า ' +
+    (row.pageNos && row.pageNos.length ? row.pageNos.join(', ') : (row.pageNo || '-'));
   document.getElementById('vfCount').textContent = (_vfPos + 1) + ' / ' + _vfList.length;
   document.getElementById('vfNote').textContent = row.why || '';
   document.getElementById('vfManual').value = row.barcode || '';
@@ -2335,19 +2340,41 @@ async function drawVerify() {
   }
 }
 
-/** วาดหน้าเอกสารเต็ม ใช้ร่วมกันทั้งสองโหมด */
+/* ลำดับการวาดล่าสุด
+ * การเรนเดอร์หน้าใช้เวลา ถ้าคนกดเปิดใบอื่นระหว่างรอ
+ * ภาพของใบเก่าจะมาถึงทีหลังแล้วทับใบใหม่ กลายเป็นแสดงผิดใบ
+ * จึงต้องทิ้งผลที่ล้าสมัยไป ไม่ใช่เอามาแสดง */
+var _vfDraw = 0;
+
+/** วาดหน้าเอกสารเต็ม ใช้ร่วมกันทุกโหมด */
 async function drawVerifyPage(row) {
   var img = document.getElementById('vfPage');
+  var seq = ++_vfDraw;
+
+  var pageNo = (row.pageNos && row.pageNos[0]) || row.pageNo || 1;
+
+  // ล้างภาพเก่าทันที ไม่ให้ค้างอยู่ระหว่างรอภาพใหม่
   img.removeAttribute('src');
+  img.alt = 'กำลังโหลดหน้า ' + pageNo + '…';
+  document.getElementById('vfPageNo').textContent = 'หน้า ' + pageNo;
+
   try {
-    var pageNo = (row.pageNos && row.pageNos[0]) || row.pageNo || 1;
     var type = _types[document.getElementById('docType').value] || {};
     var page = await _lastPdfJs.getPage(pageNo);
     var cv = await DocScan.Reader.renderPage(page, 120, type.rotate || 0);
-    img.src = cv.toDataURL('image/jpeg', 0.75);
+    var url = cv.toDataURL('image/jpeg', 0.75);
     cv.width = cv.height = 0;
     page.cleanup();
-  } catch (e) { /* ยังมีภาพครอปให้ดูอยู่ */ }
+
+    // มีการเปิดใบอื่นไปแล้วระหว่างที่รอ ผลนี้ล้าสมัย ต้องทิ้ง
+    if (seq !== _vfDraw) return;
+
+    img.src = url;
+    img.alt = 'หน้า ' + pageNo;
+  } catch (e) {
+    if (seq !== _vfDraw) return;
+    img.alt = 'แสดงหน้าเอกสารไม่ได้: ' + (e.message || e);
+  }
 }
 
 /**
@@ -3312,7 +3339,7 @@ function showToast(msg,type){var t=document.getElementById('toast');t.textConten
    อ่านเอกสารอัตโนมัติ
    บาร์โค้ดก่อน ถ้าไม่ได้ค่อย OCR แล้วเทียบกับรายการอ้างอิง
    ============================================================ */
-var BUILD_TAG = '2.14.0-b18';
+var BUILD_TAG = '2.14.0-b19';
 var _types = null, _readAbort = null, _lastPdfJs = null, _lastFileName = '';
 /* เก็บไบต์ต้นฉบับไว้ด้วย
    pdf.js อาจถูกปิดหรือใช้ไม่ได้เมื่อถึงตอนบันทึก
