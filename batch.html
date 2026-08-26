@@ -1748,7 +1748,12 @@ function renderTable() {
         '<button class="fixbtn" style="margin-top:5px" ' +
         'onclick="openVerify(\'' + rid + '\')">ดูเอกสารแล้วกรอกเอง</button>';
     } else if (row.tier === 'red') {
-      pickHtml = '<div class="needdo">ต้องตรวจกับเอกสาร</div>';
+      /* กิ่งนี้รับกรณีแดงที่เหลือ เช่นไม่พบในรายการอ้างอิง
+         เดิมบอกให้ตรวจแต่ไม่มีปุ่มให้กด คนจึงติดตรงนี้แล้วไปต่อไม่ได้
+         ทุกอย่างที่บอกให้ทำ ต้องมีทางให้ทำเสมอ */
+      pickHtml = '<div class="needdo">' + esc(row.why || 'ต้องตรวจกับเอกสาร') + '</div>' +
+        '<button class="fixbtn" style="margin-top:5px" ' +
+        'onclick="openVerify(\'' + rid + '\',\'view\')">ดูเอกสารแล้วแก้เลข</button>';
     } else if (row.sampled && !row.sampleChecked) {
       /* สุ่มตรวจต้องมีการยืนยันจริงและเก็บผลไว้
          ถ้าข้ามได้และไม่ทิ้งร่องรอย ก็ไม่ใช่การตรวจ
@@ -3307,7 +3312,7 @@ function showToast(msg,type){var t=document.getElementById('toast');t.textConten
    อ่านเอกสารอัตโนมัติ
    บาร์โค้ดก่อน ถ้าไม่ได้ค่อย OCR แล้วเทียบกับรายการอ้างอิง
    ============================================================ */
-var BUILD_TAG = '2.14.0-b17';
+var BUILD_TAG = '2.14.0-b18';
 var _types = null, _readAbort = null, _lastPdfJs = null, _lastFileName = '';
 /* เก็บไบต์ต้นฉบับไว้ด้วย
    pdf.js อาจถูกปิดหรือใช้ไม่ได้เมื่อถึงตอนบันทึก
@@ -3653,11 +3658,25 @@ async function applyReadResults(results, typeKey) {
           : []);
 
     if (d.value) {
-      first.barcode = d.value;
-      onBarcodeChange(first.id, d.value);
-      // OCR อ่านช่อง Reference มาโดยตรง ใช้ตั้งชื่อไฟล์ได้เลย
-      // ไม่ต้องรอให้เทียบรายการอ้างอิงสำเร็จ
-      if (d.refNo && !first.editVals.refNo) first.editVals.refNo = d.refNo;
+      /* ช่องนี้ต้องเป็นเลข Reference ที่ใช้ตั้งชื่อไฟล์ ไม่ใช่ค่าบาร์โค้ดดิบ
+       *
+       * บาร์โค้ดของ LOSCAM เป็นรหัสภายใน (เช่น 990ECB) ไม่ใช่เลขเอกสาร
+       * ถ้าเอาไปกรอกตรง ๆ ไฟล์จะถูกตั้งชื่อว่า 990ECB.pdf ซึ่งหาไม่เจอภายหลัง
+       *
+       * ลำดับที่ถูก: ถ้าอ่านบาร์โค้ดได้ ให้ไปหาเลข Reference จากรายการอ้างอิงก่อน
+       * ใช้ค่าบาร์โค้ดเป็นเลขเอกสารเฉพาะเมื่อบาร์โค้ดคือเลขนั้นจริง (barcodeIsRef)
+       */
+      var fill = d.value;
+      if (d.refNo) {
+        fill = d.refNo;                       // OCR อ่านเลข Reference มาโดยตรง
+      } else if (d.barcodeValue) {
+        var byBc = DocScan.searchCSV(idx, d.barcodeValue);
+        if (byBc && byBc.ref_no) fill = byBc.ref_no;   // แปลงบาร์โค้ดเป็น Reference
+      }
+
+      first.barcode = fill;
+      onBarcodeChange(first.id, fill);
+      if (!first.editVals.refNo) first.editVals.refNo = fill;
     }
 
     // หน้าที่เหลือในกลุ่มเป็นสำเนาของใบเดียวกัน ไม่ต้องเป็นแถวแยก
