@@ -804,7 +804,7 @@ async function downloadExcel(list, tag) {
   if (!list.length) { alert('ไม่มีข้อมูลให้ดาวน์โหลด'); return; }
 
   if (!window.XLSX) {
-    try { await loadScript('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'); }
+    try { await loadScript('vendor/xlsx.full.min.js'); }
     catch (e) { alert('โหลดตัวสร้างไฟล์ Excel ไม่ได้ ตรวจการเชื่อมต่ออินเทอร์เน็ต'); return; }
   }
 

@@ -189,16 +189,40 @@ function loadScript(src) {
  * เพราะผู้เรียกจะแยกไม่ออกระหว่าง "ไม่มีบาร์โค้ดในภาพ"
  * กับ "ตัวอ่านใช้ไม่ได้" ซึ่งเป็นคนละปัญหาและแก้คนละแบบ
  */
+/**
+ * โหลดตัวอ่านบาร์โค้ดจากไฟล์ในโปรเจกต์เอง
+ *
+ * เดิมโหลดจาก cdn.jsdelivr.net ซึ่งเครือข่ายขององค์กรบล็อก
+ * ผลคืออ่านบาร์โค้ดไม่ได้เลยทุกหน้า โดยไม่มีอะไรบอกสาเหตุ
+ *
+ * ไลบรารียังไปโหลดไฟล์ .wasm จาก CDN อีกทอดด้วย
+ * จึงต้องชี้ที่อยู่ใหม่ผ่าน setZXingModuleOverrides ไม่งั้นก็ยังพังอยู่ดี
+ *
+ * เก็บทั้งสองไฟล์ไว้ใน vendor/ จึงโหลดจากที่เดียวกับหน้าเว็บ
+ * ไม่ต้องพึ่งเครือข่ายภายนอกเลย
+ */
 async function zxing() {
   if (_zxing) return _zxing;
+
   if (!window.ZXingWASM) {
-    await loadScript('https://cdn.jsdelivr.net/npm/zxing-wasm@1.2.14/dist/iife/reader/index.js');
+    // ที่อยู่อ้างอิงจากไฟล์นี้ จึงใช้ได้ไม่ว่าจะวางโปรเจกต์ไว้ที่ไหน
+    const base = new URL('../vendor/', import.meta.url).href;
+    await loadScript(base + 'zxing-reader.js');
+
+    if (window.ZXingWASM && window.ZXingWASM.setZXingModuleOverrides) {
+      window.ZXingWASM.setZXingModuleOverrides({
+        locateFile: (path, prefix) =>
+          path.endsWith('.wasm') ? base + 'zxing_reader.wasm' : prefix + path
+      });
+    }
   }
-  if (!window.ZXingWASM || typeof window.ZXingWASM.readBarcodes !== 'function') {
-    throw new Error('โหลดตัวอ่านบาร์โค้ดไม่สำเร็จ — ตรวจการเชื่อมต่ออินเทอร์เน็ต ' +
-                    'หรือระบบอาจบล็อก cdn.jsdelivr.net');
+
+  const Z = window.ZXingWASM;
+  if (!Z || typeof Z.readBarcodesFromImageData !== 'function') {
+    throw new Error('โหลดตัวอ่านบาร์โค้ดไม่สำเร็จ — ' +
+                    'ตรวจว่าอัปโฟลเดอร์ vendor/ ขึ้น GitHub แล้วหรือยัง');
   }
-  _zxing = window.ZXingWASM;
+  _zxing = Z;
   return _zxing;
 }
 
@@ -211,12 +235,34 @@ export async function ocrWorker(onProgress) {
   if (_ocrLoading) return _ocrLoading;
 
   _ocrLoading = (async () => {
+    /* โหลดจากไฟล์ในโปรเจกต์เอง ไม่พึ่ง CDN
+     * เครือข่ายขององค์กรบล็อก cdn.jsdelivr.net
+     * ถ้าปล่อยให้โหลดจากภายนอก OCR จะใช้ไม่ได้เลยเหมือนบาร์โค้ด
+     *
+     * ต้องระบุที่อยู่ให้ครบทั้งสามส่วน ไม่งั้นตัวที่ไม่ได้ระบุ
+     * จะกลับไปเรียก CDN เองแล้วพังเงียบ ๆ
+     *   workerPath  ตัวจัดการงานเบื้องหลัง
+     *   corePath    เอนจินหลัก
+     *   langPath    ข้อมูลภาษา
+     */
+    const base = new URL('../vendor/', import.meta.url).href;
+
     if (!window.Tesseract) {
       onProgress && onProgress('กำลังโหลดเอนจิน OCR ครั้งแรก อาจใช้เวลาสักครู่');
-      await loadScript('https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js');
+      await loadScript(base + 'tesseract.min.js');
     }
+    if (!window.Tesseract) {
+      throw new Error('โหลดเอนจิน OCR ไม่สำเร็จ — ' +
+                      'ตรวจว่าอัปโฟลเดอร์ vendor/ ขึ้น GitHub แล้วหรือยัง');
+    }
+
     onProgress && onProgress('กำลังเตรียมข้อมูลภาษา');
-    _ocr = await window.Tesseract.createWorker('eng', 1);
+    _ocr = await window.Tesseract.createWorker('eng', 1, {
+      workerPath: base + 'worker.min.js',
+      corePath:   base + 'tesseract-core-simd-lstm.wasm.js',
+      langPath:   base + 'lang',
+      cacheMethod: 'none'
+    });
     return _ocr;
   })();
   return _ocrLoading;
@@ -345,7 +391,7 @@ export async function readBarcode(page, type) {
          อ่านไม่เจอในภาพ = เรื่องปกติ ไปลองวิธีอื่นต่อได้
          ตัวอ่านพัง = ต้องบอกให้รู้ ไม่ใช่เงียบแล้วรายงานว่าไม่มีบาร์โค้ด */
       try {
-        found = await Z.readBarcodes(imageData(c), opts);
+        found = await Z.readBarcodesFromImageData(imageData(c), opts);
       } catch (e) {
         found = [];
         lastError = e;
@@ -355,7 +401,7 @@ export async function readBarcode(page, type) {
     }
     if (!found.length && (isLast || !type.barcode)) {
       try {
-        found = await Z.readBarcodes(imageData(full), opts);
+        found = await Z.readBarcodesFromImageData(imageData(full), opts);
       } catch (e) {
         found = [];
         lastError = e;
@@ -1092,7 +1138,7 @@ export async function selfTestBarcode() {
   }
 
   try {
-    const r = await Z.readBarcodes(imageData(cv), {
+    const r = await Z.readBarcodesFromImageData(imageData(cv), {
       tryHarder: true, tryRotate: true, formats: ['Code39']
     });
     out.canRead = !!(r && r.length);
