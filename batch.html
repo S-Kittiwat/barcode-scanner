@@ -830,6 +830,7 @@ window.dispatchEvent(new Event('docscan-ready'));
   <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap">
     <button class="rbtn" id="pickSave">บันทึกพื้นที่</button>
     <button class="rbtn ghost" id="pickRead">บันทึกแล้วอ่านเอกสารเลย</button>
+    <button class="rbtn ghost" id="pickBcTest">ตรวจตัวอ่านบาร์โค้ด</button>
     <button class="rbtn ghost" id="pickForget">ลบค่าที่ตั้งเองของชนิดนี้</button>
     <button class="rbtn ghost" id="pickReset">คืนค่าเริ่มต้นทุกชนิด</button>
     <button class="rbtn ghost" id="pickClose">ปิด</button>
@@ -3306,7 +3307,7 @@ function showToast(msg,type){var t=document.getElementById('toast');t.textConten
    อ่านเอกสารอัตโนมัติ
    บาร์โค้ดก่อน ถ้าไม่ได้ค่อย OCR แล้วเทียบกับรายการอ้างอิง
    ============================================================ */
-var BUILD_TAG = '2.14.0-b16';
+var BUILD_TAG = '2.14.0-b17';
 var _types = null, _readAbort = null, _lastPdfJs = null, _lastFileName = '';
 /* เก็บไบต์ต้นฉบับไว้ด้วย
    pdf.js อาจถูกปิดหรือใช้ไม่ได้เมื่อถึงตอนบันทึก
@@ -3939,7 +3940,11 @@ document.getElementById('btnSaveSettings').addEventListener('click', async funct
               '<div class="twarn">อ่านได้แต่ไม่ตรงรูปแบบ ' +
               esc(_types[_pickKey].barcodePattern) + '</div>'
             : '<span style="color:var(--danger)">อ่านไม่ได้</span>')) + '</div>';
-      if (bc && !bc.value && !bc.all.length) {
+      if (bc && bc.error) {
+        // ตัวอ่านมีปัญหา ไม่ใช่เรื่องของเอกสาร ต้องแยกให้ชัด
+        html += '<div class="twarn">ตัวอ่านบาร์โค้ดมีปัญหา: ' + esc(bc.error) +
+                '<br>กด "ตรวจตัวอ่านบาร์โค้ด" เพื่อดูรายละเอียด</div>';
+      } else if (bc && !bc.value && !bc.all.length) {
         html += '<div class="twarn">ถ้าภาพด้านบนไม่มีบาร์โค้ด แปลว่ากรอบไม่ตรง — ' +
                 'ถ้ามีบาร์โค้ดแต่อ่านไม่ได้ ให้ลองเพิ่มขนาดกรอบเผื่อขอบ</div>';
       }
@@ -4019,6 +4024,31 @@ document.getElementById('btnSaveSettings').addEventListener('click', async funct
     document.getElementById('pickSave').click();
     document.getElementById('dlgPick').close();
     setTimeout(function () { document.getElementById('btnRead').click(); }, 100);
+  });
+
+  document.getElementById('pickBcTest').addEventListener('click', async function () {
+    var out = document.getElementById('pickResult');
+    out.textContent = 'กำลังตรวจตัวอ่านบาร์โค้ด...';
+    try {
+      var r = await DocScan.Reader.selfTestBarcode();
+      var html = '<div class="tsec"><div class="tlab">ตัวอ่านบาร์โค้ด</div>';
+      html += '<div class="tsub">โหลดไลบรารี: ' +
+        (r.loaded ? '<b style="color:var(--success)">สำเร็จ</b>' +
+                    (r.version ? ' (' + esc(r.version) + ')' : '')
+                  : '<b style="color:var(--danger)">ไม่สำเร็จ</b>') + '</div>';
+      html += '<div class="tsub">อ่านภาพทดสอบ: ' +
+        (r.canRead ? '<b style="color:var(--success)">อ่านได้</b>'
+                   : '<b style="color:var(--danger)">อ่านไม่ได้</b>') + '</div>';
+      if (r.error) html += '<div class="twarn">' + esc(r.error) + '</div>';
+      html += '<div class="tsub" style="margin-top:8px">' +
+        (r.canRead
+          ? 'ตัวอ่านทำงานปกติ — ถ้าเอกสารยังอ่านไม่ได้ แปลว่ากรอบไม่ตรงหรือมุมผิด'
+          : 'ตัวอ่านมีปัญหา ไม่ใช่เรื่องของเอกสาร') + '</div></div>';
+      out.innerHTML = html;
+      console.log('[DocScan] ตรวจตัวอ่านบาร์โค้ด', r);
+    } catch (e) {
+      out.textContent = 'ตรวจไม่สำเร็จ: ' + (e.message || e);
+    }
   });
 
   document.getElementById('pickForget').addEventListener('click', function () {
