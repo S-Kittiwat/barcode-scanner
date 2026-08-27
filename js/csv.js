@@ -49,11 +49,23 @@ export function parseCSV(text) {
 }
 
 /** ทำ index ไว้ล่วงหน้า — 50 แถวต่อ batch ค้นแบบ linear จะเสียเวลาเปล่า */
+/**
+ * สร้างดัชนีสำหรับค้นข้อมูลอ้างอิง
+ *
+ * ต้องใส่ทั้งบาร์โค้ดและเลข Reference เป็นคีย์
+ *
+ * เดิมใส่แค่บาร์โค้ด พอระบบแปลงบาร์โค้ดเป็นเลข Reference แล้วเอาไปค้นต่อ
+ * จึงหาไม่เจอ แล้วรายงานว่า "ไม่พบในรายการอ้างอิง"
+ * ทั้งที่เพิ่งหาเจอมาจากบาร์โค้ดตัวเดียวกัน
+ */
 export function buildIndex(csvData) {
   const map = new Map();
   for (const r of csvData || []) {
-    const key = normKey(r['barcode']);
-    if (key && !map.has(key)) map.set(key, r);
+    const bc = normKey(r['barcode']);
+    if (bc && !map.has(bc)) map.set(bc, r);
+
+    const ref = normKey(r['ref_no']);
+    if (ref && !map.has(ref)) map.set(ref, r);
   }
   return map;
 }
