@@ -982,10 +982,30 @@ export function classifyDoc(doc, csvIndex, helpers) {
              head: 'ไม่มีรายการอ้างอิงให้ตรวจ' };
   }
 
-  // อ่านบาร์โค้ดได้แต่ยังแปลงเป็น Reference ไม่ได้
+  /* อ่านบาร์โค้ดได้ แต่ OCR ยังไม่ได้เลข Reference
+   *
+   * เดิมตัดสินว่า "ไม่พบในรายการอ้างอิง" ทันทีที่ doc.refNo ว่าง
+   * โดยไม่ได้ลองค้นดูเลย ทั้งที่บาร์โค้ดอาจอยู่ในรายการอยู่แล้ว
+   * ข้อความจึงผิดความหมาย และดันเป็นสีแดงทั้งที่ข้อมูลครบ
+   *
+   * ต้องแยกสองเรื่องออกจากกัน
+   *   หาไม่เจอจริง          = ข้อผิดพลาด ต้องแก้
+   *   เจอแต่ยังไม่ได้เทียบ   = ควรดู แต่ไม่ใช่ข้อผิดพลาด
+   */
   if (doc.needsLookup && !doc.refNo) {
-    return { tier: 'red', reason: 'lookup_failed',
-             head: 'บาร์โค้ด ' + doc.barcodeValue + ' ไม่พบในรายการอ้างอิง' };
+    const byBc = lookup(doc.barcodeValue);
+    if (!byBc) {
+      return { tier: 'red', reason: 'lookup_failed',
+               head: 'บาร์โค้ด ' + doc.barcodeValue + ' ไม่พบในรายการอ้างอิง' };
+    }
+    /* เจอในรายการแล้ว ได้เลข Reference มา
+       แต่เลขนั้นมาจากฐานข้อมูล ไม่ใช่จากกระดาษที่ถืออยู่
+       ถ้าสแกนผิดใบแล้วบาร์โค้ดของอีกใบอ่านได้ ระบบจะตั้งชื่อไฟล์ผิด
+       จึงควรให้คนเทียบสักครั้ง แต่ไม่ต้องบล็อกการบันทึก */
+    return { tier: 'yellow', reason: 'barcode_only',
+             value: byBc.ref_no || '',
+             head: 'ได้เลข ' + (byBc.ref_no || '') +
+                   ' จากบาร์โค้ด — ควรเทียบกับเลขบนเอกสาร' };
   }
 
   const found = helpers && helpers.searchCSV ? helpers.searchCSV(csvIndex, doc.value) : null;
@@ -993,9 +1013,26 @@ export function classifyDoc(doc, csvIndex, helpers) {
     ? helpers.hasCollisionRisk(csvIndex, doc.value) : false;
 
   if (doc.source === 'barcode') {
-    return found
-      ? { tier: 'green', reason: 'barcode_in_reference', head: 'บาร์โค้ดตรงกับรายการอ้างอิง' }
-      : { tier: 'red', reason: 'not_in_reference', head: 'อ่านบาร์โค้ดได้แต่ไม่พบในรายการ' };
+    if (!found) {
+      return { tier: 'red', reason: 'not_in_reference',
+               head: 'อ่านบาร์โค้ดได้ แต่ไม่พบในรายการอ้างอิง' };
+    }
+
+    /* บาร์โค้ดตรงกับรายการอ้างอิง แต่ยังไม่ได้เทียบกับเลขบนกระดาษ
+     *
+     * ถ้าบาร์โค้ดคือเลขเอกสารเอง (เช่น CMD) ก็จบ ไม่ต้องเทียบอะไรอีก
+     * แต่ถ้าบาร์โค้ดเป็นรหัสภายใน (เช่น LOSCAM) เลขที่ได้มาจากรายการอ้างอิง
+     * ไม่ใช่จากกระดาษ จึงยังไม่มีอะไรยืนยันว่าหยิบเอกสารถูกใบ
+     *
+     * กรณีที่อันตราย: สแกนผิดใบแล้วบาร์โค้ดของอีกใบดันอ่านได้
+     * ระบบจะตั้งชื่อไฟล์ตามใบที่ไม่ได้อยู่ในมือ
+     */
+    if (doc.barcodeIsRef || !doc.needsLookup) {
+      return { tier: 'green', reason: 'barcode_in_reference',
+               head: 'บาร์โค้ดตรงกับรายการอ้างอิง' };
+    }
+    return { tier: 'yellow', reason: 'barcode_only',
+             head: 'ได้เลขจากบาร์โค้ด — ควรเทียบกับเลขบนเอกสาร' };
   }
 
   const ocr = doc.pages[0] && doc.pages[0].ocr;
