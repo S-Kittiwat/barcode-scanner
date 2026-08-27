@@ -2353,6 +2353,14 @@ async function drawVerifyPage(row) {
 
   var pageNo = (row.pageNos && row.pageNos[0]) || row.pageNo || 1;
 
+  /* บันทึกไว้ว่าแถวนี้ขอหน้าไหน และเอกสารที่เปิดอยู่มีกี่หน้า
+     ถ้าภาพไม่ตรงกับข้อมูล ตรงนี้จะบอกได้ว่าเพี้ยนที่ค่าหรือที่การเรนเดอร์ */
+  console.log('[DocScan] เปิดดู', row.editVals.refNo || row.barcode || row.id,
+    '· ขอหน้า', pageNo,
+    '· row.pageNo=', row.pageNo,
+    '· row.pageNos=', JSON.stringify(row.pageNos || null),
+    '· เอกสารมี', (_lastPdfJs && _lastPdfJs.numPages) || '?', 'หน้า');
+
   // ล้างภาพเก่าทันที ไม่ให้ค้างอยู่ระหว่างรอภาพใหม่
   img.removeAttribute('src');
   img.alt = 'กำลังโหลดหน้า ' + pageNo + '…';
@@ -2360,11 +2368,23 @@ async function drawVerifyPage(row) {
 
   try {
     var type = _types[document.getElementById('docType').value] || {};
-    var page = await _lastPdfJs.getPage(pageNo);
+    /* ขอเอกสารผ่าน ensurePdf เสมอ
+       ถ้าเอกสารเดิมถูกปิดหรือใช้ไม่ได้ จะเปิดใหม่จากไบต์ที่สำรองไว้
+       ไม่งั้นจะได้ภาพจากเอกสารที่ไม่ตรงกับที่กำลังดู */
+    var doc = await ensurePdf();
+    if (!doc) throw new Error('ไม่มีเอกสารให้แสดง กรุณาอัปโหลดไฟล์ใหม่');
+    if (pageNo > doc.numPages) {
+      throw new Error('ขอหน้า ' + pageNo + ' แต่เอกสารมีแค่ ' + doc.numPages + ' หน้า');
+    }
+
+    var page = await doc.getPage(pageNo);
     var cv = await DocScan.Reader.renderPage(page, 120, type.rotate || 0);
     var url = cv.toDataURL('image/jpeg', 0.75);
     cv.width = cv.height = 0;
-    page.cleanup();
+    /* ไม่เรียก page.cleanup() ตรงนี้
+       pdf.js เก็บ page object ไว้ใช้ซ้ำตามเลขหน้า
+       การ cleanup ทำให้ครั้งต่อไปที่ขอหน้าเดิมได้ object ที่ถูกล้างทรัพยากรไปแล้ว
+       ซึ่งอาจเรนเดอร์ออกมาเป็นภาพเก่าที่ค้างอยู่ */
 
     // มีการเปิดใบอื่นไปแล้วระหว่างที่รอ ผลนี้ล้าสมัย ต้องทิ้ง
     if (seq !== _vfDraw) return;
@@ -3339,7 +3359,7 @@ function showToast(msg,type){var t=document.getElementById('toast');t.textConten
    อ่านเอกสารอัตโนมัติ
    บาร์โค้ดก่อน ถ้าไม่ได้ค่อย OCR แล้วเทียบกับรายการอ้างอิง
    ============================================================ */
-var BUILD_TAG = '2.14.0-b20';
+var BUILD_TAG = '2.14.0-b21';
 var _types = null, _readAbort = null, _lastPdfJs = null, _lastFileName = '';
 /* เก็บไบต์ต้นฉบับไว้ด้วย
    pdf.js อาจถูกปิดหรือใช้ไม่ได้เมื่อถึงตอนบันทึก
@@ -3792,7 +3812,6 @@ async function drawPick() {
   // เดิมตรงนี้บวก page.rotate เพิ่ม แต่ตัวอ่านไม่บวก
   // ผลคือหน้าตัวอย่างหมุนถูกแต่ตอนอ่านจริงไม่หมุน กรอบจึงไปครอบผิดที่
   var full = await DocScan.Reader.renderPage(page, 110, rotate);
-  page.cleanup();
 
   var cv = document.getElementById('pickCanvas');
   cv.width = full.width; cv.height = full.height;
@@ -3985,7 +4004,6 @@ document.getElementById('btnSaveSettings').addEventListener('click', async funct
       var oc = t.ocr ? await DocScan.Reader.readOcr(page, t, function (m) {
         out.innerHTML = esc(m);
       }, 'accurate') : null;
-      page.cleanup();
 
       var html = '';
 
@@ -4064,7 +4082,6 @@ document.getElementById('btnSaveSettings').addEventListener('click', async funct
         var small = await DocScan.Reader.renderPage(pg2, 150, t.rotate);
         var ink = DocScan.Ink.checkPage(small, rules);
         small.width = small.height = 0;
-        pg2.cleanup();
 
         html += '<div style="margin-top:12px;border-top:1px solid var(--border);padding-top:10px">';
         ink.checks.forEach(function (c) {
