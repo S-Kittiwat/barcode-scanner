@@ -424,95 +424,91 @@ td.ro .acc{font-family:var(--mono);font-size:11.5px;color:var(--muted);margin-to
   margin-top:14px;padding-top:14px;border-top:1px solid var(--border)}
 .rbtn.big{padding:12px 26px;font-size:15px}
 .readhint{font-size:12px;color:var(--muted)}
-/* หน้าตั้งค่าการอ่าน — จัดเป็นสองคอลัมน์
-   เดิมยัดทุกอย่างในแถวเดียวจนตกบรรทัดเมื่อจอแคบ */
-#dlgPick{max-width:1420px;width:97vw;max-height:94vh}
-.pk-head{display:flex;align-items:flex-start;gap:14px;margin-bottom:11px}
-.pk-title{font-size:17px;font-weight:600}
-.pk-sub{font-size:12.5px;color:var(--muted);margin-top:3px;line-height:1.6}
-.pk-x{margin-left:auto;background:none;border:none;color:var(--muted);
-  font-size:19px;cursor:pointer;padding:2px 8px;line-height:1}
+/* ============================================================
+   หน้าตั้งค่าการอ่าน — เอกสารเป็นตัวหลัก
+   ============================================================
+   ทุกอย่างที่ต้องปรับอยู่ในแถบเดียวด้านบน
+   แผงรูปแบบเลขและผลทดสอบลอยทับ เปิดเมื่อต้องใช้
+   เอกสารจึงได้พื้นที่เกือบเต็มกล่อง เพราะเป็นสิ่งที่ต้องมองตอนลากกรอบ
+   ============================================================ */
+#dlgPick{max-width:1500px;width:97vw;height:94vh;padding:0;
+  display:flex;flex-direction:column;overflow:hidden}
+
+.pk-bar{display:flex;align-items:center;gap:7px;flex-wrap:wrap;
+  padding:10px 14px;border-bottom:1px solid var(--border);background:var(--surface2)}
+.pk-bar select{background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--rs);color:var(--text);padding:6px 9px;
+  font-family:var(--font);font-size:12.5px}
+#pickDocType{min-width:190px;border-color:var(--accent);font-weight:600}
+.pk-ib{background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);
+  color:var(--text);padding:6px 10px;font-family:var(--font);font-size:12.5px;
+  cursor:pointer;line-height:1.3}
+.pk-ib:hover{border-color:var(--accent)}
+.pk-ib.danger:hover{border-color:var(--danger);color:var(--danger)}
+.pk-ib.wide{padding:6px 12px}
+.pk-ib.wide span{color:var(--muted);margin-left:5px}
+.pk-ib.wide span.ok{color:var(--success)}
+.pk-sep{width:1px;height:22px;background:var(--border);margin:0 3px}
+.pk-grow{flex:1}
+.pk-cb{display:flex;align-items:center;gap:5px;font-size:12.5px;cursor:pointer;
+  white-space:nowrap}
+.pk-cb input{width:15px;height:15px;cursor:pointer;accent-color:var(--accent)}
+.pk-x{background:none;border:none;color:var(--muted);font-size:17px;
+  cursor:pointer;padding:2px 7px;line-height:1}
 .pk-x:hover{color:var(--text)}
+.pk-x.sm{font-size:14px;padding:0 4px;margin-left:auto}
 
-.pk-row{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-bottom:10px}
-.pk-row.tight{gap:8px;margin-bottom:9px}
-.pk-row.center{justify-content:center;align-items:center}
-.pk-fld{display:flex;flex-direction:column;gap:4px;min-width:0}
-.pk-fld label{font-size:11.5px;color:var(--muted)}
-#dlgPick select,#dlgPick input[type=text],#dlgPick input:not([type]){
-  background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);
-  color:var(--text);padding:8px 10px;font-family:var(--font);font-size:13px}
-#pickDocType{min-width:230px;border-color:var(--accent);font-weight:600}
-.rbtn.danger{color:var(--danger);border-color:rgba(248,113,113,.45)}
+/* พื้นที่เอกสาร — กินที่ที่เหลือทั้งหมด */
+.pk-stage{position:relative;flex:1;min-height:0;overflow:auto;
+  padding:12px 14px 4px;display:flex;flex-direction:column;align-items:center}
 
-/* ให้เอกสารได้พื้นที่มากที่สุด เพราะเป็นสิ่งที่ต้องมองตอนลากกรอบ
-   คอลัมน์ขวาแค่ใส่ค่ากับดูผล ไม่ต้องกว้าง */
-.pk-grid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:14px;align-items:start}
-@media (max-width:1050px){.pk-grid{grid-template-columns:1fr}}
-.pk-left{min-width:0}
-.pk-right{display:flex;flex-direction:column;gap:12px}
-
-.pk-chk{display:flex;gap:16px;align-items:center;flex-wrap:wrap;
-  background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);
-  padding:7px 12px;margin-bottom:8px}
-.pk-chk label{display:flex;align-items:center;gap:6px;font-size:12.5px;cursor:pointer}
-.pk-chk input{width:15px;height:15px;cursor:pointer;accent-color:var(--accent)}
-.pk-note{font-size:11.5px;color:var(--muted);line-height:1.65}
-.pk-chk .pk-note{margin-left:auto}
-.pk-legend{font-size:11px;color:var(--muted);margin-bottom:7px;
-  display:flex;gap:4px;align-items:center;flex-wrap:wrap}
-.pk-legend span[style]{margin-left:8px}
-.pk-legend span[style]:first-child{margin-left:0}
-/* ห้ามใส่ overflow ที่กล่องนี้
-   เพราะตำแหน่งลากคิดจากขนาดกล่อง ถ้ามีการเลื่อนภายในจะคลาดทันที */
-/* กล่องเป็นตัวคุมขนาด และเป็นฐานคำนวณตำแหน่งลาก
-   จึงต้องไม่มี overflow และต้องมีสัดส่วนตรงกับภาพเสมอ */
+/* กล่องนี้เป็นฐานคำนวณตำแหน่งลาก จึงต้องไม่มี overflow
+   และสัดส่วนต้องตรงกับภาพเสมอ */
 .pk-canvas{position:relative;background:#fff;border:1px solid var(--border);
-  border-radius:var(--rs);line-height:0;touch-action:none;
-  max-height:calc(94vh - 300px)}
-.pk-left{display:flex;flex-direction:column;min-width:0}
-/* ห้ามใช้ object-fit หรือ max-height ที่ canvas
-   เพราะจะทำให้ภาพที่แสดงไม่เต็มกล่อง แล้วตำแหน่งลากคลาดทันที
-   เนื่องจากการคำนวณอิงขนาดกล่อง ไม่ใช่ขนาดภาพ
-
-   คุมความสูงที่กล่องแทน แล้วให้ canvas เต็มกล่องเสมอ */
-.pk-canvas canvas{display:block;width:100%;height:100%;cursor:crosshair}
+  border-radius:var(--rs);line-height:0;touch-action:none;max-width:100%}
+.pk-canvas canvas{display:block;width:100%;height:auto;cursor:crosshair}
 .pkbox{position:absolute;display:none;pointer-events:none;
   border:2px solid;border-radius:2px}
 .pkbox.b{border-color:var(--accent);background:rgba(96,165,250,.14)}
 .pkbox.o{border-color:var(--warn);background:rgba(251,191,36,.14)}
 .pkbox.s{border-color:var(--success);background:rgba(52,211,153,.14)}
 .pkbox.t{border-color:var(--danger);background:rgba(248,113,113,.14)}
-.pk-page{font-family:var(--mono);font-size:12.5px;color:var(--muted);min-width:64px;text-align:center}
 
-.pk-card{border:1px solid var(--border);border-radius:var(--rs);padding:12px}
-.pk-card-t{font-size:12.5px;font-weight:600;margin-bottom:6px}
-#pkSamples{width:100%;height:76px;background:var(--surface2);border:1px solid var(--border);
-  border-radius:var(--rs);color:var(--text);font-family:var(--mono);font-size:13px;
-  padding:9px;resize:vertical;line-height:1.7}
+.pk-legend{font-size:11px;color:var(--muted);margin-top:7px;
+  display:flex;gap:4px;align-items:center;flex-wrap:wrap;justify-content:center}
+.pk-legend span[style]{margin-left:9px}
+.pk-legend span[style]:first-child{margin-left:0}
+.pk-note{font-size:11.5px;color:var(--muted);line-height:1.65}
+.pk-note.ok{color:var(--success)}
+
+/* แผงลอย เปิดเมื่อต้องใช้ ไม่กินที่เอกสารตอนไม่ได้ใช้ */
+.pk-pop{position:absolute;top:12px;left:14px;z-index:5;width:300px;display:none;
+  background:var(--surface);border:1px solid var(--accent);border-radius:var(--r);
+  padding:12px;box-shadow:0 10px 30px rgba(0,0,0,.45);max-height:80%;overflow:auto}
+.pk-pop.right{left:auto;right:14px}
+.pk-pop.on{display:block}
+.pk-pop-h{display:flex;align-items:center;font-size:12.5px;font-weight:600;
+  margin-bottom:8px}
+.pk-lbl{display:block;font-size:11.5px;color:var(--muted);margin-bottom:4px}
+#pkSamples{width:100%;height:70px;background:var(--surface2);border:1px solid var(--border);
+  border-radius:var(--rs);color:var(--text);font-family:var(--mono);font-size:12.5px;
+  padding:8px;resize:vertical;line-height:1.7}
 .pk-learn{font-size:12px;line-height:1.75;margin-top:8px}
 .pk-learn .ok{color:var(--success)}
-.pk-note.ok{color:var(--success)}
 .pk-learn .bad{color:var(--danger)}
 .pk-learn .warn{color:var(--warn)}
-.pk-advcard{padding:0}
-.pk-advcard>summary{list-style:none;cursor:pointer;padding:12px;
-  display:flex;align-items:center;gap:10px}
-.pk-advcard>summary::-webkit-details-marker{display:none}
-.pk-advcard>summary::before{content:'▸';color:var(--muted);font-size:11px}
-.pk-advcard[open]>summary::before{content:'▾'}
-.pk-advcard>summary .pk-note{margin-left:auto}
-.pk-advcard>*:not(summary){padding:0 12px}
-.pk-advcard>*:last-child{padding-bottom:12px}
-.pk-lbl{display:block;font-size:11.5px;color:var(--muted);margin-bottom:4px}
 .pk-adv{margin-top:10px}
 .pk-adv summary{font-size:11.5px;color:var(--muted);cursor:pointer}
 .pk-adv label{display:block;font-size:11px;color:var(--muted);margin:8px 0 3px}
-.pk-adv input{width:100%;font-family:var(--mono);font-size:11.5px}
+.pk-adv input:not([type=checkbox]){width:100%;background:var(--surface2);
+  border:1px solid var(--border);border-radius:var(--rs);color:var(--text);
+  padding:6px 8px;font-family:var(--mono);font-size:11.5px}
 
-.pk-foot{display:flex;gap:10px;align-items:center;justify-content:flex-end;
-  margin-top:12px;padding-top:11px;border-top:1px solid var(--border)}
-.pk-foot .pk-note{margin-right:auto}
+.pk-foot{display:flex;gap:8px;align-items:center;
+  padding:10px 14px;border-top:1px solid var(--border);background:var(--surface2)}
+.pk-page{font-family:var(--mono);font-size:12.5px;color:var(--muted);
+  min-width:62px;text-align:center}
+
 .pickchk{display:flex;gap:18px;align-items:center;flex-wrap:wrap;
   background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);
   padding:10px 14px;margin-bottom:12px}
@@ -811,6 +807,7 @@ window.dispatchEvent(new Event('docscan-ready'));
         เอกสารที่บันทึกตอนนี้จะไม่มีข้อมูลว่ามีลายเซ็นหรือไม่ —
         ตรวจย้อนหลังไม่ได้ว่าใบไหนใช้เป็นหลักฐานได้
       </div>
+      <div class="dupbanner ok" id="learnBanner" style="display:none"></div>
       <div class="dupbanner" id="dupBanner" style="display:none"></div>
       <div class="filterbar" id="filterBar" style="display:none"></div>
       <div id="tableWrap" style="display:none">
@@ -885,129 +882,108 @@ window.dispatchEvent(new Event('docscan-ready'));
 </dialog>
 
 <dialog id="dlgPick">
-  <div class="pk-head">
-    <div>
-      <div class="pk-title">ตั้งค่าการอ่านเอกสาร</div>
-      <div class="pk-sub" id="pkSub">เลือกเทมเพลต หรือสร้างใหม่จากเอกสารที่อัปโหลด</div>
-    </div>
+  <!-- แถบเครื่องมือแถวเดียว เก็บทุกอย่างที่ต้องปรับ
+       เอกสารได้พื้นที่ที่เหลือทั้งหมด เพราะเป็นสิ่งที่ต้องมองตอนลากกรอบ -->
+  <div class="pk-bar">
+    <select id="pickDocType" title="เทมเพลต"></select>
+    <button class="pk-ib" id="pickTplNew" title="สร้างเทมเพลตใหม่">+</button>
+    <button class="pk-ib" id="pickTplRename" title="เปลี่ยนชื่อ">✎</button>
+    <button class="pk-ib danger" id="pickTplDel" title="ลบเทมเพลต">🗑</button>
+
+    <span class="pk-sep"></span>
+
+    <select id="pickTarget" title="เลือกว่าจะลากกรอบอะไร">
+      <option value="barcode">▪ บาร์โค้ด</option>
+      <option value="ocr">▪ เลขที่เอกสาร</option>
+      <option value="signature">▪ ลายเซ็น</option>
+      <option value="stamp">▪ ตราประทับ</option>
+    </select>
+    <select id="pickRotate" title="หมุนหน้า">
+      <option value="0">0°</option><option value="90">90°</option>
+      <option value="180">180°</option><option value="270">270°</option>
+    </select>
+    <select id="pickCropRot" title="หมุนข้อความในกรอบ">
+      <option value="auto">ข้อความ: หาเอง</option>
+      <option value="0">ข้อความ: 0°</option>
+      <option value="90">ข้อความ: 90°</option>
+      <option value="270">ข้อความ: 270°</option>
+    </select>
+
+    <span class="pk-sep"></span>
+
+    <label class="pk-cb"><input type="checkbox" id="pickChkSig"> ลายเซ็น</label>
+    <label class="pk-cb"><input type="checkbox" id="pickChkStamp"> ตรา</label>
+
+    <span class="pk-grow"></span>
+
+    <button class="pk-ib wide" id="pkTogglePat" title="รูปแบบเลขเอกสาร">
+      รูปแบบเลข <span id="pkPatState">เรียนเอง</span>
+    </button>
+    <button class="rbtn" id="pickTest">ทดสอบหน้านี้</button>
     <button class="pk-x" id="pickClose" title="ปิดโดยไม่บันทึก">✕</button>
   </div>
 
-  <!-- แถวเทมเพลต แยกออกมาเป็นแถวของตัวเอง
-       เดิมยัดรวมกับตัวเลือกอื่นจนตกบรรทัด -->
-  <div class="pk-row">
-    <select id="pickDocType"></select>
-    <button class="rbtn ghost" id="pickTplNew">สร้างใหม่</button>
-    <button class="rbtn ghost" id="pickTplRename">เปลี่ยนชื่อ</button>
-    <button class="rbtn ghost danger" id="pickTplDel">ลบ</button>
-  </div>
-
-  <div class="pk-grid">
-    <!-- ซ้าย: เอกสารและกรอบ -->
-    <div class="pk-left">
-      <div class="pk-row tight">
-        <div class="pk-fld">
-          <label>กำลังลากกรอบ</label>
-          <select id="pickTarget">
-            <option value="barcode">บาร์โค้ด</option>
-            <option value="ocr">เลขที่เอกสาร</option>
-            <option value="signature">ลายเซ็น</option>
-            <option value="stamp">ตราประทับ</option>
-          </select>
-        </div>
-        <div class="pk-fld">
-          <label>หมุนหน้า</label>
-          <select id="pickRotate">
-            <option value="0">ไม่หมุน</option>
-            <option value="90">90°</option>
-            <option value="180">180°</option>
-            <option value="270">270°</option>
-          </select>
-        </div>
-        <div class="pk-fld">
-          <label>หมุนข้อความในกรอบ</label>
-          <select id="pickCropRot">
-            <option value="auto">หาเอง</option>
-            <option value="0">ไม่หมุน</option>
-            <option value="90">90°</option>
-            <option value="270">270°</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="pk-chk">
-        <label><input type="checkbox" id="pickChkSig"> ตรวจลายเซ็น</label>
-        <label><input type="checkbox" id="pickChkStamp"> ตรวจตราประทับ</label>
-        <span class="pk-note" id="pickChkNote"></span>
-      </div>
-
-      <div class="pk-legend">
-        <span style="color:var(--accent)">■</span>บาร์โค้ด
-        <span style="color:var(--warn)">■</span>เลขที่
-        <span style="color:var(--success)">■</span>ลายเซ็น
-        <span style="color:var(--danger)">■</span>ตรา
-        <span class="pk-note">ลากเล็กมาก = ลบกรอบ</span>
-      </div>
-
-      <div class="pk-canvas" id="pickWrap">
-        <canvas id="pickCanvas"></canvas>
-        <!-- กรอบที่ลากไว้ ต้องอยู่ในกล่องเดียวกับ canvas
-             เพราะตำแหน่งคิดเป็นเปอร์เซ็นต์ของกล่องนี้ -->
-        <div class="pkbox b" id="pkB"></div>
-        <div class="pkbox o" id="pkO"></div>
-        <div class="pkbox s" id="pkS"></div>
-        <div class="pkbox t" id="pkT"></div>
-      </div>
-
-      <div class="pk-row tight center">
-        <button class="rbtn ghost" id="pickPrev">◀</button>
-        <span id="pickPage" class="pk-page">— / —</span>
-        <button class="rbtn ghost" id="pickNext">▶</button>
-        <button class="rbtn" id="pickTest">ทดสอบอ่านหน้านี้</button>
-      </div>
+  <!-- เอกสารเต็มพื้นที่ แผงต่าง ๆ ลอยทับเมื่อต้องใช้ -->
+  <div class="pk-stage">
+    <div class="pk-canvas" id="pickWrap">
+      <canvas id="pickCanvas"></canvas>
+      <div class="pkbox b" id="pkB"></div>
+      <div class="pkbox o" id="pkO"></div>
+      <div class="pkbox s" id="pkS"></div>
+      <div class="pkbox t" id="pkT"></div>
     </div>
 
-    <!-- ขวา: รูปแบบเลข และผลทดสอบ -->
-    <div class="pk-right">
-      <details class="pk-card pk-advcard">
-        <summary>
-          <span class="pk-card-t">รูปแบบเลขเอกสาร</span>
-          <span class="pk-note" id="pkPatState">ไม่ได้ตั้ง — ระบบเรียนเอง</span>
-        </summary>
+    <div class="pk-legend">
+      <span style="color:var(--accent)">■</span>บาร์โค้ด
+      <span style="color:var(--warn)">■</span>เลขที่
+      <span style="color:var(--success)">■</span>ลายเซ็น
+      <span style="color:var(--danger)">■</span>ตรา
+      <span class="pk-note">ลากเล็กมาก = ลบกรอบ</span>
+    </div>
 
-        <div class="pk-note" style="margin:9px 0 7px">
-          ปกติไม่ต้องตั้ง ระบบจะอ่านเลขที่เห็นแล้วเรียนรูปแบบเอง<br>
-          ตั้งเมื่อระบบอ่านผิดบ่อย หรือไปจับเลขอื่นในฟอร์ม
-        </div>
-
-        <label class="pk-lbl">เลขจริงจากเอกสาร (บรรทัดละตัว)</label>
-        <textarea id="pkSamples" placeholder="T10075206&#10;T10074070&#10;T9648565"></textarea>
-        <div class="pk-learn" id="pkLearn"></div>
-
-        <details class="pk-adv">
-          <summary>แก้รูปแบบเอง</summary>
-          <label>รูปแบบที่ใช้จับ</label>
-          <input id="pkPattern" spellcheck="false">
-          <label>ตัวตรวจสอบหลังแก้</label>
-          <input id="pkValidate" spellcheck="false">
-          <label>ตัวอักษรที่ยอมให้ OCR อ่าน</label>
-          <input id="pkWhitelist" spellcheck="false" placeholder="เว้นว่าง = ทุกตัว">
-          <label style="display:flex;align-items:center;gap:7px;margin-top:9px">
-            <input type="checkbox" id="pkBcIsRef" style="width:15px;height:15px">
-            บาร์โค้ดคือเลขเอกสารเอง (ไม่ต้องแปลง)
-          </label>
-        </details>
-      </details>
-
-      <div class="pk-card" id="pkResultCard">
-        <div class="pk-card-t">ผลทดสอบ</div>
-        <div id="pickResult" class="pk-note">กดปุ่มทดสอบเพื่อดูว่ากรอบถูกไหม</div>
+    <!-- แผงรูปแบบเลข ลอยทับซ้ายบน -->
+    <div class="pk-pop" id="pkPatPanel">
+      <div class="pk-pop-h">
+        รูปแบบเลขเอกสาร
+        <button class="pk-x sm" id="pkPatClose">✕</button>
       </div>
+      <div class="pk-note" style="margin-bottom:8px">
+        ปกติไม่ต้องตั้ง ระบบเรียนเองจากเลขที่อ่านได้<br>
+        ตั้งเมื่ออ่านผิดบ่อย หรือไปจับเลขอื่นในฟอร์ม
+      </div>
+      <label class="pk-lbl">เลขจริงจากเอกสาร (บรรทัดละตัว)</label>
+      <textarea id="pkSamples" placeholder="T10075206&#10;T10074070"></textarea>
+      <div class="pk-learn" id="pkLearn"></div>
+      <details class="pk-adv">
+        <summary>แก้รูปแบบเอง</summary>
+        <label>รูปแบบที่ใช้จับ</label>
+        <input id="pkPattern" spellcheck="false">
+        <label>ตัวตรวจสอบหลังแก้</label>
+        <input id="pkValidate" spellcheck="false">
+        <label>ตัวอักษรที่ยอมให้อ่าน</label>
+        <input id="pkWhitelist" spellcheck="false" placeholder="เว้นว่าง = ทุกตัว">
+        <label class="pk-cb" style="margin-top:9px">
+          <input type="checkbox" id="pkBcIsRef"> บาร์โค้ดคือเลขเอกสารเอง
+        </label>
+      </details>
+    </div>
+
+    <!-- ผลทดสอบ ลอยทับขวาบน -->
+    <div class="pk-pop right" id="pkResultPanel">
+      <div class="pk-pop-h">
+        ผลทดสอบ
+        <button class="pk-x sm" id="pkResClose">✕</button>
+      </div>
+      <div id="pickResult" class="pk-note">กดปุ่มทดสอบเพื่อดูว่ากรอบถูกไหม</div>
     </div>
   </div>
 
   <div class="pk-foot">
+    <button class="pk-ib" id="pickPrev">◀</button>
+    <span id="pickPage" class="pk-page">— / —</span>
+    <button class="pk-ib" id="pickNext">▶</button>
     <span class="pk-note" id="pkFootNote"></span>
+    <span class="pk-grow"></span>
     <button class="rbtn ghost" id="pickDone">เสร็จสิ้น</button>
     <button class="rbtn" id="pickRead">เสร็จแล้วอ่านเอกสารเลย</button>
   </div>
@@ -1725,6 +1701,23 @@ function renderDupBanner() {
   var el = document.getElementById('dupBanner');
   if (!el) return;
   if (!rows.length) { el.style.display = 'none'; return; }
+
+  /* บอกว่าระบบเดารูปแบบเอง พร้อมให้บันทึกไว้ใช้ครั้งหน้า
+     ถ้าไม่บอก คนจะไม่รู้ว่าเลขที่เห็นบางตัวถูกแก้มา
+     และจะไม่รู้ว่ามีทางทำให้แม่นขึ้นได้ */
+  var lp = document.getElementById('learnBanner');
+  if (lp) {
+    if (_learnedPattern) {
+      lp.style.display = 'block';
+      lp.innerHTML = 'ระบบเรียนรูปแบบเลขเอง: <b>' + esc(_learnedPattern.prefix) +
+        ' + ' + _learnedPattern.mainLen + ' หลัก ขึ้นต้นด้วย ' +
+        esc(_learnedPattern.head) + '</b>' +
+        '<button class="fixbtn" style="width:auto;padding:4px 12px;margin-left:10px" ' +
+        'onclick="saveLearnedPattern()">บันทึกไว้ใช้ครั้งหน้า</button>';
+    } else {
+      lp.style.display = 'none';
+    }
+  }
 
   if (_dupCheckError) {
     el.style.display = 'block';
@@ -2868,6 +2861,41 @@ function thaiWhen(v, withTime) {
   return withTime ? date + ' ' + time + ' น.' : date;
 }
 
+/**
+ * เก็บรูปแบบที่ระบบเรียนได้ไว้ในเทมเพลต
+ * ครั้งหน้าจะแม่นตั้งแต่ใบแรก ไม่ต้องรอเรียนจากทั้งชุด
+ */
+function saveLearnedPattern() {
+  if (!_learnedPattern) return;
+  var key = document.getElementById('docType').value;
+  var tpl = DocScan.Templates.getTemplate(key);
+  if (!tpl) { alert('ไม่พบเทมเพลตที่ใช้อยู่'); return; }
+
+  // ใช้เลขที่อ่านได้จริงเป็นตัวอย่าง ดีกว่าให้คนพิมพ์เอง
+  var samples = rows.map(function (r) { return r.editVals.refNo || r.barcode; })
+                    .filter(Boolean).slice(0, 8);
+  if (samples.length < 2) { alert('ต้องมีเลขที่อ่านได้อย่างน้อย 2 ใบ'); return; }
+
+  var P = DocScan.Pattern;
+  var desc = P.describeSamples(samples);
+  if (!desc.ok) { alert('สร้างรูปแบบจากเลขที่อ่านได้ไม่สำเร็จ'); return; }
+
+  tpl.samples = samples;
+  tpl.ocrPattern = P.buildPattern(desc);
+  tpl.ocrValidate = P.tightenValidator(desc);
+  tpl.ocrTemplate = P.buildTemplate(desc);
+  tpl.ocrHeads = P.buildHeads(desc);
+  if (!tpl.ocrWhitelist) {
+    // จำกัดตัวอักษรช่วยลดคำที่ไม่เกี่ยวปนเข้ามา
+    tpl.ocrWhitelist = (desc.prefixes.filter(Boolean).join('') + '0123456789');
+  }
+  DocScan.Templates.upsertTemplate(tpl);
+  _types[key] = DocScan.Templates.toReaderType(tpl);
+
+  document.getElementById('learnBanner').style.display = 'none';
+  showToast('บันทึกรูปแบบลงเทมเพลต "' + tpl.name + '" แล้ว', 'success');
+}
+
 /** คนยืนยันแล้วว่าจะทับไฟล์เดิม */
 function confirmOverwrite(id) {
   var row = rows.find(function (r) { return r.id === Number(id); });
@@ -3677,7 +3705,7 @@ function showToast(msg,type){var t=document.getElementById('toast');t.textConten
    อ่านเอกสารอัตโนมัติ
    บาร์โค้ดก่อน ถ้าไม่ได้ค่อย OCR แล้วเทียบกับรายการอ้างอิง
    ============================================================ */
-var BUILD_TAG = '2.15.0-b4';
+var BUILD_TAG = '2.15.0-b6';
 var _types = null, _readAbort = null, _lastPdfJs = null, _lastFileName = '';
 /* เก็บไบต์ต้นฉบับไว้ด้วย
    pdf.js อาจถูกปิดหรือใช้ไม่ได้เมื่อถึงตอนบันทึก
@@ -3685,6 +3713,8 @@ var _types = null, _readAbort = null, _lastPdfJs = null, _lastFileName = '';
 var _lastPdfBytes = null;
 var _refNeighbors = {};
 var _dupCheckError = '', _dupChecked = 0;
+// รูปแบบที่ระบบเรียนได้เองในรอบล่าสุด ใช้แสดงให้คนรู้ว่าเดามาจากอะไร
+var _learnedPattern = null;
 window._refNeighbors = _refNeighbors;
 
 function initReader() {
@@ -3955,6 +3985,35 @@ async function runAutoRead() {
  * แถวที่เป็นสำเนาซ้ำจะถูกลบออก เหลือใบเดียวที่ครอบทุกหน้า
  */
 async function applyReadResults(results, typeKey) {
+  /* ไม่ได้ตั้งรูปแบบไว้ = ให้ระบบเรียนจากสิ่งที่ตัวเองอ่านได้ทั้งชุด
+   *
+   * เอกสารชุดเดียวกันมีเลขหน้าตาเหมือนกัน
+   * ถ้า 30 ใบขึ้นต้นด้วย 10 แต่อีก 10 ใบขึ้นต้นด้วย 2 หรือ 4
+   * แปลว่า 10 ใบนั้นอ่านหลักแรกผิด ไม่ใช่เลขคนละชุด
+   *
+   * วัดกับเอกสารจริง 20 หน้า: จาก 2/20 เป็น 18/20 โดยไม่ต้องตั้งค่า
+   */
+  if (!type.ocrPattern) {
+    var learned = DocScan.Pattern.learnFromReadings(
+      results.map(function (r) { return r.value; }).filter(Boolean));
+
+    if (learned) {
+      var fixedCount = 0;
+      results.forEach(function (r) {
+        if (!r.value) return;
+        var f = DocScan.Pattern.applyLearned(learned, r.value);
+        if (f !== r.value) { r.value = f; r.refNo = f; fixedCount++; }
+      });
+      console.log('[DocScan] เรียนรูปแบบเอง:', learned.prefix + ' + ' +
+        learned.mainLen + ' หลัก ขึ้นต้น ' + learned.head +
+        ' · แก้ให้ ' + fixedCount + ' ใบ');
+      if (fixedCount) {
+        showToast('ระบบเรียนรูปแบบเลขเอง แก้ให้ ' + fixedCount + ' ใบ', 'success');
+      }
+      _learnedPattern = learned;
+    }
+  }
+
   var docs = DocScan.Reader.groupPages(results);
   var pct = Number(document.getElementById('samplePct').value) || 0;
 
@@ -4235,6 +4294,8 @@ function loadPickType(id) {
   if (dt) dt.textContent = tpl.name;
   document.getElementById('pickResult').innerHTML =
     '<span class="pk-note">กดปุ่มทดสอบเพื่อดูว่ากรอบถูกไหม</span>';
+  // ปิดแผงลอยเมื่อเปลี่ยนเทมเพลต ผลของเทมเพลตเก่าใช้กับอันใหม่ไม่ได้
+  document.getElementById('pkResultPanel').classList.remove('on');
 
   _pickDirty = false;
   document.getElementById('pkFootNote').textContent = '';
@@ -4259,10 +4320,13 @@ function updatePickChkUI() {
     sel.value = 'barcode';
   }
 
-  // ข้อความสั้น ๆ พอ ยาวไปจะดันให้ตกบรรทัด
-  var n = (sig ? 1 : 0) + (stamp ? 1 : 0);
-  document.getElementById('pickChkNote').textContent =
-    n ? 'ลากกรอบเฉพาะที่เลือก' : '';
+  /* ป้ายบนช่องเลือกกรอบบอกว่าอันไหนปิดอยู่
+     ชัดกว่าข้อความอธิบายแยกต่างหาก และไม่กินที่ */
+  Array.prototype.forEach.call(sel.options, function (o) {
+    var base = o.value === 'signature' ? '▪ ลายเซ็น'
+             : o.value === 'stamp' ? '▪ ตราประทับ' : null;
+    if (base) o.textContent = base + (o.disabled ? '  (ปิดอยู่)' : '');
+  });
 }
 
 async function openPicker() {
@@ -4445,7 +4509,7 @@ function learnFromSamples() {
        ถ้าเป็นเลขล้วนที่หน้าตาเหมือนเลขอื่นในฟอร์ม ค่อยมาตั้ง */
     box.innerHTML = '<span class="pk-note">ระบบจะเรียนรูปแบบเองจากเลขที่อ่านได้<br>' +
       'ตั้งค่าตรงนี้เมื่อพบว่าอ่านผิดบ่อย หรือไปจับเลขอื่นในฟอร์ม</span>';
-    if (st) { st.textContent = 'ไม่ได้ตั้ง — ระบบเรียนเอง'; st.className = 'pk-note'; }
+    if (st) { st.textContent = 'เรียนเอง'; st.className = ''; }
     document.getElementById('pkPattern').value = '';
     document.getElementById('pkValidate').value = '';
     return null;
@@ -4478,10 +4542,7 @@ function learnFromSamples() {
   /* เตือนเมื่อรูปแบบไปจับเลขอื่นในฟอร์ม
      นี่คือส่วนที่ทำให้ปลอดภัยพอจะให้คนตั้งเอง
      รูปแบบที่กว้างเกินจะเอาวันที่ไปตั้งชื่อไฟล์แล้วไม่มีใครรู้ */
-  if (st) {
-    st.textContent = 'ตั้งไว้แล้ว · ' + samples.length + ' ตัวอย่าง';
-    st.className = 'pk-note ok';
-  }
+  if (st) { st.textContent = 'ตั้งแล้ว (' + samples.length + ')'; st.className = 'ok'; }
 
   var traps = P.checkTraps(pattern, validate, template, desc);
   if (traps.length) {
@@ -4787,8 +4848,23 @@ async function runPickTest() {
     showToast('ลบ "' + tpl.name + '" แล้ว', 'success');
   });
 
+  /* ---------- แผงลอย ---------- */
+  $('pkTogglePat').addEventListener('click', function () {
+    $('pkPatPanel').classList.toggle('on');
+  });
+  $('pkPatClose').addEventListener('click', function () {
+    $('pkPatPanel').classList.remove('on');
+  });
+  $('pkResClose').addEventListener('click', function () {
+    $('pkResultPanel').classList.remove('on');
+  });
+
   /* ---------- ทดสอบ ---------- */
-  $('pickTest').addEventListener('click', runPickTest);
+  $('pickTest').addEventListener('click', function () {
+    // เปิดแผงผลให้เองทุกครั้งที่ทดสอบ ไม่ต้องกดเปิดเพิ่ม
+    $('pkResultPanel').classList.add('on');
+    runPickTest();
+  });
 
   /* ---------- จบการทำงาน ---------- */
   $('pickClose').addEventListener('click', async function () {
