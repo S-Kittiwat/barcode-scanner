@@ -1217,7 +1217,10 @@ async function processPDF(file, skippedFiles) {
     // 1. นับหน้าด้วย PDF.js
     var pdfJs  = await pdfjsLib.getDocument({ data: arrayBuf.slice(0) }).promise;
     _lastPdfJs = pdfJs;      // ตัวอ่านอัตโนมัติใช้ซ้ำ ไม่ต้องเปิดไฟล์ใหม่
-    _lastPdfBytes = arrayBuf;   // สำรองไว้สร้างไฟล์ตอนบันทึก
+    /* เก็บสำเนาของตัวเอง ไม่ใช้บัฟเฟอร์เดียวกับที่ส่งให้ pdf.js
+       เพราะ pdf.js ย้ายบัฟเฟอร์ไปเธรดเบื้องหลัง ตัวเดิมจะใช้ไม่ได้อีก
+       ถ้าเก็บตัวเดิมไว้ พอต้องเปิดเอกสารใหม่จะได้ข้อมูลว่างเปล่า */
+    _lastPdfBytes = arrayBuf.slice(0);
     var numPages = pdfJs.numPages;
 
     // 2. ถ้า 1 หน้า — ไม่ต้อง split ใช้เหมือนเดิม
@@ -1318,16 +1321,34 @@ async function _extractPDFPage(pdfJs, pageNum) {
  * ที่มีต้นฉบับกับสำเนาคนละใบ หายไปครึ่งหนึ่งโดยไม่มีใครรู้
  */
 /** เปิดเอกสารใหม่จากไบต์ที่เก็บไว้ ใช้เมื่อตัวเดิมใช้ไม่ได้แล้ว */
+/**
+ * คืนเอกสารที่ใช้งานได้
+ *
+ * ถ้าตัวเดิมยังใช้ได้ต้องคืนตัวเดิมเสมอ
+ * การเปิดใหม่โดยไม่จำเป็นทำให้เลขหน้าที่แถวเก็บไว้ชี้ไปคนละเอกสาร
+ * แล้วภาพที่แสดงจะไม่ตรงกับข้อมูลในแถว
+ */
 async function ensurePdf() {
-  if (_lastPdfJs) {
-    try { await _lastPdfJs.getPage(1); return _lastPdfJs; }
-    catch (e) { /* ใช้ไม่ได้แล้ว เปิดใหม่ */ }
+  if (_lastPdfJs && _lastPdfJs.numPages) {
+    try {
+      await _lastPdfJs.getPage(1);
+      return _lastPdfJs;
+    } catch (e) {
+      console.warn('[DocScan] เอกสารเดิมใช้ไม่ได้ กำลังเปิดใหม่', e);
+    }
   }
-  if (!_lastPdfBytes) return null;
+  if (!_lastPdfBytes || !_lastPdfBytes.byteLength) {
+    console.error('[DocScan] ไม่มีไบต์สำรองไว้เปิดเอกสารใหม่');
+    return null;
+  }
   try {
     _lastPdfJs = await pdfjsLib.getDocument({ data: _lastPdfBytes.slice(0) }).promise;
+    console.log('[DocScan] เปิดเอกสารใหม่', _lastPdfJs.numPages, 'หน้า');
     return _lastPdfJs;
-  } catch (e) { return null; }
+  } catch (e) {
+    console.error('[DocScan] เปิดเอกสารใหม่ไม่สำเร็จ', e);
+    return null;
+  }
 }
 
 async function buildDocPdf(pdfJs, pageNos) {
@@ -1813,7 +1834,12 @@ function renderTable() {
       (needDup ? ' needdup' : (needInk ? ' needink' : '')) + '" id="row-' + rid + '">' +
       '<td class="no">' + (i + 1) + '</td>' +
       '<td><div style="display:flex;flex-direction:column;align-items:center;gap:2px">' +
-        thumbHtml + '<div class="file-name" style="text-align:center">' + fileLabel + '</div>' +
+        thumbHtml +
+        '<div class="file-name" style="text-align:center">' + fileLabel + '</div>' +
+        // แสดงเลขหน้าไว้เทียบกับภาพใน pop-up ได้ทันที
+        '<div class="pgno">หน้า ' +
+          ((row.pageNos && row.pageNos.length) ? esc(row.pageNos.join(',')) :
+           (row.pageNo || '?')) + '</div>' +
       '</div></td>' +
       '<td>' + bcHtml + '</td>' +
       '<td>' + readHtml + '</td>' +
@@ -2261,9 +2287,13 @@ async function drawVerify() {
   document.getElementById('vfNote').textContent = row.why || '';
   document.getElementById('vfManual').value = row.barcode || '';
 
-  // โหมดตรวจหมึกใช้พื้นที่ฝั่งขวาต่างออกไป
-  if (_vfMode === 'ink') { drawVerifyInk(row); return drawVerifyPage(row); }
-  if (_vfMode === 'sample') { drawVerifySample(row); return drawVerifyPage(row); }
+  /* วาดภาพหน้าเอกสารก่อนแยกโหมดเสมอ
+     ทุกโหมดต้องเห็นเอกสาร จึงไม่ควรผูกไว้กับเส้นทางใดเส้นทางหนึ่ง
+     เดิมแยกไปเรียกในแต่ละกิ่ง แล้วมีกิ่งหนึ่งลืมเรียก */
+  var pageDraw = drawVerifyPage(row);
+
+  if (_vfMode === 'ink') { drawVerifyInk(row); return pageDraw; }
+  if (_vfMode === 'sample') { drawVerifySample(row); return pageDraw; }
 
   document.getElementById('vfManualBox').style.display = '';
   var bc = document.getElementById('vfCropBc');
@@ -2292,14 +2322,19 @@ async function drawVerify() {
   };
 
   if (_vfMode === 'view') {
-    /* ดูอย่างเดียว แสดงเหตุผลที่ควรตรวจ พร้อมช่องแก้เลขถ้าพบว่าผิด */
+    /* ดูอย่างเดียว แสดงเหตุผลที่ควรตรวจ พร้อมช่องแก้เลขถ้าพบว่าผิด
+     *
+     * เดิม return ตรงนี้เลย จึงไม่เคยเรียก drawVerifyPage
+     * ภาพที่เห็นจึงเป็นของค้างจากการเปิดครั้งก่อน
+     * ซึ่งอธิบายว่าทำไมทุกใบแสดงหน้าเดียวกัน คือหน้าสุดท้ายที่เคยดู
+     */
     document.getElementById('vfChoices').innerHTML =
       '<div class="vf-k">ทำไมต้องดู</div>' +
       '<div class="vf-none">' + esc(row.why || 'ระบบไม่แน่ใจ') + '</div>' +
       '<div class="vc-hint" style="margin-top:8px">' +
       'เทียบเลขในภาพกับเอกสารด้านซ้าย ถ้าตรงแล้วปิดหน้านี้ได้เลย ' +
       'ถ้าไม่ตรงให้พิมพ์เลขที่ถูกในช่องด้านล่าง</div>';
-    return;
+    return pageDraw;
   }
 
   if (!cands.length) {
@@ -2311,7 +2346,13 @@ async function drawVerify() {
         esc(row.why || 'ไม่พบเลขที่เอกสารในกรอบที่กำหนด') +
         '<br><br>ดูเอกสารด้านซ้าย แล้วพิมพ์เลขในช่องด้านล่าง' +
       '</div>';
+
+    // ต้องออกตรงนี้ ไม่งั้นโค้ดข้างล่างจะเขียนทับด้วยรายการตัวเลือกที่ว่างเปล่า
+    await pageDraw;
+    try { document.getElementById('vfManual').focus(); } catch (e) {}
+    return;
   }
+
 
   document.getElementById('vfChoices').innerHTML =
     '<div class="vf-k">เลือกเลขที่ตรงกับเอกสาร</div>' +
@@ -2332,7 +2373,7 @@ async function drawVerify() {
   });
 
   // หน้าเอกสารเต็ม ความละเอียดพอดูด้วยตา ไม่ต้องสูงเพราะไม่ได้เอาไปอ่านด้วยเครื่อง
-  await drawVerifyPage(row);
+  await pageDraw;
 
   // อ่านไม่ได้เลย ให้เคอร์เซอร์อยู่ในช่องพิมพ์ทันที จะได้พิมพ์ต่อได้เลย
   if (!(row.candidates && row.candidates.length > 1)) {
@@ -3359,7 +3400,7 @@ function showToast(msg,type){var t=document.getElementById('toast');t.textConten
    อ่านเอกสารอัตโนมัติ
    บาร์โค้ดก่อน ถ้าไม่ได้ค่อย OCR แล้วเทียบกับรายการอ้างอิง
    ============================================================ */
-var BUILD_TAG = '2.14.0-b21';
+var BUILD_TAG = '2.14.0-b24';
 var _types = null, _readAbort = null, _lastPdfJs = null, _lastFileName = '';
 /* เก็บไบต์ต้นฉบับไว้ด้วย
    pdf.js อาจถูกปิดหรือใช้ไม่ได้เมื่อถึงตอนบันทึก
@@ -3759,6 +3800,32 @@ async function applyReadResults(results, typeKey) {
   var before = rows.length;
   rows = rows.filter(function (r) { return !r._mergedInto; });
   var merged = before - rows.length;
+
+  /* ตรวจว่าทุกแถวชี้ไปหน้าที่ถูกต้อง
+     ถ้าหน้าซ้ำกันหรือขาดหาย จะเห็นทันทีแทนที่จะไปเจอตอนเปิดดูภาพ */
+  (function () {
+    var seen = {}, dup = [], noPage = [];
+    rows.forEach(function (r) {
+      var p = (r.pageNos && r.pageNos[0]) || r.pageNo;
+      if (!p) { noPage.push(r.id); return; }
+      if (seen[p]) dup.push(p);
+      seen[p] = (seen[p] || 0) + 1;
+    });
+    console.log('[DocScan] ตรวจการจับคู่หน้า —',
+      rows.length, 'แถว ·', Object.keys(seen).length, 'หน้าที่ต่างกัน');
+    console.table(rows.map(function (r) {
+      return {
+        id: r.id,
+        ref: r.editVals.refNo || r.barcode || '(ว่าง)',
+        pageNo: r.pageNo,
+        pageNos: JSON.stringify(r.pageNos || null),
+        ใช้หน้า: (r.pageNos && r.pageNos[0]) || r.pageNo || 1,
+        source: r.readSource || '-'
+      };
+    }));
+    if (dup.length) console.error('[DocScan] หน้าซ้ำกัน', dup);
+    if (noPage.length) console.error('[DocScan] แถวที่ไม่มีเลขหน้า', noPage);
+  })();
 
   document.getElementById('beforeRead').style.display = 'none';
   document.getElementById('tableWrap').style.display = 'block';
