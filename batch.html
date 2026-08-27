@@ -424,6 +424,12 @@ td.ro .acc{font-family:var(--mono);font-size:11.5px;color:var(--muted);margin-to
   margin-top:14px;padding-top:14px;border-top:1px solid var(--border)}
 .rbtn.big{padding:12px 26px;font-size:15px}
 .readhint{font-size:12px;color:var(--muted)}
+.pickchk{display:flex;gap:18px;align-items:center;flex-wrap:wrap;
+  background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);
+  padding:10px 14px;margin-bottom:12px}
+.pickchk label{display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer}
+.pickchk input{width:16px;height:16px;cursor:pointer;accent-color:var(--accent)}
+.pickchknote{font-size:11.5px;color:var(--muted);margin-left:auto}
 .setval{font-size:13.5px;padding:9px 0;font-weight:600}
 .setlock{font-size:11px;color:var(--muted);font-weight:400;margin-left:6px}
 .csvst{font-size:12.5px;color:var(--muted);margin-top:10px;font-family:var(--mono)}
@@ -647,8 +653,11 @@ window.dispatchEvent(new Event('docscan-ready'));
   <div class="reader" id="readerPanel" style="display:none">
     <div class="rowline">
       <div class="fld">
-        <label for="docType">ชนิดเอกสาร</label>
-        <select id="docType"></select>
+        <label>ชนิดเอกสาร</label>
+        <div class="setval" id="docTypeText">—</div>
+        <!-- เก็บค่าไว้เฉย ๆ ให้โค้ดส่วนอื่นอ่านได้
+             การเลือกจริงย้ายไปอยู่ในหน้ากำหนดพื้นที่ ซึ่งเป็นที่ที่ตั้งค่าทั้งหมด -->
+        <select id="docType" style="display:none"></select>
       </div>
       <div class="fld" style="min-width:150px">
         <label>ความละเอียดการอ่าน</label>
@@ -793,10 +802,26 @@ window.dispatchEvent(new Event('docscan-ready'));
     <span style="color:var(--warn)">■</span> เลขที่เอกสาร
     <span style="color:var(--success)">■</span> ลายเซ็น
     <span style="color:var(--danger)">■</span> ตราประทับ<br>
-    ไม่ลากกรอบลายเซ็นหรือตรา = ไม่ตรวจอย่างนั้น · ลากเล็กมาก = ลบกรอบทิ้ง
+    ลากเล็กมาก = ลบกรอบทิ้ง
+  </div>
+
+  <!-- เลือกว่าจะตรวจอะไรบ้างก่อน แล้วค่อยลากกรอบเฉพาะที่ต้องตรวจ
+       ไม่ตรวจ = ไม่ต้องลากกรอบ และระบบข้ามการเรนเดอร์เพิ่มของหน้านั้นไปเลย -->
+  <div class="pickchk">
+    <label><input type="checkbox" id="pickChkSig"> ตรวจลายเซ็น</label>
+    <label><input type="checkbox" id="pickChkStamp"> ตรวจตราประทับ</label>
+    <span class="pickchknote" id="pickChkNote"></span>
   </div>
 
   <div class="rowline" style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin-bottom:12px">
+    <!-- ชนิดเอกสารต้องเลือกได้ตรงนี้
+         กล่องนี้เปิดอัตโนมัติหลังอัปโหลด และบังตัวเลือกที่อยู่ด้านหลัง
+         คนจึงไม่มีโอกาสเปลี่ยนชนิดก่อนกำหนดกรอบ
+         ทั้งที่กรอบและมุมทั้งหมดผูกกับชนิดเอกสาร -->
+    <div class="fld" style="display:flex;flex-direction:column;gap:5px">
+      <label style="font-size:12px;color:var(--muted)">ชนิดเอกสาร</label>
+      <select id="pickDocType" style="background:var(--surface2);border:1px solid var(--accent);border-radius:var(--rs);color:var(--text);padding:9px 11px;font-family:var(--font);font-weight:600"></select>
+    </div>
     <div class="fld" style="display:flex;flex-direction:column;gap:5px">
       <label style="font-size:12px;color:var(--muted)">กำลังลากกรอบ</label>
       <select id="pickTarget" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);color:var(--text);padding:9px 11px;font-family:var(--font)">
@@ -3510,7 +3535,7 @@ function showToast(msg,type){var t=document.getElementById('toast');t.textConten
    อ่านเอกสารอัตโนมัติ
    บาร์โค้ดก่อน ถ้าไม่ได้ค่อย OCR แล้วเทียบกับรายการอ้างอิง
    ============================================================ */
-var BUILD_TAG = '2.14.0-b27';
+var BUILD_TAG = '2.14.0-b29';
 var _types = null, _readAbort = null, _lastPdfJs = null, _lastFileName = '';
 /* เก็บไบต์ต้นฉบับไว้ด้วย
    pdf.js อาจถูกปิดหรือใช้ไม่ได้เมื่อถึงตอนบันทึก
@@ -3694,8 +3719,17 @@ async function runAutoRead() {
     var results = await DocScan.Reader.readAllPages(_lastPdfJs, type, {
       signal: _readAbort.signal,
       ocrLevel: document.getElementById('ocrLevel').value,
-      inkRules: document.getElementById('chkInk').value === '1'
-        ? (DocScan.Ink.loadRules()[key] || null) : null,
+      /* ไม่มีกฎที่ใช้ได้เลย = ส่ง null ไป
+         ตัวอ่านจะข้ามการเรนเดอร์เพิ่มของทุกหน้าไปเลย
+         ถ้าส่งออบเจกต์ว่างไป มันจะยังเรนเดอร์แล้วไม่ได้อะไรกลับมา */
+      inkRules: (function () {
+        if (document.getElementById('chkInk').value !== '1') return null;
+        var r = DocScan.Ink.loadRules()[key] || {};
+        var usable = Object.keys(r).filter(function (k) {
+          return r[k] && r[k].region;
+        });
+        return usable.length ? r : null;
+      })(),
       checkInk: DocScan.Ink.checkPage,
       onProgress: function (m) { rprog(0.06, m); },
 
@@ -3970,11 +4004,14 @@ async function applyReadResults(results, typeKey) {
 /* ---------------- เลือกพื้นที่อ่านเอง ---------------- */
 var _pickPage = 1, _pickRegions = { barcode: null, ocr: null }, _pickKey = 'cmd';
 
-async function openPicker() {
-  if (!_lastPdfJs) { alert('ยังไม่ได้อัปโหลดไฟล์ PDF'); return; }
-  _pickKey = document.getElementById('docType').value;
+/**
+ * โหลดกรอบและมุมของชนิดเอกสารที่เลือก
+ * แยกออกมาเพื่อให้เรียกซ้ำได้เมื่อเปลี่ยนชนิดกลางคัน
+ */
+function loadPickType(key) {
+  _pickKey = key;
 
-  var t = _types[_pickKey];
+  var t = _types[_pickKey] || {};
   var ink = DocScan.Ink.loadRules()[_pickKey] || {};
   _pickRegions = {
     barcode: t.barcode ? Object.assign({}, t.barcode) : null,
@@ -3987,8 +4024,57 @@ async function openPicker() {
   document.getElementById('pickRotate').value = String(t.rotate || 0);
   document.getElementById('pickCropRot').value =
     (t.cropRotate === undefined || t.cropRotate === 'auto') ? 'auto' : String(t.cropRotate);
-  _pickPage = 1;
   document.getElementById('pickResult').textContent = '';
+
+  /* สวิตช์สะท้อนสถานะจริง: มีกรอบ = ตรวจ, ไม่มีกรอบ = ไม่ตรวจ
+     ไม่ต้องเก็บค่าแยกต่างหาก จะได้ไม่มีทางขัดแย้งกันเอง */
+  document.getElementById('pickChkSig').checked = !!_pickRegions.signature;
+  document.getElementById('pickChkStamp').checked = !!_pickRegions.stamp;
+  updatePickChkUI();
+
+  // ให้ตัวเลือกทั้งสองที่ตรงกันเสมอ ไม่งั้นบันทึกไปคนละชนิดกับที่เห็น
+  document.getElementById('pickDocType').value = _pickKey;
+  document.getElementById('docType').value = _pickKey;
+  var dt = document.getElementById('docTypeText');
+  if (dt) dt.textContent = (_types[_pickKey] || {}).name || _pickKey;
+}
+
+/**
+ * ปรับหน้าจอตามสวิตช์ตรวจ
+ * ไม่ตรวจอะไร = ซ่อนตัวเลือกลากกรอบของอย่างนั้น
+ * เพื่อไม่ให้ลากกรอบที่จะไม่ถูกใช้แล้วงงว่าทำไมไม่มีผล
+ */
+function updatePickChkUI() {
+  var sig = document.getElementById('pickChkSig').checked;
+  var stamp = document.getElementById('pickChkStamp').checked;
+  var sel = document.getElementById('pickTarget');
+
+  Array.prototype.forEach.call(sel.options, function (o) {
+    if (o.value === 'signature') o.disabled = !sig;
+    if (o.value === 'stamp') o.disabled = !stamp;
+  });
+  // ถ้ากำลังเลือกอันที่เพิ่งปิดอยู่ ให้ย้ายกลับไปที่บาร์โค้ด
+  if ((sel.value === 'signature' && !sig) || (sel.value === 'stamp' && !stamp)) {
+    sel.value = 'barcode';
+  }
+
+  var n = (sig ? 1 : 0) + (stamp ? 1 : 0);
+  document.getElementById('pickChkNote').textContent = n
+    ? 'ลากกรอบเฉพาะที่เลือกตรวจ'
+    : 'ไม่ตรวจทั้งสองอย่าง — อ่านเร็วขึ้นเพราะข้ามการเรนเดอร์เพิ่มของทุกหน้า';
+}
+
+async function openPicker() {
+  if (!_lastPdfJs) { alert('ยังไม่ได้อัปโหลดไฟล์ PDF'); return; }
+
+  // เติมรายการชนิดเอกสารจากค่าจริง ไม่ใช่เขียนตายตัวใน HTML
+  var sel = document.getElementById('pickDocType');
+  sel.innerHTML = Object.keys(_types).map(function (k) {
+    return '<option value="' + esc(k) + '">' + esc(_types[k].name || k) + '</option>';
+  }).join('');
+
+  loadPickType(document.getElementById('docType').value);
+  _pickPage = 1;
   document.getElementById('dlgPick').showModal();
   await drawPick();
 }
@@ -4154,6 +4240,22 @@ document.getElementById('btnSaveSettings').addEventListener('click', async funct
 
     // กรอบลายเซ็นและตราเก็บแยก เพราะเป็นคนละเรื่องกับการอ่านเลข
     // ลบกรอบทิ้ง = ไม่ต้องตรวจอย่างนั้นสำหรับชนิดนี้
+    /* สวิตช์เป็นตัวตัดสินว่าจะเก็บกฎไหม
+       ปิดแล้วต้องลบกฎเดิมทิ้งด้วย ไม่งั้นจะยังตรวจอยู่ทั้งที่ปิดไปแล้ว */
+    var wantSig = document.getElementById('pickChkSig').checked;
+    var wantStamp = document.getElementById('pickChkStamp').checked;
+
+    /* เปิดสวิตช์แต่ยังไม่ได้ลากกรอบ = ตั้งใจจะตรวจแต่จะไม่มีอะไรถูกตรวจ
+       ต้องบอกก่อน ไม่ใช่บันทึกแล้วปล่อยให้เข้าใจผิดว่าตรวจอยู่ */
+    var missing = [];
+    if (wantSig && !_pickRegions.signature) missing.push('ลายเซ็น');
+    if (wantStamp && !_pickRegions.stamp) missing.push('ตราประทับ');
+    if (missing.length) {
+      alert('เลือกตรวจ' + missing.join('และ') + ' แต่ยังไม่ได้ลากกรอบ\n\n' +
+            'ลากกรอบก่อน หรือเอาเครื่องหมายถูกออกถ้าไม่ต้องการตรวจ');
+      return;
+    }
+
     var cur = DocScan.Ink.loadRules()[_pickKey] || {};
     var patch = {};
     if (_pickRegions.signature) {
@@ -4303,6 +4405,26 @@ document.getElementById('btnSaveSettings').addEventListener('click', async funct
     document.getElementById('pickSave').click();
     document.getElementById('dlgPick').close();
     setTimeout(function () { document.getElementById('btnRead').click(); }, 100);
+  });
+
+  ['pickChkSig', 'pickChkStamp'].forEach(function (id) {
+    document.getElementById(id).addEventListener('change', function () {
+      var key = id === 'pickChkSig' ? 'signature' : 'stamp';
+      if (!this.checked) {
+        // ปิดการตรวจ = ลบกรอบทิ้ง เพราะกรอบคือตัวบอกว่าตรวจหรือไม่
+        _pickRegions[key] = null;
+      }
+      updatePickChkUI();
+      drawPick();
+    });
+  });
+
+  document.getElementById('pickDocType').addEventListener('change', async function () {
+    /* เปลี่ยนชนิดแล้วต้องโหลดกรอบของชนิดนั้นมาแทน
+       กรอบที่ลากค้างไว้เป็นของชนิดเดิม ใช้กับชนิดใหม่ไม่ได้ */
+    loadPickType(this.value);
+    await drawPick();
+    showToast('เปลี่ยนเป็น ' + (_types[_pickKey].name || _pickKey), 'success');
   });
 
   document.getElementById('pickBcTest').addEventListener('click', async function () {
