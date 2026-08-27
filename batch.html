@@ -3708,7 +3708,7 @@ function showToast(msg,type){var t=document.getElementById('toast');t.textConten
    อ่านเอกสารอัตโนมัติ
    บาร์โค้ดก่อน ถ้าไม่ได้ค่อย OCR แล้วเทียบกับรายการอ้างอิง
    ============================================================ */
-var BUILD_TAG = '2.15.0-b8';
+var BUILD_TAG = '2.15.0-b10';
 var _types = null, _readAbort = null, _lastPdfJs = null, _lastFileName = '';
 /* เก็บไบต์ต้นฉบับไว้ด้วย
    pdf.js อาจถูกปิดหรือใช้ไม่ได้เมื่อถึงตอนบันทึก
@@ -3751,9 +3751,6 @@ function initReader() {
     showCustomHint();
   });
 
-  var cur = DocScan.Templates.getTemplate(sel.value);
-  var dt = document.getElementById('docTypeText');
-  if (dt) dt.textContent = cur ? cur.name : 'ยังไม่มีเทมเพลต — กดตั้งค่าการอ่าน';
   showCustomHint();
   document.getElementById('btnRead').addEventListener('click', runAutoRead);
   document.getElementById('btnPick').addEventListener('click', openPicker);
@@ -3793,11 +3790,22 @@ function setCsvStatus(state, count, ts, msg) {
 }
 
 /** บอกให้รู้ว่าชนิดที่เลือกอยู่ใช้ค่าที่ตั้งเองหรือค่าตั้งต้น */
+/**
+ * แสดงว่าเทมเพลตที่ใช้อยู่พร้อมอ่านอะไรได้บ้าง
+ *
+ * ต้องเป็นที่เดียวที่เขียนทั้งชื่อและสถานะ
+ * เดิมมีสามจุดเขียนชื่อเองแยกกันแล้วไม่มีจุดไหนอัปเดตสถานะ
+ * บรรทัดจึงค้างเป็นของเทมเพลตเดิม แล้วชื่อกับสถานะไม่ตรงกัน
+ */
 function showCustomHint() {
   var el = document.getElementById('customHint');
   if (!el) return;
 
   var tpl = DocScan.Templates.getTemplate(document.getElementById('docType').value);
+
+  // ชื่อกับสถานะต้องมาจากเทมเพลตเดียวกันเสมอ
+  var dt = document.getElementById('docTypeText');
+  if (dt) dt.textContent = tpl ? tpl.name : 'ยังไม่มีเทมเพลต';
   if (!tpl) {
     el.className = 'csvst warn';
     el.textContent = 'ยังไม่ได้ตั้งค่าการอ่าน — กดปุ่ม "ตั้งค่าการอ่าน" ก่อน';
@@ -4175,11 +4183,17 @@ async function applyReadResults(results, typeKey) {
     }
     first.crossVerified = (cls.reason === 'cross_verified');
     first.candidateNotes = cls.candidateNotes || [];
-    first.candidates = (cls.candidates && cls.candidates.length)
-      ? cls.candidates
-      : (oc && oc.candidates && oc.candidates.length > 1
-          ? oc.candidates.slice(0, 3).map(function (c) { return c.value; })
-          : []);
+    /* ตัวเลือกต้องมาจากผลจัดระดับเท่านั้น
+     *
+     * เดิมถ้าตัวจัดระดับไม่ได้ให้ตัวเลือกมา จะไปหยิบผลโหวตของ OCR มาใส่เอง
+     * แถวที่ยืนยันสองทางแล้ว (บาร์โค้ดตรงกับ OCR) จึงยังถูกบังคับให้เลือก
+     * ทั้งที่บาร์โค้ดยืนยันไปแล้วว่าตัวไหนถูก
+     *
+     * ตัวจัดระดับเป็นตัวเดียวที่รู้ว่าเรื่องนี้ต้องให้คนตัดสินหรือไม่
+     * ถ้ามันบอกว่าเขียว แปลว่าจบแล้ว ไม่ต้องถามอีก
+     */
+    first.candidates = (cls.tier !== 'green' && cls.candidates && cls.candidates.length)
+      ? cls.candidates : [];
 
     if (d.value) {
       /* ช่องนี้ต้องเป็นเลข Reference ที่ใช้ตั้งชื่อไฟล์ ไม่ใช่ค่าบาร์โค้ดดิบ
@@ -4301,8 +4315,7 @@ function loadPickType(id) {
 
   document.getElementById('pickDocType').value = id;
   document.getElementById('docType').value = id;
-  var dt = document.getElementById('docTypeText');
-  if (dt) dt.textContent = tpl.name;
+  showCustomHint();
   document.getElementById('pickResult').innerHTML =
     '<span class="pk-note">กดปุ่มทดสอบเพื่อดูว่ากรอบถูกไหม</span>';
   // ปิดแผงลอยเมื่อเปลี่ยนเทมเพลต ผลของเทมเพลตเก่าใช้กับอันใหม่ไม่ได้
@@ -4622,8 +4635,7 @@ function savePickTemplate() {
   _types[tpl.id] = DocScan.Templates.toReaderType(tpl);
   _pickDirty = false;
   document.getElementById('pkFootNote').textContent = 'บันทึกแล้ว';
-  var dt = document.getElementById('docTypeText');
-  if (dt) dt.textContent = tpl.name;
+  showCustomHint();
   return true;
 }
 
@@ -4838,7 +4850,7 @@ async function runPickTest() {
     DocScan.Templates.upsertTemplate(tpl);
     refreshTplList();
     $('pickDocType').value = tpl.id;
-    var dt = $('docTypeText'); if (dt) dt.textContent = name;
+    showCustomHint();
     showToast('เปลี่ยนชื่อเป็น "' + name + '"', 'success');
   });
 
