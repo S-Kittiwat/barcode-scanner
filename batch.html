@@ -811,6 +811,9 @@ window.dispatchEvent(new Event('docscan-ready'));
         ตรวจย้อนหลังไม่ได้ว่าใบไหนใช้เป็นหลักฐานได้
       </div>
       <div class="dupbanner ok" id="learnBanner" style="display:none"></div>
+      <!-- บันทึกไฟล์สำเร็จแต่ตารางสถานะไม่อัปเดต
+           เอกสารจะไม่โผล่ในหน้าส่ง ต้องค้างไว้จนกว่าจะแก้ -->
+      <div class="dupbanner bad" id="syncWarn" style="display:none"></div>
       <div class="dupbanner" id="dupBanner" style="display:none"></div>
       <div class="filterbar" id="filterBar" style="display:none"></div>
       <div id="tableWrap" style="display:none">
@@ -3785,7 +3788,7 @@ function showToast(msg,type){var t=document.getElementById('toast');t.textConten
    อ่านเอกสารอัตโนมัติ
    บาร์โค้ดก่อน ถ้าไม่ได้ค่อย OCR แล้วเทียบกับรายการอ้างอิง
    ============================================================ */
-var BUILD_TAG = '2.15.0-b11';
+var BUILD_TAG = '2.15.0-b12';
 var _types = null, _readAbort = null, _lastPdfJs = null, _lastFileName = '';
 /* เก็บไบต์ต้นฉบับไว้ด้วย
    pdf.js อาจถูกปิดหรือใช้ไม่ได้เมื่อถึงตอนบันทึก
