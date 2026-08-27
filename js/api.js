@@ -158,8 +158,26 @@ export async function uploadBatch(url, files, opts = {}) {
   }
   if (cur.length) chunks.push(cur);
 
-  for (const chunk of chunks) {
+  const totalBytes = files.reduce((n, f) => n + ((f.image || '').length), 0);
+  let sentBytes = 0;
+
+  for (let ci = 0; ci < chunks.length; ci++) {
+    const chunk = chunks[ci];
     if (o.signal && o.signal.aborted) break;
+
+    /* แจ้งก่อนเริ่มส่งด้วย ไม่ใช่แจ้งเฉพาะตอนชุดเสร็จ
+     *
+     * ไฟล์จำนวนน้อยอาจมีแค่ 2 ชุด ถ้าแจ้งตอนเสร็จอย่างเดียว
+     * จะได้ข้อมูลแค่ 2 จุด ซึ่งประมาณเวลาไม่ทันก่อนงานจะจบ
+     * และระหว่างรอชุดแรกจะเงียบสนิทจนดูเหมือนค้าง
+     */
+    const chunkBytes = chunk.reduce((n, f) => n + ((f.image || '').length), 0);
+    if (o.onProgress) {
+      o.onProgress(done, files.length, {
+        phase: 'start', chunk: ci + 1, chunks: chunks.length,
+        sentBytes, totalBytes, chunkBytes
+      });
+    }
 
     try {
       const res = await apiFetch(url, {
@@ -187,7 +205,13 @@ export async function uploadBatch(url, files, opts = {}) {
     }
 
     done += chunk.length;
-    if (o.onProgress) o.onProgress(done, files.length);
+    sentBytes += chunkBytes;
+    if (o.onProgress) {
+      o.onProgress(done, files.length, {
+        phase: 'done', chunk: ci + 1, chunks: chunks.length,
+        sentBytes, totalBytes, chunkBytes
+      });
+    }
   }
 
   /* ลองซ้ำเฉพาะที่ล้มเหลว โดยส่งทีละไฟล์
