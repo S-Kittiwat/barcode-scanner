@@ -635,6 +635,63 @@ export function fixLoscamDigits(value) {
  */
 export const OCR_DPIS = { fast: [400], accurate: [300, 350, 400] };
 
+/**
+ * อ่านโดยไม่มีรูปแบบกำหนดไว้
+ *
+ * เอาข้อความที่ OCR เห็นมาหาส่วนที่หน้าตาเหมือนเลขเอกสารที่สุด
+ * ยาวพอ มีตัวเลขเป็นหลัก และไม่ใช่วันที่หรือปี
+ *
+ * ทำแบบนี้เพื่อให้ใช้งานได้ทันทีโดยไม่ต้องตั้งค่าอะไร
+ * ถ้าอ่านผิดบ่อยค่อยไปตั้งรูปแบบในขั้นสูง
+ */
+export function guessDocNumber(text) {
+  const raw = String(text || '').toUpperCase();
+  // ตัดช่องว่างระหว่างตัวอักษรกับตัวเลขออก เช่น "T 10075206"
+  const t = raw.replace(/([A-Z])\s+(\d)/g, '$1$2');
+
+  /* คำที่อยู่หน้าเลขแต่ไม่ใช่ส่วนหนึ่งของเลข
+     เจอจากเอกสารจริง เช่น "DO : 4009121114" */
+  const NOT_PREFIX = ['DO', 'NO', 'REF', 'PO', 'ID', 'TEL', 'FAX'];
+
+  const cands = [];
+  const re = /([A-Z]{1,3})?\s*(\d{5,12})/g;
+  let m;
+  while ((m = re.exec(t))) {
+    let prefix = m[1] || '';
+    const digits = m[2];
+
+    if (NOT_PREFIX.indexOf(prefix) >= 0) prefix = '';
+
+    let score = 0;
+    if (prefix) score += 5;                        // มีตัวอักษรนำติดกับเลข = น่าจะใช่
+    if (digits.length >= 7 && digits.length <= 10) score += 3;
+    if (digits.length >= 5 && digits.length <= 6) score += 1;
+    if (looksLikeDate(digits)) score -= 20;        // วันที่ไม่ใช่เลขเอกสารแน่นอน
+    if (/^0+$/.test(digits)) score -= 20;
+    if (digits.length > 10) score -= 3;            // ยาวเกินไปมักเป็นเลขอ้างอิงอื่น
+
+    cands.push({ value: prefix + digits, score, prefix, digits });
+  }
+
+  if (!cands.length) return '';
+  cands.sort((a, b) => b.score - a.score || b.digits.length - a.digits.length);
+
+  /* ต้องมั่นใจพอสมควรถึงจะตอบ
+     เดาผิดแล้วเอาไปตั้งชื่อไฟล์ แย่กว่าตอบว่าอ่านไม่ได้แล้วให้คนกรอก */
+  return cands[0].score >= 3 ? cands[0].value : '';
+}
+
+/** เลขที่หน้าตาเหมือนวันที่ ไม่ควรถูกเอาไปตั้งชื่อไฟล์ */
+function looksLikeDate(d) {
+  if (d.length === 8) {
+    const y1 = +d.slice(0, 4), m1 = +d.slice(4, 6), d1 = +d.slice(6, 8);
+    if (y1 >= 1990 && y1 <= 2100 && m1 >= 1 && m1 <= 12 && d1 >= 1 && d1 <= 31) return true;
+    const d2 = +d.slice(0, 2), m2 = +d.slice(2, 4), y2 = +d.slice(4, 8);
+    if (y2 >= 1990 && y2 <= 2100 && m2 >= 1 && m2 <= 12 && d2 >= 1 && d2 <= 31) return true;
+  }
+  return false;
+}
+
 export async function readOcr(page, type, onProgress, level) {
   if (!type.ocr) return null;
   const worker = await ocrWorker(onProgress);
@@ -725,7 +782,11 @@ export async function readOcr(page, type, onProgress, level) {
           const text = (data.text || '').replace(/\s+/g, '');
           const conf = wordConfidence(data);
           if (!firstRaw) { firstRaw = text; firstConf = conf; }
-          let value = pattern ? applyTemplate(text.match(pattern), type.ocrTemplate) : text;
+          /* ไม่ได้ตั้งรูปแบบไว้ = ให้ระบบเดาเอาเอง
+             ใช้งานได้ทันทีโดยไม่ต้องตั้งค่า ถ้าอ่านผิดค่อยไปตั้งในขั้นสูง */
+          let value = pattern
+            ? applyTemplate(text.match(pattern), type.ocrTemplate)
+            : guessDocNumber(text);
           // แก้หลักที่อ่านผิดตามโครงสร้างของเลขชนิดนั้น ก่อนนับโหวต
           /* แก้เลขตามโครงสร้างที่เรียนจากตัวอย่างของเทมเพลตนั้น
            *
