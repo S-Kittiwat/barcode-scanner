@@ -3708,7 +3708,7 @@ function showToast(msg,type){var t=document.getElementById('toast');t.textConten
    อ่านเอกสารอัตโนมัติ
    บาร์โค้ดก่อน ถ้าไม่ได้ค่อย OCR แล้วเทียบกับรายการอ้างอิง
    ============================================================ */
-var BUILD_TAG = '2.15.0-b7';
+var BUILD_TAG = '2.15.0-b8';
 var _types = null, _readAbort = null, _lastPdfJs = null, _lastFileName = '';
 /* เก็บไบต์ต้นฉบับไว้ด้วย
    pdf.js อาจถูกปิดหรือใช้ไม่ได้เมื่อถึงตอนบันทึก
@@ -3901,6 +3901,8 @@ function rprog(frac, text) {
 
 async function runAutoRead() {
   if (!_lastPdfJs) { alert('ยังไม่ได้อัปโหลดไฟล์ PDF'); return; }
+
+  var t0 = Date.now();   // ใช้บอกเวลาที่ใช้ทั้งหมดตอนอ่านเสร็จ
   // ปิดหน้าตั้งค่าก่อนเริ่มอ่าน จะได้เห็นความคืบหน้าและผลลัพธ์
   var dlgP = document.getElementById('dlgPick');
   if (dlgP && dlgP.open) dlgP.close();
@@ -3996,7 +3998,10 @@ async function applyReadResults(results, typeKey) {
    *
    * วัดกับเอกสารจริง 20 หน้า: จาก 2/20 เป็น 18/20 โดยไม่ต้องตั้งค่า
    */
-  if (!type.ocrPattern) {
+  // อ่านเทมเพลตที่ใช้จริง ฟังก์ชันนี้รับมาเป็นรหัส ไม่ใช่ตัวออบเจกต์
+  var usedTpl = DocScan.Templates.getTemplate(typeKey);
+
+  if (usedTpl && !usedTpl.ocrPattern) {
     var learned = DocScan.Pattern.learnFromReadings(
       results.map(function (r) { return r.value; }).filter(Boolean));
 
@@ -4015,6 +4020,9 @@ async function applyReadResults(results, typeKey) {
       }
       _learnedPattern = learned;
     }
+  } else {
+    // ตั้งรูปแบบไว้แล้ว ไม่ต้องเดา และไม่ต้องขึ้นแบนเนอร์
+    _learnedPattern = null;
   }
 
   var docs = DocScan.Reader.groupPages(results);
