@@ -1099,13 +1099,90 @@ var CSV_CACHE_TTL = 30 * 60 * 1000; // 30 นาที
 function loadCSV() {
   setCsvStatus('loading');
   apiPost({ action: 'refsStatus' }).then(function (r) {
+    var wasOffline = !csvLoaded;
     csvLoaded = true;
     _refsMeta = r;
     setCsvStatus('ready', r.rows, new Date(r.updated_at).getTime());
+
+    /* รายการอ้างอิงเพิ่งพร้อม แต่มีเอกสารที่อ่านไปก่อนหน้าแล้ว
+       ต้องเทียบให้ย้อนหลัง ไม่ใช่ปล่อยให้เสียเปล่า
+       ไม่งั้นคนต้องอ่านไฟล์ใหม่ทั้งชุด ซึ่งเสียเวลาหลายนาที */
+    if (wasOffline && rows.length && rows.some(function (x) { return !x.doc; })) {
+      offerRematch();
+    }
   }).catch(function (err) {
     setCsvStatus('error', 0, 0, err && err.message);
     showToast('ตรวจรายการอ้างอิงไม่สำเร็จ', 'error');
+
+    /* ลองใหม่เองเป็นระยะ คนไม่ต้องมานั่งกดเอง
+       เพราะมักเป็นเรื่องเน็ตสะดุดชั่วคราว ไม่ใช่พังถาวร */
+    scheduleRefsRetry();
   });
+}
+
+var _refsRetry = null, _refsTries = 0;
+
+function scheduleRefsRetry() {
+  if (_refsRetry) return;
+  _refsTries++;
+  // ห่างขึ้นเรื่อย ๆ แต่ไม่เกิน 1 นาที จะได้ไม่ถล่มเซิร์ฟเวอร์
+  var wait = Math.min(60000, 5000 * Math.pow(2, _refsTries - 1));
+  setCsvStatus('error', 0, 0, 'จะลองใหม่ใน ' + Math.round(wait / 1000) + ' วินาที');
+  _refsRetry = setTimeout(function () {
+    _refsRetry = null;
+    loadCSV();
+  }, wait);
+}
+
+/**
+ * เทียบเอกสารที่อ่านไปแล้วกับรายการอ้างอิงที่เพิ่งมา
+ *
+ * ใช้เลขที่อ่านได้อยู่แล้ว ไม่ต้องอ่านเอกสารใหม่
+ * การอ่านใหม่ทั้งชุดใช้เวลาหลายนาที ส่วนการเทียบใช้ไม่กี่วินาที
+ */
+async function offerRematch() {
+  var pending = rows.filter(function (r) {
+    return !r.doc && (r.editVals.refNo || r.barcode);
+  });
+  if (!pending.length) return;
+
+  if (!confirm('รายการอ้างอิงพร้อมใช้แล้ว\n\n' +
+      'มีเอกสาร ' + pending.length + ' ใบที่อ่านไปก่อนหน้านี้และยังไม่ได้เทียบ\n\n' +
+      'เทียบให้เลยไหม (ไม่ต้องอ่านเอกสารใหม่)')) return;
+
+  await rematchRows(pending);
+}
+
+async function rematchRows(list) {
+  var keys = [];
+  list.forEach(function (r) {
+    if (r.editVals.refNo) keys.push(r.editVals.refNo);
+    if (r.barcode && r.barcode !== r.editVals.refNo) keys.push(r.barcode);
+  });
+  if (!keys.length) return;
+
+  showToast('กำลังเทียบ ' + list.length + ' ใบ...', 'info');
+  try {
+    var idx = await fetchRefs(keys);
+    var hit = 0;
+    list.forEach(function (r) {
+      var k = r.editVals.refNo || r.barcode;
+      var d = DocScan.searchCSV(idx, k) ||
+              (r.barcode ? DocScan.searchCSV(idx, r.barcode) : null);
+      if (!d) return;
+      // บาร์โค้ดเป็นรหัสภายใน ต้องแปลงเป็นเลข Reference ก่อนตั้งชื่อไฟล์
+      if (d.ref_no && !r.editVals.refNo) r.editVals.refNo = d.ref_no;
+      onBarcodeChange(r.id, r.editVals.refNo || r.barcode);
+      hit++;
+    });
+    renderTable();
+    updateSubmitBtn();
+    showToast(hit ? ('เทียบสำเร็จ ' + hit + ' ใบ')
+                  : 'ไม่พบใบไหนในรายการอ้างอิง',
+              hit ? 'success' : 'warn');
+  } catch (e) {
+    showToast('เทียบไม่สำเร็จ: ' + (e.message || e), 'error');
+  }
 }
 
 var _refsMeta = null;
@@ -3708,7 +3785,7 @@ function showToast(msg,type){var t=document.getElementById('toast');t.textConten
    อ่านเอกสารอัตโนมัติ
    บาร์โค้ดก่อน ถ้าไม่ได้ค่อย OCR แล้วเทียบกับรายการอ้างอิง
    ============================================================ */
-var BUILD_TAG = '2.15.0-b10';
+var BUILD_TAG = '2.15.0-b11';
 var _types = null, _readAbort = null, _lastPdfJs = null, _lastFileName = '';
 /* เก็บไบต์ต้นฉบับไว้ด้วย
    pdf.js อาจถูกปิดหรือใช้ไม่ได้เมื่อถึงตอนบันทึก
@@ -3765,15 +3842,39 @@ function initReader() {
  * ซึ่งไม่บอกว่าต้องรอนานแค่ไหนหรือจะรู้ได้ยังไงว่าพร้อมแล้ว
  */
 var _csvState = 'loading';
+/**
+ * บอกอายุเป็นหน่วยที่อ่านเข้าใจ
+ * "4342 นาทีที่แล้ว" ไม่ช่วยให้รู้ว่าเก่าแค่ไหน
+ */
+function thaiAgo(ms) {
+  var m = Math.round(ms / 60000);
+  if (m < 1) return 'เมื่อครู่นี้';
+  if (m < 60) return 'เมื่อ ' + m + ' นาทีที่แล้ว';
+  var h = Math.round(m / 60);
+  if (h < 24) return 'เมื่อ ' + h + ' ชั่วโมงที่แล้ว';
+  var d = Math.round(h / 24);
+  if (d < 7) return 'เมื่อ ' + d + ' วันที่แล้ว';
+  return 'เมื่อ ' + Math.round(d / 7) + ' สัปดาห์ที่แล้ว';
+}
+
 function setCsvStatus(state, count, ts, msg) {
   _csvState = state;
   var el = document.getElementById('csvStatus');
   if (!el) return;
   if (state === 'ready') {
-    var age = ts ? Math.round((Date.now() - ts) / 60000) : 0;
+    /* บอกเป็นหน่วยที่อ่านเข้าใจ
+       "4342 นาทีที่แล้ว" ไม่ช่วยให้รู้ว่าเก่าแค่ไหน */
+    var age = ts ? Date.now() - ts : 0;
     el.className = 'csvst ok';
     el.textContent = 'รายการอ้างอิงพร้อมใช้ ' + (count || 0).toLocaleString() + ' รายการ' +
-      (age > 1 ? ' · อัปเดตเมื่อ ' + age + ' นาทีที่แล้ว' : '');
+      (age ? ' · อัปเดต' + thaiAgo(age) : '');
+
+    /* รายการเก่าเกินไปคือความเสี่ยงที่มองไม่เห็น
+       เอกสารที่ออกหลังจากนั้นจะเทียบไม่เจอ แล้วดูเหมือนไม่มีในระบบ */
+    if (age > 2 * 86400000) {
+      el.className = 'csvst warn';
+      el.textContent += ' — เก่ากว่า 2 วัน เอกสารใหม่อาจเทียบไม่เจอ';
+    }
   } else if (state === 'error') {
     el.className = 'csvst bad';
     el.textContent = 'โหลดรายการอ้างอิงไม่สำเร็จ' + (msg ? ' — ' + msg : '') +
@@ -3907,6 +4008,40 @@ function rprog(frac, text) {
   document.getElementById('rtext').textContent = text;
 }
 
+/**
+ * รอให้รายการอ้างอิงพร้อม
+ *
+ * คืน true ถ้าพร้อมทันเวลา
+ * ระหว่างรอจะบอกความคืบหน้า ไม่ปล่อยให้เงียบจนดูเหมือนค้าง
+ */
+function waitForRefs(maxMs) {
+  if (csvLoaded) return Promise.resolve(true);
+
+  var btn = document.getElementById('btnRead');
+  var old = btn.textContent;
+  btn.disabled = true;
+
+  return new Promise(function (resolve) {
+    var t0 = Date.now();
+    var iv = setInterval(function () {
+      if (csvLoaded) { finish(true); return; }
+      var left = Math.ceil((maxMs - (Date.now() - t0)) / 1000);
+      if (left <= 0) { finish(false); return; }
+      btn.textContent = 'รอรายการอ้างอิง… ' + left + ' วินาที';
+    }, 500);
+
+    function finish(ok) {
+      clearInterval(iv);
+      btn.disabled = false;
+      btn.textContent = old;
+      resolve(ok);
+    }
+
+    // ถ้ายังไม่เคยเริ่มโหลด หรือโหลดพลาดไปแล้ว ให้ลองใหม่ทันที
+    if (_csvState !== 'loading') loadCSV();
+  });
+}
+
 async function runAutoRead() {
   if (!_lastPdfJs) { alert('ยังไม่ได้อัปโหลดไฟล์ PDF'); return; }
 
@@ -3914,11 +4049,18 @@ async function runAutoRead() {
   // ปิดหน้าตั้งค่าก่อนเริ่มอ่าน จะได้เห็นความคืบหน้าและผลลัพธ์
   var dlgP = document.getElementById('dlgPick');
   if (dlgP && dlgP.open) dlgP.close();
+  /* รอให้รายการอ้างอิงพร้อมก่อน แทนที่จะถามแล้วปล่อยผ่าน
+     อ่านไปโดยไม่มีรายการอ้างอิงแปลว่าต้องมาเทียบทีหลังทุกใบ
+     ซึ่งเสียเวลากว่ารอสักครู่ตอนนี้ */
   if (!csvLoaded) {
-    if (!confirm('ยังไม่มีรายการอ้างอิง\n\n' +
-        'ระบบยังอ่านบาร์โค้ดและ OCR ได้ตามปกติ\n' +
-        'แต่จะแปลงบาร์โค้ดเป็นเลข Reference ไม่ได้ และตรวจสอบความถูกต้องไม่ได้\n\n' +
-        'อ่านต่อเลยไหม')) return;
+    var ok = await waitForRefs(20000);
+    if (!ok) {
+      if (!confirm('รายการอ้างอิงยังโหลดไม่เสร็จ\n\n' +
+          'ถ้าอ่านตอนนี้ ระบบจะแปลงบาร์โค้ดเป็นเลข Reference ไม่ได้\n' +
+          'และตรวจสอบความถูกต้องไม่ได้\n\n' +
+          'เมื่อรายการมาถึง ระบบจะถามให้เทียบย้อนหลังให้เอง\n\n' +
+          'อ่านต่อเลยไหม')) return;
+    }
   }
 
   var btn = document.getElementById('btnRead');
