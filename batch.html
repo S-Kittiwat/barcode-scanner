@@ -426,15 +426,15 @@ td.ro .acc{font-family:var(--mono);font-size:11.5px;color:var(--muted);margin-to
 .readhint{font-size:12px;color:var(--muted)}
 /* หน้าตั้งค่าการอ่าน — จัดเป็นสองคอลัมน์
    เดิมยัดทุกอย่างในแถวเดียวจนตกบรรทัดเมื่อจอแคบ */
-#dlgPick{max-width:1180px;width:96vw}
-.pk-head{display:flex;align-items:flex-start;gap:14px;margin-bottom:14px}
+#dlgPick{max-width:1420px;width:97vw;max-height:94vh}
+.pk-head{display:flex;align-items:flex-start;gap:14px;margin-bottom:11px}
 .pk-title{font-size:17px;font-weight:600}
 .pk-sub{font-size:12.5px;color:var(--muted);margin-top:3px;line-height:1.6}
 .pk-x{margin-left:auto;background:none;border:none;color:var(--muted);
   font-size:19px;cursor:pointer;padding:2px 8px;line-height:1}
 .pk-x:hover{color:var(--text)}
 
-.pk-row{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-bottom:12px}
+.pk-row{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-bottom:10px}
 .pk-row.tight{gap:8px;margin-bottom:9px}
 .pk-row.center{justify-content:center;align-items:center}
 .pk-fld{display:flex;flex-direction:column;gap:4px;min-width:0}
@@ -445,25 +445,38 @@ td.ro .acc{font-family:var(--mono);font-size:11.5px;color:var(--muted);margin-to
 #pickDocType{min-width:230px;border-color:var(--accent);font-weight:600}
 .rbtn.danger{color:var(--danger);border-color:rgba(248,113,113,.45)}
 
-.pk-grid{display:grid;grid-template-columns:1fr 330px;gap:16px;align-items:start}
-@media (max-width:1000px){.pk-grid{grid-template-columns:1fr}}
+/* ให้เอกสารได้พื้นที่มากที่สุด เพราะเป็นสิ่งที่ต้องมองตอนลากกรอบ
+   คอลัมน์ขวาแค่ใส่ค่ากับดูผล ไม่ต้องกว้าง */
+.pk-grid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:14px;align-items:start}
+@media (max-width:1050px){.pk-grid{grid-template-columns:1fr}}
 .pk-left{min-width:0}
 .pk-right{display:flex;flex-direction:column;gap:12px}
 
 .pk-chk{display:flex;gap:16px;align-items:center;flex-wrap:wrap;
   background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);
-  padding:9px 13px;margin-bottom:9px}
+  padding:7px 12px;margin-bottom:8px}
 .pk-chk label{display:flex;align-items:center;gap:6px;font-size:12.5px;cursor:pointer}
 .pk-chk input{width:15px;height:15px;cursor:pointer;accent-color:var(--accent)}
 .pk-note{font-size:11.5px;color:var(--muted);line-height:1.65}
 .pk-chk .pk-note{margin-left:auto}
-.pk-legend{font-size:11.5px;color:var(--muted);margin-bottom:8px;
-  display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.pk-legend{font-size:11px;color:var(--muted);margin-bottom:7px;
+  display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+.pk-legend span[style]{margin-left:8px}
+.pk-legend span[style]:first-child{margin-left:0}
 /* ห้ามใส่ overflow ที่กล่องนี้
    เพราะตำแหน่งลากคิดจากขนาดกล่อง ถ้ามีการเลื่อนภายในจะคลาดทันที */
+/* กล่องเป็นตัวคุมขนาด และเป็นฐานคำนวณตำแหน่งลาก
+   จึงต้องไม่มี overflow และต้องมีสัดส่วนตรงกับภาพเสมอ */
 .pk-canvas{position:relative;background:#fff;border:1px solid var(--border);
-  border-radius:var(--rs);line-height:0;touch-action:none}
-.pk-canvas canvas{display:block;width:100%;height:auto;cursor:crosshair}
+  border-radius:var(--rs);line-height:0;touch-action:none;
+  max-height:calc(94vh - 300px)}
+.pk-left{display:flex;flex-direction:column;min-width:0}
+/* ห้ามใช้ object-fit หรือ max-height ที่ canvas
+   เพราะจะทำให้ภาพที่แสดงไม่เต็มกล่อง แล้วตำแหน่งลากคลาดทันที
+   เนื่องจากการคำนวณอิงขนาดกล่อง ไม่ใช่ขนาดภาพ
+
+   คุมความสูงที่กล่องแทน แล้วให้ canvas เต็มกล่องเสมอ */
+.pk-canvas canvas{display:block;width:100%;height:100%;cursor:crosshair}
 .pkbox{position:absolute;display:none;pointer-events:none;
   border:2px solid;border-radius:2px}
 .pkbox.b{border-color:var(--accent);background:rgba(96,165,250,.14)}
@@ -498,7 +511,7 @@ td.ro .acc{font-family:var(--mono);font-size:11.5px;color:var(--muted);margin-to
 .pk-adv input{width:100%;font-family:var(--mono);font-size:11.5px}
 
 .pk-foot{display:flex;gap:10px;align-items:center;justify-content:flex-end;
-  margin-top:16px;padding-top:14px;border-top:1px solid var(--border)}
+  margin-top:12px;padding-top:11px;border-top:1px solid var(--border)}
 .pk-foot .pk-note{margin-right:auto}
 .pickchk{display:flex;gap:18px;align-items:center;flex-wrap:wrap;
   background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);
@@ -622,7 +635,7 @@ tr.needfix:hover td{background:rgba(248,113,113,.14)}
 .imgnote{font-size:12.5px;color:var(--muted);margin-top:10px;line-height:1.7}
 .pickwrap{position:relative;display:inline-block;line-height:0;border:1px solid var(--border);
   cursor:crosshair;max-width:100%;touch-action:none;background:#fff}
-#pickCanvas{display:block;max-width:100%;height:auto}
+#pickCanvas{display:block;width:100%;height:auto}
 .tsec{border:1px solid var(--border);border-radius:var(--rs);padding:11px;margin-bottom:10px}
 .tlab{font-size:11px;font-family:var(--mono);letter-spacing:.06em;text-transform:uppercase;
   color:var(--muted);margin-bottom:7px}
@@ -745,14 +758,13 @@ window.dispatchEvent(new Event('docscan-ready'));
           <option value="fast">เร็ว — 400 dpi เดียว</option>
         </select>
       </div>
-      <div class="fld" style="min-width:170px">
-        <label>ตรวจลายเซ็น/ตราประทับ</label>
-        <div class="setval" id="chkInkText">—</div>
-        <select id="chkInk" style="display:none">
-          <option value="1">ตรวจ</option>
-          <option value="0">ไม่ตรวจ</option>
-        </select>
-      </div>
+      <!-- ตรวจลายเซ็น/ตราประทับ ย้ายไปอยู่ในหน้าตั้งค่าการอ่านแล้ว
+           เพราะเป็นเรื่องเดียวกับการลากกรอบ ไม่ควรแยกคนละที่
+           เก็บช่องไว้ให้ผู้ดูแลเปลี่ยนค่ามาตรฐานได้เท่านั้น -->
+      <select id="chkInk" style="display:none">
+        <option value="1">ตรวจ</option>
+        <option value="0">ไม่ตรวจ</option>
+      </select>
       <div class="fld" style="min-width:120px">
         <label>สุ่มตรวจ</label>
         <div class="setval" id="samplePctText">—</div>
@@ -762,7 +774,7 @@ window.dispatchEvent(new Event('docscan-ready'));
         <label>&nbsp;</label>
         <button class="rbtn ghost" id="btnSaveSettings">บันทึกค่ามาตรฐาน</button>
       </div>
-      <button class="rbtn ghost" id="btnPick">กำหนดพื้นที่อ่านเอง</button>
+      <button class="rbtn ghost" id="btnPick">ตั้งค่าการอ่าน</button>
     </div>
 
     <div class="csvst" id="customHint"></div>
@@ -930,11 +942,11 @@ window.dispatchEvent(new Event('docscan-ready'));
       </div>
 
       <div class="pk-legend">
-        <span style="color:var(--accent)">■</span> บาร์โค้ด
-        <span style="color:var(--warn)">■</span> เลขที่เอกสาร
-        <span style="color:var(--success)">■</span> ลายเซ็น
-        <span style="color:var(--danger)">■</span> ตราประทับ
-        <span class="pk-note">ลากทับได้เรื่อย ๆ · ลากเล็กมาก = ลบกรอบ</span>
+        <span style="color:var(--accent)">■</span>บาร์โค้ด
+        <span style="color:var(--warn)">■</span>เลขที่
+        <span style="color:var(--success)">■</span>ลายเซ็น
+        <span style="color:var(--danger)">■</span>ตรา
+        <span class="pk-note">ลากเล็กมาก = ลบกรอบ</span>
       </div>
 
       <div class="pk-canvas" id="pickWrap">
@@ -3665,7 +3677,7 @@ function showToast(msg,type){var t=document.getElementById('toast');t.textConten
    อ่านเอกสารอัตโนมัติ
    บาร์โค้ดก่อน ถ้าไม่ได้ค่อย OCR แล้วเทียบกับรายการอ้างอิง
    ============================================================ */
-var BUILD_TAG = '2.15.0-b2';
+var BUILD_TAG = '2.15.0-b4';
 var _types = null, _readAbort = null, _lastPdfJs = null, _lastFileName = '';
 /* เก็บไบต์ต้นฉบับไว้ด้วย
    pdf.js อาจถูกปิดหรือใช้ไม่ได้เมื่อถึงตอนบันทึก
@@ -3810,16 +3822,19 @@ function applySettings() {
   var lock = _settings.can_edit ? '' : '<span class="setlock">กำหนดโดยผู้ดูแล</span>';
   document.getElementById('samplePctText').innerHTML = pct + '%' + lock;
   document.getElementById('ocrLevelText').innerHTML = lvlLabel + lock;
-  document.getElementById('chkInkText').innerHTML =
+  var cit = document.getElementById('chkInkText');
+  if (cit) cit.innerHTML =
     (ink ? 'ตรวจ' : '<span style="color:var(--warn)">ไม่ตรวจ</span>') + lock;
 
   // ผู้ดูแลแก้ได้ในหน้านี้เลย คนอื่นเห็นเป็นข้อความอย่างเดียว
   var edit = !!_settings.can_edit;
-  ['samplePct', 'ocrLevel', 'chkInk'].forEach(function (id) {
-    document.getElementById(id).style.display = edit ? '' : 'none';
+  ['samplePct', 'ocrLevel'].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (el) el.style.display = edit ? '' : 'none';
   });
   ['samplePctText', 'ocrLevelText', 'chkInkText'].forEach(function (id) {
-    document.getElementById(id).style.display = edit ? 'none' : '';
+    var el = document.getElementById(id);
+    if (el) el.style.display = edit ? 'none' : '';
   });
   document.getElementById('setAdminBox').style.display = edit ? '' : 'none';
 
@@ -3871,33 +3886,39 @@ async function runAutoRead() {
 
   try {
     var key = document.getElementById('docType').value;
-    var type = _types[key];
-    if (!type) { alert('กรุณาเลือกชนิดเอกสาร'); return; }
 
-    // เตือนครั้งเดียวถ้ายังไม่เคยตั้งค่าชนิดนี้กับเครื่องสแกนที่ใช้อยู่
-    // ค่าตั้งต้นมาจากเอกสารตัวอย่าง ซึ่งอาจวางไม่ตรงกับของแต่ละที่
-    if (!type._custom && !sessionStorage.getItem('warnedPreset:' + key)) {
-      sessionStorage.setItem('warnedPreset:' + key, '1');
-      if (!confirm('ชนิด "' + type.name + '" ยังใช้ค่าตั้งต้นอยู่\n\n' +
-          'ค่าตั้งต้นมาจากเอกสารตัวอย่าง อาจไม่ตรงกับเครื่องสแกนของคุณ\n' +
-          'แนะนำให้กด "กำหนดพื้นที่อ่านเอง" แล้วทดสอบก่อนหนึ่งครั้ง\n\n' +
-          'อ่านด้วยค่าตั้งต้นเลยไหม')) return;
+    /* อ่านเทมเพลตสด ๆ ทุกครั้ง ไม่ใช้ที่เก็บไว้ตอนเปิดหน้า
+       เพราะคนอาจเพิ่งสร้างหรือแก้เทมเพลตในกล่องตั้งค่าไปเมื่อครู่ */
+    var tpl = DocScan.Templates.getTemplate(key);
+    if (!tpl) {
+      var all = DocScan.Templates.loadTemplates();
+      if (!all.length) {
+        alert('ยังไม่มีเทมเพลตเลย\n\nกดปุ่ม "ตั้งค่าการอ่าน" เพื่อสร้างก่อน');
+        return;
+      }
+      // เทมเพลตที่เลือกไว้หายไป ใช้อันแรกแทนแล้วบอกให้รู้
+      tpl = all[0];
+      document.getElementById('docType').value = tpl.id;
+      key = tpl.id;
+      showToast('ใช้เทมเพลต "' + tpl.name + '"', 'success');
+    }
+
+    var type = DocScan.Templates.toReaderType(tpl);
+    _types[key] = type;
+
+    if (!tpl.barcode && !tpl.ocr) {
+      alert('เทมเพลต "' + tpl.name + '" ยังไม่ได้ลากกรอบอะไรเลย\n\n' +
+            'กดปุ่ม "ตั้งค่าการอ่าน" แล้วลากกรอบบาร์โค้ดหรือกรอบเลขที่เอกสารก่อน');
+      return;
     }
 
     var results = await DocScan.Reader.readAllPages(_lastPdfJs, type, {
       signal: _readAbort.signal,
-      ocrLevel: document.getElementById('ocrLevel').value,
-      /* ไม่มีกฎที่ใช้ได้เลย = ส่ง null ไป
-         ตัวอ่านจะข้ามการเรนเดอร์เพิ่มของทุกหน้าไปเลย
-         ถ้าส่งออบเจกต์ว่างไป มันจะยังเรนเดอร์แล้วไม่ได้อะไรกลับมา */
-      inkRules: (function () {
-        if (document.getElementById('chkInk').value !== '1') return null;
-        var r = DocScan.Ink.loadRules()[key] || {};
-        var usable = Object.keys(r).filter(function (k) {
-          return r[k] && r[k].region;
-        });
-        return usable.length ? r : null;
-      })(),
+      ocrLevel: _settings.ocr_level || 'accurate',
+      /* กฎตรวจหมึกมาจากเทมเพลตโดยตรง
+         ไม่มีกรอบ = คืน null ตัวอ่านจะข้ามการเรนเดอร์เพิ่มของทุกหน้าไปเลย */
+      inkRules: (_settings.ink_check === false)
+        ? null : DocScan.Templates.toInkRules(tpl),
       checkInk: DocScan.Ink.checkPage,
       onProgress: function (m) { rprog(0.06, m); },
 
@@ -4238,10 +4259,10 @@ function updatePickChkUI() {
     sel.value = 'barcode';
   }
 
+  // ข้อความสั้น ๆ พอ ยาวไปจะดันให้ตกบรรทัด
   var n = (sig ? 1 : 0) + (stamp ? 1 : 0);
-  document.getElementById('pickChkNote').textContent = n
-    ? 'ลากกรอบเฉพาะที่เลือกตรวจ'
-    : 'ไม่ตรวจทั้งสองอย่าง — อ่านเร็วขึ้นเพราะข้ามการเรนเดอร์เพิ่มของทุกหน้า';
+  document.getElementById('pickChkNote').textContent =
+    n ? 'ลากกรอบเฉพาะที่เลือก' : '';
 }
 
 async function openPicker() {
