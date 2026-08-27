@@ -45,14 +45,15 @@ export const NAV = [
         ]
       },
       {
-        id: 'store', file: 'incoming.html', icon: '📦',
-        title: 'รับและจัดเก็บเอกสาร',
-        desc: 'รับชุดที่ส่งมา ตรวจครบถ้วน แล้วลงทะเบียนเข้ากล่องจัดเก็บ',
+        id: 'store', file: 'receive_batch.html', icon: '📦',
+        title: 'รับเอกสาร',
+        desc: 'ยิงใบปะหน้าเพื่อเปิดชุด แล้วยิงทีละใบเพื่อรับ',
         owner: 'ทีมคลังพาเลท',
         roles: ['warehouse', 'admin'],
         steps: [
-          { file: 'incoming.html', label: 'ชุดที่มาถึง' },
-          { file: 'receive.html',  label: 'ตรวจรับ' }
+          { file: 'receive_batch.html', label: 'รับชุดที่ส่งมา' },
+          { file: 'incoming.html',      label: 'ชุดที่มาถึง' },
+          { file: 'receive.html',       label: 'สแกนเอกสารเข้าระบบ' }
         ]
       }
     ]
