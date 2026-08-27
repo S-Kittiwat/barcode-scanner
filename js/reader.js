@@ -787,7 +787,6 @@ export async function detectType(pdfJs, types, sampleN = 3) {
   for (let p = 1; p <= n; p++) {
     const page = await pdfJs.getPage(p);
     const r = await readBarcode(page, { ...probe, barcodePattern: '' });
-    page.cleanup();
     if (!r.all.length) continue;
     if (r.all.some(t => /^PMNO\d{9}$/.test(t))) return 'cmd';
     if (r.all.some(t => /^[0-9A-F]{6}$/i.test(t))) return 'pcd';
@@ -814,7 +813,6 @@ export async function readAllPages(pdfJs, type, opts = {}) {
     const probe = await renderPage(p1, 60, type.rotate);
     const landscape = probe.width > probe.height;
     probe.width = probe.height = 0;
-    p1.cleanup();
     if (landscape && opts.onProgress) {
       opts.onProgress('เตือน: หน้าออกมาเป็นแนวนอน ถ้าอ่านไม่ได้ให้ลองปรับมุมในหน้าตั้งค่า');
     }
@@ -877,7 +875,14 @@ export async function readAllPages(pdfJs, type, opts = {}) {
     }
 
     res.ms = Date.now() - t0;
-    page.cleanup();
+    /* ไม่เรียก page.cleanup()
+     *
+     * pdf.js เก็บ page object ไว้ใช้ซ้ำตามเลขหน้า
+     * การล้างทรัพยากรจึงกระทบการเรนเดอร์ครั้งถัดไปของหน้าเดียวกัน
+     * ทำให้ภาพที่เปิดดูภายหลังไม่ตรงกับหน้าที่ขอ
+     *
+     * หน่วยความจำที่กินคือ canvas ซึ่งเราคืนเองอยู่แล้วทุกครั้งที่เรนเดอร์เสร็จ
+     */
     results.push(res);
     if (opts.onPage) opts.onPage(res, p, pdfJs.numPages);
     await new Promise(r => setTimeout(r, 0));   // ปล่อยให้หน้าจอวาดใหม่
