@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230f172a'/%3E%3Crect x='8' y='6' width='16' height='20' rx='2' fill='%23f1f5f9'/%3E%3Crect x='11' y='10' width='2' height='12' fill='%230f172a'/%3E%3Crect x='14.5' y='10' width='1' height='12' fill='%230f172a'/%3E%3Crect x='17' y='10' width='2' height='12' fill='%230f172a'/%3E%3Crect x='20.5' y='10' width='1' height='12' fill='%230f172a'/%3E%3C/svg%3E">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DocScan — ติดตามเอกสาร</title>
+<script src="config.js?v=2.14.0"></script>
+<link rel="stylesheet" href="css/auth.css?v=2.14.0">
+<style>
+  body{display:block;padding:0;align-items:stretch}
+  .wrap{max-width:1340px;margin:0 auto;padding:22px 24px 90px}
+
+  .topbar{background:var(--surface);border-bottom:1px solid var(--border);
+    padding:12px 24px;display:flex;align-items:center;gap:18px;flex-wrap:wrap;
+    position:sticky;top:0;z-index:20}
+  .topbar .back{color:var(--accent);text-decoration:none;font-size:13.5px}
+  .tb-title{border-left:1px solid var(--border);padding-left:18px}
+  .tb-name{font-size:16px;font-weight:600}
+  .tb-sub{font-size:12px;color:var(--muted);margin-top:1px}
+  .tb-user{margin-left:auto;text-align:right;font-size:12.5px}
+  .tb-site{font-size:11.5px;color:var(--muted);font-family:var(--mono)}
+
+  /* ช่องค้นหาเป็นพระเอกของหน้านี้ */
+  .hero{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+    padding:22px;margin-bottom:16px}
+  .srow{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  .sbox{flex:1;min-width:280px;position:relative}
+  .sbox input{width:100%;background:var(--surface2);border:1.5px solid var(--accent);
+    border-radius:10px;color:var(--text);font-family:var(--mono);font-size:19px;
+    padding:15px 15px 15px 48px;letter-spacing:.05em;outline:none}
+  .sbox .mag{position:absolute;left:16px;top:50%;transform:translateY(-50%);font-size:18px;opacity:.7}
+  .btn{border:none;border-radius:var(--rs);padding:14px 24px;font-family:var(--font);
+    font-size:14.5px;font-weight:600;cursor:pointer;background:var(--accent);color:#0f172a}
+  .btn.ghost{background:transparent;border:1px solid var(--border);color:var(--text);
+    font-weight:400;padding:10px 16px;font-size:13px}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+  /* ตะกร้า */
+.cart{position:fixed;right:0;top:0;bottom:0;width:300px;z-index:110;
+  background:var(--surface);border-left:1px solid var(--border);
+  display:flex;flex-direction:column;transform:translateX(300px);
+  transition:transform .18s ease}
+.cart.on{transform:translateX(0)}
+.chead{display:flex;align-items:center;gap:10px;padding:14px 16px;
+  border-bottom:1px solid var(--border)}
+.ctitle{font-size:15px;font-weight:600}
+.cbadge{background:var(--accent);color:#0f172a;border-radius:11px;
+  padding:1px 10px;font-family:var(--mono);font-size:13px;font-weight:700}
+.cclear{margin-left:auto;background:none;border:none;color:var(--muted);
+  font-family:var(--font);font-size:12.5px;cursor:pointer;text-decoration:underline}
+.csum{padding:11px 16px;font-size:12px;color:var(--muted);line-height:1.7;
+  border-bottom:1px solid var(--border)}
+.csum .cw{color:var(--warn)} .csum .cbad{color:var(--danger)}
+.clist{flex:1;overflow:auto;padding:8px}
+.citem{position:relative;padding:9px 30px 9px 11px;border-radius:var(--rs);
+  border:1px solid var(--border);margin-bottom:6px;background:var(--surface2)}
+.citem.nofile{border-color:rgba(251,191,36,.45)}
+.cref{font-family:var(--mono);font-size:13px;font-weight:600}
+.ctag{font-family:var(--font);font-size:9.5px;color:var(--warn);
+  border:1px solid var(--warn);border-radius:8px;padding:0 5px;margin-left:6px}
+.csub{font-size:11px;color:var(--muted);margin-top:2px}
+.cdel{position:absolute;right:6px;top:8px;background:none;border:none;
+  color:var(--muted);cursor:pointer;font-size:13px;padding:2px 5px}
+.cdel:hover{color:var(--danger)}
+.cempty{color:var(--muted);font-size:12.5px;text-align:center;padding:26px 14px;line-height:1.8}
+.cfoot{padding:12px 16px;border-top:1px solid var(--border);
+  display:flex;flex-direction:column;gap:8px}
+.cfoot .btn{width:100%;padding:11px}
+body.cart-on .wrap{padding-right:324px}
+
+/* กล่องวางรายการ */
+#dlgPaste{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+  color:var(--text);padding:22px;max-width:520px;width:92vw;margin:auto;inset:0}
+#dlgPaste::backdrop{background:rgba(15,23,42,.82)}
+.ptitle{font-size:16px;font-weight:600;margin-bottom:5px}
+.psub{font-size:12.5px;color:var(--muted);line-height:1.8;margin-bottom:14px}
+#pasteBox{width:100%;height:210px;background:var(--surface2);border:1px solid var(--border);
+  border-radius:var(--rs);color:var(--text);font-family:var(--mono);font-size:13.5px;
+  padding:12px;resize:vertical;line-height:1.8}
+.pcount{font-size:12px;color:var(--muted);margin-top:8px;font-family:var(--mono)}
+.pact{display:flex;gap:10px;justify-content:flex-end;margin-top:16px}
+.addbtn{width:26px;height:26px;border-radius:6px;border:1px solid var(--accent);
+  background:transparent;color:var(--accent);font-size:16px;line-height:1;cursor:pointer}
+.addbtn:hover{background:var(--accent);color:#0f172a}
+.inbag{display:inline-block;width:26px;height:26px;line-height:26px;text-align:center;
+  border-radius:6px;background:var(--success);color:#0f172a;font-weight:700}
+.addall{background:none;border:1px solid var(--border);color:var(--muted);
+  border-radius:6px;padding:3px 7px;font-family:var(--font);font-size:10.5px;cursor:pointer}
+.addall:hover{border-color:var(--accent);color:var(--accent)}
+.toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,20px);z-index:200;
+  background:var(--surface);border:1px solid var(--accent);border-radius:var(--r);
+  padding:11px 20px;font-size:13.5px;opacity:0;pointer-events:none;transition:.18s}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+.zipnote{font-size:12px;color:var(--muted);line-height:1.7}
+.hint{font-size:12.5px;color:var(--muted);margin-top:12px;line-height:1.7}
+  .hint code{font-family:var(--mono);color:var(--accent);background:var(--surface2);
+    padding:1px 7px;border-radius:4px;cursor:pointer}
+
+  .filters{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;
+    padding-top:16px;border-top:1px solid var(--border)}
+  .fld{display:flex;flex-direction:column;gap:5px}
+  .fld label{font-size:11.5px;color:var(--muted)}
+  .fld select,.fld input{background:var(--surface2);border:1px solid var(--border);
+    border-radius:var(--rs);color:var(--text);font-family:var(--font);font-size:13px;padding:8px 11px}
+
+  .kpis{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));margin-bottom:16px}
+  .kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px}
+  .kpi .n{font-family:var(--mono);font-size:25px;font-weight:600;line-height:1.15}
+  .kpi .k{font-size:11.5px;color:var(--muted);margin-top:3px;line-height:1.45}
+  .kpi.bad{border-color:rgba(248,113,113,.5)} .kpi.bad .n{color:var(--danger)}
+  .kpi.warn .n{color:var(--warn)} .kpi.ok .n{color:var(--success)}
+  .kpi.click{cursor:pointer} .kpi.click:hover{border-color:var(--accent)}
+
+  .rhead{display:flex;align-items:baseline;gap:12px;margin-bottom:10px;flex-wrap:wrap}
+  .rhead h2{font-size:14px;font-weight:600}
+  .rhead .c{font-size:12.5px;color:var(--muted);font-family:var(--mono)}
+  .rhead .r{margin-left:auto;display:flex;gap:10px;align-items:center}
+
+  .tw{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{text-align:left;font-size:10.5px;font-family:var(--mono);letter-spacing:.1em;
+    text-transform:uppercase;color:var(--muted);padding:11px 14px;background:var(--surface2);
+    border-bottom:1px solid var(--border);white-space:nowrap}
+  td{padding:12px 14px;border-bottom:1px solid var(--border);vertical-align:middle}
+  tbody tr.main{cursor:pointer}
+  tbody tr.main:hover td{background:var(--surface2)}
+  tbody tr.main.open td{background:var(--surface2)}
+  .mono{font-family:var(--mono)}
+  .ref{font-family:var(--mono);font-size:14px;font-weight:600;letter-spacing:.03em}
+  .sub{font-size:11px;color:var(--muted);font-family:var(--mono);margin-top:2px}
+
+  .pill{display:inline-block;font-size:10.5px;font-family:var(--mono);padding:2px 9px;
+    border-radius:11px;border:1px solid;white-space:nowrap}
+  .p-ok{color:var(--success);border-color:var(--success)}
+  .p-warn{color:var(--warn);border-color:var(--warn)}
+  .p-bad{color:var(--danger);border-color:var(--danger)}
+  .p-mute{color:var(--muted);border-color:var(--border)}
+
+  /* จุดบอกความคืบหน้า อ่านเร็วกว่าตัวหนังสือเมื่อกวาดสายตาทั้งตาราง */
+  .flow{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);margin-top:4px}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--border);flex-shrink:0}
+  .dot.on{background:var(--success)} .dot.now{background:var(--accent)}
+  .dot.late{background:var(--danger)}
+
+  .detail td{background:#16202f;padding:0}
+  .dwrap{padding:20px 24px;display:grid;gap:26px;grid-template-columns:1.15fr 1fr}
+  .dsec h4{font-size:11px;font-family:var(--mono);letter-spacing:.11em;text-transform:uppercase;
+    color:var(--muted);margin-bottom:11px}
+  .kv{display:grid;grid-template-columns:120px 1fr;gap:7px 14px;font-size:13px}
+  .kv .k{color:var(--muted)}
+  .tl{border-left:2px solid var(--border);padding-left:16px;margin-left:5px}
+  .ev{position:relative;padding-bottom:15px;font-size:12.5px}
+  .ev:last-child{padding-bottom:0}
+  .ev::before{content:'';position:absolute;left:-22px;top:4px;width:9px;height:9px;
+    border-radius:50%;background:var(--success);border:2px solid var(--bg)}
+  .ev .t{font-family:var(--mono);font-size:11px;color:var(--muted)}
+  .ev .who{font-size:11.5px;color:var(--muted)}
+  .boxcard{background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);
+    padding:13px 15px;margin-top:12px;display:flex;gap:13px;align-items:center}
+  .boxcard img{width:62px;height:62px;object-fit:cover;border-radius:6px;flex-shrink:0;
+    cursor:zoom-in;border:1px solid var(--border)}
+  .boxcard .ph{width:62px;height:62px;border-radius:6px;background:var(--bg);flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;font-size:21px}
+  .boxcard .bid{font-family:var(--mono);font-size:13.5px;font-weight:600}
+  .boxcard .bl{font-size:12px;color:var(--muted);margin-top:3px;line-height:1.55}
+  .dacts{display:flex;gap:9px;margin-top:14px;flex-wrap:wrap}
+  .dacts a{text-decoration:none;display:inline-block}
+
+  .empty{color:var(--muted);font-size:13.5px;padding:34px;text-align:center;
+    border:1px dashed var(--border);border-radius:var(--r);line-height:1.8}
+  .empty b{color:var(--text);display:block;margin-bottom:6px;font-size:15px}
+  @media (max-width:980px){ .dwrap{grid-template-columns:1fr} th:nth-child(3),td:nth-child(3){display:none} }
+
+/* ── หน้าติดตามเอกสาร ── */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+  gap:12px;margin-bottom:16px}
+.card{background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r);padding:14px 16px}
+.card.bad{border-color:var(--danger)}
+.card.warn{border-color:var(--warn)}
+.card.ok{border-color:var(--success)}
+.cnum{font-family:var(--mono);font-size:27px;font-weight:700;line-height:1.1}
+.card.bad .cnum{color:var(--danger)}
+.card.warn .cnum{color:var(--warn)}
+.card.ok .cnum{color:var(--success)}
+.clab{font-size:12px;color:var(--muted);margin-top:3px}
+
+.toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.tabs{display:flex;gap:7px;flex-wrap:wrap}
+.tab{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+  color:var(--muted);padding:7px 13px;font-family:var(--font);font-size:12.5px;cursor:pointer}
+.tab:hover{border-color:var(--accent)}
+.tab.on{background:var(--accent);border-color:var(--accent);color:#0f172a;font-weight:600}
+.tab b{margin-left:6px;font-family:var(--mono)}
+.grow{flex:1}
+.empty{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+  padding:38px;text-align:center;color:var(--muted);font-size:13.5px}
+
+.chk{width:16px;height:16px;cursor:pointer;accent-color:var(--accent)}
+.ref{font-family:var(--mono);font-size:13.5px;font-weight:600}
+.sub{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.5}
+.sub.note{color:var(--text);opacity:.75;font-style:italic}
+.bad{color:var(--danger)} .warn{color:var(--warn)} .ok{color:var(--success)}
+tr.lv-over td{background:rgba(248,113,113,.07)}
+tr.lv-over td:first-child{box-shadow:inset 3px 0 0 var(--danger)}
+tr.lv-critical td:first-child{box-shadow:inset 3px 0 0 var(--warn)}
+.rtag{display:inline-block;font-size:11.5px;border:1px solid var(--border);
+  border-radius:9px;padding:1px 9px;background:var(--surface2)}
+
+.selbar{position:fixed;left:0;right:0;bottom:0;z-index:130;display:none;
+  background:var(--surface);border-top:1px solid var(--accent);
+  padding:12px 88px 12px 24px;align-items:center;gap:12px;flex-wrap:wrap;
+  box-shadow:0 -6px 20px rgba(0,0,0,.35)}
+.selbar.on{display:flex}
+.selcount{font-size:14px;font-weight:600}
+
+#dlgReason{background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r);color:var(--text);padding:20px;max-width:560px;width:94vw;
+  margin:auto;inset:0;max-height:90vh;overflow:auto}
+#dlgReason::backdrop{background:rgba(15,23,42,.82)}
+.rs-h{display:flex;align-items:flex-start;gap:12px;margin-bottom:16px}
+.rs-t{font-size:16px;font-weight:600}
+.rs-s{font-size:12.5px;color:var(--muted);margin-top:3px;line-height:1.6}
+.rs-x{margin-left:auto;background:none;border:none;color:var(--muted);
+  font-size:18px;cursor:pointer;padding:0 5px}
+.rs-g{margin-bottom:14px}
+.rs-gl{font-size:11.5px;font-weight:600;margin-bottom:6px;
+  text-transform:uppercase;letter-spacing:.04em}
+.rs-gl.warn{color:var(--warn)} .rs-gl.bad{color:var(--danger)}
+.rs-gl.ok{color:var(--success)} .rs-gl.muted{color:var(--muted)}
+.rs-r{display:block;width:100%;text-align:left;background:var(--surface2);
+  border:1px solid var(--border);border-radius:var(--rs);color:var(--text);
+  padding:9px 12px;margin-bottom:5px;font-family:var(--font);font-size:13px;cursor:pointer}
+.rs-r:hover{border-color:var(--accent)}
+.rs-r.on{border-color:var(--accent);background:var(--accent);color:#0f172a;font-weight:600}
+.rs-fld{margin-bottom:12px}
+.rs-fld label{display:block;font-size:11.5px;color:var(--muted);margin-bottom:4px}
+.rs-fld input,.rs-fld select{width:100%;background:var(--surface2);
+  border:1px solid var(--border);border-radius:var(--rs);color:var(--text);
+  padding:9px 11px;font-family:var(--font);font-size:13px}
+.rs-act{display:flex;gap:10px;align-items:center;justify-content:flex-end;
+  margin-top:16px;padding-top:14px;border-top:1px solid var(--border)}
+.rs-act .hint{margin-right:auto;text-align:left}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a class="back" href="home.html">← หน้าหลัก</a>
+  <div class="tb-title">
+    <div class="tb-name">ติดตามเอกสาร</div>
+    <div class="tb-sub" id="scopeInfo">กำลังโหลด…</div>
+  </div>
+  <div class="tb-user">
+    <span id="who">—</span>
+    <div class="tb-site" id="whoSite"></div>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="alert bad" id="alert"></div>
+
+  <!-- เปิดมาต้องเห็นเลยว่ามีอะไรต้องทำ ไม่ต้องค้นหาอะไรก่อน
+       คนที่เปิดหน้านี้ไม่รู้ว่าจะดูอะไร จึงต้องบอกเขาเอง -->
+  <div class="cards" id="cards"></div>
+
+  <div class="toolbar">
+    <div class="tabs" id="tabs"></div>
+    <div class="grow"></div>
+    <span class="hint" id="cnt"></span>
+    <button class="btn ghost" id="btnReload">รีเฟรช</button>
+    <button class="btn ghost" id="btnExcel">Excel</button>
+  </div>
+
+  <div id="view"></div>
+</div>
+
+<!-- แถบเลือกหลายรายการ ลอยล่างจอเพื่อกดได้ทันทีหลังเลือกครบ -->
+<div class="selbar" id="selBar">
+  <span class="selcount" id="selCount">เลือก 0 รายการ</span>
+  <button class="btn ghost" id="btnSelNone">ยกเลิก</button>
+  <div class="grow"></div>
+  <button class="btn" id="btnReason">ระบุเหตุผลที่ค้าง</button>
+</div>
+
+<dialog id="dlgReason">
+  <div class="rs-h">
+    <div>
+      <div class="rs-t">ระบุเหตุผลที่ค้าง</div>
+      <div class="rs-s" id="rsSub">—</div>
+    </div>
+    <button class="rs-x" id="rsClose">✕</button>
+  </div>
+
+  <div id="rsGroups"></div>
+
+  <div class="rs-fld" id="rsSnoozeBox" style="display:none">
+    <label>กลับมาถามใหม่ในอีกกี่วัน</label>
+    <select id="rsSnooze">
+      <option value="3">3 วัน</option>
+      <option value="7" selected>7 วัน</option>
+      <option value="14">14 วัน</option>
+      <option value="30">30 วัน</option>
+    </select>
+  </div>
+
+  <div class="rs-fld">
+    <label>หมายเหตุ (ไม่บังคับ)</label>
+    <input id="rsNote" placeholder="เช่น คุยกับขนส่งแล้ว จะนำกลับสัปดาห์หน้า">
+  </div>
+
+  <div class="rs-act">
+    <span class="hint" id="rsEffect"></span>
+    <button class="btn ghost" id="rsCancel">ยกเลิก</button>
+    <button class="btn" id="rsSave" disabled>บันทึก</button>
+  </div>
+</dialog>
+
+<script type="module">
+
+import { authFetch, requireAuth, installNav, guardPage, logout } from './js/auth.js?v=2.15.0';
+import { STAGES, REASON_GROUPS, reasonsFor, actionOf } from './js/stages.js?v=2.15.0';
+
+const API = DOCSCAN_CONFIG.API_URL;
+const $ = id => document.getElementById(id);
+
+const session = requireAuth();
+if (session) {
+  if (!guardPage(session)) throw new Error('no access');
+  installNav(session, { onLogout: () => logout(API) });
+  $('who').textContent = session.empName || session.empId || '';
+  $('whoSite').textContent = session.site || '';
+}
+
+async function call(action, payload = {}, timeoutMs) {
+  try {
+    return await authFetch(API, { action, ...payload },
+      timeoutMs ? { timeoutMs } : undefined);
+  } catch (err) {
+    if (err.code === 'auth_required') { alert('เซสชันหมดอายุ'); location.href = 'login.html'; }
+    throw err;
+  }
+}
+
+const esc = s => String(s == null ? '' : s)
+  .replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+
+function fmt(v) {
+  if (!v) return '—';
+  const d = new Date(v);
+  if (isNaN(d.getTime())) return String(v);
+  return d.toLocaleDateString('th-TH', { day:'2-digit', month:'short', year:'2-digit' });
+}
+
+/* ---------- สถานะหน้า ---------- */
+let allRows = [], summary = {}, curStage = 'all';
+const selected = new Set();
+
+const STAGE_LABEL = {};
+STAGES.forEach(s => { STAGE_LABEL[s.key] = s; });
+
+const LEVEL = {
+  over:     { label: 'เกินกำหนด', cls: 'bad' },
+  critical: { label: 'ใกล้ครบ',   cls: 'warn' },
+  warn:     { label: 'เฝ้าระวัง', cls: 'warn' },
+  ok:       { label: 'ปกติ',      cls: 'ok' }
+};
+
+/* ---------- โหลด ---------- */
+async function load() {
+  $('view').innerHTML = '<div class="empty">กำลังโหลด…</div>';
+  try {
+    const r = await call('docsFollowup', {}, 60000);
+    if (r.status !== 'ok') throw new Error(r.message || 'โหลดไม่สำเร็จ');
+
+    allRows = r.rows || [];
+    summary = r.summary || {};
+    selected.clear();
+
+    $('scopeInfo').textContent = r.scope === 'all'
+      ? 'ดูได้ทุกไซต์' : ('เฉพาะไซต์ ' + (r.scope || '—'));
+
+    renderCards();
+    renderTabs();
+    render();
+    if (r.truncated) {
+      showAlert('แสดง 500 รายการแรกจากทั้งหมด ' + r.total + ' รายการ');
+    }
+  } catch (e) {
+    $('view').innerHTML = '';
+    showAlert('โหลดไม่สำเร็จ: ' + (e.message || e));
+  }
+}
+
+function showAlert(m) {
+  $('alert').textContent = m;
+  $('alert').className = 'alert bad on';
+}
+
+/* ---------- สรุปด้านบน ---------- */
+function renderCards() {
+  const over = allRows.filter(r => r.level === 'over').length;
+  const crit = allRows.filter(r => r.level === 'critical').length;
+  const answered = allRows.filter(r => r.reason).length;
+
+  /* ตัวเลขที่ต้องเห็นก่อนคือ "เกินกำหนดแล้วกี่ใบ"
+     ไม่ใช่ยอดรวม เพราะยอดรวมไม่บอกว่าต้องทำอะไร */
+  $('cards').innerHTML = `
+    <div class="card bad">
+      <div class="cnum">${over}</div>
+      <div class="clab">เกินกำหนดแล้ว</div>
+    </div>
+    <div class="card warn">
+      <div class="cnum">${crit}</div>
+      <div class="clab">ใกล้ครบกำหนด</div>
+    </div>
+    <div class="card">
+      <div class="cnum">${allRows.length}</div>
+      <div class="clab">ค้างทั้งหมด</div>
+    </div>
+    <div class="card ok">
+      <div class="cnum">${answered}</div>
+      <div class="clab">ระบุเหตุผลแล้ว</div>
+    </div>`;
+}
+
+/* ---------- แท็บตามขั้นตอน ---------- */
+function renderTabs() {
+  const counts = { all: allRows.length };
+  allRows.forEach(r => { counts[r.stage] = (counts[r.stage] || 0) + 1; });
+
+  const tabs = [{ key: 'all', label: 'ทั้งหมด' }]
+    .concat(STAGES.filter(s => !s.optional && counts[s.key])
+      .map(s => ({ key: s.key, label: s.label, owner: s.ownerLabel })));
+
+  if (!counts[curStage]) curStage = 'all';
+
+  $('tabs').innerHTML = tabs.map(t =>
+    `<button class="tab${curStage === t.key ? ' on' : ''}" data-s="${t.key}">
+       ${esc(t.label)}<b>${counts[t.key] || 0}</b>
+     </button>`).join('');
+
+  $('tabs').querySelectorAll('[data-s]').forEach(el =>
+    el.addEventListener('click', () => { curStage = el.dataset.s; renderTabs(); render(); }));
+}
+
+/* ---------- ตาราง ---------- */
+function shown() {
+  return curStage === 'all' ? allRows : allRows.filter(r => r.stage === curStage);
+}
+
+function render() {
+  const rows = shown();
+  $('cnt').textContent = rows.length + ' รายการ';
+
+  if (!rows.length) {
+    $('view').innerHTML = '<div class="empty">ไม่มีเอกสารค้างในกลุ่มนี้</div>';
+    updateSelBar();
+    return;
+  }
+
+  $('view').innerHTML = '<div class="tw"><table><thead><tr>' +
+    '<th style="width:34px"><input type="checkbox" class="chk" id="selAll"></th>' +
+    '<th style="width:150px">Reference</th>' +
+    '<th style="width:190px">ค้างที่ขั้น</th>' +
+    '<th style="width:96px">ค้างมาแล้ว</th>' +
+    '<th>ปลายทาง</th>' +
+    '<th style="width:230px">เหตุผลที่ระบุไว้</th>' +
+    '</tr></thead><tbody>' + rows.map(rowHtml).join('') + '</tbody></table></div>';
+
+  $('view').querySelectorAll('.rowchk').forEach(cb =>
+    cb.addEventListener('change', () => {
+      if (cb.checked) selected.add(cb.dataset.ref); else selected.delete(cb.dataset.ref);
+      updateSelBar();
+    }));
+
+  $('selAll').addEventListener('change', () => {
+    const on = $('selAll').checked;
+    rows.forEach(r => { if (on) selected.add(r.ref_no); else selected.delete(r.ref_no); });
+    $('view').querySelectorAll('.rowchk').forEach(cb => { cb.checked = on; });
+    updateSelBar();
+  });
+
+  updateSelBar();
+}
+
+function rowHtml(r) {
+  const st = STAGE_LABEL[r.stage] || { label: r.stage, ownerLabel: '' };
+  const lv = LEVEL[r.level] || LEVEL.ok;
+
+  const age = r.days == null ? '—'
+    : `<b class="${lv.cls}">${r.days} วัน</b>` +
+      (r.due ? `<div class="sub">กำหนด ${r.due} วัน</div>` : '');
+
+  const reason = r.reason
+    ? `<div class="rtag">${esc(r.reason_label || r.reason)}</div>` +
+      `<div class="sub">${esc(r.reason_by || '')} · ${fmt(r.reason_at)}` +
+      (r.snooze_until ? ` · ถามใหม่ ${fmt(r.snooze_until)}` : '') + '</div>' +
+      (r.reason_note ? `<div class="sub note">${esc(r.reason_note)}</div>` : '')
+    : '<span class="sub">ยังไม่ได้ระบุ</span>';
+
+  return `<tr class="lv-${r.level}">
+    <td><input type="checkbox" class="chk rowchk" data-ref="${esc(r.ref_no)}"${
+      selected.has(r.ref_no) ? ' checked' : ''}></td>
+    <td><div class="ref">${esc(r.ref_no)}</div>
+        <div class="sub">${fmt(r.doc_date)}</div></td>
+    <td>${esc(st.label)}<div class="sub">${esc(st.ownerLabel || '')}</div></td>
+    <td>${age}</td>
+    <td>${esc(r.dest_warehouse || r.transfer_to || '—')}
+        <div class="sub">${esc(r.site || '')}</div></td>
+    <td>${reason}</td>
+  </tr>`;
+}
+
+/* ---------- เลือกหลายรายการ ---------- */
+function updateSelBar() {
+  const n = selected.size;
+  $('selBar').classList.toggle('on', n > 0);
+  $('selCount').textContent = 'เลือก ' + n + ' รายการ';
+  const all = $('selAll');
+  if (all) {
+    const rows = shown();
+    const k = rows.filter(r => selected.has(r.ref_no)).length;
+    all.checked = k > 0 && k === rows.length;
+    all.indeterminate = k > 0 && k < rows.length;
+  }
+}
+
+$('btnSelNone').addEventListener('click', () => {
+  selected.clear();
+  $('view').querySelectorAll('.rowchk').forEach(cb => { cb.checked = false; });
+  updateSelBar();
+});
+
+/* ---------- ระบุเหตุผล ---------- */
+let pickedReason = null;
+
+$('btnReason').addEventListener('click', () => {
+  const refs = [...selected];
+  if (!refs.length) return;
+
+  /* เหตุผลที่เลือกได้ขึ้นกับขั้นที่ค้าง
+     ถ้าเลือกข้ามขั้นมา จะไม่รู้ว่าควรแสดงชุดไหน จึงต้องให้เลือกทีละขั้น */
+  const stages = new Set(allRows.filter(r => selected.has(r.ref_no)).map(r => r.stage));
+  if (stages.size > 1) {
+    alert('เลือกข้ามขั้นตอนอยู่ ' + stages.size + ' ขั้น\n\n' +
+          'เหตุผลของแต่ละขั้นไม่เหมือนกัน กรุณาเลือกทีละขั้น\n' +
+          'กดแท็บด้านบนเพื่อกรองก่อน');
+    return;
+  }
+
+  const stage = [...stages][0];
+  const st = STAGE_LABEL[stage] || {};
+  pickedReason = null;
+
+  $('rsSub').textContent = refs.length + ' รายการ · ค้างที่ "' +
+    (st.label || stage) + '" · ผู้รับผิดชอบ ' + (st.ownerLabel || '—');
+
+  $('rsGroups').innerHTML = reasonsFor(stage).map(g => `
+    <div class="rs-g">
+      <div class="rs-gl ${g.color}">${esc(g.label)}</div>
+      ${g.reasons.map(r => `
+        <button class="rs-r" data-r="${esc(r.key)}" data-a="${esc(r.action)}"
+                data-g="${esc(g.key)}" data-l="${esc(r.label)}">
+          ${esc(r.label)}
+        </button>`).join('')}
+    </div>`).join('');
+
+  $('rsGroups').querySelectorAll('[data-r]').forEach(b =>
+    b.addEventListener('click', () => {
+      $('rsGroups').querySelectorAll('[data-r]').forEach(x => x.classList.remove('on'));
+      b.classList.add('on');
+      pickedReason = { reason: b.dataset.r, action: b.dataset.a,
+                       group: b.dataset.g, label: b.dataset.l, stage };
+      $('rsSnoozeBox').style.display = b.dataset.a === 'snooze' ? '' : 'none';
+      $('rsEffect').textContent = effectText(b.dataset.a);
+      $('rsSave').disabled = false;
+    }));
+
+  $('rsNote').value = '';
+  $('rsEffect').textContent = '';
+  $('rsSave').disabled = true;
+  $('dlgReason').showModal();
+});
+
+/** บอกล่วงหน้าว่าเลือกแล้วจะเกิดอะไร ไม่ให้เดา */
+function effectText(action) {
+  if (action === 'close')   return 'จะปิดเอกสารนี้ ไม่นับใน SLA อีก';
+  if (action === 'snooze')  return 'จะซ่อนไว้จนถึงวันที่กำหนด แล้วกลับมาถามใหม่';
+  if (action === 'fix')     return 'จะขึ้นในรายการที่ต้องแก้ข้อมูลย้อนหลัง';
+  if (action === 'reissue') return 'จะขึ้นในรายการที่ต้องขอเอกสารใหม่';
+  return '';
+}
+
+$('rsClose').addEventListener('click', () => $('dlgReason').close());
+$('rsCancel').addEventListener('click', () => $('dlgReason').close());
+
+$('rsSave').addEventListener('click', async () => {
+  if (!pickedReason) return;
+  const refs = [...selected];
+  const btn = $('rsSave');
+  btn.disabled = true; btn.textContent = 'กำลังบันทึก…';
+
+  try {
+    const r = await call('docsSetException', {
+      refs,
+      stage: pickedReason.stage,
+      reason: pickedReason.reason,
+      reason_label: pickedReason.label,
+      group: pickedReason.group,
+      action: pickedReason.action,
+      note: $('rsNote').value.trim(),
+      snooze_days: Number($('rsSnooze').value) || 7
+    }, 60000);
+
+    if (r.status !== 'ok') { alert(r.message || 'บันทึกไม่สำเร็จ'); return; }
+
+    $('dlgReason').close();
+    let msg = 'บันทึก ' + r.saved + ' รายการ';
+    if (r.closed) msg += ' · ปิดเอกสาร ' + r.closed + ' ใบ';
+    alert(msg);
+    await load();
+  } catch (e) {
+    alert('บันทึกไม่สำเร็จ: ' + (e.message || e));
+  } finally {
+    btn.disabled = false; btn.textContent = 'บันทึก';
+  }
+});
+
+/* ---------- ส่งออก ---------- */
+$('btnExcel').addEventListener('click', async () => {
+  const rows = shown();
+  if (!rows.length) { alert('ไม่มีข้อมูลให้ส่งออก'); return; }
+
+  if (!window.XLSX) {
+    try { await loadScript('vendor/xlsx.full.min.js'); }
+    catch (e) { alert('โหลดตัวสร้างไฟล์ Excel ไม่ได้'); return; }
+  }
+
+  const COLS = [
+    ['ref_no', 'Reference'], ['barcode', 'บาร์โค้ด'], ['doc_date', 'วันที่เอกสาร'],
+    ['stage_label', 'ค้างที่ขั้น'], ['owner_label', 'ผู้รับผิดชอบ'],
+    ['days', 'ค้างมาแล้ว (วัน)'], ['due', 'กำหนด (วัน)'], ['over', 'เกินมา (วัน)'],
+    ['site', 'ไซต์'], ['dest_warehouse', 'ปลายทาง'],
+    ['reason_label', 'เหตุผล'], ['reason_note', 'หมายเหตุ'],
+    ['reason_by', 'ผู้ระบุ'], ['reason_at', 'ระบุเมื่อ']
+  ];
+
+  const body = rows.map(r => {
+    const st = STAGE_LABEL[r.stage] || {};
+    const o = { ...r, stage_label: st.label || r.stage, owner_label: st.ownerLabel || '' };
+    return COLS.map(c => o[c[0]] == null ? '' : o[c[0]]);
+  });
+
+  const ws = XLSX.utils.aoa_to_sheet([COLS.map(c => c[1])].concat(body));
+  ws['!cols'] = COLS.map((c, i) => {
+    const len = Math.max(c[1].length, ...body.map(r => String(r[i] || '').length));
+    return { wch: Math.min(Math.max(len + 2, 9), 40) };
+  });
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'เอกสารค้าง');
+  XLSX.writeFile(wb, 'followup-' + new Date().toISOString().slice(0, 10) + '.xlsx');
+});
+
+function loadScript(src) {
+  return new Promise((res, rej) => {
+    const el = document.createElement('script');
+    el.src = src; el.onload = res; el.onerror = rej;
+    document.head.appendChild(el);
+  });
+}
+
+$('btnReload').addEventListener('click', load);
+load();
+</script>
+</body>
+</html>
