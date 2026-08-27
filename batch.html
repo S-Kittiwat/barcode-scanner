@@ -659,8 +659,9 @@ window.dispatchEvent(new Event('docscan-ready'));
         </select>
       </div>
       <div class="fld" style="min-width:170px">
-        <label for="chkInk">ตรวจลายเซ็น/ตราประทับ</label>
-        <select id="chkInk">
+        <label>ตรวจลายเซ็น/ตราประทับ</label>
+        <div class="setval" id="chkInkText">—</div>
+        <select id="chkInk" style="display:none">
           <option value="1">ตรวจ</option>
           <option value="0">ไม่ตรวจ</option>
         </select>
@@ -706,6 +707,11 @@ window.dispatchEvent(new Event('docscan-ready'));
     </div>
     <div class="batch-table-wrap" id="batchTableWrap" style="display:none;">
       <div class="empty2" id="beforeRead" style="display:none"></div>
+      <div class="dupbanner bad" id="inkOffWarn" style="display:none">
+        <b>ปิดการตรวจลายเซ็นและตราประทับอยู่</b>
+        เอกสารที่บันทึกตอนนี้จะไม่มีข้อมูลว่ามีลายเซ็นหรือไม่ —
+        ตรวจย้อนหลังไม่ได้ว่าใบไหนใช้เป็นหลักฐานได้
+      </div>
       <div class="dupbanner" id="dupBanner" style="display:none"></div>
       <div class="filterbar" id="filterBar" style="display:none"></div>
       <div id="tableWrap" style="display:none">
@@ -2091,11 +2097,14 @@ function refIdCell(doc, row) {
  *   ตามเอกสารที่ขาดลายเซ็นจริง ซึ่งใช้เป็นหลักฐานไม่ได้
  */
 function inkCell(row, key) {
+  if (_settings.ink_check === false) {
+    return '<span class="inkna">ปิดการตรวจไว้</span>';
+  }
   if (!row.ink || !row.ink.checks || !row.ink.checks.length) {
     return '<span class="inkna">ไม่ได้ตรวจ</span>';
   }
   var c = row.ink.checks.filter(function (x) { return x.key === key; })[0];
-  if (!c) return '<span class="inkna">ไม่ได้ตรวจ</span>';
+  if (!c) return '<span class="inkna">ไม่ได้กำหนดพื้นที่</span>';
 
   var rid = row.id;
   var ov = (row.inkOverride || {})[key] || '';
@@ -2127,9 +2136,13 @@ function inkCell(row, key) {
  * เช่น    fail|0.32|0.50|present
  */
 function inkVal(row, key) {
-  if (!row.ink || !row.ink.checks) return '';
+  /* ต้องแยก "ปิดการตรวจไว้" ออกจาก "ตรวจแล้วไม่มีข้อมูล"
+     ถ้าบันทึกเป็นช่องว่างทั้งคู่ จะแยกไม่ออกจากกรณีที่ระบบพัง
+     และย้อนหลังไปไม่มีทางรู้ว่าใบไหนไม่ได้ตรวจเพราะอะไร */
+  if (_settings.ink_check === false) return 'off';
+  if (!row.ink || !row.ink.checks) return 'not_checked';
   var c = row.ink.checks.filter(function (x) { return x.key === key; })[0];
-  if (!c) return '';
+  if (!c) return 'no_region';
   var ov = (row.inkOverride || {})[key] || '';
   return (c.pass ? 'pass' : 'fail') + '|' + c.value + '|' + c.min + '|' + ov;
 }
@@ -2940,7 +2953,7 @@ var SAVE_STEPS = [
  * ใช้ค่าเฉลี่ยเคลื่อนที่แทนค่าเฉลี่ยรวม เพราะช่วงแรกมักช้ากว่าปกติ
  * (เบราว์เซอร์ยังอุ่นเครื่องอยู่) ถ้าใช้ค่าเฉลี่ยรวมจะประมาณสูงเกินจริงตลอด
  */
-var _saveT0 = 0, _saveMarks = [];
+var _saveT0 = 0, _saveMarks = [], _saveStep = '';
 
 function saveShow(on) {
   document.getElementById('saveOverlay').classList.toggle('show', !!on);
@@ -2965,14 +2978,51 @@ function etaText(sec) {
 function saveEta(done, total) {
   var el = document.getElementById('saveEta');
   if (!el) return;
+
+  /* งานเสร็จแล้ว — บันทึกอัตราที่วัดได้จากทั้งงาน
+     งานที่มีแค่ 2 ชุดจะไม่มีจุดวัดกลางทางเลย
+     ถ้าไม่เก็บตอนจบ ก็จะไม่มีวันจำอัตราได้และรอบหน้าก็เงียบเหมือนเดิม */
+  if (done >= total && total > 0 && _saveStep === 'upload' && _saveT0) {
+    var secs = (Date.now() - _saveT0) / 1000;
+    if (secs > 0.5) {
+      try {
+        localStorage.setItem('docscan.uploadRate', String(total / secs));
+      } catch (e) {}
+    }
+  }
+
   if (done <= 0 || done >= total) { el.textContent = ''; return; }
 
   _saveMarks.push({ n: done, t: Date.now() });
   if (_saveMarks.length > 6) _saveMarks.shift();
-  if (_saveMarks.length < 2) { el.textContent = 'กำลังคำนวณเวลาที่เหลือ'; return; }
+
+  /* ยังไม่มีข้อมูลพอ ให้ประมาณจากอัตราที่เคยวัดได้ในรอบก่อน
+     ดีกว่าปล่อยให้เงียบจนกว่าจะจบชุดแรก
+     ซึ่งกับงานที่มีแค่ 2 ชุด แปลว่าเห็นเวลาตอน 50% ซึ่งสายไปแล้ว */
+  if (_saveMarks.length < 2) {
+    var rate = _saveStep === 'upload'
+      ? Number(localStorage.getItem('docscan.uploadRate') || 0) : 0;
+    if (rate > 0 && total > done) {
+      el.textContent = etaText(Math.round((total - done) / rate)) + ' (ประมาณจากครั้งก่อน)';
+    } else {
+      el.textContent = 'กำลังคำนวณเวลาที่เหลือ';
+    }
+    return;
+  }
 
   var a = _saveMarks[0], b = _saveMarks[_saveMarks.length - 1];
-  var perItem = (b.t - a.t) / Math.max(1, b.n - a.n);
+
+  /* ต้องมีความคืบหน้าจริงระหว่างสองจุดถึงจะคำนวณได้
+     ถ้าค่าเท่ากัน (เช่นแจ้งตอนเริ่มชุดซึ่งยังไม่ส่งอะไรเพิ่ม)
+     การหารจะได้อัตราที่เพี้ยนมหาศาล แล้วขึ้นว่าอีกหมื่นนาที */
+  var moved = b.n - a.n;
+  var elapsed = b.t - a.t;
+  if (moved <= 0 || elapsed <= 0) {
+    if (!el.textContent) el.textContent = 'กำลังคำนวณเวลาที่เหลือ';
+    return;
+  }
+
+  var perItem = elapsed / moved;
   // เร็วจนวัดไม่ทัน ให้คงข้อความเดิมไว้ ไม่ปล่อยให้กะพริบหาย
   if (!isFinite(perItem) || perItem <= 0) {
     if (!el.textContent) el.textContent = 'กำลังคำนวณเวลาที่เหลือ';
@@ -2981,6 +3031,17 @@ function saveEta(done, total) {
 
   var sec = Math.round(perItem * (total - done) / 1000);
   el.textContent = etaText(sec);
+
+  /* จำอัตราไว้ให้รอบหน้าประมาณได้ทันทีตั้งแต่เริ่ม
+     เก็บเฉพาะตอนอัปโหลด เพราะขั้นตอนบีบไฟล์ความเร็วคนละเรื่อง */
+  if (_saveStep === 'upload') {
+    try {
+      var rate = 1000 / perItem;                    // หน่วยต่อวินาที
+      if (isFinite(rate) && rate > 0) {
+        localStorage.setItem('docscan.uploadRate', String(rate));
+      }
+    } catch (e) {}
+  }
 }
 
 function saveStep(key, sub) {
@@ -2998,7 +3059,27 @@ function saveStep(key, sub) {
   // บีบไฟล์ขึ้นกับซีพียู อัปโหลดขึ้นกับเน็ต
   // ถ้าเอามาเฉลี่ยรวมกันจะประมาณผิดทั้งสองขั้น
   _saveMarks = [];
+  _saveStep = key;
+  _saveT0 = Date.now();     // จับเวลาเริ่มของขั้นนี้ ใช้คำนวณอัตรารวมตอนจบ
   document.getElementById('saveEta').textContent = '';
+}
+
+/**
+ * ความคืบหน้าแบบวัดจากปริมาณข้อมูล
+ *
+ * ขั้นตอนอัปโหลดใช้เวลานานที่สุดและเวลาขึ้นกับจำนวนไบต์
+ * การนับเป็นใบทำให้แถบกระโดดไม่สม่ำเสมอและประมาณเวลาได้แย่
+ * เพราะไฟล์ที่รวมหลายสำเนาใหญ่กว่าไฟล์ปกติหลายเท่า
+ */
+function saveProgressBytes(sent, total, sub, doneFiles, totalFiles) {
+  var pct = total ? Math.round(sent / total * 100) : 0;
+  document.getElementById('saveBarFill').style.width = pct + '%';
+  document.getElementById('saveDetail').textContent =
+    (sent / 1048576).toFixed(1) + ' / ' + (total / 1048576).toFixed(1) + ' MB' +
+    '  (' + pct + '%)' +
+    (totalFiles ? '  ·  ' + doneFiles + '/' + totalFiles + ' ไฟล์' : '');
+  if (sub !== undefined) document.getElementById('saveSub').textContent = sub;
+  saveEta(sent, total);
 }
 
 function saveProgress(done, total, sub) {
@@ -3125,10 +3206,28 @@ async function submitBatch(){
     {
       var results = await DocScan.uploadBatch(API_URL, uploadList, {
         token: (DocScanAuth.load() || {}).token,
-        onProgress: function (d, t) {
-          saveProgress(d, t, 'อัปโหลดแล้ว ' + d + ' จาก ' + t + ' ไฟล์');
-        },
-        onProgress: function (d, t) { btn.textContent = 'อัปโหลด ' + d + '/' + t + '...'; }
+        /* เดิมมี onProgress สองตัวในออบเจกต์เดียว ตัวหลังทับตัวแรก
+           การประเมินเวลาจึงไม่เคยทำงานในขั้นตอนนี้เลย */
+        onProgress: function (d, t, info) {
+          info = info || {};
+          var sub;
+          if (info.phase === 'start') {
+            sub = 'กำลังส่งชุดที่ ' + info.chunk + ' จาก ' + info.chunks +
+                  ' (' + Math.round(info.chunkBytes / 1024) + ' KB)';
+          } else {
+            sub = 'อัปโหลดแล้ว ' + d + ' จาก ' + t + ' ไฟล์';
+          }
+
+          /* วัดความคืบหน้าจากปริมาณข้อมูล ไม่ใช่จำนวนไฟล์
+             เพราะแต่ละไฟล์ขนาดต่างกันมาก การนับใบจึงกระโดดไม่สม่ำเสมอ
+             และเวลาที่ใช้ขึ้นกับจำนวนไบต์ ไม่ใช่จำนวนใบ */
+          if (info.totalBytes) {
+            saveProgressBytes(info.sentBytes, info.totalBytes, sub, d, t);
+          } else {
+            saveProgress(d, t, sub);
+          }
+          btn.textContent = 'อัปโหลด ' + d + '/' + t + '...';
+        }
       });
       var failed = 0;
       ready.forEach(function (r) {
@@ -3411,7 +3510,7 @@ function showToast(msg,type){var t=document.getElementById('toast');t.textConten
    อ่านเอกสารอัตโนมัติ
    บาร์โค้ดก่อน ถ้าไม่ได้ค่อย OCR แล้วเทียบกับรายการอ้างอิง
    ============================================================ */
-var BUILD_TAG = '2.14.0-b25';
+var BUILD_TAG = '2.14.0-b27';
 var _types = null, _readAbort = null, _lastPdfJs = null, _lastFileName = '';
 /* เก็บไบต์ต้นฉบับไว้ด้วย
    pdf.js อาจถูกปิดหรือใช้ไม่ได้เมื่อถึงตอนบันทึก
@@ -3494,7 +3593,7 @@ function showCustomHint() {
 /* ค่ามาตรฐานมาจากผู้ดูแล ไม่ใช่ค่าที่คนหน้างานตั้งเอง
    อัตราสุ่มตรวจและความละเอียดการอ่านกำหนดคุณภาพของงานทั้งชุด
    ถ้าปรับเองได้ อัตราสุ่มจะเป็นศูนย์ในวันที่งานเยอะ */
-var _settings = { sample_pct: 10, ocr_level: 'accurate', can_edit: false };
+var _settings = { sample_pct: 10, ocr_level: 'accurate', ink_check: true, can_edit: false };
 
 async function loadSettings() {
   try {
@@ -3508,21 +3607,33 @@ async function loadSettings() {
 
 function applySettings() {
   var pct = _settings.sample_pct, lvl = _settings.ocr_level;
+  var ink = _settings.ink_check !== false;
+
   document.getElementById('samplePct').value = pct;
   document.getElementById('ocrLevel').value = lvl;
+  document.getElementById('chkInk').value = ink ? '1' : '0';
 
   var lvlLabel = lvl === 'fast' ? 'เร็ว (400 dpi)' : 'ละเอียด (300/350/400 dpi)';
   var lock = _settings.can_edit ? '' : '<span class="setlock">กำหนดโดยผู้ดูแล</span>';
   document.getElementById('samplePctText').innerHTML = pct + '%' + lock;
   document.getElementById('ocrLevelText').innerHTML = lvlLabel + lock;
+  document.getElementById('chkInkText').innerHTML =
+    (ink ? 'ตรวจ' : '<span style="color:var(--warn)">ไม่ตรวจ</span>') + lock;
 
   // ผู้ดูแลแก้ได้ในหน้านี้เลย คนอื่นเห็นเป็นข้อความอย่างเดียว
   var edit = !!_settings.can_edit;
-  document.getElementById('samplePct').style.display = edit ? '' : 'none';
-  document.getElementById('ocrLevel').style.display = edit ? '' : 'none';
-  document.getElementById('samplePctText').style.display = edit ? 'none' : '';
-  document.getElementById('ocrLevelText').style.display = edit ? 'none' : '';
+  ['samplePct', 'ocrLevel', 'chkInk'].forEach(function (id) {
+    document.getElementById(id).style.display = edit ? '' : 'none';
+  });
+  ['samplePctText', 'ocrLevelText', 'chkInkText'].forEach(function (id) {
+    document.getElementById(id).style.display = edit ? 'none' : '';
+  });
   document.getElementById('setAdminBox').style.display = edit ? '' : 'none';
+
+  /* ปิดการตรวจแล้วต้องเห็นตลอดเวลา ไม่ใช่แค่ตอนเปิดหน้าตั้งค่า
+     เพราะเอกสารที่บันทึกไปตอนปิด จะไม่มีหลักฐานว่าเคยตรวจหรือไม่ */
+  var warn = document.getElementById('inkOffWarn');
+  if (warn) warn.style.display = ink ? 'none' : 'block';
 }
 
 function showReaderPanel(show) {
@@ -3976,11 +4087,17 @@ document.getElementById('btnSaveSettings').addEventListener('click', async funct
   }
   if (pct === 0 && !confirm('ตั้งอัตราสุ่มตรวจเป็น 0%\n\n' +
       'จะไม่มีการสุ่มตรวจเลย และไม่มีข้อมูลวัดว่าระบบอ่านแม่นแค่ไหน\n\nยืนยันไหม')) return;
+  if (document.getElementById('chkInk').value === '0' &&
+      !confirm('ปิดการตรวจลายเซ็นและตราประทับ\n\n' +
+        'เอกสารที่บันทึกหลังจากนี้จะไม่มีข้อมูลว่ามีลายเซ็นหรือไม่\n' +
+        'ทำให้ตรวจย้อนหลังไม่ได้ว่าใบไหนใช้เป็นหลักฐานได้\n\nยืนยันไหม')) return;
   try {
-    var r = await apiPost({ action: 'saveSettings', sample_pct: pct, ocr_level: lvl });
+    var r = await apiPost({ action: 'saveSettings', sample_pct: pct, ocr_level: lvl,
+                            ink_check: document.getElementById('chkInk').value === '1' });
     if (r && r.status === 'ok') {
       _settings.sample_pct = r.sample_pct;
       _settings.ocr_level = r.ocr_level;
+      _settings.ink_check = r.ink_check;
       applySettings();
       showToast('บันทึกค่ามาตรฐานแล้ว มีผลกับทุกคน', 'success');
     } else showToast((r && r.message) || 'บันทึกไม่สำเร็จ', 'error');
