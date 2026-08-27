@@ -459,9 +459,17 @@ td.ro .acc{font-family:var(--mono);font-size:11.5px;color:var(--muted);margin-to
 .pk-chk .pk-note{margin-left:auto}
 .pk-legend{font-size:11.5px;color:var(--muted);margin-bottom:8px;
   display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+/* ห้ามใส่ overflow ที่กล่องนี้
+   เพราะตำแหน่งลากคิดจากขนาดกล่อง ถ้ามีการเลื่อนภายในจะคลาดทันที */
 .pk-canvas{position:relative;background:#fff;border:1px solid var(--border);
-  border-radius:var(--rs);overflow:auto;max-height:52vh}
-.pk-canvas canvas{display:block;max-width:100%;cursor:crosshair}
+  border-radius:var(--rs);line-height:0;touch-action:none}
+.pk-canvas canvas{display:block;width:100%;height:auto;cursor:crosshair}
+.pkbox{position:absolute;display:none;pointer-events:none;
+  border:2px solid;border-radius:2px}
+.pkbox.b{border-color:var(--accent);background:rgba(96,165,250,.14)}
+.pkbox.o{border-color:var(--warn);background:rgba(251,191,36,.14)}
+.pkbox.s{border-color:var(--success);background:rgba(52,211,153,.14)}
+.pkbox.t{border-color:var(--danger);background:rgba(248,113,113,.14)}
 .pk-page{font-family:var(--mono);font-size:12.5px;color:var(--muted);min-width:64px;text-align:center}
 
 .pk-card{border:1px solid var(--border);border-radius:var(--rs);padding:12px}
@@ -471,8 +479,19 @@ td.ro .acc{font-family:var(--mono);font-size:11.5px;color:var(--muted);margin-to
   padding:9px;resize:vertical;line-height:1.7}
 .pk-learn{font-size:12px;line-height:1.75;margin-top:8px}
 .pk-learn .ok{color:var(--success)}
+.pk-note.ok{color:var(--success)}
 .pk-learn .bad{color:var(--danger)}
 .pk-learn .warn{color:var(--warn)}
+.pk-advcard{padding:0}
+.pk-advcard>summary{list-style:none;cursor:pointer;padding:12px;
+  display:flex;align-items:center;gap:10px}
+.pk-advcard>summary::-webkit-details-marker{display:none}
+.pk-advcard>summary::before{content:'▸';color:var(--muted);font-size:11px}
+.pk-advcard[open]>summary::before{content:'▾'}
+.pk-advcard>summary .pk-note{margin-left:auto}
+.pk-advcard>*:not(summary){padding:0 12px}
+.pk-advcard>*:last-child{padding-bottom:12px}
+.pk-lbl{display:block;font-size:11.5px;color:var(--muted);margin-bottom:4px}
 .pk-adv{margin-top:10px}
 .pk-adv summary{font-size:11.5px;color:var(--muted);cursor:pointer}
 .pk-adv label{display:block;font-size:11px;color:var(--muted);margin:8px 0 3px}
@@ -920,6 +939,12 @@ window.dispatchEvent(new Event('docscan-ready'));
 
       <div class="pk-canvas" id="pickWrap">
         <canvas id="pickCanvas"></canvas>
+        <!-- กรอบที่ลากไว้ ต้องอยู่ในกล่องเดียวกับ canvas
+             เพราะตำแหน่งคิดเป็นเปอร์เซ็นต์ของกล่องนี้ -->
+        <div class="pkbox b" id="pkB"></div>
+        <div class="pkbox o" id="pkO"></div>
+        <div class="pkbox s" id="pkS"></div>
+        <div class="pkbox t" id="pkT"></div>
       </div>
 
       <div class="pk-row tight center">
@@ -932,16 +957,23 @@ window.dispatchEvent(new Event('docscan-ready'));
 
     <!-- ขวา: รูปแบบเลข และผลทดสอบ -->
     <div class="pk-right">
-      <div class="pk-card">
-        <div class="pk-card-t">รูปแบบเลขเอกสาร</div>
-        <div class="pk-note" style="margin-bottom:7px">
-          พิมพ์เลขจริงจากเอกสารสัก 2–3 ตัว บรรทัดละตัว<br>
-          ระบบจะหารูปแบบให้เอง ไม่ต้องเขียนเอง
+      <details class="pk-card pk-advcard">
+        <summary>
+          <span class="pk-card-t">รูปแบบเลขเอกสาร</span>
+          <span class="pk-note" id="pkPatState">ไม่ได้ตั้ง — ระบบเรียนเอง</span>
+        </summary>
+
+        <div class="pk-note" style="margin:9px 0 7px">
+          ปกติไม่ต้องตั้ง ระบบจะอ่านเลขที่เห็นแล้วเรียนรูปแบบเอง<br>
+          ตั้งเมื่อระบบอ่านผิดบ่อย หรือไปจับเลขอื่นในฟอร์ม
         </div>
+
+        <label class="pk-lbl">เลขจริงจากเอกสาร (บรรทัดละตัว)</label>
         <textarea id="pkSamples" placeholder="T10075206&#10;T10074070&#10;T9648565"></textarea>
         <div class="pk-learn" id="pkLearn"></div>
+
         <details class="pk-adv">
-          <summary>ขั้นสูง — แก้รูปแบบเอง</summary>
+          <summary>แก้รูปแบบเอง</summary>
           <label>รูปแบบที่ใช้จับ</label>
           <input id="pkPattern" spellcheck="false">
           <label>ตัวตรวจสอบหลังแก้</label>
@@ -953,7 +985,7 @@ window.dispatchEvent(new Event('docscan-ready'));
             บาร์โค้ดคือเลขเอกสารเอง (ไม่ต้องแปลง)
           </label>
         </details>
-      </div>
+      </details>
 
       <div class="pk-card" id="pkResultCard">
         <div class="pk-card-t">ผลทดสอบ</div>
@@ -3633,7 +3665,7 @@ function showToast(msg,type){var t=document.getElementById('toast');t.textConten
    อ่านเอกสารอัตโนมัติ
    บาร์โค้ดก่อน ถ้าไม่ได้ค่อย OCR แล้วเทียบกับรายการอ้างอิง
    ============================================================ */
-var BUILD_TAG = '2.15.0-b1';
+var BUILD_TAG = '2.15.0-b2';
 var _types = null, _readAbort = null, _lastPdfJs = null, _lastFileName = '';
 /* เก็บไบต์ต้นฉบับไว้ด้วย
    pdf.js อาจถูกปิดหรือใช้ไม่ได้เมื่อถึงตอนบันทึก
@@ -4384,9 +4416,17 @@ function learnFromSamples() {
   var samples = raw.split(/[\s,;|\r\n]+/).map(function (x) { return x.trim(); })
                    .filter(Boolean);
 
+  var st = document.getElementById('pkPatState');
+
   if (!samples.length) {
-    box.innerHTML = '<span class="pk-note">ยังไม่ได้ใส่ตัวอย่าง — ' +
-      'ระบบจะอ่านเลขไม่ได้จนกว่าจะมีรูปแบบ</span>';
+    /* ไม่ตั้งก็ใช้ได้ ระบบจะเดาเลขจากข้อความที่อ่านเห็น
+       เหมาะกับเอกสารที่เลขมีตัวอักษรนำ เช่น T10075206
+       ถ้าเป็นเลขล้วนที่หน้าตาเหมือนเลขอื่นในฟอร์ม ค่อยมาตั้ง */
+    box.innerHTML = '<span class="pk-note">ระบบจะเรียนรูปแบบเองจากเลขที่อ่านได้<br>' +
+      'ตั้งค่าตรงนี้เมื่อพบว่าอ่านผิดบ่อย หรือไปจับเลขอื่นในฟอร์ม</span>';
+    if (st) { st.textContent = 'ไม่ได้ตั้ง — ระบบเรียนเอง'; st.className = 'pk-note'; }
+    document.getElementById('pkPattern').value = '';
+    document.getElementById('pkValidate').value = '';
     return null;
   }
 
@@ -4417,6 +4457,11 @@ function learnFromSamples() {
   /* เตือนเมื่อรูปแบบไปจับเลขอื่นในฟอร์ม
      นี่คือส่วนที่ทำให้ปลอดภัยพอจะให้คนตั้งเอง
      รูปแบบที่กว้างเกินจะเอาวันที่ไปตั้งชื่อไฟล์แล้วไม่มีใครรู้ */
+  if (st) {
+    st.textContent = 'ตั้งไว้แล้ว · ' + samples.length + ' ตัวอย่าง';
+    st.className = 'pk-note ok';
+  }
+
   var traps = P.checkTraps(pattern, validate, template, desc);
   if (traps.length) {
     html += '<div class="warn">⚠ จะจับเลขอื่นในฟอร์มด้วย: ' +
