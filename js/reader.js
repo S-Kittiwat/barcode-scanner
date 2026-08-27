@@ -559,6 +559,38 @@ function morph(mask, w, h) {
  * วิธีนี้ทำให้ความถูกต้องขึ้นจาก 40% เป็น 85%
  * ส่วนที่เหลือมีบาร์โค้ดยืนยันได้อยู่แล้ว
  */
+/**
+ * แก้เลขที่ OCR อ่านหลักแรกผิด โดยอาศัยชุดนำที่รู้จากตัวอย่าง
+ *
+ * heads เป็นออบเจกต์ { ความยาว: 'สองหลักแรก' }
+ * เช่น { 8: '10', 7: '96' } แปลว่าเลข 8 หลักขึ้นต้น 10 เสมอ
+ *
+ * ที่ต้องมีเพราะเลข 1 ในฟอนต์เอกสารมีฐานและหัวเฉียง
+ * OCR จึงอ่านเป็น 2 หรือ 4 หรือหายไปเลย
+ * เพิ่มความละเอียดไม่ช่วย เพราะเป็นเรื่องรูปทรงไม่ใช่คุณภาพภาพ
+ */
+export function fixByHeads(heads, value) {
+  if (!heads || !value) return value;
+  const m = String(value).match(/^([A-Z]*)(\d+)$/i);
+  if (!m) return value;
+  const prefix = m[1], d = m[2];
+
+  for (const L of Object.keys(heads)) {
+    const head = String(heads[L] || '');
+    if (head.length < 2) continue;
+
+    // ยาวเท่ากัน หลักที่สองตรง แต่หลักแรกผิด
+    if (d.length === +L && d[1] === head[1] && d[0] !== head[0]) {
+      return prefix + head[0] + d.slice(1);
+    }
+    // สั้นไปหนึ่งหลัก และเริ่มด้วยหลักที่สองของชุดนำ = หลักแรกหายไป
+    if (d.length === +L - 1 && d[0] === head[1]) {
+      return prefix + head[0] + d;
+    }
+  }
+  return value;
+}
+
 export function fixLoscamDigits(value) {
   if (!value) return value;
   const m = String(value).match(/^T?(\d+)$/);
@@ -695,7 +727,13 @@ export async function readOcr(page, type, onProgress, level) {
           if (!firstRaw) { firstRaw = text; firstConf = conf; }
           let value = pattern ? applyTemplate(text.match(pattern), type.ocrTemplate) : text;
           // แก้หลักที่อ่านผิดตามโครงสร้างของเลขชนิดนั้น ก่อนนับโหวต
-          if (value && type.ocrFix === 'loscam') value = fixLoscamDigits(value);
+          /* แก้เลขตามโครงสร้างที่เรียนจากตัวอย่างของเทมเพลตนั้น
+           *
+           * เดิมผูกกับ LOSCAM โดยเฉพาะ เทมเพลตอื่นจึงไม่ได้ประโยชน์
+           * ตอนนี้ใช้ ocrHeads ที่มาจากเลขตัวอย่างที่คนใส่ไว้
+           * ทำให้เอกสารชนิดใหม่ได้การแก้เลขแบบเดียวกันโดยไม่ต้องแก้โค้ด
+           */
+          if (value && type.ocrHeads) value = fixByHeads(type.ocrHeads, value);
           /* ตรวจหลังแก้ ไม่ใช่ก่อน
              ถ้าตรวจก่อน ค่าที่แก้ได้จะถูกทิ้งไปตั้งแต่ต้น */
           if (value && validate && !validate.test(value)) value = '';
