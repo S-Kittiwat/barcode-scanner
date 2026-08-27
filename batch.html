@@ -3339,7 +3339,7 @@ function showToast(msg,type){var t=document.getElementById('toast');t.textConten
    อ่านเอกสารอัตโนมัติ
    บาร์โค้ดก่อน ถ้าไม่ได้ค่อย OCR แล้วเทียบกับรายการอ้างอิง
    ============================================================ */
-var BUILD_TAG = '2.14.0-b19';
+var BUILD_TAG = '2.14.0-b20';
 var _types = null, _readAbort = null, _lastPdfJs = null, _lastFileName = '';
 /* เก็บไบต์ต้นฉบับไว้ด้วย
    pdf.js อาจถูกปิดหรือใช้ไม่ได้เมื่อถึงตอนบันทึก
@@ -3616,6 +3616,27 @@ async function applyReadResults(results, typeKey) {
   var count = { green: 0, yellow: 0, red: 0, sampled: 0, noInk: 0, crossOk: 0 };
   var keepIds = {};
 
+  /* จับคู่ผลการอ่านกับแถวด้วยดัชนีที่สร้างครั้งเดียว
+   *
+   * เดิมใช้ rows.find(r => r.pageNo === N) ทุกครั้ง
+   * แต่ pageNo ไม่ซ้ำกันเฉพาะภายในไฟล์เดียว
+   * ถ้ามีแถวจากไฟล์ก่อนหน้าค้างอยู่ จะไปเจอแถวของไฟล์เก่าแทน
+   * แล้วเขียนข้อมูลทับ — ตารางแสดงข้อมูลหนึ่ง แต่ภาพมาจากอีกหน้าหนึ่ง
+   *
+   * ใช้เฉพาะแถวของไฟล์ที่กำลังอ่าน และใช้แต่ละแถวได้ครั้งเดียว
+   */
+  var pageIndex = {};
+  rows.forEach(function (r) {
+    if (r.sourceFile && _lastFileName && r.sourceFile !== _lastFileName) return;
+    if (pageIndex[r.pageNo] === undefined) pageIndex[r.pageNo] = r;
+  });
+
+  function rowForPage(n) {
+    var r = pageIndex[n];
+    if (r) delete pageIndex[n];   // ใช้ได้ครั้งเดียว กันเขียนทับกันเอง
+    return r;
+  }
+
   docs.forEach(function (d) {
     var cls = DocScan.Reader.classifyDoc(d, idx, DocScan.csvHelpers);
     // เอกสารที่ขาดลายเซ็นหรือตราประทับ ใช้เป็นหลักฐานไม่ได้
@@ -3634,7 +3655,7 @@ async function applyReadResults(results, typeKey) {
     count[cls.tier]++;
 
     // แถวแรกของกลุ่มเป็นตัวแทนเอกสารใบนี้
-    var first = rows.find(function (r) { return r.pageNo === d.pages[0].page; });
+    var first = rowForPage(d.pages[0].page);
     if (!first) return;
     keepIds[first.id] = true;
 
@@ -3710,7 +3731,7 @@ async function applyReadResults(results, typeKey) {
     // แต่ต้องเก็บเลขหน้าไว้ เพราะไฟล์ที่อัปต้องมีครบทุกสำเนา
     // ไม่ใช่เก็บแค่หน้าแรกแล้วทิ้งที่เหลือ
     d.pages.slice(1).forEach(function (p) {
-      var dup = rows.find(function (r) { return r.pageNo === p.page; });
+      var dup = rowForPage(p.page);
       if (dup) dup._mergedInto = first.id;
     });
   });
