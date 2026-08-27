@@ -202,6 +202,9 @@ tr.lv-critical td:first-child{box-shadow:inset 3px 0 0 var(--warn)}
 .rs-act{display:flex;gap:10px;align-items:center;justify-content:flex-end;
   margin-top:16px;padding-top:14px;border-top:1px solid var(--border)}
 .rs-act .hint{margin-right:auto;text-align:left}
+.bldtag{position:fixed;right:8px;bottom:6px;z-index:5;font-family:var(--mono);
+  font-size:10px;color:var(--muted);opacity:.5;pointer-events:none}
+@media print{.bldtag{display:none}}
 </style>
 </head>
 <body>
@@ -634,5 +637,6 @@ function loadScript(src) {
 $('btnReload').addEventListener('click', load);
 load();
 </script>
+<div class="bldtag">2.15.0-b3</div>
 </body>
 </html>
