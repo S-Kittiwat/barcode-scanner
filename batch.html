@@ -2596,6 +2596,17 @@ function recomputeRow(row) {
     row.tier = 'red'; row.why = 'สุ่มตรวจพบว่าไม่ตรง';
   } else if (!row.doc) {
     row.tier = 'red'; row.why = 'ไม่พบในรายการอ้างอิง';
+  } else if (row.readSource === 'barcode' && !row.readValue) {
+    /* ได้เลขจากบาร์โค้ด แต่ OCR อ่านเลขบนกระดาษไม่ได้
+     *
+     * สถานะที่ถูกต้องคือ "ยังไม่ได้ยืนยันกับเอกสาร"
+     * ไม่ใช่ "ไม่พบในรายการอ้างอิง" ซึ่งเป็นคนละเรื่องและทำให้เข้าใจผิด
+     *
+     * บาร์โค้ดเชื่อถือได้สูง จึงไม่ใช่ข้อผิดพลาด แค่ยังขาดการยืนยันชั้นที่สอง
+     * เป็นเรื่องควรดู ไม่ใช่เรื่องที่บล็อกการบันทึก
+     */
+    row.tier = 'yellow';
+    row.why = 'ได้เลขจากบาร์โค้ด — ควรเทียบกับเลขบนเอกสาร';
   } else if (row.already && !row.confirmedOverwrite) {
     row.tier = 'yellow'; row.why = 'เคยสแกนแล้ว';
   } else if (row.sampled && !row.sampleChecked) {
@@ -3400,7 +3411,7 @@ function showToast(msg,type){var t=document.getElementById('toast');t.textConten
    อ่านเอกสารอัตโนมัติ
    บาร์โค้ดก่อน ถ้าไม่ได้ค่อย OCR แล้วเทียบกับรายการอ้างอิง
    ============================================================ */
-var BUILD_TAG = '2.14.0-b24';
+var BUILD_TAG = '2.14.0-b25';
 var _types = null, _readAbort = null, _lastPdfJs = null, _lastFileName = '';
 /* เก็บไบต์ต้นฉบับไว้ด้วย
    pdf.js อาจถูกปิดหรือใช้ไม่ได้เมื่อถึงตอนบันทึก
