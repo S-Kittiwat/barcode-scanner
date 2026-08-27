@@ -205,6 +205,9 @@ tr.got td:first-child{box-shadow:inset 3px 0 0 var(--success)}
 .actbar{position:fixed;left:0;right:0;bottom:0;z-index:130;
   background:var(--surface);border-top:1px solid var(--border);
   padding:12px 88px 12px 24px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.bldtag{position:fixed;right:8px;bottom:6px;z-index:5;font-family:var(--mono);
+  font-size:10px;color:var(--muted);opacity:.5;pointer-events:none}
+@media print{.bldtag{display:none}}
 </style>
 </head>
 <body>
@@ -513,5 +516,6 @@ function reset() {
 
 keepFocus();
 </script>
+<div class="bldtag">2.15.0-b3</div>
 </body>
 </html>
