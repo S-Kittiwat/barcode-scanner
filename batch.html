@@ -431,8 +431,11 @@ td.ro .acc{font-family:var(--mono);font-size:11.5px;color:var(--muted);margin-to
    แผงรูปแบบเลขและผลทดสอบลอยทับ เปิดเมื่อต้องใช้
    เอกสารจึงได้พื้นที่เกือบเต็มกล่อง เพราะเป็นสิ่งที่ต้องมองตอนลากกรอบ
    ============================================================ */
-#dlgPick{max-width:1500px;width:97vw;height:94vh;padding:0;
-  display:flex;flex-direction:column;overflow:hidden}
+/* ต้องผูกกับ [open] เสมอ
+   ถ้าตั้ง display ที่ #dlgPick เฉย ๆ จะทับกฎ display:none ของ dialog ที่ยังไม่เปิด
+   แล้วกล่องจะแสดงตั้งแต่ยังไม่อัปโหลดไฟล์ */
+#dlgPick[open]{display:flex;flex-direction:column}
+#dlgPick{max-width:1500px;width:97vw;height:94vh;padding:0;overflow:hidden}
 
 .pk-bar{display:flex;align-items:center;gap:7px;flex-wrap:wrap;
   padding:10px 14px;border-bottom:1px solid var(--border);background:var(--surface2)}
@@ -541,10 +544,10 @@ dialog[open]{
   max-height:92vh;
   overflow:auto;
 }
-/* เดิมกล่องนี้ตั้งสไตล์แบบ inline ซึ่งมีลำดับสูงกว่ากฎด้านบน
-   กล่องจึงไปติดมุมซ้ายบนแทนที่จะอยู่กลางจอ */
+/* สี ขอบ และฉากหลัง — ขนาดกับ layout อยู่ในกฎด้านบน
+   เดิมมีสองชุดที่ตั้ง max-width กับ padding ขัดกัน ตัวหลังทับตัวแรก */
 #dlgPick{background:var(--surface);border:1px solid var(--border);
-  border-radius:var(--r);color:var(--text);padding:22px;max-width:900px;width:95vw}
+  border-radius:var(--r);color:var(--text)}
 #dlgPick::backdrop{background:rgba(15,23,42,.82)}
 #dlgVerify{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
   color:var(--text);padding:18px;max-width:1200px;width:96vw}
@@ -3705,7 +3708,7 @@ function showToast(msg,type){var t=document.getElementById('toast');t.textConten
    อ่านเอกสารอัตโนมัติ
    บาร์โค้ดก่อน ถ้าไม่ได้ค่อย OCR แล้วเทียบกับรายการอ้างอิง
    ============================================================ */
-var BUILD_TAG = '2.15.0-b6';
+var BUILD_TAG = '2.15.0-b7';
 var _types = null, _readAbort = null, _lastPdfJs = null, _lastFileName = '';
 /* เก็บไบต์ต้นฉบับไว้ด้วย
    pdf.js อาจถูกปิดหรือใช้ไม่ได้เมื่อถึงตอนบันทึก
