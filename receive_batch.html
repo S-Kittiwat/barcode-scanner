@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230f172a'/%3E%3Crect x='8' y='6' width='16' height='20' rx='2' fill='%23f1f5f9'/%3E%3Crect x='11' y='10' width='2' height='12' fill='%230f172a'/%3E%3Crect x='14.5' y='10' width='1' height='12' fill='%230f172a'/%3E%3Crect x='17' y='10' width='2' height='12' fill='%230f172a'/%3E%3Crect x='20.5' y='10' width='1' height='12' fill='%230f172a'/%3E%3C/svg%3E">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DocScan — ติดตามเอกสาร</title>
+<script src="config.js?v=2.14.0"></script>
+<link rel="stylesheet" href="css/auth.css?v=2.14.0">
+<style>
+  body{display:block;padding:0;align-items:stretch}
+  .wrap{max-width:1340px;margin:0 auto;padding:22px 24px 90px}
+
+  .topbar{background:var(--surface);border-bottom:1px solid var(--border);
+    padding:12px 24px;display:flex;align-items:center;gap:18px;flex-wrap:wrap;
+    position:sticky;top:0;z-index:20}
+  .topbar .back{color:var(--accent);text-decoration:none;font-size:13.5px}
+  .tb-title{border-left:1px solid var(--border);padding-left:18px}
+  .tb-name{font-size:16px;font-weight:600}
+  .tb-sub{font-size:12px;color:var(--muted);margin-top:1px}
+  .tb-user{margin-left:auto;text-align:right;font-size:12.5px}
+  .tb-site{font-size:11.5px;color:var(--muted);font-family:var(--mono)}
+
+  /* ช่องค้นหาเป็นพระเอกของหน้านี้ */
+  .hero{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+    padding:22px;margin-bottom:16px}
+  .srow{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  .sbox{flex:1;min-width:280px;position:relative}
+  .sbox input{width:100%;background:var(--surface2);border:1.5px solid var(--accent);
+    border-radius:10px;color:var(--text);font-family:var(--mono);font-size:19px;
+    padding:15px 15px 15px 48px;letter-spacing:.05em;outline:none}
+  .sbox .mag{position:absolute;left:16px;top:50%;transform:translateY(-50%);font-size:18px;opacity:.7}
+  .btn{border:none;border-radius:var(--rs);padding:14px 24px;font-family:var(--font);
+    font-size:14.5px;font-weight:600;cursor:pointer;background:var(--accent);color:#0f172a}
+  .btn.ghost{background:transparent;border:1px solid var(--border);color:var(--text);
+    font-weight:400;padding:10px 16px;font-size:13px}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+  /* ตะกร้า */
+.cart{position:fixed;right:0;top:0;bottom:0;width:300px;z-index:110;
+  background:var(--surface);border-left:1px solid var(--border);
+  display:flex;flex-direction:column;transform:translateX(300px);
+  transition:transform .18s ease}
+.cart.on{transform:translateX(0)}
+.chead{display:flex;align-items:center;gap:10px;padding:14px 16px;
+  border-bottom:1px solid var(--border)}
+.ctitle{font-size:15px;font-weight:600}
+.cbadge{background:var(--accent);color:#0f172a;border-radius:11px;
+  padding:1px 10px;font-family:var(--mono);font-size:13px;font-weight:700}
+.cclear{margin-left:auto;background:none;border:none;color:var(--muted);
+  font-family:var(--font);font-size:12.5px;cursor:pointer;text-decoration:underline}
+.csum{padding:11px 16px;font-size:12px;color:var(--muted);line-height:1.7;
+  border-bottom:1px solid var(--border)}
+.csum .cw{color:var(--warn)} .csum .cbad{color:var(--danger)}
+.clist{flex:1;overflow:auto;padding:8px}
+.citem{position:relative;padding:9px 30px 9px 11px;border-radius:var(--rs);
+  border:1px solid var(--border);margin-bottom:6px;background:var(--surface2)}
+.citem.nofile{border-color:rgba(251,191,36,.45)}
+.cref{font-family:var(--mono);font-size:13px;font-weight:600}
+.ctag{font-family:var(--font);font-size:9.5px;color:var(--warn);
+  border:1px solid var(--warn);border-radius:8px;padding:0 5px;margin-left:6px}
+.csub{font-size:11px;color:var(--muted);margin-top:2px}
+.cdel{position:absolute;right:6px;top:8px;background:none;border:none;
+  color:var(--muted);cursor:pointer;font-size:13px;padding:2px 5px}
+.cdel:hover{color:var(--danger)}
+.cempty{color:var(--muted);font-size:12.5px;text-align:center;padding:26px 14px;line-height:1.8}
+.cfoot{padding:12px 16px;border-top:1px solid var(--border);
+  display:flex;flex-direction:column;gap:8px}
+.cfoot .btn{width:100%;padding:11px}
+body.cart-on .wrap{padding-right:324px}
+
+/* กล่องวางรายการ */
+#dlgPaste{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+  color:var(--text);padding:22px;max-width:520px;width:92vw;margin:auto;inset:0}
+#dlgPaste::backdrop{background:rgba(15,23,42,.82)}
+.ptitle{font-size:16px;font-weight:600;margin-bottom:5px}
+.psub{font-size:12.5px;color:var(--muted);line-height:1.8;margin-bottom:14px}
+#pasteBox{width:100%;height:210px;background:var(--surface2);border:1px solid var(--border);
+  border-radius:var(--rs);color:var(--text);font-family:var(--mono);font-size:13.5px;
+  padding:12px;resize:vertical;line-height:1.8}
+.pcount{font-size:12px;color:var(--muted);margin-top:8px;font-family:var(--mono)}
+.pact{display:flex;gap:10px;justify-content:flex-end;margin-top:16px}
+.addbtn{width:26px;height:26px;border-radius:6px;border:1px solid var(--accent);
+  background:transparent;color:var(--accent);font-size:16px;line-height:1;cursor:pointer}
+.addbtn:hover{background:var(--accent);color:#0f172a}
+.inbag{display:inline-block;width:26px;height:26px;line-height:26px;text-align:center;
+  border-radius:6px;background:var(--success);color:#0f172a;font-weight:700}
+.addall{background:none;border:1px solid var(--border);color:var(--muted);
+  border-radius:6px;padding:3px 7px;font-family:var(--font);font-size:10.5px;cursor:pointer}
+.addall:hover{border-color:var(--accent);color:var(--accent)}
+.toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,20px);z-index:200;
+  background:var(--surface);border:1px solid var(--accent);border-radius:var(--r);
+  padding:11px 20px;font-size:13.5px;opacity:0;pointer-events:none;transition:.18s}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+.zipnote{font-size:12px;color:var(--muted);line-height:1.7}
+.hint{font-size:12.5px;color:var(--muted);margin-top:12px;line-height:1.7}
+  .hint code{font-family:var(--mono);color:var(--accent);background:var(--surface2);
+    padding:1px 7px;border-radius:4px;cursor:pointer}
+
+  .filters{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;
+    padding-top:16px;border-top:1px solid var(--border)}
+  .fld{display:flex;flex-direction:column;gap:5px}
+  .fld label{font-size:11.5px;color:var(--muted)}
+  .fld select,.fld input{background:var(--surface2);border:1px solid var(--border);
+    border-radius:var(--rs);color:var(--text);font-family:var(--font);font-size:13px;padding:8px 11px}
+
+  .kpis{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));margin-bottom:16px}
+  .kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px}
+  .kpi .n{font-family:var(--mono);font-size:25px;font-weight:600;line-height:1.15}
+  .kpi .k{font-size:11.5px;color:var(--muted);margin-top:3px;line-height:1.45}
+  .kpi.bad{border-color:rgba(248,113,113,.5)} .kpi.bad .n{color:var(--danger)}
+  .kpi.warn .n{color:var(--warn)} .kpi.ok .n{color:var(--success)}
+  .kpi.click{cursor:pointer} .kpi.click:hover{border-color:var(--accent)}
+
+  .rhead{display:flex;align-items:baseline;gap:12px;margin-bottom:10px;flex-wrap:wrap}
+  .rhead h2{font-size:14px;font-weight:600}
+  .rhead .c{font-size:12.5px;color:var(--muted);font-family:var(--mono)}
+  .rhead .r{margin-left:auto;display:flex;gap:10px;align-items:center}
+
+  .tw{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{text-align:left;font-size:10.5px;font-family:var(--mono);letter-spacing:.1em;
+    text-transform:uppercase;color:var(--muted);padding:11px 14px;background:var(--surface2);
+    border-bottom:1px solid var(--border);white-space:nowrap}
+  td{padding:12px 14px;border-bottom:1px solid var(--border);vertical-align:middle}
+  tbody tr.main{cursor:pointer}
+  tbody tr.main:hover td{background:var(--surface2)}
+  tbody tr.main.open td{background:var(--surface2)}
+  .mono{font-family:var(--mono)}
+  .ref{font-family:var(--mono);font-size:14px;font-weight:600;letter-spacing:.03em}
+  .sub{font-size:11px;color:var(--muted);font-family:var(--mono);margin-top:2px}
+
+  .pill{display:inline-block;font-size:10.5px;font-family:var(--mono);padding:2px 9px;
+    border-radius:11px;border:1px solid;white-space:nowrap}
+  .p-ok{color:var(--success);border-color:var(--success)}
+  .p-warn{color:var(--warn);border-color:var(--warn)}
+  .p-bad{color:var(--danger);border-color:var(--danger)}
+  .p-mute{color:var(--muted);border-color:var(--border)}
+
+  /* จุดบอกความคืบหน้า อ่านเร็วกว่าตัวหนังสือเมื่อกวาดสายตาทั้งตาราง */
+  .flow{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);margin-top:4px}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--border);flex-shrink:0}
+  .dot.on{background:var(--success)} .dot.now{background:var(--accent)}
+  .dot.late{background:var(--danger)}
+
+  .detail td{background:#16202f;padding:0}
+  .dwrap{padding:20px 24px;display:grid;gap:26px;grid-template-columns:1.15fr 1fr}
+  .dsec h4{font-size:11px;font-family:var(--mono);letter-spacing:.11em;text-transform:uppercase;
+    color:var(--muted);margin-bottom:11px}
+  .kv{display:grid;grid-template-columns:120px 1fr;gap:7px 14px;font-size:13px}
+  .kv .k{color:var(--muted)}
+  .tl{border-left:2px solid var(--border);padding-left:16px;margin-left:5px}
+  .ev{position:relative;padding-bottom:15px;font-size:12.5px}
+  .ev:last-child{padding-bottom:0}
+  .ev::before{content:'';position:absolute;left:-22px;top:4px;width:9px;height:9px;
+    border-radius:50%;background:var(--success);border:2px solid var(--bg)}
+  .ev .t{font-family:var(--mono);font-size:11px;color:var(--muted)}
+  .ev .who{font-size:11.5px;color:var(--muted)}
+  .boxcard{background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);
+    padding:13px 15px;margin-top:12px;display:flex;gap:13px;align-items:center}
+  .boxcard img{width:62px;height:62px;object-fit:cover;border-radius:6px;flex-shrink:0;
+    cursor:zoom-in;border:1px solid var(--border)}
+  .boxcard .ph{width:62px;height:62px;border-radius:6px;background:var(--bg);flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;font-size:21px}
+  .boxcard .bid{font-family:var(--mono);font-size:13.5px;font-weight:600}
+  .boxcard .bl{font-size:12px;color:var(--muted);margin-top:3px;line-height:1.55}
+  .dacts{display:flex;gap:9px;margin-top:14px;flex-wrap:wrap}
+  .dacts a{text-decoration:none;display:inline-block}
+
+  .empty{color:var(--muted);font-size:13.5px;padding:34px;text-align:center;
+    border:1px dashed var(--border);border-radius:var(--r);line-height:1.8}
+  .empty b{color:var(--text);display:block;margin-bottom:6px;font-size:15px}
+  @media (max-width:980px){ .dwrap{grid-template-columns:1fr} th:nth-child(3),td:nth-child(3){display:none} }
+
+/* ── หน้าติดตามเอกสาร ── */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+  gap:12px;margin-bottom:16px}
+.card{background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r);padding:14px 16px}
+.card.bad{border-color:var(--danger)}
+.card.warn{border-color:var(--warn)}
+.card.ok{border-color:var(--success)}
+.cnum{font-family:var(--mono);font-size:27px;font-weight:700;line-height:1.1}
+.card.bad .cnum{color:var(--danger)}
+.card.warn .cnum{color:var(--warn)}
+.card.ok .cnum{color:var(--success)}
+.clab{font-size:12px;color:var(--muted);margin-top:3px}
+
+.toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.tabs{display:flex;gap:7px;flex-wrap:wrap}
+.tab{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+  color:var(--muted);padding:7px 13px;font-family:var(--font);font-size:12.5px;cursor:pointer}
+.tab:hover{border-color:var(--accent)}
+.tab.on{background:var(--accent);border-color:var(--accent);color:#0f172a;font-weight:600}
+.tab b{margin-left:6px;font-family:var(--mono)}
+.grow{flex:1}
+.empty{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+  padding:38px;text-align:center;color:var(--muted);font-size:13.5px}
+
+.chk{width:16px;height:16px;cursor:pointer;accent-color:var(--accent)}
+.ref{font-family:var(--mono);font-size:13.5px;font-weight:600}
+.sub{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.5}
+.sub.note{color:var(--text);opacity:.75;font-style:italic}
+.bad{color:var(--danger)} .warn{color:var(--warn)} .ok{color:var(--success)}
+tr.lv-over td{background:rgba(248,113,113,.07)}
+tr.lv-over td:first-child{box-shadow:inset 3px 0 0 var(--danger)}
+tr.lv-critical td:first-child{box-shadow:inset 3px 0 0 var(--warn)}
+.rtag{display:inline-block;font-size:11.5px;border:1px solid var(--border);
+  border-radius:9px;padding:1px 9px;background:var(--surface2)}
+
+.selbar{position:fixed;left:0;right:0;bottom:0;z-index:130;display:none;
+  background:var(--surface);border-top:1px solid var(--accent);
+  padding:12px 88px 12px 24px;align-items:center;gap:12px;flex-wrap:wrap;
+  box-shadow:0 -6px 20px rgba(0,0,0,.35)}
+.selbar.on{display:flex}
+.selcount{font-size:14px;font-weight:600}
+
+#dlgReason{background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r);color:var(--text);padding:20px;max-width:560px;width:94vw;
+  margin:auto;inset:0;max-height:90vh;overflow:auto}
+#dlgReason::backdrop{background:rgba(15,23,42,.82)}
+.rs-h{display:flex;align-items:flex-start;gap:12px;margin-bottom:16px}
+.rs-t{font-size:16px;font-weight:600}
+.rs-s{font-size:12.5px;color:var(--muted);margin-top:3px;line-height:1.6}
+.rs-x{margin-left:auto;background:none;border:none;color:var(--muted);
+  font-size:18px;cursor:pointer;padding:0 5px}
+.rs-g{margin-bottom:14px}
+.rs-gl{font-size:11.5px;font-weight:600;margin-bottom:6px;
+  text-transform:uppercase;letter-spacing:.04em}
+.rs-gl.warn{color:var(--warn)} .rs-gl.bad{color:var(--danger)}
+.rs-gl.ok{color:var(--success)} .rs-gl.muted{color:var(--muted)}
+.rs-r{display:block;width:100%;text-align:left;background:var(--surface2);
+  border:1px solid var(--border);border-radius:var(--rs);color:var(--text);
+  padding:9px 12px;margin-bottom:5px;font-family:var(--font);font-size:13px;cursor:pointer}
+.rs-r:hover{border-color:var(--accent)}
+.rs-r.on{border-color:var(--accent);background:var(--accent);color:#0f172a;font-weight:600}
+.rs-fld{margin-bottom:12px}
+.rs-fld label{display:block;font-size:11.5px;color:var(--muted);margin-bottom:4px}
+.rs-fld input,.rs-fld select{width:100%;background:var(--surface2);
+  border:1px solid var(--border);border-radius:var(--rs);color:var(--text);
+  padding:9px 11px;font-family:var(--font);font-size:13px}
+.rs-act{display:flex;gap:10px;align-items:center;justify-content:flex-end;
+  margin-top:16px;padding-top:14px;border-top:1px solid var(--border)}
+.rs-act .hint{margin-right:auto;text-align:left}
+
+
+/* ── หน้ารับเอกสารเป็นชุด ── */
+.scanbox{background:var(--surface);border:2px solid var(--accent);
+  border-radius:var(--r);padding:18px 20px;margin-bottom:14px}
+.scanbox.done{border-color:var(--success)}
+.scan-l{font-size:12.5px;color:var(--muted);margin-bottom:7px}
+#scanInput{width:100%;background:var(--surface2);border:1px solid var(--border);
+  border-radius:var(--rs);color:var(--text);padding:14px 16px;
+  font-family:var(--mono);font-size:19px;letter-spacing:.05em}
+#scanInput:focus{outline:2px solid var(--accent);outline-offset:1px}
+
+.bhead{background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r);padding:16px 18px;margin-bottom:14px}
+.bid{font-family:var(--mono);font-size:23px;font-weight:700}
+.bmeta{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
+  gap:11px;margin-top:12px}
+.bk{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.bv{font-size:13.5px;font-weight:600;margin-top:2px}
+
+.prog{height:9px;background:var(--surface2);border-radius:5px;overflow:hidden;margin:12px 0 6px}
+.prog i{display:block;height:100%;background:var(--success);
+  transition:width .2s ease;width:0}
+.progtxt{font-family:var(--mono);font-size:14px;font-weight:600}
+
+.ilist{max-height:44vh;overflow:auto;border:1px solid var(--border);border-radius:var(--rs)}
+.ilist table{margin:0}
+.ilist thead th{position:sticky;top:0;background:var(--surface2);z-index:1}
+tr.got td{background:rgba(52,211,153,.09)}
+tr.got td:first-child{box-shadow:inset 3px 0 0 var(--success)}
+.mark{font-size:15px;width:22px;display:inline-block;text-align:center}
+.extra-row td{background:rgba(96,165,250,.09)}
+.extra-row td:first-child{box-shadow:inset 3px 0 0 var(--accent)}
+
+.toast2{position:fixed;left:50%;bottom:88px;transform:translate(-50%,14px);z-index:200;
+  border-radius:var(--r);padding:13px 24px;font-size:15px;font-weight:600;
+  opacity:0;pointer-events:none;transition:.16s;font-family:var(--mono)}
+.toast2.on{opacity:1;transform:translate(-50%,0)}
+.toast2.ok{background:var(--success);color:#0f172a}
+.toast2.bad{background:var(--danger);color:#fff}
+.toast2.warn{background:var(--warn);color:#0f172a}
+
+.actbar{position:fixed;left:0;right:0;bottom:0;z-index:130;
+  background:var(--surface);border-top:1px solid var(--border);
+  padding:12px 88px 12px 24px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a class="back" href="home.html">← หน้าหลัก</a>
+  <div class="tb-title">
+    <div class="tb-name">รับเอกสารเป็นชุด</div>
+    <div class="tb-sub" id="scopeInfo">ยิงบาร์โค้ดบนใบปะหน้าเพื่อเริ่ม</div>
+  </div>
+  <div class="tb-user">
+    <span id="who">—</span>
+    <div class="tb-site" id="whoSite"></div>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="alert bad" id="alert"></div>
+
+  <div class="scanbox" id="scanBox">
+    <div class="scan-l" id="scanLabel">① ยิงบาร์โค้ดบนใบปะหน้า</div>
+    <input id="scanInput" placeholder="B26082701" autocomplete="off" autocapitalize="off">
+  </div>
+
+  <div id="batchArea" style="display:none">
+    <div class="bhead">
+      <div style="display:flex;align-items:flex-start;gap:14px">
+        <div>
+          <div class="bid" id="bId">—</div>
+          <div class="hint" id="bWhen">—</div>
+        </div>
+        <button class="btn ghost" id="btnCancel" style="margin-left:auto">ยกเลิกชุดนี้</button>
+      </div>
+      <div class="bmeta">
+        <div><div class="bk">ต้นทาง</div><div class="bv" id="bFrom">—</div></div>
+        <div><div class="bk">ผู้ส่ง</div><div class="bv" id="bBy">—</div></div>
+        <div><div class="bk">ช่องทาง</div><div class="bv" id="bChannel">—</div></div>
+        <div><div class="bk">จำนวนในชุด</div><div class="bv" id="bCount">—</div></div>
+      </div>
+      <div class="prog"><i id="progBar"></i></div>
+      <div class="progtxt" id="progTxt">0 / 0</div>
+    </div>
+
+    <div class="ilist" id="ilist"></div>
+  </div>
+</div>
+
+<div class="toast2" id="toast2"></div>
+
+<div class="actbar" id="actBar" style="display:none">
+  <span class="hint" id="actInfo">—</span>
+  <div class="grow"></div>
+  <button class="btn" id="btnFinish">จบการรับ</button>
+</div>
+
+<script type="module">
+
+import { authFetch, requireAuth, installNav, guardPage, logout } from './js/auth.js?v=2.15.0';
+
+const API = DOCSCAN_CONFIG.API_URL;
+const $ = id => document.getElementById(id);
+
+const session = requireAuth();
+if (session) {
+  if (!guardPage(session)) throw new Error('no access');
+  installNav(session, { onLogout: () => logout(API) });
+  $('who').textContent = session.empName || session.empId || '';
+  $('whoSite').textContent = session.site || '';
+}
+
+async function call(action, payload = {}, timeoutMs) {
+  try {
+    return await authFetch(API, { action, ...payload },
+      timeoutMs ? { timeoutMs } : undefined);
+  } catch (err) {
+    if (err.code === 'auth_required') { alert('เซสชันหมดอายุ'); location.href = 'login.html'; }
+    throw err;
+  }
+}
+
+const esc = s => String(s == null ? '' : s)
+  .replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+
+function fmt(v) {
+  if (!v) return '—';
+  const d = new Date(v);
+  if (isNaN(d.getTime())) return String(v);
+  return d.toLocaleString('th-TH', { day:'2-digit', month:'short', year:'2-digit',
+                                     hour:'2-digit', minute:'2-digit' });
+}
+
+const CHANNEL_LABEL = {
+  company_van: 'รถบริษัท', courier: 'ขนส่งเอกชน',
+  post: 'ไปรษณีย์', hand: 'คนถือไปเอง'
+};
+
+/* ---------- สถานะ ---------- */
+let batch = null, items = [];
+const got = new Set();       // ที่ยิงแล้วและอยู่ในชุด
+const extra = [];            // ที่ยิงแล้วแต่ไม่อยู่ในชุด
+
+/* ช่องยิงต้องมีโฟกัสตลอด คนใช้เครื่องยิงบาร์โค้ดซึ่งพิมพ์เข้าช่องที่โฟกัสอยู่
+   ถ้าโฟกัสหลุด การยิงจะหายไปเงียบ ๆ แล้วคนไม่รู้ว่าใบนั้นตกหล่น */
+function keepFocus() {
+  const el = $('scanInput');
+  if (document.activeElement !== el) el.focus();
+}
+setInterval(keepFocus, 400);
+document.addEventListener('click', () => setTimeout(keepFocus, 40));
+
+function toast(msg, kind) {
+  const el = $('toast2');
+  el.textContent = msg;
+  el.className = 'toast2 on ' + (kind || 'ok');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove('on'), 1600);
+}
+
+function beep(ok) {
+  /* เสียงต่างกันระหว่างสำเร็จกับผิดพลาด
+     คนยิงเอกสารจะมองรายการอยู่ ไม่ได้มองข้อความบนจอตลอด */
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.connect(g); g.connect(ctx.destination);
+    o.frequency.value = ok ? 880 : 240;
+    g.gain.value = 0.07;
+    o.start();
+    setTimeout(() => { o.stop(); ctx.close(); }, ok ? 90 : 220);
+  } catch (e) {}
+}
+
+/* ---------- ยิงบาร์โค้ด ---------- */
+$('scanInput').addEventListener('keydown', async (e) => {
+  if (e.key !== 'Enter') return;
+  e.preventDefault();
+  const v = $('scanInput').value.trim().toUpperCase();
+  $('scanInput').value = '';
+  if (!v) return;
+
+  if (!batch) await openBatch(v);
+  else scanItem(v);
+});
+
+/* ---------- เปิดชุด ---------- */
+async function openBatch(id) {
+  $('scanInput').disabled = true;
+  try {
+    const r = await call('shipOpenBatch', { batch_id: id }, 45000);
+    if (r.status !== 'ok') { beep(false); alert(r.message || 'เปิดชุดไม่สำเร็จ'); return; }
+
+    batch = r.batch;
+    items = r.items || [];
+    got.clear();
+    extra.length = 0;
+
+    /* ใบที่รับไปแล้วจากที่อื่น ให้ติ๊กไว้เลย ไม่ต้องให้ยิงซ้ำ
+       แต่ยังนับรวมเพื่อให้ยอดตรงกับใบปะหน้า */
+    items.forEach(it => { if (it.already_received) got.add(it.ref_no.toUpperCase()); });
+
+    $('bId').textContent = batch.batch_id;
+    $('bWhen').textContent = 'ส่งเมื่อ ' + fmt(batch.created_at);
+    $('bFrom').textContent = batch.from_site || '—';
+    $('bBy').textContent = batch.created_name || '—';
+    $('bChannel').textContent = (CHANNEL_LABEL[batch.channel] || batch.channel || '—') +
+      (batch.vehicle ? ' · ' + batch.vehicle : '');
+    $('bCount').textContent = items.length + ' ใบ';
+
+    $('scanLabel').textContent = '② ยิงเอกสารทีละใบ';
+    $('scanInput').placeholder = 'T10075206';
+    $('batchArea').style.display = '';
+    $('actBar').style.display = 'flex';
+    $('scopeInfo').textContent = 'ชุด ' + batch.batch_id + ' · จาก ' + (batch.from_site || '—');
+
+    beep(true);
+    toast('เปิดชุด ' + batch.batch_id + ' · ' + items.length + ' ใบ');
+    render();
+  } catch (e) {
+    beep(false);
+    alert('เปิดชุดไม่สำเร็จ: ' + (e.message || e));
+  } finally {
+    $('scanInput').disabled = false;
+    keepFocus();
+  }
+}
+
+/* ---------- ยิงทีละใบ ---------- */
+function scanItem(v) {
+  const inList = items.some(it => it.ref_no.toUpperCase() === v);
+
+  if (inList) {
+    if (got.has(v)) { beep(false); toast('ยิงซ้ำ ' + v, 'warn'); return; }
+    got.add(v);
+    beep(true);
+    toast('รับ ' + v + '  (' + got.size + '/' + items.length + ')');
+  } else {
+    if (extra.indexOf(v) >= 0) { beep(false); toast('ยิงซ้ำ ' + v, 'warn'); return; }
+    /* มาผิดชุด — รับไว้แล้วทำเครื่องหมาย ดีกว่าปฏิเสธแล้วเอกสารตกหล่น */
+    extra.push(v);
+    beep(true);
+    toast(v + ' ไม่อยู่ในชุดนี้ — รับไว้แล้ว', 'warn');
+  }
+  render();
+}
+
+/* ---------- แสดงผล ---------- */
+function render() {
+  const done = got.size;
+  const pct = items.length ? Math.round(done / items.length * 100) : 0;
+  $('progBar').style.width = pct + '%';
+  $('progTxt').textContent = done + ' / ' + items.length +
+    (extra.length ? '   (+' + extra.length + ' ไม่อยู่ในชุด)' : '');
+  $('scanBox').classList.toggle('done', done === items.length && items.length > 0);
+
+  const missing = items.length - done;
+  $('actInfo').textContent = missing
+    ? 'ยังไม่ได้ยิง ' + missing + ' ใบ — ถ้าจบตอนนี้จะถือว่าไม่มาในชุดนี้'
+    : 'ยิงครบทุกใบแล้ว';
+
+  const rows = items.map(it => {
+    const k = it.ref_no.toUpperCase();
+    const on = got.has(k);
+    return `<tr class="${on ? 'got' : ''}">
+      <td><span class="mark">${on ? '✓' : '·'}</span></td>
+      <td><div class="ref">${esc(it.ref_no)}</div></td>
+      <td>${esc(it.item_name || '—')}</td>
+      <td>${esc(it.transfer_to || it.dest_warehouse || '—')}</td>
+    </tr>`;
+  }).concat(extra.map(x => `<tr class="extra-row">
+      <td><span class="mark">+</span></td>
+      <td><div class="ref">${esc(x)}</div></td>
+      <td colspan="2" class="hint">ไม่อยู่ในรายการชุดนี้ — รับไว้แล้ว</td>
+    </tr>`));
+
+  $('ilist').innerHTML = '<table><thead><tr>' +
+    '<th style="width:38px"></th><th style="width:150px">Reference</th>' +
+    '<th>ประเภท</th><th style="width:170px">ปลายทาง</th>' +
+    '</tr></thead><tbody>' + rows.join('') + '</tbody></table>';
+}
+
+/* ---------- จบการรับ ---------- */
+$('btnFinish').addEventListener('click', async () => {
+  if (!batch) return;
+
+  const missing = items.filter(it => !got.has(it.ref_no.toUpperCase()));
+
+  /* บอกให้ชัดว่าใบที่ขาดจะไปไหนต่อ
+     ไม่ใช่แค่ถามว่าแน่ใจไหม ซึ่งไม่ช่วยให้ตัดสินใจได้ */
+  let msg = 'จบการรับชุด ' + batch.batch_id + '\n\n' +
+            'รับแล้ว ' + got.size + ' ใบ';
+  if (extra.length) msg += '\nไม่อยู่ในชุดแต่รับไว้ ' + extra.length + ' ใบ';
+  if (missing.length) {
+    msg += '\n\nไม่มาในชุดนี้ ' + missing.length + ' ใบ:\n' +
+           missing.slice(0, 10).map(m => '  ' + m.ref_no).join('\n') +
+           (missing.length > 10 ? '\n  และอีก ' + (missing.length - 10) : '') +
+           '\n\nใบเหล่านี้จะกลับไปเป็นค้างที่ต้นทาง เพื่อให้มีคนตามต่อ';
+  }
+  if (!confirm(msg)) return;
+
+  const btn = $('btnFinish');
+  btn.disabled = true; btn.textContent = 'กำลังบันทึก…';
+  try {
+    const r = await call('shipReceiveBatch', {
+      batch_id: batch.batch_id,
+      received: [...got].concat(extra)
+    }, 120000);
+
+    if (r.status !== 'ok') { alert(r.message || 'บันทึกไม่สำเร็จ'); return; }
+
+    let done = 'บันทึกแล้ว\n\nรับ ' + r.received + ' ใบ';
+    if (r.extra && r.extra.length) done += '\nไม่อยู่ในชุด ' + r.extra.length + ' ใบ';
+    if (r.extra_not_found && r.extra_not_found.length) {
+      done += '\nไม่พบในระบบ ' + r.extra_not_found.length + ' ใบ: ' +
+              r.extra_not_found.slice(0, 5).join(', ');
+    }
+    if (r.missing && r.missing.length) {
+      done += '\nส่งกลับไปค้างที่ต้นทาง ' + r.missing_marked + ' ใบ';
+    }
+    alert(done);
+    reset();
+  } catch (e) {
+    alert('บันทึกไม่สำเร็จ: ' + (e.message || e));
+  } finally {
+    btn.disabled = false; btn.textContent = 'จบการรับ';
+  }
+});
+
+$('btnCancel').addEventListener('click', () => {
+  if (got.size || extra.length) {
+    if (!confirm('ยกเลิกชุดนี้\n\nที่ยิงไปแล้ว ' + (got.size + extra.length) +
+                 ' ใบจะไม่ถูกบันทึก')) return;
+  }
+  reset();
+});
+
+function reset() {
+  batch = null; items = []; got.clear(); extra.length = 0;
+  $('batchArea').style.display = 'none';
+  $('actBar').style.display = 'none';
+  $('scanBox').classList.remove('done');
+  $('scanLabel').textContent = '① ยิงบาร์โค้ดบนใบปะหน้า';
+  $('scanInput').placeholder = 'B26082701';
+  $('scopeInfo').textContent = 'ยิงบาร์โค้ดบนใบปะหน้าเพื่อเริ่ม';
+  keepFocus();
+}
+
+keepFocus();
+</script>
+</body>
+</html>
