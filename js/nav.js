@@ -52,8 +52,7 @@ export const NAV = [
         roles: ['warehouse', 'admin'],
         steps: [
           { file: 'incoming.html', label: 'ชุดที่มาถึง' },
-          { file: 'receive.html',  label: 'ตรวจรับ' },
-          { file: 'archive.html',  label: 'เข้ากล่อง' }
+          { file: 'receive.html',  label: 'ตรวจรับ' }
         ]
       }
     ]
@@ -70,10 +69,7 @@ export const NAV = [
         desc: 'ค้นหาแล้วดาวน์โหลดไฟล์ ทั้งใบเดียวและหลายใบพร้อมกัน', roles: null },
       { id: 'followup',  file: 'followup.html',  icon: '⏱',
         title: 'ติดตามเอกสาร',
-        desc: 'ดูว่าใบไหนค้าง อยู่ขั้นไหน นานแค่ไหน และระบุเหตุผล', roles: null },
-      { id: 'dashboard', file: 'dashboard.html', icon: '📊',
-        title: 'Dashboard',
-        desc: 'สรุปภาพรวมและความคืบหน้า', roles: null }
+        desc: 'ดูว่าใบไหนค้าง อยู่ขั้นไหน นานแค่ไหน และระบุเหตุผล', roles: null }
     ]
   },
   {
@@ -134,7 +130,29 @@ export function currentPage() {
 }
 
 /** role นี้เปิดหน้านี้ได้ไหม — undefined = ไม่รู้จักหน้านี้ ปล่อยผ่าน */
+/**
+ * หน้าที่ปิดการใช้งาน
+ *
+ * ไม่ได้ลบไฟล์ทิ้ง เผื่ออยากกลับมาดูโค้ดเดิม
+ * แต่กันไม่ให้เข้าถึงได้ เพราะหน้าที่ใช้ไม่ได้จริงสร้างความสับสน
+ * และอาจทำให้คนบันทึกข้อมูลผิดที่
+ *
+ *   _scan.html      สแกนทีละใบ — batch.html ทำได้ครบกว่า
+ *   admin-tool.html เครื่องมือผู้ดูแลรุ่นเก่า ซ้ำกับ admin.html
+ *   dashboard.html  ทำค้างไว้ ไม่เคยเรียกข้อมูลจริง
+ *   archive.html    เข้ากล่องเป็นขั้นตอนไม่บังคับ ยังไม่ได้ใช้
+ */
+export const RETIRED_PAGES = [
+  '_scan.html', 'admin-tool.html', 'dashboard.html', 'archive.html'
+];
+
+export function isRetired(file) {
+  return RETIRED_PAGES.indexOf(String(file || '').split('/').pop()) >= 0;
+}
+
 export function canAccess(role, file) {
+  // หน้าที่ปิดแล้ว ไม่มีใครเข้าได้ รวมถึงผู้ดูแล
+  if (isRetired(file)) return false;
   let roles = fileRoles_(file);
   if (roles === undefined) {
     roles = Object.prototype.hasOwnProperty.call(EXTRA_ROLES, file)
