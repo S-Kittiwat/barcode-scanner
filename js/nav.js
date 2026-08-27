@@ -34,14 +34,14 @@ export const NAV = [
         roles: ['delivery', 'warehouse', 'admin']
       },
       {
-        id: 'send', file: 'delivery_batches.html', icon: '🚚',
+        id: 'send', file: 'ship.html', icon: '🚚',
         title: 'ส่งเอกสารตัวจริง',
-        desc: 'รวมเอกสารเป็นชุด บันทึกการส่ง และพิมพ์ใบปะหน้า',
+        desc: 'เลือกเอกสาร ระบุปลายทาง สร้างชุดส่ง แล้วพิมพ์ใบปะหน้า',
         owner: 'ทีมจัดส่ง',
         roles: ['delivery', 'admin'],
         steps: [
-          { file: 'delivery.html',         label: 'เลือกเอกสาร' },
-          { file: 'delivery_batches.html', label: 'จัดชุดและส่ง' }
+          { file: 'ship.html',             label: 'สร้างชุดส่ง' },
+          { file: 'delivery_batches.html', label: 'ชุดที่ส่งไปแล้ว' }
         ]
       },
       {
