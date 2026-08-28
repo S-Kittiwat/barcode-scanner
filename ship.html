@@ -376,8 +376,17 @@ const selected = new Set();
 
 /* ---------- โหลดเอกสารที่พร้อมส่ง ---------- */
 async function load() {
-  $('dlist').innerHTML = '<div class="empty">กำลังโหลด…</div>';
-  console.log('[DocScan] เริ่มโหลดรายการเอกสารพร้อมส่ง');
+  /* รายงานทุกขั้นบนหน้าจอ ไม่ใช่แค่ใน console
+     เพราะถ้าพังก่อนถึง catch จะไม่มีอะไรบอกเลยว่าติดตรงไหน */
+  var step = 'เริ่ม';
+  function mark(s) {
+    step = s;
+    $('dlist').innerHTML = '<div class="empty">' + esc(s) + '…</div>';
+    console.log('[DocScan] ' + s);
+  }
+
+  $('dlist').dataset.started = '1';
+  mark('กำลังเรียกข้อมูลจากเซิร์ฟเวอร์');
   try {
     const r = await call('docsReadyToShip', {}, 60000);
     console.log('[DocScan] เซิร์ฟเวอร์ตอบ', r);
@@ -391,8 +400,10 @@ async function load() {
         'มักเกิดเมื่อยังไม่ได้ Deploy Documents.gs เป็นเวอร์ชันใหม่');
     }
 
+    mark('ได้ข้อมูลแล้ว ' + (r.rows || []).length + ' ใบ กำลังแสดงผล');
+
     allDocs = r.rows || [];
-    fromSite = r.from_site || session.site || '';
+    fromSite = r.from_site || (session && session.site) || '';
     lastDiag = r.diag || null;
     selected.clear();
     if (lastDiag) console.log('[DocScan] เอกสารพร้อมส่ง', lastDiag);
@@ -400,14 +411,15 @@ async function load() {
     $('scopeInfo').textContent = 'ต้นทาง ' + (fromSite || 'ทุกไซต์') +
       ' · พร้อมส่ง ' + allDocs.length + ' ใบ';
 
-    fillDestFilter();
-    fillSiteOptions();
-    render();
+    step = 'เติมตัวกรองปลายทาง';   fillDestFilter();
+    step = 'เติมรายชื่อไซต์';       fillSiteOptions();
+    step = 'วาดตาราง';              render();
   } catch (e) {
-    console.error('[DocScan] โหลดรายการไม่สำเร็จ', e);
-    $('dlist').innerHTML = '<div class="empty">โหลดไม่สำเร็จ<br>' +
+    console.error('[DocScan] พังตอน: ' + step, e);
+    $('dlist').innerHTML =
+      '<div class="empty">โหลดไม่สำเร็จตอน <b>' + esc(step) + '</b><br>' +
       '<span class="hint">' + esc(e.message || String(e)) + '</span></div>';
-    showAlert('โหลดไม่สำเร็จ: ' + (e.message || e));
+    showAlert('โหลดไม่สำเร็จตอน ' + step + ': ' + (e.message || e));
   }
 }
 
@@ -730,7 +742,17 @@ function showCover(r) {
     $('mainWrap').style.display = '';
     ['receiver', 'vehicle', 'note'].forEach(id => { $(id).value = ''; });
     $('channel').value = ''; $('toSite').value = '';
-    load();
+    /* ถ้าโค้ดก่อนหน้าพัง จะไม่ถึงบรรทัดนี้ และหน้าจะว่างเปล่าเงียบ ๆ
+   ดักไว้เพื่อให้เห็นว่าพังก่อนเริ่มโหลด */
+window.addEventListener('error', function (e) {
+  var el = document.getElementById('dlist');
+  if (el && !el.dataset.started) {
+    el.innerHTML = '<div class="empty">หน้านี้ทำงานไม่สำเร็จ<br>' +
+      '<span class="hint">' + String(e.message || '') + '</span></div>';
+  }
+});
+
+load();
   });
 }
 
@@ -754,6 +776,16 @@ function loadScript(src) {
     document.head.appendChild(el);
   });
 }
+
+/* ถ้าโค้ดก่อนหน้าพัง จะไม่ถึงบรรทัดนี้ และหน้าจะว่างเปล่าเงียบ ๆ
+   ดักไว้เพื่อให้เห็นว่าพังก่อนเริ่มโหลด */
+window.addEventListener('error', function (e) {
+  var el = document.getElementById('dlist');
+  if (el && !el.dataset.started) {
+    el.innerHTML = '<div class="empty">หน้านี้ทำงานไม่สำเร็จ<br>' +
+      '<span class="hint">' + String(e.message || '') + '</span></div>';
+  }
+});
 
 load();
 </script>
