@@ -1070,6 +1070,28 @@ var rows = [];
 
 // ── Init ──────────────────────────────────────────────────
 window.onload = function () {
+  /* โมดูลร่วมต้องโหลดเสร็จก่อน ถ้าไฟล์ใดไฟล์หนึ่งขาด
+     ทั้งบล็อกจะไม่ทำงาน แล้ว window.DocScan จะไม่ถูกสร้าง
+
+     เดิมพังด้วย "DocScan is not defined" ซึ่งไม่บอกว่าไฟล์ไหนขาด
+     มักเกิดเมื่ออัป html ใหม่แต่ลืมอัปไฟล์ js ที่เพิ่งเพิ่มเข้ามา */
+  if (typeof DocScan === 'undefined') {
+    document.body.innerHTML =
+      '<div style="max-width:660px;margin:70px auto;padding:24px;' +
+      'font-family:system-ui,sans-serif;color:#e2e8f0;background:#1e293b;' +
+      'border:1px solid #f87171;border-radius:12px;line-height:1.9">' +
+      '<h2 style="margin:0 0 10px;color:#f87171">โหลดโมดูลไม่ครบ</h2>' +
+      '<p>หน้านี้ต้องใช้ไฟล์ในโฟลเดอร์ <code>js/</code> ซึ่งโหลดไม่สำเร็จ</p>' +
+      '<p><b>มักเกิดเมื่ออัปไฟล์ HTML ใหม่ แต่ยังไม่ได้อัปไฟล์ js ที่เพิ่มมาใหม่</b></p>' +
+      '<p style="font-size:13px">ไฟล์ที่ต้องมีครบ<br><code>' +
+      'js/api.js · js/auth.js · js/nav.js · js/csv.js · js/date.js · js/pdf.js<br>' +
+      'js/reader.js · js/ink.js · js/templates.js · js/pattern.js · js/support.js' +
+      '</code></p>' +
+      '<p style="color:#94a3b8;font-size:13px">กด F12 ดูแท็บ Console ' +
+      'จะเห็นว่าไฟล์ไหนขึ้น 404</p></div>';
+    return;
+  }
+
   var s = DocScanAuth.requireAuth();
   if (!s) return;
   initReader();

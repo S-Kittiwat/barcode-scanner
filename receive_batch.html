@@ -5,7 +5,7 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230f172a'/%3E%3Crect x='8' y='6' width='16' height='20' rx='2' fill='%23f1f5f9'/%3E%3Crect x='11' y='10' width='2' height='12' fill='%230f172a'/%3E%3Crect x='14.5' y='10' width='1' height='12' fill='%230f172a'/%3E%3Crect x='17' y='10' width='2' height='12' fill='%230f172a'/%3E%3Crect x='20.5' y='10' width='1' height='12' fill='%230f172a'/%3E%3C/svg%3E">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DocScan — ติดตามเอกสาร</title>
-<script src="config.js?v=2.15.2"></script>
+<script src="config.js?v=2.15.4"></script>
 <link rel="stylesheet" href="css/auth.css?v=2.14.0">
 <style>/* กล่องแจ้งข้อผิดพลาด ต้องมีเสมอ
    ไม่งั้นข้อความผิดพลาดจะไม่แสดงอะไรเลย */
@@ -265,8 +265,9 @@ tr.got td:first-child{box-shadow:inset 3px 0 0 var(--success)}
 
 <script type="module">
 
-import { authFetch, requireAuth, installNav, guardPage, logout } from './js/auth.js?v=2.15.2';
-import { installRefBar } from './js/refstatus.js?v=2.15.2';
+import { authFetch, requireAuth, installNav, guardPage, logout } from './js/auth.js?v=2.15.4';
+import { installSupport, installErrorCapture } from './js/support.js?v=2.15.4';
+import { installRefBar } from './js/refstatus.js?v=2.15.4';
 
 const API = DOCSCAN_CONFIG.API_URL;
 const $ = id => document.getElementById(id);
@@ -275,6 +276,10 @@ const session = requireAuth();
 if (session) {
   if (!guardPage(session)) throw new Error('no access');
   installNav(session, { onLogout: () => logout(API) });
+  /* เก็บ error ไว้ในเครื่อง และติดปุ่มแจ้งปัญหา
+     ระบบใช้หลายไซต์ การถามกลับไปกลับมาไม่ได้ผลกับคนหน้างาน */
+  installErrorCapture();
+  installSupport(session, call);
   $('who').textContent = session.empName || session.empId || '';
   $('whoSite').textContent = session.site || '';
 }
@@ -521,6 +526,6 @@ function reset() {
 
 keepFocus();
 </script>
-<div class="bldtag">2.15.2</div>
+<div class="bldtag">2.15.4</div>
 </body>
 </html>

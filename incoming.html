@@ -5,7 +5,7 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230f172a'/%3E%3Crect x='8' y='6' width='16' height='20' rx='2' fill='%23f1f5f9'/%3E%3Crect x='11' y='10' width='2' height='12' fill='%230f172a'/%3E%3Crect x='14.5' y='10' width='1' height='12' fill='%230f172a'/%3E%3Crect x='17' y='10' width='2' height='12' fill='%230f172a'/%3E%3Crect x='20.5' y='10' width='1' height='12' fill='%230f172a'/%3E%3C/svg%3E">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>DocScan — รับเอกสารจากจัดส่ง</title>
-<script src="config.js?v=2.15.2"></script>
+<script src="config.js?v=2.15.4"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
 :root{
@@ -95,18 +95,19 @@ tr:hover td{background:rgba(255,255,255,.015);}
 // ── โมดูลร่วม DocScan ────────────────────────────────────
 // module script ทำงานหลัง classic script แต่ก่อน window.onload
 // โค้ดเดิมเรียก requireAuth ใน window.onload จึงปลอดภัย
-import { apiFetch, uploadBatch, newClientId } from './js/api.js?v=2.15.2';
-import { parseCSV, buildIndex, searchCSV, classify } from './js/csv.js?v=2.15.2';
-import { parseDateInput, toDisplayDate, toInputDate, todayISO } from './js/date.js?v=2.15.2';
-import { requireAuth, authFetch, authGet, authGetText, logout, loadSession, daysLeft, AUTH_JS_VERSION } from './js/auth.js?v=2.15.2';
-import { installNav, guardPage, homeFor as navHome } from './js/nav.js?v=2.15.2';
+import { apiFetch, uploadBatch, newClientId } from './js/api.js?v=2.15.4';
+import { parseCSV, buildIndex, searchCSV, classify } from './js/csv.js?v=2.15.4';
+import { parseDateInput, toDisplayDate, toInputDate, todayISO } from './js/date.js?v=2.15.4';
+import { requireAuth, authFetch, authGet, authGetText, logout, loadSession, daysLeft, AUTH_JS_VERSION } from './js/auth.js?v=2.15.4';
+import { installNav, guardPage, homeFor as navHome } from './js/nav.js?v=2.15.4';
+import { installSupport, installErrorCapture } from './js/support.js?v=2.15.4';
 
 window.DocScan = {
   apiFetch, authFetch, authGet, authGetText, uploadBatch, newClientId,
   parseCSV, buildIndex, searchCSV, classify,
   parseDateInput, toDisplayDate, toInputDate, todayISO,
   requireAuth, logout, loadSession, daysLeft, AUTH_JS_VERSION,
-  installNav, guardPage, navHome
+  installNav, guardPage, navHome, installSupport, installErrorCapture
 };
 // ประทับเลขเวอร์ชันไว้ให้หาเวลาผู้ใช้แจ้งปัญหา
 document.documentElement.setAttribute('data-docscan-version',
@@ -210,6 +211,12 @@ var DocScanAuth = {
     if (s.mustChangePassword) { location.href = 'change-password.html'; return null; }
     if (!DocScan.guardPage(s)) return null;
     DocScan.installNav(s, { onLogout: logout });
+    /* เก็บ error ไว้ในเครื่อง และติดปุ่มแจ้งปัญหา
+       ระบบใช้หลายไซต์ การถามกลับไปกลับมาไม่ได้ผลกับคนหน้างาน */
+    DocScan.installErrorCapture();
+    DocScan.installSupport(s, function (a, p, t) {
+      return apiPost(Object.assign({ action: a }, p || {}));
+    });
     return s;
   }
 };

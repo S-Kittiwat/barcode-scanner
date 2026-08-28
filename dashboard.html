@@ -123,16 +123,16 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .toast.error{border-color:rgba(248,113,113,0.4);color:var(--danger);}
 .toast.success{border-color:rgba(52,211,153,0.4);color:var(--success);}
 </style>
-<script src="config.js?v=2.15.2"></script>
+<script src="config.js?v=2.15.4"></script>
 <script type="module">
 // ── โมดูลร่วม DocScan ────────────────────────────────────
 // module script ทำงานหลัง classic script แต่ก่อน window.onload
 // โค้ดเดิมเรียก requireAuth ใน window.onload จึงปลอดภัย
-import { apiFetch, uploadBatch, newClientId } from './js/api.js?v=2.15.2';
-import { parseCSV, buildIndex, searchCSV, classify } from './js/csv.js?v=2.15.2';
-import { parseDateInput, toDisplayDate, toInputDate, todayISO } from './js/date.js?v=2.15.2';
-import { requireAuth, authFetch, authGet, authGetText, logout, loadSession, daysLeft, AUTH_JS_VERSION } from './js/auth.js?v=2.15.2';
-import { installNav, guardPage, homeFor as navHome } from './js/nav.js?v=2.15.2';
+import { apiFetch, uploadBatch, newClientId } from './js/api.js?v=2.15.4';
+import { parseCSV, buildIndex, searchCSV, classify } from './js/csv.js?v=2.15.4';
+import { parseDateInput, toDisplayDate, toInputDate, todayISO } from './js/date.js?v=2.15.4';
+import { requireAuth, authFetch, authGet, authGetText, logout, loadSession, daysLeft, AUTH_JS_VERSION } from './js/auth.js?v=2.15.4';
+import { installNav, guardPage, homeFor as navHome } from './js/nav.js?v=2.15.4';
 
 window.DocScan = {
   apiFetch, authFetch, authGet, authGetText, uploadBatch, newClientId,
