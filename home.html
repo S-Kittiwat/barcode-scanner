@@ -123,10 +123,15 @@ if (session) {
   } catch (e) { console.error('[DocScan] แถบสถานะติดตั้งไม่สำเร็จ', e); }
   /* เก็บ error ไว้ในเครื่อง และติดปุ่มแจ้งปัญหา
      ระบบใช้หลายไซต์ การถามกลับไปกลับมาไม่ได้ผลกับคนหน้างาน */
-  /* ของเสริมต้องไม่ทำให้หน้าหลักพัง */
+  /* ของเสริมต้องไม่ทำให้หน้าหลักพัง
+     หน้านี้ไม่มีฟังก์ชัน call จึงต้องส่งตัวห่อของตัวเอง
+     เหมือนที่ทำกับแถบสถานะด้านบน */
   try {
     installErrorCapture();
-    installSupport(session, call);
+    installSupport(session, function (a, p, t) {
+      return authFetch(API, Object.assign({ action: a }, p || {}),
+        t ? { timeoutMs: t } : undefined);
+    });
   } catch (e) {
     console.error('[DocScan] ติดตั้งส่วนเสริมไม่สำเร็จ', e);
   }
