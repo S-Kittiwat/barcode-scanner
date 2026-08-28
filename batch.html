@@ -653,23 +653,24 @@ tr.needfix:hover td{background:rgba(248,113,113,.14)}
 #pkB span{background:var(--accent)} #pkO span{background:var(--warn)}
 #pkS span{background:var(--success)} #pkT span{background:var(--danger);color:#fff}
 </style>
-<script src="config.js?v=2.15.2"></script>
+<script src="config.js?v=2.15.4"></script>
 <script type="module">
 // ── โมดูลร่วม DocScan ────────────────────────────────────
 // module script ทำงานหลัง classic script แต่ก่อน window.onload
 // โค้ดเดิมเรียก requireAuth ใน window.onload จึงปลอดภัย
-import { apiFetch, uploadBatch, newClientId } from './js/api.js?v=2.15.2';
-import { parseCSV, buildIndex, searchCSV, classify } from './js/csv.js?v=2.15.2';
-import { parseDateInput, toDisplayDate, toInputDate, todayISO } from './js/date.js?v=2.15.2';
+import { apiFetch, uploadBatch, newClientId } from './js/api.js?v=2.15.4';
+import { parseCSV, buildIndex, searchCSV, classify } from './js/csv.js?v=2.15.4';
+import { parseDateInput, toDisplayDate, toInputDate, todayISO } from './js/date.js?v=2.15.4';
 import { compressPage, compressImageFile, toDataUrl, storagePeriod,
-         compressionSummary, SETTINGS as PDF_SETTINGS } from './js/pdf.js?v=2.15.2';
-import * as Reader from './js/reader.js?v=2.15.2';
-import * as Ink from './js/ink.js?v=2.15.2';
-import * as Templates from './js/templates.js?v=2.15.2';
-import * as Pattern from './js/pattern.js?v=2.15.2';
-import { hasCollisionRisk, findNearMiss, searchCSV as csvSearch } from './js/csv.js?v=2.15.2';
-import { requireAuth, authFetch, authGet, authGetText, logout, loadSession, daysLeft, AUTH_JS_VERSION } from './js/auth.js?v=2.15.2';
-import { installNav, guardPage, homeFor as navHome } from './js/nav.js?v=2.15.2';
+         compressionSummary, SETTINGS as PDF_SETTINGS } from './js/pdf.js?v=2.15.4';
+import * as Reader from './js/reader.js?v=2.15.4';
+import * as Ink from './js/ink.js?v=2.15.4';
+import * as Templates from './js/templates.js?v=2.15.4';
+import * as Pattern from './js/pattern.js?v=2.15.4';
+import { hasCollisionRisk, findNearMiss, searchCSV as csvSearch } from './js/csv.js?v=2.15.4';
+import { requireAuth, authFetch, authGet, authGetText, logout, loadSession, daysLeft, AUTH_JS_VERSION } from './js/auth.js?v=2.15.4';
+import { installNav, guardPage, homeFor as navHome } from './js/nav.js?v=2.15.4';
+import { installSupport, installErrorCapture } from './js/support.js?v=2.15.4';
 
 window.DocScan = {
   apiFetch, authFetch, authGet, authGetText, uploadBatch, newClientId,
@@ -693,7 +694,7 @@ window.DocScan = {
     }
   },
   requireAuth, logout, loadSession, daysLeft, AUTH_JS_VERSION,
-  installNav, guardPage, navHome, Templates, Pattern
+  installNav, guardPage, navHome, installSupport, installErrorCapture, Templates, Pattern
 };
 // ประทับเลขเวอร์ชันไว้ให้หาเวลาผู้ใช้แจ้งปัญหา
 document.documentElement.setAttribute('data-docscan-version',
@@ -1020,6 +1021,12 @@ var DocScanAuth = {
     if (s.mustChangePassword) { location.href = 'change-password.html'; return null; }
     if (!DocScan.guardPage(s)) return null;
     DocScan.installNav(s, { onLogout: logout });
+    /* เก็บ error ไว้ในเครื่อง และติดปุ่มแจ้งปัญหา
+       ระบบใช้หลายไซต์ การถามกลับไปกลับมาไม่ได้ผลกับคนหน้างาน */
+    DocScan.installErrorCapture();
+    DocScan.installSupport(s, function (a, p, t) {
+      return apiPost(Object.assign({ action: a }, p || {}));
+    });
     return s;
   }
 };
@@ -3062,8 +3069,26 @@ function resetAfterSave() {
   var fi = document.getElementById('fileInput');
   if (fi) fi.value = '';
 
+  /* รูปแบบที่พลาดซ้ำ ๆ ในโค้ดนี้: เพิ่มแบนเนอร์ใหม่แล้วลืมมาล้างตรงนี้
+     จึงค้างอยู่หลังบันทึกและทำให้คนสับสนว่าบันทึกไปแล้วจริงไหม
+
+     แก้โดยล้างทุกตัวที่มีคลาส dupbanner แทนการไล่ชื่อทีละอัน
+     เพิ่มแบนเนอร์ใหม่เมื่อไหร่ก็ถูกล้างเองโดยไม่ต้องแก้ตรงนี้ */
+  document.querySelectorAll('.dupbanner').forEach(function (el) {
+    el.style.display = 'none';
+    el.innerHTML = '';
+  });
+
+  // สถานะที่ผูกกับไฟล์ชุดที่เพิ่งบันทึก ต้องล้างด้วย
+  _learnedPattern = null;
+
+  /* คำเตือนที่ไม่ผูกกับไฟล์ต้องกลับมาแสดง
+     เช่นปิดการตรวจลายเซ็นไว้ ยังปิดอยู่แม้บันทึกไปแล้ว
+     ถ้าหายไปคนจะไม่รู้ว่าชุดถัดไปก็จะไม่ถูกตรวจเหมือนกัน */
+  applySettings();
+
   renderTable(); updateBatchCounter(); showReaderPanel(false);
-  ['tableWrap','beforeRead','filterBar','dupBanner','rsum'].forEach(function (id) {
+  ['tableWrap','beforeRead','filterBar','rsum'].forEach(function (id) {
     var el = document.getElementById(id);
     if (el) el.style.display = 'none';
   });
@@ -3788,7 +3813,7 @@ function showToast(msg,type){var t=document.getElementById('toast');t.textConten
    อ่านเอกสารอัตโนมัติ
    บาร์โค้ดก่อน ถ้าไม่ได้ค่อย OCR แล้วเทียบกับรายการอ้างอิง
    ============================================================ */
-var BUILD_TAG = '2.15.0-b12';
+var BUILD_TAG = '2.15.4';
 var _types = null, _readAbort = null, _lastPdfJs = null, _lastFileName = '';
 /* เก็บไบต์ต้นฉบับไว้ด้วย
    pdf.js อาจถูกปิดหรือใช้ไม่ได้เมื่อถึงตอนบันทึก
