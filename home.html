@@ -115,14 +115,21 @@ if (session) {
   installNav(session, { onLogout: doLogout });
   /* แถบสถานะข้อมูลอ้างอิง — หน้าแรกคือที่ที่ทุกคนเห็นก่อน
      ถ้าข้อมูลมีปัญหา ควรรู้ตั้งแต่ตรงนี้ ไม่ใช่ไปเจอตอนเริ่มทำงาน */
-  installRefBar(function (a, p, t) {
-    return authFetch(API, Object.assign({ action: a }, p || {}),
-      t ? { timeoutMs: t } : undefined);
-  });
+  try {
+    installRefBar(function (a, p, t) {
+      return authFetch(API, Object.assign({ action: a }, p || {}),
+        t ? { timeoutMs: t } : undefined);
+    });
+  } catch (e) { console.error('[DocScan] แถบสถานะติดตั้งไม่สำเร็จ', e); }
   /* เก็บ error ไว้ในเครื่อง และติดปุ่มแจ้งปัญหา
      ระบบใช้หลายไซต์ การถามกลับไปกลับมาไม่ได้ผลกับคนหน้างาน */
-  installErrorCapture();
-  installSupport(session, call);
+  /* ของเสริมต้องไม่ทำให้หน้าหลักพัง */
+  try {
+    installErrorCapture();
+    installSupport(session, call);
+  } catch (e) {
+    console.error('[DocScan] ติดตั้งส่วนเสริมไม่สำเร็จ', e);
+  }
   loadQuick();
 }
 

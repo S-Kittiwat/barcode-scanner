@@ -289,8 +289,13 @@ if (session) {
   installNav(session, { onLogout: () => { logout(API);
   /* เก็บ error ไว้ในเครื่อง และติดปุ่มแจ้งปัญหา
      ระบบใช้หลายไซต์ การถามกลับไปกลับมาไม่ได้ผลกับคนหน้างาน */
-  installErrorCapture();
-  installSupport(session, call); location.replace('login.html'); } });
+  /* ของเสริมต้องไม่ทำให้หน้าหลักพัง */
+  try {
+    installErrorCapture();
+    installSupport(session, call);
+  } catch (e) {
+    console.error('[DocScan] ติดตั้งส่วนเสริมไม่สำเร็จ', e);
+  } location.replace('login.html'); } });
   $('who').textContent = session.empName || session.empId;
   $('whoSite').textContent = session.empId + ' · ' + session.site;
   load();
@@ -316,7 +321,8 @@ async function call(action, payload = {}, timeoutMs) {
 
 /* แถบสถานะข้อมูลอ้างอิง — ต้องรู้ก่อนเริ่มทำอะไร
    ว่าข้อมูลมีไหม เก่าแค่ไหน และเชื่อมเซิร์ฟเวอร์ได้ไหม */
-installRefBar(call);
+try { installRefBar(call); }
+catch (e) { console.error('[DocScan] แถบสถานะติดตั้งไม่สำเร็จ', e); }
 function showError(m) { $('alert').textContent = m; $('alert').className = 'alert bad on'; }
 function fmt(v) {
   if (!v) return '—';

@@ -121,8 +121,13 @@ if (session) {
   installNav(session);
   /* เก็บ error ไว้ในเครื่อง และติดปุ่มแจ้งปัญหา
      ระบบใช้หลายไซต์ การถามกลับไปกลับมาไม่ได้ผลกับคนหน้างาน */
-  installErrorCapture();
-  installSupport(session, call);
+  /* ของเสริมต้องไม่ทำให้หน้าหลักพัง */
+  try {
+    installErrorCapture();
+    installSupport(session, call);
+  } catch (e) {
+    console.error('[DocScan] ติดตั้งส่วนเสริมไม่สำเร็จ', e);
+  }
   if (guardPage(session)) {
     $('who').innerHTML = session.empName + '<br>' + session.empId + ' · ' + session.role;
     loadAll();

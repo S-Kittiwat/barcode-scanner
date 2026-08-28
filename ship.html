@@ -377,9 +377,19 @@ const selected = new Set();
 /* ---------- โหลดเอกสารที่พร้อมส่ง ---------- */
 async function load() {
   $('dlist').innerHTML = '<div class="empty">กำลังโหลด…</div>';
+  console.log('[DocScan] เริ่มโหลดรายการเอกสารพร้อมส่ง');
   try {
     const r = await call('docsReadyToShip', {}, 60000);
+    console.log('[DocScan] เซิร์ฟเวอร์ตอบ', r);
+
+    /* ตรวจก่อนใช้เสมอ ถ้าเซิร์ฟเวอร์ตอบผิดรูปแบบ
+       การไปอ่าน r.rows ตรง ๆ จะได้ error ที่ไม่บอกอะไร */
+    if (!r) throw new Error('เซิร์ฟเวอร์ไม่ตอบกลับ');
     if (r.status !== 'ok') throw new Error(r.message || 'โหลดไม่สำเร็จ');
+    if (!Array.isArray(r.rows)) {
+      throw new Error('เซิร์ฟเวอร์ไม่ได้ส่งรายการกลับมา\n' +
+        'มักเกิดเมื่อยังไม่ได้ Deploy Documents.gs เป็นเวอร์ชันใหม่');
+    }
 
     allDocs = r.rows || [];
     fromSite = r.from_site || session.site || '';
@@ -394,7 +404,9 @@ async function load() {
     fillSiteOptions();
     render();
   } catch (e) {
-    $('dlist').innerHTML = '';
+    console.error('[DocScan] โหลดรายการไม่สำเร็จ', e);
+    $('dlist').innerHTML = '<div class="empty">โหลดไม่สำเร็จ<br>' +
+      '<span class="hint">' + esc(e.message || String(e)) + '</span></div>';
     showAlert('โหลดไม่สำเร็จ: ' + (e.message || e));
   }
 }

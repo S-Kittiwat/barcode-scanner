@@ -429,15 +429,22 @@ var DocScanAuth = {
     DocScan.installNav(s, { onLogout: logout });
     /* แถบสถานะข้อมูลอ้างอิง — ต้องรู้ก่อนเริ่มทำอะไร
        ว่าข้อมูลมีไหม เก่าแค่ไหน และเชื่อมเซิร์ฟเวอร์ได้ไหม */
-    DocScan.installRefBar(function (a, p, t) {
-      return apiPost(Object.assign({ action: a }, p || {}));
-    });
+    try {
+      DocScan.installRefBar(function (a, p) {
+        return apiPost(Object.assign({ action: a }, p || {}));
+      });
+    } catch (e) { console.error('[DocScan] แถบสถานะติดตั้งไม่สำเร็จ', e); }
     /* เก็บ error ไว้ในเครื่อง และติดปุ่มแจ้งปัญหา
        ระบบใช้หลายไซต์ การถามกลับไปกลับมาไม่ได้ผลกับคนหน้างาน */
-    DocScan.installErrorCapture();
-    DocScan.installSupport(s, function (a, p, t) {
-      return apiPost(Object.assign({ action: a }, p || {}));
-    });
+    /* ของเสริมต้องไม่ทำให้หน้าหลักพัง */
+    try {
+      DocScan.installErrorCapture();
+      DocScan.installSupport(s, function (a, p) {
+        return apiPost(Object.assign({ action: a }, p || {}));
+      });
+    } catch (e) {
+      console.error('[DocScan] ติดตั้งส่วนเสริมไม่สำเร็จ', e);
+    }
     return s;
   }
 };

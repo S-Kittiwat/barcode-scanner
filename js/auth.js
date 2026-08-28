@@ -32,15 +32,28 @@ function toHex(buf) {
   return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-/** รหัสผ่าน → ค่าที่ส่งไปเซิร์ฟเวอร์ได้ (รหัสจริงไม่ออกจากเครื่อง) */
-export async function derivePassword(empId, password) {
+/* ค่าคงที่ที่หน้าเว็บใช้ผสมก่อนแฮช
+   ไม่ใช่ค่าเฉพาะบัญชี เป็นแค่ตัวกันไม่ให้ค่าตรงกับระบบอื่นที่ใช้วิธีเดียวกัน */
+const CLIENT_SALT = 'docscan.v2';
+
+/**
+ * แปลงรหัสผ่านเป็นแฮชก่อนส่ง — รหัสจริงไม่ออกจากเครื่อง
+ *
+ * ตัวนี้แค่ทำให้รหัสผ่านตัวจริงไม่หลุดออกจากเบราว์เซอร์
+ * ส่วนการทำให้แต่ละบัญชีได้ค่าต่างกัน เซิร์ฟเวอร์เป็นคนทำ
+ *
+ * เดิมใช้รหัสพนักงานเป็นตัวผสม แต่รหัสพนักงานซ้ำได้แล้ว
+ * คนละบัญชีที่ตั้งรหัสเหมือนกันจึงได้ค่าเดียวกัน
+ * และตอนล็อกอินหน้าเว็บก็ไม่รู้ว่าบัญชีนั้นมีอีเมลอะไร
+ */
+export async function derivePassword(password) {
   if (!globalThis.crypto || !crypto.subtle) {
     throw new Error('เบราว์เซอร์นี้ไม่รองรับการเข้ารหัส — ต้องเปิดผ่าน https');
   }
   const key = await crypto.subtle.importKey(
     'raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveBits']);
   const bits = await crypto.subtle.deriveBits(
-    { name: 'PBKDF2', salt: saltFor(empId), iterations: PBKDF2_ITER, hash: 'SHA-256' },
+    { name: 'PBKDF2', salt: saltFor(CLIENT_SALT), iterations: PBKDF2_ITER, hash: 'SHA-256' },
     key, 256);
   return toHex(bits);
 }
@@ -99,7 +112,7 @@ export function consumeReturnTo(fallback = 'batch.html') {
 /* ---------------- คุยกับเซิร์ฟเวอร์ ---------------- */
 
 export async function login(apiUrl, empId, password) {
-  const pwHash = await derivePassword(empId, password);
+  const pwHash = await derivePassword(password);
   const res = await apiFetch(apiUrl, {
     action: 'login', emp_id: String(empId).trim(), pw_hash: pwHash
   }, { retries: 0 });          // ห้าม retry — จะไปนับรวมกับการล็อกบัญชี
@@ -122,8 +135,8 @@ export async function login(apiUrl, empId, password) {
 export async function changePassword(apiUrl, empId, oldPassword, newPassword) {
   const s = loadSession();
   const [oldHash, newHash] = await Promise.all([
-    derivePassword(empId, oldPassword),
-    derivePassword(empId, newPassword)
+    derivePassword(oldPassword),
+    derivePassword(newPassword)
   ]);
   const res = await apiFetch(apiUrl, {
     action: 'changePassword', emp_id: String(empId).trim(),
@@ -308,9 +321,11 @@ export async function register(apiUrl, form) {
     err.errors = v.errors;
     throw err;
   }
-  const pwHash = await derivePassword(form.empId, form.password);
+  const pwHash = await derivePassword(form.password);
   return apiFetch(apiUrl, {
     action: 'register',
+    // บอกเซิร์ฟเวอร์ว่ารหัสผ่านผ่านเกณฑ์แล้ว
+    pw_meta: { ok: true },
     emp_id: String(form.empId).trim(),
     emp_name: String(form.empName).trim(),
     emp_email: String(form.empEmail).trim().toLowerCase(),
@@ -357,7 +372,7 @@ export async function confirmReset(apiUrl, empId, code, newPassword) {
   const pw = checkPasswordStrength(newPassword);
   if (!pw.ok) throw new Error(pw.message);
 
-  const newHash = await derivePassword(empId, newPassword);
+  const newHash = await derivePassword(newPassword);
   const res = await apiFetch(apiUrl, {
     action: 'confirmReset',
     emp_id: String(empId).trim(),

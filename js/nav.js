@@ -300,7 +300,20 @@ export function installFlowBar(session) {
       return (i ? '<span class="ar">›</span>' : '') + el;
     }).join('') +
     '</span>';
-  document.body.insertBefore(bar, document.body.firstChild);
+  /* วางไว้ใต้แถบหัวของหน้า ไม่ใช่บนสุดของ body
+   *
+   * เดิมแทรกก่อน body.firstChild ซึ่งอยู่เหนือ .topbar
+   * แต่ทั้งคู่เป็น sticky top:0 จึงลอยทับกันตรงหัวหน้าจอ
+   * และดันเนื้อหาผิดตำแหน่งจนดูเหมือนหน้าพัง
+   */
+  var top = document.querySelector('.topbar, header, .nav-top');
+  if (top && top.parentNode) {
+    top.parentNode.insertBefore(bar, top.nextSibling);
+    // ไม่ต้อง sticky แล้ว เพราะแถบหัวของหน้าเป็นตัวยึดอยู่แล้ว
+    bar.style.position = 'static';
+  } else {
+    document.body.insertBefore(bar, document.body.firstChild);
+  }
 }
 
 /**

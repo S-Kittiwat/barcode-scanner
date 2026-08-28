@@ -77,9 +77,10 @@
       <div class="field">
         <label class="label" for="password">ตั้งรหัสผ่าน</label>
         <input class="input" id="password" type="password" autocomplete="new-password"
-               placeholder="อย่างน้อย 8 ตัว มีตัวอักษรและตัวเลข">
+               placeholder="ภาษาอังกฤษ พิมพ์ใหญ่ พิมพ์เล็ก ตัวเลข อักขระพิเศษ">
         <div class="pw-meter" id="pwMeter"><i></i></div>
-        <div class="pw-hint" id="pwHint">ต้องยาวอย่างน้อย 8 ตัว มีทั้งตัวอักษรและตัวเลข</div>
+        <!-- แสดงเงื่อนไขทีละข้อ คนจะได้รู้ว่าขาดอะไร ไม่ต้องเดา -->
+        <ul class="pw-rules" id="pwRules"></ul>
         <div class="err" id="e_password"></div>
       </div>
       <div class="field">
@@ -140,9 +141,12 @@
    ไม่งั้นตัวตรวจจะเข้าใจผิดว่าโหลดไม่สำเร็จ */
 window.__pageReady = true;
 
-import { register, confirmEmail, validateRegistration,
-         checkPasswordStrength, isValidCode,
-         fetchAuthConfig, ALLOWED_EMAIL_DOMAINS } from './js/auth.js';
+import { register, confirmEmail, isValidCode,
+         fetchAuthConfig } from './js/auth.js';
+/* ใช้ตัวตรวจกลางร่วมกับฝั่งเซิร์ฟเวอร์
+   กฎเดียวกันทั้งสองที่ ไม่ใช่ต่างคนต่างตรวจแล้วไม่ตรงกัน */
+import { checkRegistration, checkPassword, checkEmpId,
+         checkEmail, checkThaiName, ALLOWED_DOMAINS } from './js/validate.js';
 
 const API_URL = DOCSCAN_CONFIG.API_URL;
 const $ = id => document.getElementById(id);
@@ -213,17 +217,8 @@ $('site').addEventListener('change', () => {
     : '';
 });
 
-/* ---------- วัดความแข็งแรงรหัสผ่าน ---------- */
-$('password').addEventListener('input', () => {
-  const v = $('password').value;
-  const r = checkPasswordStrength(v);
-  const pct = Math.min(100, Math.round(v.length / 12 * 100));
-  $('pwMeter').className = 'pw-meter' + (r.ok ? ' ok' : '');
-  $('pwMeter').firstElementChild.style.width = (r.ok ? 100 : pct) + '%';
-  $('pwHint').textContent = v
-    ? (r.ok ? 'รหัสผ่านใช้ได้' : r.message)
-    : 'ต้องยาวอย่างน้อย 8 ตัว มีทั้งตัวอักษรและตัวเลข';
-});
+/* ตัววัดความแข็งแรงเดิมถูกแทนที่ด้วย renderPwRules
+   ซึ่งแสดงเงื่อนไขทีละข้อ ทำให้รู้ว่าขาดอะไร */
 
 /* ---------- ตัวช่วยแสดงผล ---------- */
 function clearErrors() {
@@ -270,8 +265,25 @@ function readForm() {
 async function doRegister() {
   clearErrors();
   const form = readForm();
-  const v = validateRegistration(form);
-  if (!v.ok) { showErrors(v.errors); return; }
+  const v = checkRegistration({
+    emp_id: form.empId, emp_name: form.empName,
+    emp_email: form.empEmail, site: form.site,
+    password: $('password').value
+  });
+
+  /* แปลงชื่อฟิลด์ให้ตรงกับ element ในหน้า
+     ตัวตรวจกลางใช้ชื่อแบบ emp_id หน้าเว็บใช้ empId */
+  const MAP = { emp_id: 'empId', emp_name: 'empName',
+                emp_email: 'empEmail', site: 'site', password: 'password' };
+  const errs = {};
+  Object.keys(v.errors).forEach(k => { errs[MAP[k] || k] = v.errors[k]; });
+
+  // รหัสผ่านสองช่องต้องตรงกัน
+  if ($('password').value !== $('password2').value) {
+    errs.passwordConfirm = 'รหัสผ่านทั้งสองช่องไม่ตรงกัน';
+  }
+
+  if (Object.keys(errs).length) { showErrors(errs); return; }
 
   const btn = $('btnRegister');
   btn.disabled = true; btn.textContent = 'กำลังส่งคำขอ...';
@@ -290,6 +302,55 @@ async function doRegister() {
     btn.disabled = false; btn.textContent = 'ส่งคำขอสมัคร →';
   }
 }
+
+/* ---------- รหัสผ่าน: แสดงเงื่อนไขระหว่างพิมพ์ ---------- */
+function renderPwRules() {
+  const box = $('pwRules');
+  if (!box) return;
+  const pw = $('password').value;
+  const r = checkPassword(pw);
+
+  box.innerHTML = r.rules.map(x =>
+    '<li class="' + (x.ok ? 'ok' : '') + '">' +
+    (x.ok ? '✔' : '✗') + ' ' + x.label + '</li>').join('');
+
+  // แถบความแข็งแรงตามจำนวนข้อที่ผ่าน
+  const pass = r.rules.filter(x => x.ok).length;
+  const bar = $('pwMeter') && $('pwMeter').querySelector('i');
+  if (bar) {
+    bar.style.width = Math.round(pass / r.rules.length * 100) + '%';
+    bar.style.background = pass === r.rules.length ? 'var(--success)'
+      : pass >= 3 ? 'var(--warn)' : 'var(--danger)';
+  }
+
+  /* ภาษาไทยปนมาต้องบอกทันที
+     มักเกิดจากลืมสลับแป้นพิมพ์ ปล่อยผ่านแล้วจะเข้าระบบไม่ได้ */
+  const e = $('e_password');
+  if (e) e.textContent = (!r.ok && r.message.indexOf('ภาษาอังกฤษ') >= 0)
+    ? r.message : '';
+}
+
+$('password').addEventListener('input', renderPwRules);
+renderPwRules();
+
+/* ---------- ตรวจแต่ละช่องทันทีที่พิมพ์เสร็จ ---------- */
+[['empId', checkEmpId], ['empName', checkThaiName], ['empEmail', checkEmail]]
+  .forEach(([id, fn]) => {
+    const el = $(id);
+    if (!el) return;
+    el.addEventListener('blur', () => {
+      if (!el.value.trim()) return;          // ยังไม่กรอกก็ยังไม่ต้องเตือน
+      const r = fn(el.value);
+      const e = $('e_' + id);
+      if (e) e.textContent = r.ok ? '' : r.message.split('\n')[0];
+      el.classList.toggle('bad', !r.ok);
+    });
+    el.addEventListener('input', () => {
+      const e = $('e_' + id);
+      if (e) e.textContent = '';
+      el.classList.remove('bad');
+    });
+  });
 
 /* ---------- ขั้นที่ 2 → 3 ---------- */
 $('code').addEventListener('input', e => {
