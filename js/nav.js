@@ -144,7 +144,11 @@ export function currentPage() {
  *   archive.html    เข้ากล่องเป็นขั้นตอนไม่บังคับ ยังไม่ได้ใช้
  */
 export const RETIRED_PAGES = [
-  '_scan.html', 'admin-tool.html', 'dashboard.html', 'archive.html'
+  /* admin-tool.html ถูกลบออกจากโปรเจกต์แล้ว
+     มันสร้างรหัสผ่านที่หน้าเว็บ ซึ่งใช้ไม่ได้แล้วเมื่อเซิร์ฟเวอร์เป็นคนผสมเกลือ
+     และการมีหน้าที่สร้างรหัสผ่านได้ค้างอยู่ก็เป็นความเสี่ยง
+     ใช้ createFirstAdmin() ใน Reset.gs แทน */
+  '_scan.html', 'dashboard.html', 'archive.html'
 ];
 
 export function isRetired(file) {
