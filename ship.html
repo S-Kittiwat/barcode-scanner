@@ -155,9 +155,9 @@ tr.lv-critical td:first-child{box-shadow:inset 3px 0 0 var(--warn)}
 
 /* กล่องแจ้งข้อผิดพลาด — ถูกลบไปตอนตัด CSS ที่ไม่เกี่ยว
    ต้องมี ไม่งั้นข้อความผิดพลาดจะไม่แสดงอะไรเลย */
-.alert{display:none;background:rgba(248,113,113,.1);border:1px solid var(--danger);
+.shp-alert{display:none;background:rgba(248,113,113,.1);border:1px solid var(--danger);
   border-radius:var(--r);padding:12px 15px;margin-bottom:14px;font-size:13px}
-.alert.on{display:block}
+.shp-alert.on{display:block}
 
 /* แถบเตือน */
 .dupbanner{display:none;background:rgba(251,191,36,.1);border:1px solid var(--warn);
@@ -170,14 +170,14 @@ tr.unk td:first-child{box-shadow:inset 3px 0 0 var(--danger)}
 .unk-tag{font-size:10.5px;color:var(--danger);margin-top:2px}
 
 /* ── หน้าส่งเอกสารตัวจริง ── */
-.step{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+.shp-step{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
   padding:16px 18px;margin-bottom:14px}
-.step-h{display:flex;align-items:center;gap:10px;margin-bottom:12px}
-.step-n{width:24px;height:24px;border-radius:50%;background:var(--accent);
+.shp-step-h{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.shp-step-n{width:24px;height:24px;border-radius:50%;background:var(--accent);
   color:#0f172a;font-weight:700;font-size:13px;display:flex;
   align-items:center;justify-content:center;flex:none}
-.step-t{font-size:15px;font-weight:600}
-.step-s{font-size:12px;color:var(--muted);margin-left:auto}
+.shp-step-t{font-size:15px;font-weight:600}
+.shp-step-s{font-size:12px;color:var(--muted);margin-left:auto}
 
 .filters{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-bottom:11px}
 .filters input,.filters select{background:var(--surface2);border:1px solid var(--border);
@@ -242,15 +242,15 @@ tr.unk td:first-child{box-shadow:inset 3px 0 0 var(--danger)}
 </div>
 
 <div class="wrap noprint" id="mainWrap">
-  <div class="alert bad" id="alert"></div>
+  <div class="shp-alert" id="alert"></div>
 
   <div class="dupbanner bad" id="unkBanner" style="display:none"></div>
 
-  <div class="step">
-    <div class="step-h">
-      <div class="step-n">1</div>
-      <div class="step-t">เลือกเอกสารที่จะส่ง</div>
-      <div class="step-s" id="pickInfo">—</div>
+  <div class="shp-step">
+    <div class="shp-step-h">
+      <div class="shp-step-n">1</div>
+      <div class="shp-step-t">เลือกเอกสารที่จะส่ง</div>
+      <div class="shp-step-s" id="pickInfo">—</div>
     </div>
 
     <div class="filters">
@@ -265,10 +265,10 @@ tr.unk td:first-child{box-shadow:inset 3px 0 0 var(--danger)}
     <div class="dlist" id="dlist"></div>
   </div>
 
-  <div class="step">
-    <div class="step-h">
-      <div class="step-n">2</div>
-      <div class="step-t">รายละเอียดการส่ง</div>
+  <div class="shp-step">
+    <div class="shp-step-h">
+      <div class="shp-step-n">2</div>
+      <div class="shp-step-t">รายละเอียดการส่ง</div>
     </div>
 
     <div class="form2">
@@ -320,12 +320,18 @@ const session = requireAuth();
 if (session) {
   if (!guardPage(session)) throw new Error('no access');
   installNav(session, { onLogout: () => logout(API) });
-  /* เก็บ error ไว้ในเครื่อง และติดปุ่มแจ้งปัญหา
-     ระบบใช้หลายไซต์ การถามกลับไปกลับมาไม่ได้ผลกับคนหน้างาน */
-  installErrorCapture();
-  installSupport(session, call);
   $('who').textContent = session.empName || session.empId || '';
   $('whoSite').textContent = session.site || '';
+
+  /* ของเสริมต้องไม่ทำให้หน้าหลักพัง
+     เดิมวางไว้ก่อนแสดงชื่อผู้ใช้ ถ้าตัวใดตัวหนึ่งพัง
+     ทั้งหน้าจะหยุดตั้งแต่ต้น และไม่มีอะไรบอกว่าเพราะอะไร */
+  try {
+    installErrorCapture();
+    installSupport(session, call);
+  } catch (e) {
+    console.error('[DocScan] ติดตั้งส่วนเสริมไม่สำเร็จ', e);
+  }
 }
 
 async function call(action, payload = {}, timeoutMs) {
@@ -343,7 +349,8 @@ const esc = s => String(s == null ? '' : s)
 
 /* แถบสถานะข้อมูลอ้างอิง — ต้องรู้ก่อนเริ่มทำอะไร
    ว่าข้อมูลมีไหม เก่าแค่ไหน และเชื่อมเซิร์ฟเวอร์ได้ไหม */
-installRefBar(call);
+try { installRefBar(call); }
+catch (e) { console.error('[DocScan] แถบสถานะติดตั้งไม่สำเร็จ', e); }
 
 function fmt(v) {
   if (!v) return '—';
