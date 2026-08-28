@@ -5,7 +5,7 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230f172a'/%3E%3Crect x='8' y='6' width='16' height='20' rx='2' fill='%23f1f5f9'/%3E%3Crect x='11' y='10' width='2' height='12' fill='%230f172a'/%3E%3Crect x='14.5' y='10' width='1' height='12' fill='%230f172a'/%3E%3Crect x='17' y='10' width='2' height='12' fill='%230f172a'/%3E%3Crect x='20.5' y='10' width='1' height='12' fill='%230f172a'/%3E%3C/svg%3E">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DocScan — ติดตามเอกสาร</title>
-<script src="config.js?v=2.15.4"></script>
+<script src="config.js?v=2.15.6"></script>
 <link rel="stylesheet" href="css/auth.css?v=2.14.0">
 <style>
   body{display:block;padding:0;align-items:stretch}
@@ -159,6 +159,16 @@ tr.lv-critical td:first-child{box-shadow:inset 3px 0 0 var(--warn)}
   border-radius:var(--r);padding:12px 15px;margin-bottom:14px;font-size:13px}
 .alert.on{display:block}
 
+/* แถบเตือน */
+.dupbanner{display:none;background:rgba(251,191,36,.1);border:1px solid var(--warn);
+  border-radius:var(--r);padding:12px 15px;margin-bottom:14px;font-size:13px;line-height:1.8}
+.dupbanner.bad{background:rgba(248,113,113,.1);border-color:var(--danger)}
+
+/* แถวที่ระบบยังไม่รู้จักไซต์ — ต้องเห็นชัดว่าต่างจากแถวปกติ */
+tr.unk td{background:rgba(248,113,113,.07)}
+tr.unk td:first-child{box-shadow:inset 3px 0 0 var(--danger)}
+.unk-tag{font-size:10.5px;color:var(--danger);margin-top:2px}
+
 /* ── หน้าส่งเอกสารตัวจริง ── */
 .step{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
   padding:16px 18px;margin-bottom:14px}
@@ -234,6 +244,8 @@ tr.lv-critical td:first-child{box-shadow:inset 3px 0 0 var(--warn)}
 <div class="wrap noprint" id="mainWrap">
   <div class="alert bad" id="alert"></div>
 
+  <div class="dupbanner bad" id="unkBanner" style="display:none"></div>
+
   <div class="step">
     <div class="step-h">
       <div class="step-n">1</div>
@@ -297,9 +309,9 @@ tr.lv-critical td:first-child{box-shadow:inset 3px 0 0 var(--warn)}
 
 <script type="module">
 
-import { authFetch, requireAuth, installNav, guardPage, logout } from './js/auth.js?v=2.15.4';
-import { installSupport, installErrorCapture } from './js/support.js?v=2.15.4';
-import { installRefBar } from './js/refstatus.js?v=2.15.4';
+import { authFetch, requireAuth, installNav, guardPage, logout } from './js/auth.js?v=2.15.6';
+import { installSupport, installErrorCapture } from './js/support.js?v=2.15.6';
+import { installRefBar } from './js/refstatus.js?v=2.15.6';
 
 const API = DOCSCAN_CONFIG.API_URL;
 const $ = id => document.getElementById(id);
@@ -352,7 +364,7 @@ const VEHICLE_LABEL = {
   post: 'เลข EMS', hand: 'ชื่อผู้ถือไป'
 };
 
-let allDocs = [], fromSite = '';
+let allDocs = [], fromSite = '', lastDiag = null;
 const selected = new Set();
 
 /* ---------- โหลดเอกสารที่พร้อมส่ง ---------- */
@@ -364,7 +376,9 @@ async function load() {
 
     allDocs = r.rows || [];
     fromSite = r.from_site || session.site || '';
+    lastDiag = r.diag || null;
     selected.clear();
+    if (lastDiag) console.log('[DocScan] เอกสารพร้อมส่ง', lastDiag);
 
     $('scopeInfo').textContent = 'ต้นทาง ' + (fromSite || 'ทุกไซต์') +
       ' · พร้อมส่ง ' + allDocs.length + ' ใบ';
@@ -415,8 +429,28 @@ function render() {
   const rows = shown();
   $('pickInfo').textContent = 'เลือกแล้ว ' + selected.size + ' จาก ' + rows.length + ' ใบ';
 
+  /* เตือนเรื่องไซต์ที่ยังไม่รู้จัก ให้เห็นก่อนเลือก
+     ถ้าซ่อนไว้ คนจะส่งเอกสารที่ไม่ใช่ของตัวเองไปโดยไม่รู้ */
+  const unk = rows.filter(d => d.unknown_site);
+  const ub = $('unkBanner');
+  if (ub) {
+    if (unk.length) {
+      const names = [...new Set(unk.map(d => d.dest_warehouse || d.site).filter(Boolean))];
+      ub.style.display = 'block';
+      ub.innerHTML = '<b>มีเอกสาร ' + unk.length + ' ใบที่ระบบยังไม่รู้จักไซต์</b><br>' +
+        'ชื่อที่พบ: ' + names.slice(0, 5).map(esc).join(' · ') +
+        (names.length > 5 ? ' และอีก ' + (names.length - 5) : '') + '<br>' +
+        '<span class="hint">แสดงไว้เพื่อไม่ให้เอกสารหาย — ' +
+        'ถ้าไม่ใช่ของไซต์คุณอย่าเลือกส่ง และแจ้งผู้ดูแลผูกชื่อไซต์ให้</span>';
+    } else {
+      ub.style.display = 'none';
+    }
+  }
+
   if (!rows.length) {
-    $('dlist').innerHTML = '<div class="empty">ไม่มีเอกสารที่พร้อมส่ง</div>';
+    /* บอกว่าทำไมถึงไม่มี ไม่ใช่แค่ "ไม่มีเอกสาร"
+       คนจะได้รู้ว่าต้องไปแก้ที่ไหน แทนที่จะเดาหรือถามกลับ */
+    $('dlist').innerHTML = '<div class="empty">' + emptyReason() + '</div>';
     updateCreateBtn();
     return;
   }
@@ -445,15 +479,53 @@ function render() {
   updateCreateBtn();
 }
 
+/** อธิบายว่าทำไมไม่มีรายการ จากตัวเลขที่เซิร์ฟเวอร์ส่งมา */
+function emptyReason() {
+  if (!lastDiag) return 'ไม่มีเอกสารที่พร้อมส่ง';
+
+  const c = lastDiag.counts || {};
+  const L = [];
+
+  if (!lastDiag.sheet_rows) {
+    return '<b>ยังไม่มีเอกสารในระบบเลย</b><br>' +
+      '<span class="hint">ต้องนำเข้าเอกสารที่หน้า "นำเข้าเอกสาร" ก่อน</span>';
+  }
+
+  L.push('<b>ไม่มีเอกสารที่พร้อมส่ง</b>');
+  L.push('<span class="hint">จากทั้งหมด ' + (c.total || 0) + ' ใบในระบบ</span>');
+
+  const why = [];
+  if (c.other_site) why.push(c.other_site + ' ใบเป็นของไซต์อื่น');
+  if (c.not_scanned) why.push(c.not_scanned + ' ใบยังไม่ได้สแกน');
+  if (c.shipped) why.push(c.shipped + ' ใบส่งไปแล้ว');
+  if (c.closed) why.push(c.closed + ' ใบปิดงานแล้ว');
+  if (why.length) L.push('<span class="hint">' + why.join(' · ') + '</span>');
+
+  /* ชื่อไซต์ไม่ตรงกันเป็นสาเหตุที่พบบ่อยและมองไม่เห็น
+     เช่นผู้ใช้อยู่ "คลังลาดหลุมแก้ว" แต่เอกสารเขียน "ลาดหลุมแก้ว" */
+  if (c.other_site && c.other_site === c.total) {
+    const mine = lastDiag.my_site || '(ไม่ระบุ)';
+    const found = (lastDiag.sites_in_data || [])
+      .map(x => x.site + ' (' + x.n + ')').join(' · ');
+    L.push('<div class="hint" style="margin-top:10px;color:var(--warn)">' +
+      'ไซต์ของคุณคือ <b>' + esc(mine) + '</b> แต่เอกสารในระบบอยู่ไซต์<br>' +
+      esc(found || '—') + '<br>' +
+      'ถ้าชื่อควรตรงกัน ให้แจ้งผู้ดูแลตรวจการตั้งค่าไซต์</div>');
+  }
+
+  return L.join('<br>');
+}
+
 function rowHtml(d) {
   /* สแกนไว้นานแล้วยังไม่ส่ง = ควรได้ส่งก่อน จึงเน้นให้เห็น */
   const late = d.days != null && d.days >= 3;
-  return `<tr>
+  return `<tr class="${d.unknown_site ? 'unk' : ''}">
     <td><input type="checkbox" class="chk rowchk" data-ref="${esc(d.ref_no)}"${
       selected.has(d.ref_no) ? ' checked' : ''}></td>
     <td><div class="ref">${esc(d.ref_no)}</div></td>
     <td>${fmt(d.doc_date)}</td>
-    <td>${esc(d.dest_warehouse || d.transfer_to || '—')}</td>
+    <td>${esc(d.dest_warehouse || d.transfer_to || '—')}${
+      d.unknown_site ? '<div class="unk-tag">ระบบยังไม่รู้จักไซต์นี้</div>' : ''}</td>
     <td>${d.days == null ? '—'
       : `<b class="${late ? 'warn' : ''}">${d.days} วัน</b>`}</td>
   </tr>`;
@@ -657,6 +729,6 @@ function loadScript(src) {
 
 load();
 </script>
-<div class="bldtag">2.15.4</div>
+<div class="bldtag">2.15.6</div>
 </body>
 </html>
