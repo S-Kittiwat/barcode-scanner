@@ -90,12 +90,41 @@
     <button class="tab" data-tab="users">ผู้ใช้ทั้งหมด</button>
     <button class="tab" data-tab="history">ประวัติคำขอ</button>
     <button class="tab" data-tab="sites">ชื่อไซต์<span class="badge" id="cntSite" style="display:none">0</span></button>
+    <button class="tab" data-tab="newacc">สร้างบัญชีเพิ่ม</button>
   </div>
 
   <div id="viewPending"></div>
   <div id="viewUsers" style="display:none"></div>
   <div id="viewHistory" style="display:none"></div>
   <div id="viewSites" style="display:none"></div>
+  <div id="viewNewAcc" style="display:none">
+    <div class="sec-t">สร้างบัญชีเพิ่มให้คนที่มีบัญชีอยู่แล้ว</div>
+    <div class="hint" style="margin-bottom:14px;line-height:1.8">
+      คนหนึ่งสมัครเองได้บัญชีเดียว เพื่อกันการสมัครซ้ำโดยไม่ตั้งใจ<br>
+      ถ้าต้องการบัญชีเพิ่มสำหรับบทบาทอื่น สร้างที่นี่<br>
+      ระบบจะส่งอีเมลให้เจ้าตัวไปตั้งรหัสผ่านเอง
+    </div>
+    <div class="field">
+      <label class="label" for="naEmail">อีเมลของคนที่มีบัญชีอยู่แล้ว</label>
+      <input class="input" id="naEmail" type="email" autocomplete="off"
+             placeholder="kittiwat_s@brs-group.com">
+    </div>
+    <div class="field">
+      <label class="label" for="naRole">สิทธิ์ของบัญชีใหม่</label>
+      <select class="select" id="naRole">
+        <option value="">— เลือกสิทธิ์ —</option>
+        <option value="delivery">delivery — ทีมจัดส่ง</option>
+        <option value="warehouse">warehouse — ทีมคลัง</option>
+        <option value="admin">admin — ผู้ดูแลระบบ</option>
+      </select>
+    </div>
+    <div class="field" id="naSiteWrap">
+      <label class="label" for="naSite">ไซต์</label>
+      <input class="input" id="naSite" placeholder="เช่น คลังลาดหลุมแก้ว">
+    </div>
+    <div class="err" id="naErr"></div>
+    <button class="btn" id="naSubmit">สร้างบัญชี</button>
+  </div>
 
   <div class="actions" style="margin-top:20px">
     <button class="btn mini" id="btnReload">รีเฟรช</button>
@@ -377,6 +406,39 @@ async function handleSiteClick(btn) {
   }
   return false;
 }
+
+/* ---------- สร้างบัญชีเพิ่ม ---------- */
+// admin ใช้ได้ทุกไซต์ จึงไม่ต้องกรอกไซต์
+$('naRole').addEventListener('change', () => {
+  $('naSiteWrap').style.display = $('naRole').value === 'admin' ? 'none' : '';
+});
+
+$('naSubmit').addEventListener('click', async () => {
+  const b = $('naSubmit');
+  const err = $('naErr');
+  err.textContent = '';
+
+  const email = $('naEmail').value.trim().toLowerCase();
+  const role = $('naRole').value;
+  const site = role === 'admin' ? 'ALL' : $('naSite').value.trim();
+
+  if (!email) { err.textContent = 'กรุณากรอกอีเมล'; return; }
+  if (!role) { err.textContent = 'กรุณาเลือกสิทธิ์'; return; }
+  if (role !== 'admin' && !site) { err.textContent = 'กรุณากรอกไซต์'; return; }
+
+  b.disabled = true; b.textContent = 'กำลังสร้าง…';
+  try {
+    const r = await call('adminCreateAccount',
+      { emp_email: email, role: role, site: site });
+    if (r.status !== 'ok') { err.textContent = r.message || 'สร้างไม่สำเร็จ'; return; }
+    alert(r.message);
+    $('naEmail').value = ''; $('naRole').value = ''; $('naSite').value = '';
+  } catch (e) {
+    err.textContent = e.message || String(e);
+  } finally {
+    b.disabled = false; b.textContent = 'สร้างบัญชี';
+  }
+});
 
 /* ---------- การกระทำ ---------- */
 /* ปุ่มในแท็บชื่อไซต์จับแยก
