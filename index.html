@@ -7,10 +7,15 @@
 </head>
 <body>
 <script type="module">
+/* บอกว่าโมดูลทำงานแล้ว ใช้คู่กับตัวตรวจใน config.js
+   หน้านี้ไม่ได้ประกาศ DocScan จึงต้องมีตัวบอกของตัวเอง
+   ไม่งั้นตัวตรวจจะเข้าใจผิดว่าโหลดไม่สำเร็จ */
+window.__pageReady = true;
+
 // เช็ค token ไม่ใช่แค่ empId + site เหมือนเดิม
 // และเช็ควันหมดอายุด้วย ไม่งั้นคนที่ session หมดแล้วจะถูกพาไปหน้าที่ใช้งานไม่ได้
-import { loadSession } from './js/auth.js?v=2.15.4';
-import { homeFor } from './js/nav.js?v=2.15.4';
+import { loadSession } from './js/auth.js';
+import { homeFor } from './js/nav.js';
 const s = loadSession();
 if (s) {
   if (s.mustChangePassword) location.replace('change-password.html');

@@ -653,24 +653,24 @@ tr.needfix:hover td{background:rgba(248,113,113,.14)}
 #pkB span{background:var(--accent)} #pkO span{background:var(--warn)}
 #pkS span{background:var(--success)} #pkT span{background:var(--danger);color:#fff}
 </style>
-<script src="config.js?v=2.15.4"></script>
+<script src="config.js"></script>
 <script type="module">
 // ── โมดูลร่วม DocScan ────────────────────────────────────
 // module script ทำงานหลัง classic script แต่ก่อน window.onload
 // โค้ดเดิมเรียก requireAuth ใน window.onload จึงปลอดภัย
-import { apiFetch, uploadBatch, newClientId } from './js/api.js?v=2.15.4';
-import { parseCSV, buildIndex, searchCSV, classify } from './js/csv.js?v=2.15.4';
-import { parseDateInput, toDisplayDate, toInputDate, todayISO } from './js/date.js?v=2.15.4';
+import { apiFetch, uploadBatch, newClientId } from './js/api.js';
+import { parseCSV, buildIndex, searchCSV, classify } from './js/csv.js';
+import { parseDateInput, toDisplayDate, toInputDate, todayISO } from './js/date.js';
 import { compressPage, compressImageFile, toDataUrl, storagePeriod,
-         compressionSummary, SETTINGS as PDF_SETTINGS } from './js/pdf.js?v=2.15.4';
-import * as Reader from './js/reader.js?v=2.15.4';
-import * as Ink from './js/ink.js?v=2.15.4';
-import * as Templates from './js/templates.js?v=2.15.4';
-import * as Pattern from './js/pattern.js?v=2.15.4';
-import { hasCollisionRisk, findNearMiss, searchCSV as csvSearch } from './js/csv.js?v=2.15.4';
-import { requireAuth, authFetch, authGet, authGetText, logout, loadSession, daysLeft, AUTH_JS_VERSION } from './js/auth.js?v=2.15.4';
-import { installNav, guardPage, homeFor as navHome } from './js/nav.js?v=2.15.4';
-import { installSupport, installErrorCapture } from './js/support.js?v=2.15.4';
+         compressionSummary, SETTINGS as PDF_SETTINGS } from './js/pdf.js';
+import * as Reader from './js/reader.js';
+import * as Ink from './js/ink.js';
+import * as Templates from './js/templates.js';
+import * as Pattern from './js/pattern.js';
+import { hasCollisionRisk, findNearMiss, searchCSV as csvSearch } from './js/csv.js';
+import { requireAuth, authFetch, authGet, authGetText, logout, loadSession, daysLeft, AUTH_JS_VERSION } from './js/auth.js';
+import { installNav, guardPage, homeFor as navHome } from './js/nav.js';
+import { installSupport, installErrorCapture } from './js/support.js';
 
 window.DocScan = {
   apiFetch, authFetch, authGet, authGetText, uploadBatch, newClientId,
@@ -3835,7 +3835,7 @@ function showToast(msg,type){var t=document.getElementById('toast');t.textConten
    อ่านเอกสารอัตโนมัติ
    บาร์โค้ดก่อน ถ้าไม่ได้ค่อย OCR แล้วเทียบกับรายการอ้างอิง
    ============================================================ */
-var BUILD_TAG = '2.15.4';
+var BUILD_TAG = '2.15.6';
 var _types = null, _readAbort = null, _lastPdfJs = null, _lastFileName = '';
 /* เก็บไบต์ต้นฉบับไว้ด้วย
    pdf.js อาจถูกปิดหรือใช้ไม่ได้เมื่อถึงตอนบันทึก
