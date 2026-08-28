@@ -45,7 +45,11 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .nav-user-site{font-size:11px;color:var(--muted);}
 .nav-logout{background:none;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:5px 10px;font-family:var(--font);font-size:11px;cursor:pointer;margin-left:8px;}
 .nav-logout:hover{border-color:var(--danger);color:var(--danger);}
-.page-wrap{margin-top:52px;flex:1;display:flex;flex-direction:column;min-height:100vh;}
+/* ไม่ต้องเว้นที่ด้านบนแล้ว
+   52px เดิมเว้นไว้ให้แถบหัวรุ่นเก่าที่เป็น sticky และทับเนื้อหา
+   ตอนนี้ .topbar อยู่นอกกล่องนี้ จึงดันเนื้อหาลงเองตามปกติ
+   ค่าเดิมจึงกลายเป็นช่องว่างเปล่า */
+.page-wrap{flex:1;display:flex;flex-direction:column;min-height:100vh;}
 header{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
 .logo{display:flex;align-items:center;gap:10px;}
 .logo-icon{width:34px;height:34px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;}
