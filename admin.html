@@ -5,7 +5,7 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230f172a'/%3E%3Crect x='8' y='6' width='16' height='20' rx='2' fill='%23f1f5f9'/%3E%3Crect x='11' y='10' width='2' height='12' fill='%230f172a'/%3E%3Crect x='14.5' y='10' width='1' height='12' fill='%230f172a'/%3E%3Crect x='17' y='10' width='2' height='12' fill='%230f172a'/%3E%3Crect x='20.5' y='10' width='1' height='12' fill='%230f172a'/%3E%3C/svg%3E">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DocScan — ผู้ดูแลระบบ</title>
-<script src="config.js?v=2.15.4"></script>
+<script src="config.js?v=2.15.6"></script>
 <link rel="stylesheet" href="css/auth.css?v=2.14.0">
 <style>
   body{display:block;padding:0;align-items:stretch}
@@ -57,6 +57,11 @@
   .toast.good{background:var(--success);color:#0f172a}
   .toast.bad{background:var(--danger);color:#fff}
   @media (max-width:640px){ th:nth-child(4),td:nth-child(4){display:none} }
+.sec-t{font-size:14px;font-weight:600;margin:0 0 10px}
+.btn.sm{padding:5px 11px;font-size:12px}
+.mapsel{background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);
+  color:var(--text);padding:6px 9px;font-family:var(--font);font-size:12.5px;
+  min-width:150px;margin-right:6px}
 </style>
 </head>
 <body>
@@ -84,11 +89,13 @@
     <button class="tab on" data-tab="pending">รออนุมัติ<span class="badge" id="cnt" style="display:none">0</span></button>
     <button class="tab" data-tab="users">ผู้ใช้ทั้งหมด</button>
     <button class="tab" data-tab="history">ประวัติคำขอ</button>
+    <button class="tab" data-tab="sites">ชื่อไซต์<span class="badge" id="cntSite" style="display:none">0</span></button>
   </div>
 
   <div id="viewPending"></div>
   <div id="viewUsers" style="display:none"></div>
   <div id="viewHistory" style="display:none"></div>
+  <div id="viewSites" style="display:none"></div>
 
   <div class="actions" style="margin-top:20px">
     <button class="btn mini" id="btnReload">รีเฟรช</button>
@@ -100,10 +107,10 @@
 <div class="toast" id="toast"></div>
 
 <script type="module">
-import { installNav, guardPage } from './js/nav.js?v=2.15.4';
+import { installNav, guardPage } from './js/nav.js?v=2.15.6';
 import { requireAuth, authFetch, logout, derivePassword,
-         checkPasswordStrength } from './js/auth.js?v=2.15.4';
-import { installSupport, installErrorCapture } from './js/support.js?v=2.15.4';
+         checkPasswordStrength } from './js/auth.js?v=2.15.6';
+import { installSupport, installErrorCapture } from './js/support.js?v=2.15.6';
 
 const API = DOCSCAN_CONFIG.API_URL;
 const $ = id => document.getElementById(id);
@@ -259,9 +266,121 @@ document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () =>
   $('viewPending').style.display = v === 'pending' ? 'block' : 'none';
   $('viewUsers').style.display = v === 'users' ? 'block' : 'none';
   $('viewHistory').style.display = v === 'history' ? 'block' : 'none';
+  $('viewSites').style.display = v === 'sites' ? 'block' : 'none';
+  if (v === 'sites') loadSites();
 }));
 
+/* ============================================================
+   ชื่อไซต์ที่สะกดต่างกัน
+   ============================================================
+   ชื่อจากไฟล์อ้างอิงของระบบอื่นสะกดไม่เหมือนของเรา
+   ถ้าไม่ผูกไว้ เอกสารจะถูกกรองออกจากหน้าส่ง
+
+   เดิมหายเงียบ ๆ ตอนนี้แสดงในกลุ่มแยกให้คนหน้างานเห็น
+   และผู้ดูแลมาผูกที่นี่ครั้งเดียวจบ
+   ============================================================ */
+let siteData = null;
+
+async function loadSites() {
+  $('viewSites').innerHTML = '<div class="empty">กำลังโหลด…</div>';
+  try {
+    const un = await call('siteUnmapped');
+    if (un.status !== 'ok') throw new Error(un.message || 'โหลดไม่สำเร็จ');
+    const al = await call('siteAliasList');
+    siteData = { unmapped: un.unmapped || [], known: un.known_sites || [],
+                 alias: (al && al.rows) || [] };
+    renderSites();
+  } catch (e) {
+    $('viewSites').innerHTML = '<div class="empty">โหลดไม่สำเร็จ: ' +
+      esc(e.message || e) + '</div>';
+  }
+}
+
+function renderSites() {
+  const d = siteData;
+  const opts = d.known.map(s =>
+    '<option value="' + esc(s) + '">' + esc(s) + '</option>').join('');
+
+  const badge = $('cntSite');
+  if (badge) {
+    badge.style.display = d.unmapped.length ? 'inline-block' : 'none';
+    badge.textContent = d.unmapped.length;
+  }
+
+  let html = '<div class="sec-t">ชื่อที่พบในเอกสารแต่ยังไม่รู้จัก</div>';
+
+  if (!d.unmapped.length) {
+    html += '<div class="empty">ทุกชื่อในเอกสารจับคู่ได้หมดแล้ว</div>';
+  } else {
+    html += '<div class="hint" style="margin-bottom:10px">' +
+      'เอกสารที่ใช้ชื่อเหล่านี้จะขึ้นในกลุ่ม "ยังไม่รู้จักไซต์" ' +
+      'ที่หน้าส่งเอกสาร จนกว่าจะผูกกับไซต์จริง</div>' +
+      '<table><thead><tr><th style="width:220px">ชื่อที่พบ</th>' +
+      '<th style="width:80px">จำนวน</th><th>ตัวอย่างเอกสาร</th>' +
+      '<th style="width:270px">ผูกกับไซต์</th></tr></thead><tbody>' +
+      d.unmapped.map(u =>
+        '<tr><td><b>' + esc(u.name) + '</b></td>' +
+        '<td>' + u.n + ' ใบ</td>' +
+        '<td class="hint">' + (u.examples || []).map(esc).join(' · ') + '</td>' +
+        '<td><select class="mapsel" data-alias="' + esc(u.name) + '">' +
+        '<option value="">— เลือกไซต์ —</option>' + opts + '</select>' +
+        '<button class="btn sm" data-map="' + esc(u.name) + '">ผูก</button>' +
+        '</td></tr>').join('') + '</tbody></table>';
+  }
+
+  html += '<div class="sec-t" style="margin-top:24px">ชื่อที่ผูกไว้แล้ว</div>';
+  html += d.alias.length
+    ? '<table><thead><tr><th style="width:220px">ชื่อที่พบ</th>' +
+      '<th style="width:220px">คือไซต์</th><th>ผูกโดย</th>' +
+      '<th style="width:90px"></th></tr></thead><tbody>' +
+      d.alias.map(a =>
+        '<tr><td>' + esc(a.alias) + '</td>' +
+        '<td><b>' + esc(a.site) + '</b></td>' +
+        '<td class="hint">' + esc(a.created_by || '') + '</td>' +
+        '<td><button class="btn sm ghost" data-unmap="' + esc(a.alias) +
+        '">ยกเลิก</button></td></tr>').join('') + '</tbody></table>'
+    : '<div class="empty">ยังไม่ได้ผูกชื่อไหนไว้</div>';
+
+  $('viewSites').innerHTML = html;
+}
+
+async function handleSiteClick(btn) {
+  if (btn.dataset.map) {
+    const alias = btn.dataset.map;
+    const sel = [...document.querySelectorAll('.mapsel')]
+      .filter(x => x.dataset.alias === alias)[0];
+    const site = sel ? sel.value : '';
+    if (!site) { alert('เลือกไซต์ที่ต้องการผูกก่อน'); return true; }
+    btn.disabled = true;
+    try {
+      const r = await call('siteMapAlias', { alias, site });
+      if (r.status !== 'ok') { alert(r.message || 'ผูกไม่สำเร็จ'); return true; }
+      await loadSites();
+    } finally { btn.disabled = false; }
+    return true;
+  }
+
+  if (btn.dataset.unmap) {
+    if (!confirm('ยกเลิกการผูก "' + btn.dataset.unmap + '"\n\n' +
+                 'เอกสารที่ใช้ชื่อนี้จะกลับไปอยู่กลุ่ม "ยังไม่รู้จักไซต์"')) return true;
+    btn.disabled = true;
+    try {
+      await call('siteUnmapAlias', { alias: btn.dataset.unmap });
+      await loadSites();
+    } finally { btn.disabled = false; }
+    return true;
+  }
+  return false;
+}
+
 /* ---------- การกระทำ ---------- */
+/* ปุ่มในแท็บชื่อไซต์จับแยก
+   ตัวจับด้านล่างเลือกเฉพาะปุ่มที่ระบุไว้ ปุ่มใหม่จึงไม่เข้าเงื่อนไข */
+document.addEventListener('click', async e => {
+  const b = e.target.closest('button[data-map],button[data-unmap]');
+  if (b) await handleSiteClick(b);
+});
+
 document.addEventListener('click', async e => {
   const btn = e.target.closest('button[data-approve],button[data-reject],button[data-unlock],' +
                                'button[data-pw],button[data-role],button[data-active]');
