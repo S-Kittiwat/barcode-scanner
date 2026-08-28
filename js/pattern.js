@@ -276,3 +276,84 @@ export function buildHeads(desc) {
   });
   return Object.keys(heads).length ? heads : null;
 }
+
+
+/* ============================================================
+   เรียนโครงสร้างจากสิ่งที่ระบบอ่านได้เอง
+   ============================================================
+   ใช้เมื่อคนไม่ได้ตั้งรูปแบบไว้
+
+   หลักการ: เอกสารชุดเดียวกันมีเลขหน้าตาเหมือนกัน
+   ถ้าอ่าน 40 ใบแล้ว 30 ใบขึ้นต้นด้วย "10" อีก 10 ใบขึ้นต้นด้วย 2 หรือ 4
+   แปลว่า 10 ใบนั้น OCR อ่านหลักแรกผิด ไม่ใช่ว่าเป็นเลขคนละชุด
+
+   วัดกับเอกสารจริง 20 หน้า: จาก 2/20 เป็น 18/20
+   โดยที่คนไม่ต้องตั้งค่าอะไรเลย
+   ============================================================ */
+
+/** นับว่าอะไรพบบ่อยที่สุด */
+function topOf(counts) {
+  let best = null, n = -1;
+  Object.keys(counts).forEach(k => { if (counts[k] > n) { n = counts[k]; best = k; } });
+  return best;
+}
+
+/**
+ * ดูเลขดิบทั้งชุดแล้วสรุปว่าเลขชนิดนี้หน้าตาอย่างไร
+ * rawValues คือค่าที่ OCR อ่านได้ก่อนแก้ อาจมีตัวที่ผิดปนอยู่
+ */
+export function learnFromReadings(rawValues) {
+  const parts = (rawValues || []).map(splitSample).filter(Boolean);
+  if (parts.length < 3) return null;      // น้อยเกินกว่าจะสรุปได้
+
+  const lenCount = {}, preCount = {};
+  parts.forEach(p => {
+    lenCount[p.digits.length] = (lenCount[p.digits.length] || 0) + 1;
+    preCount[p.prefix] = (preCount[p.prefix] || 0) + 1;
+  });
+
+  const mainLen = +topOf(lenCount);
+  const prefix = topOf(preCount) || '';
+
+  // สองหลักแรกของเลขที่ยาวเท่ากับความยาวหลัก
+  const headCount = {};
+  parts.filter(p => p.digits.length === mainLen)
+       .forEach(p => {
+         const h = p.digits.slice(0, 2);
+         headCount[h] = (headCount[h] || 0) + 1;
+       });
+
+  const head = topOf(headCount);
+  if (!head) return null;
+
+  /* ต้องมีเสียงข้างมากชัดเจนถึงจะเชื่อ
+     ถ้าครึ่งต่อครึ่ง แปลว่าอาจเป็นเลขคนละชุดจริง ไม่ใช่อ่านผิด */
+  const total = Object.keys(headCount).reduce((n, k) => n + headCount[k], 0);
+  if (headCount[head] / total < 0.5) return null;
+
+  const heads = {};
+  heads[mainLen] = head;
+
+  return {
+    prefix, mainLen, head, heads,
+    confidence: headCount[head] / total,
+    samples: parts.length
+  };
+}
+
+/** แก้เลขให้ตรงกับโครงสร้างที่เรียนได้ */
+export function applyLearned(learned, value) {
+  if (!learned || !value) return value;
+  const p = splitSample(value);
+  if (!p) return value;
+
+  let d = p.digits;
+  const L = learned.mainLen, head = learned.head;
+
+  // ยาวเท่ากัน หลักที่สองตรง แต่หลักแรกผิด
+  if (d.length === L && d[1] === head[1] && d[0] !== head[0]) d = head[0] + d.slice(1);
+  // สั้นไปหนึ่งหลัก และเริ่มด้วยหลักที่สองของชุดนำ = หลักแรกหายไป
+  else if (d.length === L - 1 && d[0] === head[1]) d = head[0] + d;
+
+  return (p.prefix || learned.prefix) + d;
+}

@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230f172a'/%3E%3Crect x='8' y='6' width='16' height='20' rx='2' fill='%23f1f5f9'/%3E%3Crect x='11' y='10' width='2' height='12' fill='%230f172a'/%3E%3Crect x='14.5' y='10' width='1' height='12' fill='%230f172a'/%3E%3Crect x='17' y='10' width='2' height='12' fill='%230f172a'/%3E%3Crect x='20.5' y='10' width='1' height='12' fill='%230f172a'/%3E%3C/svg%3E">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DocScan — เครื่องมือผู้ดูแล</title>
+<script src="config.js?v=2.15.1"></script>
+<link rel="stylesheet" href="css/auth.css?v=2.14.0">
+<style>
+  .login-wrap{max-width:560px}
+  .out{background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);
+    padding:12px;font-family:var(--mono);font-size:12.5px;word-break:break-all;
+    line-height:1.7;min-height:44px;color:var(--text);user-select:all}
+  .out.empty{color:var(--muted)}
+  .cmd{background:#0b1220;border:1px solid var(--border);border-radius:var(--rs);
+    padding:14px;font-family:var(--mono);font-size:12px;white-space:pre-wrap;
+    word-break:break-all;line-height:1.8;color:#bae6fd;user-select:all;margin-top:8px}
+  .row{display:flex;gap:10px}
+  .row .field{flex:1}
+</style>
+</head>
+<body>
+<div class="login-wrap">
+  <div class="brand">
+    <div class="brand-icon">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#0f172a" stroke-width="2.5">
+        <rect x="3" y="4" width="3" height="16" rx="1"/><rect x="8" y="4" width="1.5" height="16" rx="0.5"/>
+        <rect x="11" y="4" width="3" height="16" rx="1"/><rect x="16" y="4" width="1.5" height="16" rx="0.5"/>
+        <rect x="19" y="4" width="2" height="16" rx="1"/>
+      </svg>
+    </div>
+    <div>
+      <div class="brand-name">เครื่องมือผู้ดูแล</div>
+      <div class="brand-sub">สร้างค่า hash สำหรับ addUser / resetPassword</div>
+    </div>
+  </div>
+
+  <div class="box">
+    <div class="alert info on" style="margin-bottom:20px">
+      หน้านี้คำนวณในเครื่องคุณล้วน ๆ <b>ไม่ส่งอะไรออกไปที่ไหน</b><br>
+      รหัสผ่านที่พิมพ์ไม่เคยออกจากเบราว์เซอร์ ค่าที่ได้เป็นผลจาก PBKDF2 150,000 รอบ
+    </div>
+
+    <div class="row">
+      <div class="field">
+        <label class="label" for="empId">รหัสพนักงาน</label>
+        <input class="input" id="empId" type="text" placeholder="ADMIN01" autocapitalize="characters">
+      </div>
+      <div class="field">
+        <label class="label" for="password">รหัสผ่านที่ต้องการตั้ง</label>
+        <input class="input" id="password" type="text" placeholder="อย่างน้อย 8 ตัว มีตัวอักษรและตัวเลข">
+      </div>
+    </div>
+    <div class="pw-hint" id="pwHint">รหัสพนักงานมีผลกับค่า hash ต้องตรงกับที่จะใส่ใน addUser เป๊ะ ๆ</div>
+
+    <button class="submit-btn" id="btnCalc" disabled>คำนวณค่า hash</button>
+
+    <div class="divider"></div>
+
+    <label class="label">ค่า pw_hash</label>
+    <div class="out empty" id="hashOut">— ยังไม่ได้คำนวณ —</div>
+    <button class="ghost-btn" id="btnCopyHash" disabled>คัดลอกค่า hash</button>
+
+    <div class="divider"></div>
+
+    <div class="box-title" style="font-size:14px">คำสั่งที่เอาไปวางใน Apps Script</div>
+    <div class="box-sub" style="margin-bottom:10px">
+      แก้ชื่อ อีเมล ไซต์ และ role ให้ถูกก่อนรัน
+    </div>
+
+    <div class="row">
+      <div class="field">
+        <label class="label" for="role">Role</label>
+        <select class="select" id="role">
+          <option value="admin">admin — ผู้ดูแลระบบ</option>
+          <option value="warehouse">warehouse — ทีมคลังพาเลท</option>
+          <option value="delivery">delivery — ทีมจัดส่ง</option>
+        </select>
+      </div>
+      <div class="field">
+        <label class="label" for="site">ไซต์</label>
+        <input class="input" id="site" type="text" value="ALL"
+               placeholder="เช่น NDC-วังน้อย">
+        <div class="pw-hint" id="siteHint">admin ใส่ ALL ได้ = เห็นทุกไซต์</div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="field">
+        <label class="label" for="mustChange">บังคับเปลี่ยนรหัสตอนล็อกอินแรก</label>
+        <select class="select" id="mustChange">
+          <option value="false">ไม่บังคับ (ตั้งรหัสให้ตัวเอง)</option>
+          <option value="true">บังคับ (ตั้งรหัสให้คนอื่น)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="cmd" id="cmdOut">— กรอกข้อมูลแล้วกดคำนวณ —</div>
+    <button class="ghost-btn" id="btnCopyCmd" disabled>คัดลอกคำสั่ง</button>
+
+    <div class="links">
+      <a class="link" href="login.html">← ไปหน้าเข้าสู่ระบบ</a>
+    </div>
+  </div>
+
+  <div class="footer">
+    หน้านี้ควรลบออกจาก repo หลังสร้างบัญชีผู้ดูแลเสร็จ<br>
+    ปกติผู้ใช้ทั่วไปสมัครเองผ่าน register.html ได้ ไม่ต้องใช้หน้านี้
+  </div>
+</div>
+
+<script type="module">
+import { derivePassword, checkPasswordStrength } from './js/auth.js?v=2.15.1';
+
+const $ = id => document.getElementById(id);
+let lastHash = '';
+
+function check() {
+  const isAdmin = $('role').value === 'admin';
+  const siteOk = isAdmin || $('site').value.trim().length > 0;
+  const ok = $('empId').value.trim() && $('password').value && siteOk;
+  $('btnCalc').disabled = !ok;
+  const pw = $('password').value;
+  if (pw) {
+    const r = checkPasswordStrength(pw);
+    $('pwHint').textContent = r.ok
+      ? 'รหัสผ่านใช้ได้'
+      : 'เตือน: ' + r.message + ' (ยังคำนวณได้ แต่ไม่แนะนำ)';
+  } else {
+    $('pwHint').textContent = 'รหัสพนักงานมีผลกับค่า hash ต้องตรงกับที่จะใส่ใน addUser เป๊ะ ๆ';
+  }
+}
+['empId', 'password'].forEach(id => $(id).addEventListener('input', check));
+['role', 'mustChange'].forEach(id => $(id).addEventListener('change', render));
+$('site').addEventListener('input', render);
+
+// admin ไม่ผูกกับไซต์ ส่วน role อื่นต้องระบุไซต์เสมอ
+// ถ้าปล่อยว่าง ค่าว่างจะกลายเป็น "ไม่กรอง" = เห็นข้อมูลทุกไซต์
+$('role').addEventListener('change', () => {
+  const isAdmin = $('role').value === 'admin';
+  if (isAdmin && !$('site').value.trim()) $('site').value = 'ALL';
+  if (!isAdmin && /^(ALL|\*|ทุกไซต์)$/i.test($('site').value.trim())) $('site').value = '';
+  $('siteHint').textContent = isAdmin
+    ? 'admin ใส่ ALL ได้ = เห็นทุกไซต์'
+    : 'ต้องระบุไซต์จริง — เว้นว่างไม่ได้ เพราะจะกลายเป็นเห็นทุกไซต์';
+  render();
+});
+
+async function calc() {
+  const empId = $('empId').value.trim();
+  const btn = $('btnCalc');
+  btn.disabled = true;
+  btn.textContent = 'กำลังคำนวณ...';
+  try {
+    lastHash = await derivePassword(empId, $('password').value);
+    render();
+  } catch (err) {
+    $('hashOut').className = 'out';
+    $('hashOut').textContent = 'คำนวณไม่สำเร็จ: ' + err.message +
+      ' — หน้านี้ต้องเปิดผ่าน https เท่านั้น';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'คำนวณค่า hash';
+  }
+}
+
+function render() {
+  if (!lastHash) return;
+  const empId = $('empId').value.trim();
+  $('hashOut').className = 'out';
+  $('hashOut').textContent = lastHash;
+  $('btnCopyHash').disabled = false;
+
+  $('cmdOut').textContent =
+    "addUser(\n" +
+    "  '" + empId + "',\n" +
+    "  'ชื่อ-นามสกุล',\n" +
+    "  'อีเมล@brs-group.com',\n" +
+    "  '" + ($('site').value.trim() || 'ALL') + "',\n" +
+    "  '" + $('role').value + "',\n" +
+    "  '" + lastHash + "',\n" +
+    "  " + $('mustChange').value + "\n" +
+    ")";
+  $('btnCopyCmd').disabled = false;
+}
+
+function copy(text, btn, label) {
+  navigator.clipboard.writeText(text).then(() => {
+    const old = btn.textContent;
+    btn.textContent = '✓ คัดลอกแล้ว';
+    setTimeout(() => { btn.textContent = old; }, 1500);
+  }).catch(() => alert(label + ':\n\n' + text));
+}
+
+$('btnCalc').addEventListener('click', calc);
+$('password').addEventListener('keydown', e => { if (e.key === 'Enter' && !$('btnCalc').disabled) calc(); });
+$('btnCopyHash').addEventListener('click', () => copy(lastHash, $('btnCopyHash'), 'ค่า hash'));
+$('btnCopyCmd').addEventListener('click', () => copy($('cmdOut').textContent, $('btnCopyCmd'), 'คำสั่ง'));
+$('empId').focus();
+</script>
+</body>
+</html>

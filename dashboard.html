@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230f172a'/%3E%3Crect x='8' y='6' width='16' height='20' rx='2' fill='%23f1f5f9'/%3E%3Crect x='11' y='10' width='2' height='12' fill='%230f172a'/%3E%3Crect x='14.5' y='10' width='1' height='12' fill='%230f172a'/%3E%3Crect x='17' y='10' width='2' height='12' fill='%230f172a'/%3E%3Crect x='20.5' y='10' width='1' height='12' fill='%230f172a'/%3E%3C/svg%3E">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>DocScan — Dashboard</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+:root{--bg:#0f172a;--surface:#1e293b;--surface2:#263348;--border:#334155;--accent:#38bdf8;--success:#34d399;--warn:#fbbf24;--danger:#f87171;--text:#f1f5f9;--muted:#94a3b8;--font:'IBM Plex Sans Thai',sans-serif;--mono:'IBM Plex Mono',monospace;--r:12px;--rs:8px;--nav-h:52px;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;font-size:15px;}
+.nav-bar{position:fixed;top:0;left:0;right:0;height:var(--nav-h);background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:0;z-index:1000;}
+.nav-brand{display:flex;align-items:center;gap:10px;margin-right:24px;text-decoration:none;}
+.nav-brand-icon{width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.nav-brand-name{font-size:14px;font-weight:700;color:var(--text);}
+.nav-brand-sub{font-size:10px;color:var(--muted);margin-top:1px;}
+.nav-pages{display:flex;gap:0;flex:1;}
+.nav-link{display:flex;align-items:center;gap:6px;padding:0 16px;height:var(--nav-h);background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-family:var(--font);font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap;transition:all .15s;text-decoration:none;}
+.nav-link:hover{color:var(--text);}
+.nav-link.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:600;}
+.nav-user{display:flex;align-items:center;gap:8px;margin-left:auto;padding-left:16px;border-left:1px solid var(--border);}
+.nav-user-name{font-size:12px;color:var(--text);font-weight:500;}
+.nav-user-site{font-size:11px;color:var(--muted);}
+.nav-logout{background:none;border:1px solid var(--border);color:var(--muted);border-radius:var(--rs);padding:5px 10px;font-family:var(--font);font-size:11px;cursor:pointer;margin-left:8px;}
+.nav-logout:hover{border-color:var(--danger);color:var(--danger);}
+.page-wrap{margin-top:var(--nav-h);min-height:calc(100vh - var(--nav-h));}
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:var(--nav-h);z-index:100;}
+.topbar-title{font-size:15px;font-weight:600;}
+.topbar-sub{font-size:11px;color:var(--muted);margin-top:2px;}
+.content{padding:24px;flex:1;}
+.summary-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px;}
+.sum-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px 24px;position:relative;overflow:hidden;}
+.sum-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+.sum-card.c-total::before{background:var(--muted);}
+.sum-card.c-done::before{background:var(--success);}
+.sum-card.c-pend::before{background:var(--warn);}
+.sum-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;font-weight:500;}
+.sum-value{font-size:36px;font-weight:700;font-family:var(--mono);line-height:1;margin-bottom:6px;}
+.sum-card.c-total .sum-value{color:var(--text);}
+.sum-card.c-done  .sum-value{color:var(--success);}
+.sum-card.c-pend  .sum-value{color:var(--warn);}
+.sum-sub{font-size:12px;color:var(--muted);}
+.sum-divider{height:1px;background:var(--border);margin:12px 0;}
+.sum-section-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;}
+.sla-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.sla-label{font-size:11px;min-width:110px;white-space:nowrap;}
+.sla-bar{flex:1;height:5px;background:var(--surface2);border-radius:10px;overflow:hidden;}
+.sla-fill{height:100%;border-radius:10px;transition:width .5s;}
+.sla-count{font-family:var(--mono);font-size:11px;font-weight:600;min-width:44px;text-align:right;}
+.pipeline-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px 20px;margin-bottom:16px;}
+.pipeline-title{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:16px;font-weight:500;}
+.pipeline-flow{display:flex;align-items:stretch;gap:0;}
+.pipe-step{flex:1;min-width:0;}
+.pipe-step-head{display:flex;align-items:center;gap:6px;margin-bottom:6px;}
+.pipe-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+.pipe-dot.s1{background:var(--muted);}
+.pipe-dot.s2{background:var(--warn);}
+.pipe-dot.s3{background:var(--accent);}
+.pipe-dot.s4{background:var(--success);}
+.pipe-label{font-size:11px;color:var(--muted);font-weight:500;white-space:nowrap;}
+.pipe-total{font-size:26px;font-weight:700;font-family:var(--mono);line-height:1;margin-bottom:8px;}
+.pipe-step.s1 .pipe-total{color:var(--muted);}
+.pipe-step.s2 .pipe-total{color:var(--warn);}
+.pipe-step.s3 .pipe-total{color:var(--accent);}
+.pipe-step.s4 .pipe-total{color:var(--success);}
+.pipe-mini-bars{display:flex;flex-direction:column;gap:3px;}
+.pipe-mini-row{display:flex;align-items:center;gap:5px;}
+.pipe-mini-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.pipe-mini-bar-wrap{flex:1;height:4px;background:var(--surface2);border-radius:4px;overflow:hidden;}
+.pipe-mini-bar{height:100%;border-radius:4px;transition:width .5s;}
+.pipe-mini-count{font-size:10px;color:var(--muted);font-family:var(--mono);min-width:22px;text-align:right;}
+.pipe-arrow-col{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:0 10px;padding-top:3px;flex-shrink:0;}
+.pipe-arrow-line{width:1px;height:16px;background:var(--border);}
+.pipe-arrow-line.bottom{flex:1;}
+.pipe-arrow-svg{margin:-1px 0;}
+.pipe-legend{display:flex;gap:14px;margin-top:14px;padding-top:12px;border-top:1px solid var(--border);flex-wrap:wrap;}
+.pipe-legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);}
+.pipe-legend-dot{width:7px;height:7px;border-radius:50%;}
+.filter-bar{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:12px 16px;margin-bottom:16px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+.f-select{background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);color:var(--text);font-family:var(--font);font-size:12px;padding:6px 10px;outline:none;cursor:pointer;}
+.f-select:focus{border-color:var(--accent);}
+.f-input{background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);color:var(--text);font-family:var(--font);font-size:12px;padding:6px 10px;outline:none;width:130px;}
+.f-input:focus{border-color:var(--accent);}
+.f-input::placeholder{color:var(--muted);}
+.refresh-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:var(--rs);padding:6px 12px;font-family:var(--font);font-size:12px;cursor:pointer;}
+.refresh-btn:hover{border-color:var(--accent);color:var(--accent);}
+.f-clear{background:none;border:none;color:var(--muted);font-family:var(--font);font-size:12px;cursor:pointer;padding:0;text-decoration:underline;text-underline-offset:2px;transition:color .15s;}
+.f-clear:hover{color:var(--danger);}
+.export-btn{background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.3);color:var(--success);border-radius:var(--rs);padding:6px 12px;font-family:var(--font);font-size:12px;cursor:pointer;margin-left:auto;}
+.pagination-bar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-top:1px solid var(--border);background:var(--surface2);font-size:12px;color:var(--muted);flex-wrap:wrap;gap:8px;}
+.page-btns{display:flex;gap:4px;}
+.page-btn{background:none;border:1px solid var(--border);color:var(--muted);border-radius:var(--rs);padding:4px 9px;font-family:var(--font);font-size:12px;cursor:pointer;transition:all .15s;min-width:30px;}
+.page-btn:hover:not(:disabled){border-color:var(--accent);color:var(--accent);}
+.page-btn.active{background:var(--accent);border-color:var(--accent);color:#0f172a;font-weight:600;}
+.page-btn:disabled{opacity:.35;cursor:not-allowed;}
+.top-filter{display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
+.chart-toggle{display:flex;gap:2px;margin:8px 0 4px;}
+.chart-toggle button{background:none;border:1px solid var(--border);color:var(--muted);font-family:var(--font);font-size:10px;padding:2px 8px;border-radius:var(--rs);cursor:pointer;transition:all .15s;}
+.chart-toggle button.active{background:var(--accent);border-color:var(--accent);color:#0f172a;font-weight:600;}
+#areaChart{width:100%;display:block;}
+.section{margin-bottom:24px;}
+.section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.section-title{font-size:12px;font-weight:600;display:flex;align-items:center;gap:8px;}
+.count-badge{font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;font-family:var(--mono);}
+.count-done{background:rgba(52,211,153,0.12);border:1px solid rgba(52,211,153,0.3);color:var(--success);}
+.count-pend{background:rgba(251,191,36,0.12);border:1px solid rgba(251,191,36,0.3);color:var(--warn);}
+.table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;}
+.table-wrap table{width:100%;border-collapse:collapse;}
+.table-wrap th{background:var(--surface2);padding:9px 14px;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;}
+.table-wrap td{padding:10px 14px;font-size:12px;border-bottom:1px solid var(--border);vertical-align:middle;}
+.table-wrap tr:last-child td{border-bottom:none;}
+.table-wrap tr:hover td{background:rgba(255,255,255,0.02);}
+.mono{font-family:var(--mono);}
+.photo-link{color:var(--accent);text-decoration:none;font-size:11px;}
+.photo-link:hover{text-decoration:underline;}
+.empty-row td{text-align:center;color:var(--muted);padding:24px;}
+.loading{text-align:center;padding:40px;color:var(--muted);font-size:13px;}
+.spinner{width:18px;height:18px;border:2px solid rgba(56,189,248,0.3);border-top-color:var(--accent);border-radius:50%;animation:spin 0.7s linear infinite;display:inline-block;vertical-align:middle;margin-right:8px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-80px);background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);padding:12px 20px;font-size:13px;transition:transform 0.3s;z-index:300;white-space:nowrap;box-shadow:0 8px 24px rgba(0,0,0,0.4);}
+.toast.show{transform:translateX(-50%) translateY(0);}
+.toast.error{border-color:rgba(248,113,113,0.4);color:var(--danger);}
+.toast.success{border-color:rgba(52,211,153,0.4);color:var(--success);}
+</style>
+<script src="config.js?v=2.15.1"></script>
+<script type="module">
+// ── โมดูลร่วม DocScan ────────────────────────────────────
+// module script ทำงานหลัง classic script แต่ก่อน window.onload
+// โค้ดเดิมเรียก requireAuth ใน window.onload จึงปลอดภัย
+import { apiFetch, uploadBatch, newClientId } from './js/api.js?v=2.15.1';
+import { parseCSV, buildIndex, searchCSV, classify } from './js/csv.js?v=2.15.1';
+import { parseDateInput, toDisplayDate, toInputDate, todayISO } from './js/date.js?v=2.15.1';
+import { requireAuth, authFetch, authGet, authGetText, logout, loadSession, daysLeft, AUTH_JS_VERSION } from './js/auth.js?v=2.15.1';
+import { installNav, guardPage, homeFor as navHome } from './js/nav.js?v=2.15.1';
+
+window.DocScan = {
+  apiFetch, authFetch, authGet, authGetText, uploadBatch, newClientId,
+  parseCSV, buildIndex, searchCSV, classify,
+  parseDateInput, toDisplayDate, toInputDate, todayISO,
+  requireAuth, logout, loadSession, daysLeft, AUTH_JS_VERSION,
+  installNav, guardPage, navHome
+};
+// ประทับเลขเวอร์ชันไว้ให้หาเวลาผู้ใช้แจ้งปัญหา
+document.documentElement.setAttribute('data-docscan-version',
+  (window.DOCSCAN_CONFIG && DOCSCAN_CONFIG.VERSION) || '');
+window.dispatchEvent(new Event('docscan-ready'));
+</script>
+</head>
+<body>
+
+<nav class="nav-bar">
+  <a class="nav-brand" href="dashboard.html">
+    <div class="nav-brand-icon">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0f172a" stroke-width="2.5">
+        <rect x="3" y="4" width="3" height="16" rx="1"/><rect x="8" y="4" width="1.5" height="16" rx=".5"/>
+        <rect x="11" y="4" width="3" height="16" rx="1"/><rect x="16" y="4" width="1.5" height="16" rx=".5"/>
+        <rect x="19" y="4" width="2" height="16" rx="1"/>
+      </svg>
+    </div>
+    <div><div class="nav-brand-name">DocScan</div><div class="nav-brand-sub">Pallet Tracking</div></div>
+  </a>
+  <div class="nav-pages">
+    <a class="nav-link active" href="dashboard.html">📊 Dashboard</a>
+    <a class="nav-link" href="batch.html">📦 Batch Scan</a>
+  </div>
+  <div class="nav-user">
+    <div>
+      <div class="nav-user-name" id="sidebarName">—</div>
+      <div class="nav-user-site" id="sidebarSite">—</div>
+    </div>
+    <button class="nav-logout" onclick="logout()">↩ ออก</button>
+  </div>
+</nav>
+
+<div class="page-wrap">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title">Dashboard</div>
+      <div class="topbar-sub" id="topbarSub">—</div>
+    </div>
+    <button class="refresh-btn" onclick="loadData()">↻ รีเฟรช</button>
+  </div>
+
+  <div class="content">
+
+    <!-- Top Filter: Month only (กระทบ Cards + Pipeline + Chart เท่านั้น) -->
+    <div class="top-filter">
+      <span class="top-filter-label">ดูข้อมูลเดือน:</span>
+      <input class="f-select" type="month" id="filterMonth" onchange="onMonthChange()" title="เดือนที่สร้างเอกสาร" style="width:148px;">
+      <span style="font-size:11px;color:var(--muted);">→ กรองข้อมูลทั้งหน้า</span>
+      <button class="refresh-btn" onclick="loadData()" style="margin-left:auto;">↻ รีเฟรช</button>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="summary-grid">
+      <div class="sum-card c-total">
+        <div class="sum-label">เอกสารทั้งหมด</div>
+        <div class="sum-value" id="sumTotal">—</div>
+        <div class="sum-sub">รายการในระบบ</div>
+        <div class="chart-toggle">
+          <button id="btnD" onclick="setChartMode('day')" class="active">วัน</button>
+          <button id="btnW" onclick="setChartMode('week')">สัปดาห์</button>
+          <button id="btnM" onclick="setChartMode('month')">เดือน</button>
+        </div>
+        <canvas id="areaChart" height="72"></canvas>
+      </div>
+
+      <div class="sum-card c-done">
+        <div class="sum-label">รับแล้ว</div>
+        <div class="sum-value" id="sumDone">—</div>
+        <div class="sum-sub" id="sumDonePct">—</div>
+        <div class="sum-divider"></div>
+        <div class="sum-section-label">Ontime / Late (เฉพาะที่รับแล้ว)</div>
+        <div class="sla-row">
+          <span class="sla-label" style="color:var(--success);">Ontime ≤15 วัน</span>
+          <div class="sla-bar"><div class="sla-fill" id="ontimeFill" style="background:var(--success);width:0%;"></div></div>
+          <span class="sla-count" id="ontimePct" style="color:var(--success);">—%</span>
+        </div>
+        <div class="sla-row">
+          <span class="sla-label" style="color:var(--danger);">Late >15 วัน</span>
+          <div class="sla-bar"><div class="sla-fill" id="lateFill" style="background:var(--danger);width:0%;"></div></div>
+          <span class="sla-count" id="latePct" style="color:var(--danger);">—%</span>
+        </div>
+      </div>
+
+      <div class="sum-card c-pend">
+        <div class="sum-label">ยังไม่รับ</div>
+        <div class="sum-value" id="sumPend">—</div>
+        <div class="sum-sub" id="sumPendPct">—</div>
+        <div class="sum-divider"></div>
+        <div class="sum-section-label">แบ่งตาม SLA (นับจาก Created Date)</div>
+        <div class="sla-row">
+          <span class="sla-label" style="color:var(--success);">On Track ≤15 วัน</span>
+          <div class="sla-bar"><div class="sla-fill" id="tierT1Fill" style="background:var(--success);width:0%;"></div></div>
+          <span class="sla-count" id="tierT1" style="color:var(--success);">—</span>
+        </div>
+        <div class="sla-row">
+          <span class="sla-label" style="color:var(--warn);">Over SLA 15-30 วัน</span>
+          <div class="sla-bar"><div class="sla-fill" id="tierT2Fill" style="background:var(--warn);width:0%;"></div></div>
+          <span class="sla-count" id="tierT2" style="color:var(--warn);">—</span>
+        </div>
+        <div class="sla-row">
+          <span class="sla-label" style="color:#fb923c;">Business 30-60 วัน</span>
+          <div class="sla-bar"><div class="sla-fill" id="tierT3Fill" style="background:#fb923c;width:0%;"></div></div>
+          <span class="sla-count" id="tierT3" style="color:#fb923c;">—</span>
+        </div>
+        <div class="sla-row">
+          <span class="sla-label" style="color:var(--danger);">Critical >60 วัน</span>
+          <div class="sla-bar"><div class="sla-fill" id="tierT4Fill" style="background:var(--danger);width:0%;"></div></div>
+          <span class="sla-count" id="tierT4" style="color:var(--danger);">—</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pipeline -->
+    <div class="pipeline-wrap">
+      <div class="pipeline-title">Pipeline เอกสาร</div>
+      <div class="pipeline-flow">
+        <div class="pipe-step s1">
+          <div class="pipe-step-head"><div class="pipe-dot s1"></div><span class="pipe-label">กับขนส่ง</span></div>
+          <div class="pipe-total" id="pipeT">—</div>
+          <div class="pipe-mini-bars" id="pipeTTiers"></div>
+        </div>
+        <div class="pipe-arrow-col">
+          <div class="pipe-arrow-line"></div>
+          <svg class="pipe-arrow-svg" width="16" height="12" viewBox="0 0 16 12" fill="none">
+            <path d="M0 6h13M9 1l5 5-5 5" stroke="var(--muted)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <div class="pipe-arrow-line bottom"></div>
+        </div>
+        <div class="pipe-step s2">
+          <div class="pipe-step-head"><div class="pipe-dot s2"></div><span class="pipe-label">ทีมจัดส่ง</span></div>
+          <div class="pipe-total" id="pipeD">—</div>
+          <div class="pipe-mini-bars" id="pipeDTiers"></div>
+        </div>
+        <div class="pipe-arrow-col">
+          <div class="pipe-arrow-line"></div>
+          <svg class="pipe-arrow-svg" width="16" height="12" viewBox="0 0 16 12" fill="none">
+            <path d="M0 6h13M9 1l5 5-5 5" stroke="var(--muted)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <div class="pipe-arrow-line bottom"></div>
+        </div>
+        <div class="pipe-step s3">
+          <div class="pipe-step-head"><div class="pipe-dot s3"></div><span class="pipe-label">ระหว่างทาง</span></div>
+          <div class="pipe-total" id="pipeR">—</div>
+          <div class="pipe-mini-bars" id="pipeRTiers"></div>
+        </div>
+        <div class="pipe-arrow-col">
+          <div class="pipe-arrow-line"></div>
+          <svg class="pipe-arrow-svg" width="16" height="12" viewBox="0 0 16 12" fill="none">
+            <path d="M0 6h13M9 1l5 5-5 5" stroke="var(--muted)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <div class="pipe-arrow-line bottom"></div>
+        </div>
+        <div class="pipe-step s4">
+          <div class="pipe-step-head"><div class="pipe-dot s4"></div><span class="pipe-label">Scan แล้ว</span></div>
+          <div class="pipe-total" id="pipeS">—</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px;line-height:1.5;">รับที่คลังพาเลทแล้ว</div>
+        </div>
+      </div>
+      <div class="pipe-legend">
+        <div class="pipe-legend-item"><div class="pipe-legend-dot" style="background:var(--success);"></div>On Track ≤15 วัน</div>
+        <div class="pipe-legend-item"><div class="pipe-legend-dot" style="background:var(--warn);"></div>Over SLA 15-30 วัน</div>
+        <div class="pipe-legend-item"><div class="pipe-legend-dot" style="background:#fb923c;"></div>Business 30-60 วัน</div>
+        <div class="pipe-legend-item"><div class="pipe-legend-dot" style="background:var(--danger);"></div>Critical >60 วัน</div>
+      </div>
+    </div>
+
+    <!-- Filter Bar (กระทบเฉพาะตาราง ไม่แตะ Cards/Pipeline) -->
+    <div class="filter-bar" style="flex-direction:column;align-items:stretch;gap:10px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <span style="font-size:12px;font-weight:500;color:var(--text);">กรองรายการ</span>
+        <button class="f-clear" onclick="clearTableFilters()">✕ ล้างทั้งหมด</button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;">
+        <div>
+          <div style="font-size:10px;color:var(--muted);font-weight:500;margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em;">สถานะ</div>
+          <select class="f-select" id="filterStatus" onchange="applyTableFilters()" style="width:100%;">
+            <option value="all">ทั้งหมด</option>
+            <option value="done">รับแล้ว</option>
+            <option value="pending">ยังไม่รับ</option>
+          </select>
+        </div>
+        <div>
+          <div style="font-size:10px;color:var(--muted);font-weight:500;margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em;">SLA Tier</div>
+          <select class="f-select" id="filterTier" onchange="applyTableFilters()" style="width:100%;">
+            <option value="all">ทั้งหมด</option>
+            <option value="t1">T1 ≤15 วัน</option>
+            <option value="t2">T2 15-30 วัน</option>
+            <option value="t3">T3 30-60 วัน</option>
+            <option value="t4">T4 &gt;60 วัน</option>
+          </select>
+        </div>
+        <div>
+          <div style="font-size:10px;color:var(--muted);font-weight:500;margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em;">ประเภทพาเลท</div>
+          <select class="f-select" id="filterItemName" onchange="applyTableFilters()" style="width:100%;">
+            <option value="">ทั้งหมด</option>
+          </select>
+        </div>
+        <div>
+          <div style="font-size:10px;color:var(--muted);font-weight:500;margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em;">วันที่รับ (คลัง)</div>
+          <input class="f-select" type="date" id="filterDate" onchange="applyTableFilters()" style="width:100%;">
+        </div>
+        <div>
+          <div style="font-size:10px;color:var(--muted);font-weight:500;margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em;">Reference / Barcode</div>
+          <input class="f-input" type="text" id="filterRef" placeholder="พิมพ์เพื่อค้นหา..." oninput="applyTableFilters()" style="width:100%;">
+        </div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;">
+        <button class="export-btn" onclick="exportCSV()">⬇ Export CSV</button>
+      </div>
+    </div>
+
+    <!-- Done Table -->
+    <div class="section" id="sectionDone">
+      <div class="section-head">
+        <div class="section-title">✅ รับแล้ว <span class="count-badge count-done" id="countDone">0</span></div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th><th>Barcode</th><th>Reference</th><th>ประเภท</th>
+              <th>โอนจาก → โอนไป</th><th>QTY รับ</th><th>วันที่รับ</th>
+              <th>ไฟล์</th><th>Created Date</th><th>ระยะเวลา</th>
+            </tr>
+          </thead>
+          <tbody id="bodyDone"><tr class="empty-row"><td colspan="10"><span class="spinner"></span>กำลังโหลด...</td></tr></tbody>
+        </table>
+        <div class="pagination-bar" id="pageDone" style="display:none;">
+          <span class="page-info" id="pageInfoDone">—</span>
+          <div class="page-btns" id="pageBtnsDone"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pending Table -->
+    <div class="section" id="sectionPending">
+      <div class="section-head">
+        <div class="section-title">⏳ ยังไม่รับ <span class="count-badge count-pend" id="countPend">0</span></div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th><th>Barcode</th><th>Reference</th><th>ประเภท</th>
+              <th>โอนจาก → โอนไป</th><th>QTY ส่ง</th><th>Created Date</th><th>ค้างมา</th>
+            </tr>
+          </thead>
+          <tbody id="bodyPending"><tr class="empty-row"><td colspan="8"><span class="spinner"></span>กำลังโหลด...</td></tr></tbody>
+        </table>
+        <div class="pagination-bar" id="pagePend" style="display:none;">
+          <span class="page-info" id="pageInfoPend">—</span>
+          <div class="page-btns" id="pageBtnsPend"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+// ── สะพานไปยังโมดูลร่วม ──────────────────────────────────
+// เก็บชื่อเดิมไว้เพื่อไม่ต้องแก้โค้ดที่เรียกใช้ทั้งไฟล์
+var DocScanAuth = {
+  load: function () { return DocScan.loadSession(); },
+  clear: function () {
+    // ล้างในเครื่องทันที ไม่ต้องรอเซิร์ฟเวอร์ เพราะผู้เรียกมักเปลี่ยนหน้าต่อทันที
+    return DocScan.logout(DOCSCAN_CONFIG.API_URL);
+  },
+  requireAuth: function () {
+    var s = DocScan.requireAuth();
+    if (!s) return null;
+    if (s.mustChangePassword) { location.href = 'change-password.html'; return null; }
+    if (!DocScan.guardPage(s)) return null;
+    
+    DocScan.installNav(s, { onLogout: logout });
+    return s;
+  }
+};
+
+/** ยิงคำขอแบบ POST พร้อม token, timeout, retry และกันข้อมูลซ้ำ */
+function apiPost(payload) { return DocScan.authFetch(API_URL, payload); }
+/** ยิงคำขอแบบ GET พร้อม token */
+function apiGetText(action, params) {
+  // getCSV คืนข้อความดิบ ไม่ใช่ JSON
+  return DocScan.authGetText(API_URL, action, params || {});
+}
+/** ยิงคำขอแบบ GET พร้อม token */
+function apiGetJson(action, params, extraQS) {
+  var p = params || {};
+  // getSiteFilterParam คืนสตริงแบบ "&site_filter=..." ต้องแตกกลับเป็น object
+  if (extraQS) {
+    String(extraQS).replace(/^&/, '').split('&').forEach(function (kv) {
+      if (!kv) return;
+      var i = kv.indexOf('=');
+      if (i > 0) p[kv.slice(0, i)] = decodeURIComponent(kv.slice(i + 1));
+    });
+  }
+  return DocScan.authGet(API_URL, action, p);
+}
+
+/** พาไปหน้าเข้าสู่ระบบเมื่อเซสชันหมดอายุกลางคัน โดยไม่ทิ้งงานที่ค้าง */
+
+
+function handleAuthError(err) {
+  if (err && err.code === 'auth_required') {
+    alert('เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่\n\nงานที่ค้างอยู่ยังอยู่ในเครื่อง ไม่หายไปไหน');
+    location.href = 'login.html';
+    return true;
+  }
+  return false;
+}
+
+var API_URL = DOCSCAN_CONFIG.API_URL;
+var session;
+var _cachedDone = [], _cachedPending = [];
+
+// ── ข้อมูล Cards+Pipeline แยกจาก table filter ──
+// _summaryDone/_summaryPending = ข้อมูลที่กรองด้วย filterMonth เท่านั้น
+var _summaryDone = [], _summaryPending = [];
+
+window.onload = function() {
+  session = DocScanAuth.requireAuth();
+  if (!session) return;
+  document.getElementById('sidebarName').textContent = session.empName + ' (' + session.empId + ')';
+  document.getElementById('sidebarSite').textContent = session.site;
+  document.getElementById('topbarSub').textContent   = session.site;
+  loadData();
+};
+
+function loadData() {
+  document.getElementById('bodyDone').innerHTML    = '<tr class="empty-row"><td colspan="10"><span class="spinner"></span>กำลังโหลด...</td></tr>';
+  document.getElementById('bodyPending').innerHTML = '<tr class="empty-row"><td colspan="8"><span class="spinner"></span>กำลังโหลด...</td></tr>';
+  apiGetJson('getDashboard', {}, getSiteFilterParam(session))
+    .then(function(data) {
+      if (data.status !== 'ok') throw new Error(data.message);
+      var s  = data.summary;
+      var pt = data.pending_tiers || {t1:0,t2:0,t3:0,t4:0};
+      var pl = data.pipeline      || {};
+
+      _cachedDone    = data.done    || [];
+      _cachedPending = data.pending || [];
+
+      // populate item_name dropdown
+      var nameSet = {};
+      _cachedDone.concat(_cachedPending).forEach(function(item){
+        if(item.item_name) nameSet[item.item_name] = true;
+      });
+      var el2 = document.getElementById('filterItemName');
+      var cur2 = el2.value;
+      el2.innerHTML = '<option value="">— ทุกประเภท —</option>';
+      Object.keys(nameSet).sort().forEach(function(n){
+        var o=document.createElement('option');o.value=o.textContent=n;
+        if(n===cur2)o.selected=true; el2.appendChild(o);
+      });
+
+      // อัป Cards+Pipeline จาก API response (ข้อมูลดิบทั้งหมด)
+      updateSummaryFromAPI(s, pt, pl);
+
+      // แล้วค่อย apply filterMonth กับ Cards+Pipeline
+      applyMonthToSummary();
+
+      // render ตาราง (ไม่กระทบ Cards)
+      applyTableFilters();
+
+      setTimeout(drawChart, 100);
+    })
+    .catch(function(err){
+      showToast('โหลดข้อมูลไม่สำเร็จ: ' + err.message, 'error');
+      document.getElementById('bodyDone').innerHTML    = '<tr class="empty-row"><td colspan="10" style="color:var(--danger);">โหลดไม่สำเร็จ</td></tr>';
+      document.getElementById('bodyPending').innerHTML = '<tr class="empty-row"><td colspan="8"  style="color:var(--danger);">โหลดไม่สำเร็จ</td></tr>';
+    });
+}
+
+// ── updateSummaryFromAPI: เก็บค่า API ไว้ก่อน (ใช้เมื่อไม่มี filterMonth) ──
+var _apiSummary = {}, _apiPendingTiers = {}, _apiPipeline = {};
+function updateSummaryFromAPI(s, pt, pl) {
+  _apiSummary      = s  || {};
+  _apiPendingTiers = pt || {};
+  _apiPipeline     = pl || {};
+}
+
+// ── applyMonthToSummary: คำนวณจาก cached data เสมอ กรอง filterMonth ถ้ามี ──
+function applyMonthToSummary() {
+  var fMonth = (document.getElementById('filterMonth').value || '');
+
+  var done = fMonth
+    ? _cachedDone.filter(function(item){ return toYM(item.doc_date) === fMonth; })
+    : _cachedDone;
+  var pend = fMonth
+    ? _cachedPending.filter(function(item){ return toYM(item.doc_date) === fMonth; })
+    : _cachedPending;
+
+  _summaryDone    = done;
+  _summaryPending = pend;
+
+    var total   = done.length + pend.length;
+    var doneCnt = done.length;
+    var pct     = total > 0 ? Math.round(doneCnt/total*1000)/10 : 0;
+
+    var ontimeCnt=0, lateCnt=0;
+    done.forEach(function(item){
+      var dtr=Number(item.days_to_receive);
+      if(item.days_to_receive!==''&&item.days_to_receive!==undefined&&!isNaN(dtr)){
+        if(dtr<=15) ontimeCnt++; else lateCnt++;
+      }
+    });
+    var doneT = ontimeCnt+lateCnt||1;
+
+    var t1=0,t2=0,t3=0,t4=0;
+    pend.forEach(function(item){
+      if(item.tier==='t1')t1++;else if(item.tier==='t2')t2++;
+      else if(item.tier==='t3')t3++;else if(item.tier==='t4')t4++;
+    });
+    var pendMax=Math.max(t1,t2,t3,t4)||1;
+
+    document.getElementById('sumTotal').textContent   = total.toLocaleString();
+    document.getElementById('sumDone').textContent    = doneCnt.toLocaleString();
+    document.getElementById('sumDonePct').textContent = pct+'% ของทั้งหมด';
+    document.getElementById('sumPend').textContent    = pend.length.toLocaleString();
+    document.getElementById('sumPendPct').textContent = total>0?Math.round(pend.length/total*1000)/10+'% ของทั้งหมด':'0%';
+    document.getElementById('ontimeFill').style.width = Math.round(ontimeCnt/doneT*100)+'%';
+    document.getElementById('lateFill').style.width   = Math.round(lateCnt/doneT*100)+'%';
+    document.getElementById('ontimePct').textContent  = Math.round(ontimeCnt/doneT*100)+'%';
+    document.getElementById('latePct').textContent    = Math.round(lateCnt/doneT*100)+'%';
+    document.getElementById('tierT1Fill').style.width = Math.round(t1/pendMax*100)+'%';
+    document.getElementById('tierT2Fill').style.width = Math.round(t2/pendMax*100)+'%';
+    document.getElementById('tierT3Fill').style.width = Math.round(t3/pendMax*100)+'%';
+    document.getElementById('tierT4Fill').style.width = Math.round(t4/pendMax*100)+'%';
+    document.getElementById('tierT1').textContent = t1.toLocaleString();
+    document.getElementById('tierT2').textContent = t2.toLocaleString();
+    document.getElementById('tierT3').textContent = t3.toLocaleString();
+    document.getElementById('tierT4').textContent = t4.toLocaleString();
+
+    // Pipeline จาก filtered pending
+    renderPipelineFromItems(pend, done.length);
+}
+
+function renderPipeline(pl, scannedTotal) {
+  var pT=(pl.transporter||{}), pD=(pl.delivery||{}), pR=(pl.transit||{});
+  document.getElementById('pipeT').textContent = pT.total||0;
+  document.getElementById('pipeD').textContent = pD.total||0;
+  document.getElementById('pipeR').textContent = pR.total||0;
+  document.getElementById('pipeS').textContent = pl.scanned ? pl.scanned.total : scannedTotal;
+  document.getElementById('pipeTTiers').innerHTML = pipeMiniHTML(pT.tiers, pT.total);
+  document.getElementById('pipeDTiers').innerHTML = pipeMiniHTML(pD.tiers, pD.total);
+  document.getElementById('pipeRTiers').innerHTML = pipeMiniHTML(pR.tiers, pR.total);
+}
+
+function renderPipelineFromItems(pending, scannedTotal) {
+  var deliverySet={}, transitItems=[];
+  pending.forEach(function(item){
+    var cs=item.current_status||'with_transporter';
+    if(cs==='with_delivery'||cs==='with_warehouse') deliverySet[item.barcode]=item;
+    if(cs==='with_warehouse') transitItems.push(item);
+  });
+  var transporterItems=pending.filter(function(item){ return !deliverySet[item.barcode]; });
+  var deliveryItems=pending.filter(function(item){
+    return (item.current_status||'with_transporter')==='with_delivery';
+  });
+  function countTiers(arr){var t={t1:0,t2:0,t3:0,t4:0};arr.forEach(function(item){if(t.hasOwnProperty(item.tier))t[item.tier]++;});return t;}
+  var tT=countTiers(transporterItems), tD=countTiers(deliveryItems), tR=countTiers(transitItems);
+  document.getElementById('pipeT').textContent = transporterItems.length;
+  document.getElementById('pipeD').textContent = deliveryItems.length;
+  document.getElementById('pipeR').textContent = transitItems.length;
+  document.getElementById('pipeS').textContent = scannedTotal;
+  document.getElementById('pipeTTiers').innerHTML = pipeMiniHTML(tT, transporterItems.length);
+  document.getElementById('pipeDTiers').innerHTML = pipeMiniHTML(tD, deliveryItems.length);
+  document.getElementById('pipeRTiers').innerHTML = pipeMiniHTML(tR, transitItems.length);
+}
+
+function pipeMiniHTML(tiers, total) {
+  if(!tiers||!total) return '';
+  var colors={t1:'var(--success)',t2:'var(--warn)',t3:'#fb923c',t4:'var(--danger)'};
+  return ['t1','t2','t3','t4'].filter(function(t){return (tiers[t]||0)>0;}).map(function(t){
+    var pct=Math.round((tiers[t]||0)/total*100);
+    return '<div class="pipe-mini-row">'+
+      '<div class="pipe-mini-dot" style="background:'+colors[t]+';"></div>'+
+      '<div class="pipe-mini-bar-wrap"><div class="pipe-mini-bar" style="background:'+colors[t]+';width:'+pct+'%;"></div></div>'+
+      '<span class="pipe-mini-count">'+(tiers[t]||0)+'</span></div>';
+  }).join('');
+}
+
+// ── onMonthChange: อัปทั้งหน้า Cards+Pipeline+Chart+ตาราง ──
+function onMonthChange() {
+  applyMonthToSummary();
+  drawChart();
+  applyTableFilters();
+}
+
+// ── Table Filters: แยกจาก Cards/Pipeline โดยสิ้นเชิง ──────
+function getTableFilteredData() {
+  var fStatus   = document.getElementById('filterStatus').value;
+  var fRef      = (document.getElementById('filterRef').value      || '').trim().toLowerCase();
+  var fDate     = (document.getElementById('filterDate').value     || '');
+  var fTier     = (document.getElementById('filterTier').value     || 'all');
+  var fItemName = (document.getElementById('filterItemName').value || '');
+  var fMonth    = (document.getElementById('filterMonth').value    || ''); // ← เพิ่ม filterMonth
+
+  var done = _cachedDone.filter(function(item) {
+    if (fMonth    && toYM(item.doc_date) !== fMonth)                          return false;
+    if (fRef      && (item.ref_no||'').toLowerCase().indexOf(fRef)===-1 &&
+                     (item.barcode||'').toLowerCase().indexOf(fRef)===-1) return false;
+    if (fDate     && (item.received_date||'') !== fDate)   return false;
+    if (fItemName && (item.item_name||'') !== fItemName)   return false;
+    return true;
+  });
+
+  var pend = _cachedPending.filter(function(item) {
+    if (fMonth    && toYM(item.doc_date) !== fMonth)                          return false;
+    if (fRef      && (item.ref_no||'').toLowerCase().indexOf(fRef)===-1 &&
+                     (item.barcode||'').toLowerCase().indexOf(fRef)===-1) return false;
+    if (fDate     && normalizeDate(item.doc_date) !== fDate) return false;
+    if (fTier !== 'all' && item.tier !== fTier)              return false;
+    if (fItemName && (item.item_name||'') !== fItemName)     return false;
+    return true;
+  });
+
+  return { done: done, pend: pend, fStatus: fStatus };
+}
+
+function applyTableFilters() {
+  _pageDone = 1; _pagePend = 1;
+  var filtered = getTableFilteredData();
+  renderTables(filtered);
+  // Cards และ Pipeline ไม่ถูกแตะต้อง
+}
+
+function clearTableFilters(){
+  document.getElementById('filterStatus').value   = 'all';
+  document.getElementById('filterTier').value     = 'all';
+  document.getElementById('filterItemName').value = '';
+  document.getElementById('filterDate').value     = '';
+  document.getElementById('filterRef').value      = '';
+  applyTableFilters();
+}
+
+// ── Render Tables ─────────────────────────────────────────
+var PAGE_SIZE = 50;
+var _pageDone = 1, _pagePend = 1;
+var TIER_LABELS = {t1:'On Track',t2:'Over SLA',t3:'Business Impact',t4:'Critical'};
+var TIER_COLORS = {t1:'var(--success)',t2:'var(--warn)',t3:'#fb923c',t4:'var(--danger)'};
+
+function renderTables(filtered) {
+  var done    = filtered.done;
+  var pend    = filtered.pend;
+  var fStatus = filtered.fStatus || 'all';
+  var showDone    = fStatus !== 'pending';
+  var showPending = fStatus !== 'done';
+  document.getElementById('sectionDone').style.display    = showDone    ? 'block' : 'none';
+  document.getElementById('sectionPending').style.display = showPending ? 'block' : 'none';
+  document.getElementById('countDone').textContent = done.length.toLocaleString();
+  document.getElementById('countPend').textContent = pend.length.toLocaleString();
+  if (showDone)    renderPagedTable('done',    done, _pageDone);
+  if (showPending) renderPagedTable('pending', pend, _pagePend);
+}
+
+function renderPagedTable(type, items, page) {
+  var isDone = type==='done';
+  var bodyId  = isDone?'bodyDone':'bodyPending';
+  var pageId  = isDone?'pageDone':'pagePend';
+  var infoId  = isDone?'pageInfoDone':'pageInfoPend';
+  var btnsId  = isDone?'pageBtnsDone':'pageBtnsPend';
+  var cols    = isDone?10:8;
+  if (!items.length) {
+    document.getElementById(bodyId).innerHTML='<tr class="empty-row"><td colspan="'+cols+'">'+(isDone?'ไม่มีรายการ':'ไม่มีรายการค้าง 🎉')+'</td></tr>';
+    document.getElementById(pageId).style.display='none'; return;
+  }
+  var totalPages=Math.ceil(items.length/PAGE_SIZE);
+  page=Math.max(1,Math.min(page,totalPages));
+  if(isDone)_pageDone=page;else _pagePend=page;
+  var start=(page-1)*PAGE_SIZE, slice=items.slice(start,start+PAGE_SIZE);
+  document.getElementById(bodyId).innerHTML = isDone
+    ? slice.map(function(item,i){
+        var dtr=item.days_to_receive, isOntime=dtr!==''&&dtr!==undefined&&Number(dtr)<=15;
+        var photo=item.photo_url?'<a class="photo-link" href="'+item.photo_url+'" target="_blank">📎 ดูไฟล์</a>':'<span style="color:var(--muted);">—</span>';
+        return '<tr><td style="color:var(--muted);">'+(start+i+1)+'</td>'+
+          '<td class="mono" style="color:var(--accent);">'+(item.barcode||'—')+'</td>'+
+          '<td class="mono">'+(item.ref_no||'—')+'</td>'+
+          '<td>'+(item.item_name||'—')+'</td>'+
+          '<td style="font-size:11px;">'+(item.transfer_from||'—')+' → '+(item.transfer_to||'—')+'</td>'+
+          '<td class="mono" style="text-align:right;">'+(item.received_qty||'—')+'</td>'+
+          '<td class="mono">'+(item.received_date||'—')+'</td>'+
+          '<td>'+photo+'</td>'+
+          '<td class="mono" style="color:var(--muted);">'+(item.doc_date||'—')+'</td>'+
+          '<td class="mono" style="text-align:center;color:'+(isOntime?'var(--success)':'var(--danger)')+';">'+
+            (dtr!==undefined?dtr+' วัน':'—')+(dtr!==undefined?'<br><span style="font-size:10px;">'+(isOntime?'Ontime':'Late')+'</span>':'')+
+          '</td></tr>';
+      }).join('')
+    : slice.map(function(item,i){
+        var tc=TIER_COLORS[item.tier]||'var(--text)', tl=TIER_LABELS[item.tier]||'—';
+        return '<tr><td style="color:var(--muted);">'+(start+i+1)+'</td>'+
+          '<td class="mono" style="color:var(--warn);">'+(item.barcode||'—')+'</td>'+
+          '<td class="mono">'+(item.ref_no||'—')+'</td>'+
+          '<td>'+(item.item_name||'—')+'</td>'+
+          '<td style="font-size:11px;">'+(item.transfer_from||'—')+' → '+(item.transfer_to||'—')+'</td>'+
+          '<td class="mono" style="text-align:right;">'+(item.sent_qty||'—')+'</td>'+
+          '<td class="mono" style="color:var(--muted);">'+(item.doc_date||'—')+'</td>'+
+          '<td class="mono" style="text-align:center;color:'+tc+';">'+
+            (item.days_pending!==undefined?item.days_pending+' วัน':'—')+'<br><span style="font-size:10px;">'+tl+'</span>'+
+          '</td></tr>';
+      }).join('');
+  var showing=Math.min(start+PAGE_SIZE,items.length);
+  document.getElementById(infoId).textContent='Showing '+(start+1).toLocaleString()+'-'+showing.toLocaleString()+' of '+items.length.toLocaleString();
+  document.getElementById(pageId).style.display=items.length>PAGE_SIZE?'flex':'none';
+  var btns='';
+  btns+='<button class="page-btn" onclick="goPage(\''+type+'\',1)"'+(page===1?' disabled':'')+'>«</button>';
+  btns+='<button class="page-btn" onclick="goPage(\''+type+'\','+(page-1)+')"'+(page===1?' disabled':'')+'>‹</button>';
+  var startP=Math.max(1,page-2), endP=Math.min(totalPages,startP+4);
+  if(endP-startP<4)startP=Math.max(1,endP-4);
+  for(var p=startP;p<=endP;p++){btns+='<button class="page-btn'+(p===page?' active':'')+'" onclick="goPage(\''+type+'\','+p+')">'+p+'</button>';}
+  btns+='<button class="page-btn" onclick="goPage(\''+type+'\','+(page+1)+')"'+(page===totalPages?' disabled':'')+'>›</button>';
+  btns+='<button class="page-btn" onclick="goPage(\''+type+'\','+totalPages+')"'+(page===totalPages?' disabled':'')+'>»</button>';
+  document.getElementById(btnsId).innerHTML=btns;
+}
+
+function goPage(type, page) {
+  var filtered=getTableFilteredData();
+  var items=type==='done'?filtered.done:filtered.pend;
+  if(type==='done')_pageDone=page;else _pagePend=page;
+  renderPagedTable(type,items,page);
+}
+
+// ── Helpers ───────────────────────────────────────────────
+function normalizeDate(raw){
+  if(!raw)return'';raw=String(raw).trim();
+  if(raw.indexOf('/')>-1){var p=raw.split('/');if(p.length!==3)return'';var d=p[0].padStart(2,'0'),m=p[1].padStart(2,'0'),y=p[2].length===2?'20'+p[2]:p[2];if(isNaN(Number(d))||isNaN(Number(m))||isNaN(Number(y)))return'';return y+'-'+m+'-'+d;}
+  return raw.substring(0,10);
+}
+function toYM(dateStr){var iso=normalizeDate(dateStr);return iso?iso.substring(0,7):'';}
+function csvCell(v){var s=String(v==null?'':v);return'"'+s.replace(/"/g,'""')+'"';}
+
+function exportCSV(){
+  var filtered=getTableFilteredData();
+  var fStatus=document.getElementById('filterStatus').value;
+  var headers=['สถานะ','Barcode','Reference','ประเภท','โอนจาก','โอนไป','QTY ส่ง','QTY รับ','วันที่รับ','Created Date','ค้างมา','Tier'];
+  var rows=[headers.map(csvCell).join(',')];
+  if(fStatus!=='pending'){filtered.done.forEach(function(item){var dtr=item.days_to_receive,tier=dtr!==''&&dtr!==undefined?(Number(dtr)<=15?'Ontime':'Late'):'';rows.push([' รับแล้ว',item.barcode||'',item.ref_no||'',item.item_name||'',item.transfer_from||'',item.transfer_to||'',item.sent_qty||'',item.received_qty||'',item.received_date||'',item.doc_date||'',dtr!==undefined?dtr+' วัน':'',tier].map(csvCell).join(','));});}
+  if(fStatus!=='done'){var tl={t1:'On Track',t2:'Over SLA',t3:'Business Impact',t4:'Critical'};filtered.pend.forEach(function(item){rows.push(['ยังไม่รับ',item.barcode||'',item.ref_no||'',item.item_name||'',item.transfer_from||'',item.transfer_to||'',item.sent_qty||'','','',item.doc_date||'',item.days_pending!==undefined?item.days_pending+' วัน':'',tl[item.tier]||''].map(csvCell).join(','));});}
+  var total=filtered.done.length+filtered.pend.length;
+  var blob=new Blob(['\uFEFF'+rows.join('\n')],{type:'text/csv;charset=utf-8;'});
+  var url=URL.createObjectURL(blob), a=document.createElement('a');
+  a.href=url; a.download='DocScan_'+(session.site||'all')+'_'+new Date().toISOString().split('T')[0]+'.csv';
+  a.click(); URL.revokeObjectURL(url);
+  showToast('Export '+total+' รายการ เรียบร้อย','success');
+}
+
+function getSiteFilterParam(s){if(!s)return"";var f=s.site_filter;if(f&&f.length)return"&site_filter="+encodeURIComponent(f.join("|"));return"&site="+encodeURIComponent(s.site||"");}
+function logout() {
+  if (!confirm('ออกจากระบบ?')) return;
+  // ล้างตรง ๆ ก่อนเป็นอันดับแรก ไม่พึ่งโมดูล
+  // เผื่อกรณีเบราว์เซอร์ยังใช้ js/auth.js ตัวเก่าจากแคช
+  try { localStorage.removeItem('docScanSession'); } catch (e) {}
+  try { DocScanAuth.clear(); } catch (e) {}
+  // replace เพื่อไม่ให้กดย้อนกลับเข้าหน้าเดิมได้
+  location.replace('login.html');
+}
+
+// ── Chart ─────────────────────────────────────────────────
+var _chartMode='day';
+function setChartMode(mode){
+  _chartMode=mode;
+  ['D','W','M'].forEach(function(m){document.getElementById('btn'+m).classList.remove('active');});
+  document.getElementById('btn'+(_chartMode==='day'?'D':_chartMode==='week'?'W':'M')).classList.add('active');
+  drawChart();
+}
+function drawChart(){
+  var canvas=document.getElementById('areaChart'); if(!canvas)return;
+  var allItems=_cachedDone.concat(_cachedPending);
+  var fMonth=document.getElementById('filterMonth').value;
+  if(fMonth){allItems=allItems.filter(function(item){return toYM(item.doc_date)===fMonth;});}
+  var counts={};
+  allItems.forEach(function(item){var raw=(item.doc_date||'').trim();if(!raw)return;var key=dateToKey(raw,_chartMode);if(!key)return;counts[key]=(counts[key]||0)+1;});
+  var keys=Object.keys(counts).sort(), vals=keys.map(function(k){return counts[k];});
+  var W=canvas.offsetWidth||canvas.parentElement.offsetWidth||300, H=72;
+  canvas.width=W; canvas.height=H;
+  var ctx=canvas.getContext('2d'); ctx.clearRect(0,0,W,H);
+  if(!keys.length)return;
+  var max=Math.max.apply(null,vals)||1, n=vals.length;
+  var padL=4,padR=4,padT=6,padB=14, cW=W-padL-padR, cH=H-padT-padB;
+  ctx.beginPath();
+  vals.forEach(function(v,i){var x=padL+(i/(n>1?n-1:1))*cW, y=padT+cH-(v/max)*cH;if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);});
+  ctx.lineTo(padL+cW,padT+cH); ctx.lineTo(padL,padT+cH); ctx.closePath();
+  var grad=ctx.createLinearGradient(0,padT,0,padT+cH);
+  grad.addColorStop(0,'rgba(56,189,248,0.25)'); grad.addColorStop(1,'rgba(56,189,248,0.02)');
+  ctx.fillStyle=grad; ctx.fill();
+  ctx.beginPath();
+  vals.forEach(function(v,i){var x=padL+(i/(n>1?n-1:1))*cW, y=padT+cH-(v/max)*cH;if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);});
+  ctx.strokeStyle='rgba(56,189,248,0.8)'; ctx.lineWidth=1.5; ctx.stroke();
+  ctx.fillStyle='rgba(148,163,184,0.8)'; ctx.font='9px monospace'; ctx.textAlign='center';
+  var step=Math.max(1,Math.ceil(n/6));
+  for(var i=0;i<n;i+=step){var x=padL+(i/(n>1?n-1:1))*cW, lbl=keys[i].slice(5);ctx.fillText(lbl,x,H-2);}
+}
+function dateToKey(raw,mode){
+  var d;
+  if(raw.indexOf('/')>-1){var p=raw.split('/');if(p.length!==3)return null;var y=p[2].length===2?'20'+p[2]:p[2];d=new Date(Number(y),Number(p[1])-1,Number(p[0]));}
+  else{d=new Date(raw);}
+  if(isNaN(d.getTime()))return null;
+  if(mode==='month')return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+  if(mode==='week'){var jan1=new Date(d.getFullYear(),0,1),wk=Math.ceil(((d-jan1)/86400000+jan1.getDay()+1)/7);return d.getFullYear()+'-W'+String(wk).padStart(2,'0');}
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+
+var toastTimer;
+function showToast(msg,type){var t=document.getElementById('toast');t.textContent=msg;t.className='toast '+(type||'info')+' show';clearTimeout(toastTimer);toastTimer=setTimeout(function(){t.classList.remove('show');},3000);}
+</script>
+</body>
+</html>
