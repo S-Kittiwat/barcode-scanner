@@ -120,7 +120,12 @@
     </div>
     <div class="field" id="naSiteWrap">
       <label class="label" for="naSite">ไซต์</label>
-      <input class="input" id="naSite" placeholder="เช่น คลังลาดหลุมแก้ว">
+      <select class="select" id="naSite">
+        <option value="">— กำลังโหลด —</option>
+      </select>
+      <!-- เผื่อไซต์ใหม่ที่ยังไม่มีในระบบ -->
+      <input class="input" id="naSiteNew" style="display:none;margin-top:8px"
+             placeholder="พิมพ์ชื่อไซต์ใหม่">
     </div>
     <div class="err" id="naErr"></div>
     <button class="btn" id="naSubmit">สร้างบัญชี</button>
@@ -302,6 +307,7 @@ document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () =>
   $('viewHistory').style.display = v === 'history' ? 'block' : 'none';
   $('viewSites').style.display = v === 'sites' ? 'block' : 'none';
   $('viewNewAcc').style.display = v === 'newacc' ? 'block' : 'none';
+  if (v === 'newacc') loadSiteOptions();
   if (v === 'sites') loadSites();
 }));
 
@@ -409,6 +415,32 @@ async function handleSiteClick(btn) {
 }
 
 /* ---------- สร้างบัญชีเพิ่ม ---------- */
+/* โหลดรายชื่อไซต์ครั้งเดียวตอนเปิดแท็บ
+   ไม่ให้พิมพ์เอง เพราะพิมพ์ผิดนิดเดียวก็กลายเป็นคนละไซต์
+   แล้วเอกสารจะถูกกรองออกโดยไม่มีใครรู้ */
+let siteListLoaded = false;
+
+async function loadSiteOptions() {
+  if (siteListLoaded) return;
+  const sel = $('naSite');
+  try {
+    const r = await call('adminSiteList');
+    const list = (r && r.sites) || [];
+    sel.innerHTML = '<option value="">— เลือกไซต์ —</option>' +
+      list.map(x => '<option value="' + esc(x) + '">' + esc(x) + '</option>').join('') +
+      '<option value="__new__">+ ไซต์ใหม่ที่ยังไม่มีในระบบ</option>';
+    siteListLoaded = true;
+  } catch (e) {
+    sel.innerHTML = '<option value="">โหลดรายชื่อไซต์ไม่สำเร็จ</option>' +
+      '<option value="__new__">+ พิมพ์เอง</option>';
+  }
+}
+
+// เลือก "ไซต์ใหม่" แล้วค่อยให้พิมพ์
+$('naSite').addEventListener('change', () => {
+  $('naSiteNew').style.display = $('naSite').value === '__new__' ? 'block' : 'none';
+});
+
 // admin ใช้ได้ทุกไซต์ จึงไม่ต้องกรอกไซต์
 $('naRole').addEventListener('change', () => {
   $('naSiteWrap').style.display = $('naRole').value === 'admin' ? 'none' : '';
@@ -421,7 +453,12 @@ $('naSubmit').addEventListener('click', async () => {
 
   const email = $('naEmail').value.trim().toLowerCase();
   const role = $('naRole').value;
-  const site = role === 'admin' ? 'ALL' : $('naSite').value.trim();
+  let site = 'ALL';
+  if (role !== 'admin') {
+    site = $('naSite').value === '__new__'
+      ? $('naSiteNew').value.trim()
+      : $('naSite').value.trim();
+  }
 
   if (!email) { err.textContent = 'กรุณากรอกอีเมล'; return; }
   if (!role) { err.textContent = 'กรุณาเลือกสิทธิ์'; return; }
@@ -433,7 +470,9 @@ $('naSubmit').addEventListener('click', async () => {
       { emp_email: email, role: role, site: site });
     if (r.status !== 'ok') { err.textContent = r.message || 'สร้างไม่สำเร็จ'; return; }
     alert(r.message);
-    $('naEmail').value = ''; $('naRole').value = ''; $('naSite').value = '';
+    $('naEmail').value = ''; $('naRole').value = '';
+    $('naSite').value = ''; $('naSiteNew').value = '';
+    $('naSiteNew').style.display = 'none';
   } catch (e) {
     err.textContent = e.message || String(e);
   } finally {
