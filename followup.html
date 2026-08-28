@@ -282,7 +282,10 @@ tr.lv-critical td:first-child{box-shadow:inset 3px 0 0 var(--warn)}
 
 <script type="module">
 
-import { authFetch, requireAuth, installNav, guardPage, logout } from './js/auth.js';
+import { authFetch, requireAuth, logout } from './js/auth.js';
+/* installNav และ guardPage อยู่ใน nav.js ไม่ใช่ auth.js
+   เขียนผิดไฟล์ทำให้โมดูลพังทั้งก้อน หน้าจึงว่างเปล่าเงียบ ๆ */
+import { installNav, guardPage } from './js/nav.js';
 import { installSupport, installErrorCapture } from './js/support.js';
 import { installRefBar } from './js/refstatus.js';
 import { STAGES, REASON_GROUPS, reasonsFor, actionOf } from './js/stages.js';
