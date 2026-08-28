@@ -50,8 +50,25 @@ const CSS = `
  * @param opts   { mount: element, staleDays: number }
  */
 export function installRefBar(call, opts = {}) {
-  const mount = opts.mount || document.querySelector('.wrap');
-  if (!mount) return null;
+  /* หาจุดติดตั้งเอง เพราะแต่ละหน้าโครงไม่เหมือนกัน
+   *
+   * เดิมหาแค่ .wrap ซึ่ง 5 หน้าไม่มี แถบจึงไม่ขึ้นและคืน null เงียบ ๆ
+   * ไม่มีอะไรบอกว่าติดตั้งไม่สำเร็จ จึงหาสาเหตุยาก
+   *
+   * ลองหลายแบบตามลำดับ แล้วถ้ายังไม่เจอก็แทรกไว้บนสุดของ body
+   * ดีกว่าไม่แสดงอะไรเลย
+   */
+  const mount = opts.mount ||
+    document.querySelector('.wrap') ||
+    document.querySelector('main') ||
+    document.querySelector('.container') ||
+    document.querySelector('.page') ||
+    document.body;
+
+  if (!mount) {
+    console.warn('[DocScan] ติดตั้งแถบสถานะไม่ได้ — ไม่พบจุดติดตั้ง');
+    return null;
+  }
 
   if (!document.getElementById('refbar-css')) {
     const st = document.createElement('style');
@@ -60,11 +77,27 @@ export function installRefBar(call, opts = {}) {
     document.head.appendChild(st);
   }
 
+  if (document.getElementById('refBar')) return null;   // กันติดตั้งซ้ำ
+
   const bar = document.createElement('div');
   bar.className = 'refbar';
   bar.id = 'refBar';
   bar.innerHTML = '<span class="dot"></span><span>กำลังตรวจข้อมูลอ้างอิง…</span>';
-  mount.insertBefore(bar, mount.firstChild);
+
+  /* ถ้าลงที่ body ต้องเลี่ยงแถบบนที่เป็น sticky
+     ไม่งั้นจะไปแทรกอยู่เหนือหัวหน้าจนดูแปลก */
+  if (mount === document.body) {
+    const bar2 = document.querySelector('.topbar, .nav-top, header');
+    if (bar2 && bar2.nextSibling) {
+      bar.style.margin = '14px 24px 0';
+      mount.insertBefore(bar, bar2.nextSibling);
+    } else {
+      bar.style.margin = '14px 24px 0';
+      mount.insertBefore(bar, mount.firstChild);
+    }
+  } else {
+    mount.insertBefore(bar, mount.firstChild);
+  }
 
   const staleMs = (opts.staleDays || 2) * 86400000;
 
@@ -91,6 +124,23 @@ export function installRefBar(call, opts = {}) {
 
       const age = r.updated_at ? Date.now() - new Date(r.updated_at).getTime() : 0;
       const stale = age > staleMs;
+
+      /* เทียบเวอร์ชันโค้ดฝั่งเซิร์ฟเวอร์กับหน้าเว็บ
+         ถ้าไม่ตรง แปลว่าอัปไฟล์แล้วแต่ยังไม่ได้ Deploy
+         ซึ่งเป็นสาเหตุที่เจอบ่อยและหายากที่สุด */
+      const web = (window.DOCSCAN_CONFIG || {}).VERSION || '';
+      const srv = r._gv || '';
+      if (web && srv && web !== srv) {
+        bar.className = 'refbar warn';
+        bar.innerHTML = '<span class="dot"></span>' +
+          '<b>เซิร์ฟเวอร์ยังไม่ได้ Deploy เวอร์ชันใหม่</b>' +
+          '<span class="sep">·</span>' +
+          '<span class="muted">หน้าเว็บ ' + esc(web) +
+          ' · เซิร์ฟเวอร์ ' + esc(srv) + '</span>' +
+          '<span class="grow"></span><button data-r>ตรวจใหม่</button>';
+        wire();
+        return;
+      }
 
       bar.className = 'refbar ' + (stale ? 'warn' : 'ok');
       bar.innerHTML = '<span class="dot"></span>' +
