@@ -10,7 +10,7 @@
 //  ทั้งที่ Deploy ฝั่งเซิร์ฟเวอร์ไปแล้ว — หาสาเหตุยากมาก
 // ============================================================
 var DOCSCAN_CONFIG = {
-  API_URL: 'https://script.google.com/macros/s/AKfycbz-Tbb16P5xRgIKtZBjp3GZ5m3ifn34igvz1NiGP_G-CYy595sMohgD75XBysRd-mJyNg/exec',
+  API_URL: 'https://script.google.com/macros/s/AKfycbywI79NQfvH37pwG7otuV5h_a9XAtrKcmXCtkR0n8JZoBBs3BiFiyXK93gkXJTidSfMBQ/exec',
   APP_NAME: 'DocScan',
   VERSION: '2.15.4'
 };
