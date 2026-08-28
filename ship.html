@@ -5,8 +5,8 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230f172a'/%3E%3Crect x='8' y='6' width='16' height='20' rx='2' fill='%23f1f5f9'/%3E%3Crect x='11' y='10' width='2' height='12' fill='%230f172a'/%3E%3Crect x='14.5' y='10' width='1' height='12' fill='%230f172a'/%3E%3Crect x='17' y='10' width='2' height='12' fill='%230f172a'/%3E%3Crect x='20.5' y='10' width='1' height='12' fill='%230f172a'/%3E%3C/svg%3E">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DocScan — ติดตามเอกสาร</title>
-<script src="config.js?v=2.15.6"></script>
-<link rel="stylesheet" href="css/auth.css?v=2.14.0">
+<script src="config.js"></script>
+<link rel="stylesheet" href="css/auth.css">
 <style>
   body{display:block;padding:0;align-items:stretch}
   .wrap{max-width:1340px;margin:0 auto;padding:22px 24px 90px}
@@ -309,9 +309,9 @@ tr.unk td:first-child{box-shadow:inset 3px 0 0 var(--danger)}
 
 <script type="module">
 
-import { authFetch, requireAuth, installNav, guardPage, logout } from './js/auth.js?v=2.15.6';
-import { installSupport, installErrorCapture } from './js/support.js?v=2.15.6';
-import { installRefBar } from './js/refstatus.js?v=2.15.6';
+import { authFetch, requireAuth, installNav, guardPage, logout } from './js/auth.js';
+import { installSupport, installErrorCapture } from './js/support.js';
+import { installRefBar } from './js/refstatus.js';
 
 const API = DOCSCAN_CONFIG.API_URL;
 const $ = id => document.getElementById(id);
@@ -431,17 +431,20 @@ function render() {
 
   /* เตือนเรื่องไซต์ที่ยังไม่รู้จัก ให้เห็นก่อนเลือก
      ถ้าซ่อนไว้ คนจะส่งเอกสารที่ไม่ใช่ของตัวเองไปโดยไม่รู้ */
-  const unk = rows.filter(d => d.unknown_site);
+  /* ตอนนี้ยังไม่กรองตามไซต์ จึงต้องบอกให้ชัดว่าบางใบไม่ใช่ของเรา
+     ถ้าไม่บอก คนจะส่งเอกสารของไซต์อื่นไปโดยไม่รู้ */
+  const other = rows.filter(d => d.other_site);
   const ub = $('unkBanner');
   if (ub) {
-    if (unk.length) {
-      const names = [...new Set(unk.map(d => d.dest_warehouse || d.site).filter(Boolean))];
+    if (other.length) {
+      const names = [...new Set(other.map(d => d.site || d.dest_warehouse)
+                                     .filter(Boolean))];
       ub.style.display = 'block';
-      ub.innerHTML = '<b>มีเอกสาร ' + unk.length + ' ใบที่ระบบยังไม่รู้จักไซต์</b><br>' +
-        'ชื่อที่พบ: ' + names.slice(0, 5).map(esc).join(' · ') +
-        (names.length > 5 ? ' และอีก ' + (names.length - 5) : '') + '<br>' +
-        '<span class="hint">แสดงไว้เพื่อไม่ให้เอกสารหาย — ' +
-        'ถ้าไม่ใช่ของไซต์คุณอย่าเลือกส่ง และแจ้งผู้ดูแลผูกชื่อไซต์ให้</span>';
+      ub.innerHTML = '<b>แสดงเอกสารทุกไซต์อยู่</b> — ' +
+        other.length + ' ใบจาก ' + rows.length + ' ใบไม่ใช่ของไซต์คุณ<br>' +
+        'ไซต์ที่พบ: ' + names.slice(0, 6).map(esc).join(' · ') +
+        (names.length > 6 ? ' และอีก ' + (names.length - 6) : '') + '<br>' +
+        '<span class="hint">แถวที่มีแถบแดงคือของไซต์อื่น — ตรวจก่อนเลือกส่ง</span>';
     } else {
       ub.style.display = 'none';
     }
@@ -519,13 +522,13 @@ function emptyReason() {
 function rowHtml(d) {
   /* สแกนไว้นานแล้วยังไม่ส่ง = ควรได้ส่งก่อน จึงเน้นให้เห็น */
   const late = d.days != null && d.days >= 3;
-  return `<tr class="${d.unknown_site ? 'unk' : ''}">
+  return `<tr class="${d.other_site ? 'unk' : ''}">
     <td><input type="checkbox" class="chk rowchk" data-ref="${esc(d.ref_no)}"${
       selected.has(d.ref_no) ? ' checked' : ''}></td>
     <td><div class="ref">${esc(d.ref_no)}</div></td>
     <td>${fmt(d.doc_date)}</td>
     <td>${esc(d.dest_warehouse || d.transfer_to || '—')}${
-      d.unknown_site ? '<div class="unk-tag">ระบบยังไม่รู้จักไซต์นี้</div>' : ''}</td>
+      d.other_site ? '<div class="unk-tag">ไม่ใช่ไซต์ของคุณ</div>' : ''}</td>
     <td>${d.days == null ? '—'
       : `<b class="${late ? 'warn' : ''}">${d.days} วัน</b>`}</td>
   </tr>`;
@@ -566,6 +569,12 @@ function blockingReason() {
   if (dests.size > 1) {
     return 'เลือกข้ามปลายทาง ' + dests.size + ' แห่ง — หนึ่งชุดส่งได้ไซต์เดียว';
   }
+
+  /* เลือกของไซต์อื่นปนมา ไม่ห้าม แต่ต้องรู้ตัว
+     เพราะตอนนี้ยังไม่กรอง จึงเลือกผิดได้ง่าย */
+  const foreign = allDocs.filter(d => selected.has(d.ref_no) && d.other_site).length;
+  if (foreign) return 'เลือกเอกสารของไซต์อื่น ' + foreign + ' ใบ — ตรวจก่อนสร้างชุด';
+
   return '';
 }
 
