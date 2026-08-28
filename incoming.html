@@ -100,6 +100,7 @@ import { parseCSV, buildIndex, searchCSV, classify } from './js/csv.js';
 import { parseDateInput, toDisplayDate, toInputDate, todayISO } from './js/date.js';
 import { requireAuth, authFetch, authGet, authGetText, logout, loadSession, daysLeft, AUTH_JS_VERSION } from './js/auth.js';
 import { installNav, guardPage, homeFor as navHome } from './js/nav.js';
+import { installRefBar } from './js/refstatus.js';
 import { installSupport, installErrorCapture } from './js/support.js';
 
 window.DocScan = {
@@ -107,7 +108,7 @@ window.DocScan = {
   parseCSV, buildIndex, searchCSV, classify,
   parseDateInput, toDisplayDate, toInputDate, todayISO,
   requireAuth, logout, loadSession, daysLeft, AUTH_JS_VERSION,
-  installNav, guardPage, navHome, installSupport, installErrorCapture
+  installNav, guardPage, navHome, installRefBar, installSupport, installErrorCapture
 };
 // ประทับเลขเวอร์ชันไว้ให้หาเวลาผู้ใช้แจ้งปัญหา
 document.documentElement.setAttribute('data-docscan-version',
@@ -211,6 +212,11 @@ var DocScanAuth = {
     if (s.mustChangePassword) { location.href = 'change-password.html'; return null; }
     if (!DocScan.guardPage(s)) return null;
     DocScan.installNav(s, { onLogout: logout });
+    /* แถบสถานะข้อมูลอ้างอิง — ต้องรู้ก่อนเริ่มทำอะไร
+       ว่าข้อมูลมีไหม เก่าแค่ไหน และเชื่อมเซิร์ฟเวอร์ได้ไหม */
+    DocScan.installRefBar(function (a, p, t) {
+      return apiPost(Object.assign({ action: a }, p || {}));
+    });
     /* เก็บ error ไว้ในเครื่อง และติดปุ่มแจ้งปัญหา
        ระบบใช้หลายไซต์ การถามกลับไปกลับมาไม่ได้ผลกับคนหน้างาน */
     DocScan.installErrorCapture();

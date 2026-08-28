@@ -670,6 +670,7 @@ import * as Pattern from './js/pattern.js';
 import { hasCollisionRisk, findNearMiss, searchCSV as csvSearch } from './js/csv.js';
 import { requireAuth, authFetch, authGet, authGetText, logout, loadSession, daysLeft, AUTH_JS_VERSION } from './js/auth.js';
 import { installNav, guardPage, homeFor as navHome } from './js/nav.js';
+import { installRefBar } from './js/refstatus.js';
 import { installSupport, installErrorCapture } from './js/support.js';
 
 window.DocScan = {
@@ -778,7 +779,10 @@ window.dispatchEvent(new Event('docscan-ready'));
     </div>
 
     <div class="csvst" id="customHint"></div>
-    <div class="csvst" id="csvStatus">กำลังโหลดรายการอ้างอิง…</div>
+    <!-- แถบสถานะย้ายไปใช้ตัวร่วมใน js/refstatus.js แล้ว
+     เก็บ element ไว้เพราะ setCsvStatus ยังใช้เก็บสถานะภายในของหน้านี้
+     เช่นการรอรายการอ้างอิงก่อนอ่าน และการจับคู่ย้อนหลัง -->
+      <div class="csvst" id="csvStatus" style="display:none"></div>
 
     <!-- ปุ่มอ่านอยู่ท้ายสุดโดยตั้งใจ
          เพื่อให้ลำดับบนหน้าจอตรงกับลำดับการทำงานจริง
@@ -1023,6 +1027,12 @@ var DocScanAuth = {
     DocScan.installNav(s, { onLogout: logout });
     /* เก็บ error ไว้ในเครื่อง และติดปุ่มแจ้งปัญหา
        ระบบใช้หลายไซต์ การถามกลับไปกลับมาไม่ได้ผลกับคนหน้างาน */
+    /* แถบสถานะข้อมูลอ้างอิงตัวเดียวกับหน้าอื่น
+       หน้านี้เคยมีของตัวเองที่หน้าตาไม่เหมือนกัน ทำให้คนสับสน */
+    _refBar = DocScan.installRefBar(function (a, p, t) {
+      return apiPost(Object.assign({ action: a }, p || {}));
+    });
+
     DocScan.installErrorCapture();
     DocScan.installSupport(s, function (a, p, t) {
       return apiPost(Object.assign({ action: a }, p || {}));
@@ -1066,6 +1076,7 @@ var API_URL = DOCSCAN_CONFIG.API_URL;
 var CSV_URL = API_URL + '?action=getCSV';
 var selectedSite = ''; var selectedEmpId = ''; var selectedEmpName = ''; var selectedEmpEmail = '';
 var csvLoaded = false;
+var _refBar = null;   // แถบสถานะร่วม ใช้สั่งให้ตรวจใหม่หลังโหลดเสร็จ
 var rows = [];
 
 // ── Init ──────────────────────────────────────────────────
@@ -1133,6 +1144,8 @@ function loadCSV() {
   apiPost({ action: 'refsStatus' }).then(function (r) {
     var wasOffline = !csvLoaded;
     csvLoaded = true;
+    // ให้แถบร่วมแสดงค่าล่าสุด หลังหน้านี้โหลดรายการเสร็จ
+    if (_refBar) _refBar.refresh();
     _refsMeta = r;
     setCsvStatus('ready', r.rows, new Date(r.updated_at).getTime());
 

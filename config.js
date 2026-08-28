@@ -13,7 +13,7 @@
 //  ถ้าต้องการให้เห็นทันที ให้กด Ctrl+Shift+R
 // ============================================================
 var DOCSCAN_CONFIG = {
-  API_URL: 'https://script.google.com/macros/s/AKfycbywI79NQfvH37pwG7otuV5h_a9XAtrKcmXCtkR0n8JZoBBs3BiFiyXK93gkXJTidSfMBQ/exec',
+  API_URL: 'https://script.google.com/macros/s/AKfycbwLLuKrYYnKp-xwqZX5A-kBQjPkgfQfxjKeZQ2QTARAZrK4a0TFJzKHqY2yLxcJcGRqhA/exec',
   APP_NAME: 'DocScan',
   VERSION: '2.15.6'
 };
@@ -69,71 +69,59 @@ function checkDeployed() {
 
 
 /* ============================================================
-   ตรวจว่าโมดูลโหลดครบ
+   ตรวจว่าไฟล์โหลดครบ
    ============================================================
-   ไฟล์ใน js/ โหลดเป็น ES module ถ้าไฟล์ใดไฟล์หนึ่งขาด
-   ทั้งบล็อกจะไม่ทำงาน หน้าจะว่างเปล่าหรือปุ่มกดไม่ได้
-   โดยไม่มีอะไรบอกว่าเพราะอะไร
+   ไฟล์ใน js/ โหลดเป็น ES module ถ้าไฟล์ใดขาด ทั้งบล็อกจะไม่ทำงาน
+   หน้าจะว่างเปล่าหรือปุ่มกดไม่ได้ โดยไม่มีอะไรบอกว่าเพราะอะไร
 
-   เกิดบ่อยเมื่ออัปไฟล์ HTML ใหม่แต่ลืมอัปไฟล์ js ที่เพิ่มมาใหม่
-   ตัวนี้จับได้แล้วบอกตรง ๆ ว่าไฟล์ไหนขาด
+   เกิดเมื่ออัป HTML ใหม่แต่ลืมอัปไฟล์ js ที่เพิ่มมาใหม่
+
+   บทเรียน: รุ่นแรกเดาจากการที่โมดูล "ไม่ประกาศตัวบอก"
+   แต่โมดูลหยุดกลางคันโดยตั้งใจได้หลายกรณี เช่นล็อกอินไม่ผ่าน
+   แล้วเปลี่ยนหน้า จึงฟ้องผิดและบล็อกทั้งหน้าจนใช้งานไม่ได้
+   ซึ่งแย่กว่าปัญหาที่ตั้งใจจะแก้
+
+   รุ่นนี้จึงตรวจเฉพาะสิ่งที่วัดได้จริง คือมีไฟล์โหลดไม่สำเร็จ
    ============================================================ */
 (function () {
   var failed = [];
 
-  // ดักไฟล์ที่โหลดไม่ได้ ต้องดักก่อนสคริปต์อื่นทำงาน
   window.addEventListener('error', function (e) {
     var t = e.target;
-    if (t && t.tagName === 'SCRIPT' && t.src) {
-      failed.push(String(t.src).split('/').pop().split('?')[0]);
-    }
+    if (!t || !t.src) return;
+    if (t.tagName !== 'SCRIPT') return;
+    var name = String(t.src).split('/').pop().split('?')[0];
+    if (failed.indexOf(name) === -1) failed.push(name);
   }, true);
 
   window.addEventListener('load', function () {
-    // ให้โมดูลมีเวลาทำงานก่อนตัดสิน
-    setTimeout(check, 900);
+    // ให้โมดูลมีเวลาโหลดก่อน แล้วค่อยตัดสิน
+    setTimeout(function () {
+      if (failed.length) show(failed);
+    }, 1200);
   });
 
-  function check() {
-    /* หน้าที่ใช้โมดูลจะประกาศ window.DocScan หรือมี import
-       ถ้ามี import แต่ไม่มีอะไรทำงานเลย แปลว่าโหลดไม่สำเร็จ */
-    var mods = document.querySelectorAll('script[type="module"]');
-    if (!mods.length) return;
-
-    var ok = !!(window.DocScan || window.__pageReady ||
-                document.querySelector('.dsnav-btn'));
-    if (ok && !failed.length) return;
-
-    show(failed);
-  }
-
   function show(list) {
-    var files = list.length
-      ? list.join(' · ')
-      : 'ตรวจไม่ได้ว่าไฟล์ไหน — ดูแท็บ Console หาบรรทัดที่ขึ้น 404';
-
-    var box = document.createElement('div');
-    box.setAttribute('style',
-      'position:fixed;inset:0;z-index:99999;overflow:auto;' +
-      'background:#0f172a;color:#e2e8f0;font-family:system-ui,sans-serif;' +
-      'padding:60px 20px;line-height:1.9');
-    box.innerHTML =
-      '<div style="max-width:640px;margin:0 auto;padding:26px;' +
-      'background:#1e293b;border:1px solid #f87171;border-radius:12px">' +
-      '<h2 style="margin:0 0 12px;color:#f87171;font-size:19px">' +
-      'หน้านี้โหลดไม่ครบ</h2>' +
-      '<p style="margin:0 0 14px">ไฟล์ที่โหลดไม่ได้<br>' +
-      '<code style="color:#fbbf24">' + files + '</code></p>' +
-      '<p style="margin:0 0 14px"><b>สาเหตุที่พบบ่อยที่สุด</b><br>' +
-      'อัปไฟล์ HTML ขึ้นเซิร์ฟเวอร์แล้ว แต่ยังไม่ได้อัปไฟล์ในโฟลเดอร์ ' +
-      '<code>js/</code> ที่เพิ่มเข้ามาใหม่</p>' +
-      '<p style="margin:0 0 18px;color:#94a3b8;font-size:13px">' +
-      'ถ้าเพิ่งอัปไฟล์ไป ลองกด Ctrl+Shift+R เพื่อล้างแคชก่อน</p>' +
-      '<button onclick="location.reload(true)" style="background:#60a5fa;' +
-      'border:none;border-radius:8px;color:#0f172a;padding:10px 20px;' +
-      'font-family:inherit;font-size:14px;font-weight:600;cursor:pointer">' +
-      'โหลดใหม่</button></div>';
-    document.body.appendChild(box);
-    console.error('[DocScan] โหลดโมดูลไม่ครบ', list);
+    /* เตือนแบบไม่บังหน้า
+       ถ้าบังทั้งจอแล้วเดาผิด คนจะใช้งานอะไรไม่ได้เลย
+       ซึ่งเสียหายกว่าการปล่อยให้เจอปัญหาปลายทาง */
+    var bar = document.createElement('div');
+    bar.setAttribute('style',
+      'position:fixed;left:0;right:0;top:0;z-index:99999;' +
+      'background:#7f1d1d;color:#fee2e2;font-family:system-ui,sans-serif;' +
+      'font-size:13px;line-height:1.7;padding:10px 16px;' +
+      'box-shadow:0 2px 12px rgba(0,0,0,.4)');
+    bar.innerHTML =
+      '<b>โหลดไฟล์ไม่สำเร็จ ' + list.length + ' ไฟล์</b> — ' +
+      list.join(' · ') +
+      '<br><span style="opacity:.85">' +
+      'มักเกิดเมื่ออัป HTML แล้วยังไม่ได้อัปไฟล์ใน js/ · ' +
+      'ลองกด Ctrl+Shift+R ก่อน</span>' +
+      '<button onclick="this.parentNode.remove()" style="float:right;' +
+      'background:none;border:1px solid #fca5a5;border-radius:6px;' +
+      'color:#fee2e2;padding:3px 10px;cursor:pointer;font-family:inherit">' +
+      'ปิด</button>';
+    document.body.appendChild(bar);
+    console.error('[DocScan] ไฟล์ที่โหลดไม่ได้', list);
   }
 })();

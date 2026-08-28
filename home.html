@@ -75,6 +75,7 @@
 
 <script type="module">
 import { requireAuth, authFetch, logout } from './js/auth.js';
+import { installRefBar } from './js/refstatus.js';
 import { installSupport, installErrorCapture } from './js/support.js';
 import { menuFor, installNav, ROLE_LABEL } from './js/nav.js';
 
@@ -112,6 +113,12 @@ if (session) {
     'กดปุ่ม ☰ มุมขวาล่างเพื่อเปิดเมนูนี้ได้จากทุกหน้า';
 
   installNav(session, { onLogout: doLogout });
+  /* แถบสถานะข้อมูลอ้างอิง — หน้าแรกคือที่ที่ทุกคนเห็นก่อน
+     ถ้าข้อมูลมีปัญหา ควรรู้ตั้งแต่ตรงนี้ ไม่ใช่ไปเจอตอนเริ่มทำงาน */
+  installRefBar(function (a, p, t) {
+    return authFetch(API, Object.assign({ action: a }, p || {}),
+      t ? { timeoutMs: t } : undefined);
+  });
   /* เก็บ error ไว้ในเครื่อง และติดปุ่มแจ้งปัญหา
      ระบบใช้หลายไซต์ การถามกลับไปกลับมาไม่ได้ผลกับคนหน้างาน */
   installErrorCapture();
