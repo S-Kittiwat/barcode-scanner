@@ -721,13 +721,8 @@ window.dispatchEvent(new Event('docscan-ready'));
 </div>
 
 <div class="page-wrap">
-<!-- Topbar -->
-<header style="background:var(--surface);border-bottom:1px solid var(--border);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;">
-  <div>
-    <div style="font-size:15px;font-weight:600;">นำเข้าเอกสาร</div>
-    <div style="font-size:11px;color:var(--muted);" id="userInfo">—</div>
-  </div>
-</header>
+<!-- แถบหัวเดิมถูกแทนที่ด้วย .topbar ด้านบนแล้ว
+     เหลือค้างไว้จึงขึ้นซ้ำสองแถบ และกินพื้นที่หน้าจอโดยเปล่าประโยชน์ -->
 
 <main>
   <div class="upload-zone" id="uploadZone"
@@ -1030,14 +1025,29 @@ var DocScanAuth = {
        ระบบใช้หลายไซต์ การถามกลับไปกลับมาไม่ได้ผลกับคนหน้างาน */
     /* แถบสถานะข้อมูลอ้างอิงตัวเดียวกับหน้าอื่น
        หน้านี้เคยมีของตัวเองที่หน้าตาไม่เหมือนกัน ทำให้คนสับสน */
-    _refBar = DocScan.installRefBar(function (a, p, t) {
-      return apiPost(Object.assign({ action: a }, p || {}));
-    });
+    try {
+      _refBar = DocScan.installRefBar(function (a, p) {
+        return apiPost(Object.assign({ action: a }, p || {}));
+      });
+    } catch (e) { console.error('[DocScan] แถบสถานะติดตั้งไม่สำเร็จ', e); }
 
-    DocScan.installErrorCapture();
-    DocScan.installSupport(s, function (a, p, t) {
-      return apiPost(Object.assign({ action: a }, p || {}));
-    });
+    /* ของเสริมต้องไม่ทำให้หน้าหลักพัง */
+
+    try {
+
+      DocScan.installErrorCapture();
+
+      DocScan.installSupport(s, function (a, p) {
+
+        return apiPost(Object.assign({ action: a }, p || {}));
+
+      });
+
+    } catch (e) {
+
+      console.error('[DocScan] ติดตั้งส่วนเสริมไม่สำเร็จ', e);
+
+    }
     return s;
   }
 };
@@ -1112,7 +1122,7 @@ window.onload = function () {
   
   document.getElementById('sidebarName').textContent = s.empName + ' (' + s.empId + ')';
   document.getElementById('sidebarSite').textContent = s.site;
-  document.getElementById('userInfo').textContent = s.empId + ' — ' + s.site;
+  // ชื่อผู้ใช้แสดงที่ .topbar แทน แถบหัวเดิมที่มี userInfo ถูกลบไปแล้ว
   
   
   
