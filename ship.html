@@ -281,15 +281,8 @@ tr.unk td:first-child{box-shadow:inset 3px 0 0 var(--danger)}
     </div>
 
     <div class="form2">
-      <div class="fld" id="toSiteBox">
-        <label>คลัง/โรงงานปลายทางที่จัดเก็บ <span class="req">*</span></label>
-        <select id="toSite"><option value="">— เลือกคลัง/โรงงาน —</option></select>
-          <div class="hint">สถานที่ที่เอกสารตัวจริงจะถูกส่งไปเก็บ</div>
-      </div>
-      <div class="fld" id="recvBox">
-        <label>ผู้รับ <span class="req">*</span></label>
-        <input id="receiver" placeholder="ชื่อผู้รับปลายทาง" maxlength="60">
-      </div>
+      <!-- ถามช่องทางก่อน เพราะเป็นตัวกำหนดว่าต้องกรอกอะไรต่อ
+           ถ้าเลือกเก็บไว้เอง ช่องที่เหลือไม่ต้องกรอกเลย -->
       <div class="fld">
         <label>ช่องทางการส่ง <span class="req">*</span></label>
         <select id="channel">
@@ -298,12 +291,20 @@ tr.unk td:first-child{box-shadow:inset 3px 0 0 var(--danger)}
           <option value="courier">ขนส่งเอกชน</option>
           <option value="post">ไปรษณีย์</option>
           <option value="hand">คนถือไปเอง</option>
-          <!-- ไม่ได้ส่งไปไหน จัดส่งเก็บเอกสารไว้เอง
-               ถ้าไม่มีตัวเลือกนี้ เอกสารจะค้างในหน้าส่งตลอดไป -->
-          <option value="keep_self">เก็บไว้เอง ไม่ได้ส่งออก</option>
+          <option value="keep_self">เก็บไว้เอง ไม่ได้ส่งออกไปไหน</option>
         </select>
+        <div class="hint" id="chHint">เลือกก่อน แล้วจะขึ้นช่องที่ต้องกรอก</div>
       </div>
-      <div class="fld" id="vehBox">
+      <div class="fld" id="toSiteBox" style="display:none">
+        <label>คลัง/โรงงานปลายทางที่จัดเก็บ <span class="req">*</span></label>
+        <select id="toSite"><option value="">— เลือกคลัง/โรงงาน —</option></select>
+        <div class="hint">สถานที่ที่เอกสารตัวจริงจะถูกส่งไปเก็บ</div>
+      </div>
+      <div class="fld" id="recvBox" style="display:none">
+        <label>ผู้รับ <span class="req">*</span></label>
+        <input id="receiver" placeholder="ชื่อผู้รับปลายทาง" maxlength="60">
+      </div>
+      <div class="fld" id="vehBox" style="display:none">
         <label id="vehLabel">ทะเบียนรถ</label>
         <input id="vehicle" placeholder="เช่น 70-1265" maxlength="40">
       </div>
@@ -675,7 +676,12 @@ function updateCreateBtn() {
   const why = blockingReason();
   const btn = $('btnCreate');
   btn.disabled = !!why;
-  btn.textContent = why || ('สร้างชุดส่ง ' + selected.size + ' ใบ');
+  /* บอกให้ตรงว่ากำลังทำอะไร
+     เก็บไว้เองไม่ใช่การส่ง จึงไม่ควรเขียนว่า "สร้างชุดส่ง" */
+  const keep = $('channel').value === 'keep_self';
+  btn.textContent = why ||
+    (keep ? 'ปิดงาน ' + selected.size + ' ใบ (เก็บไว้เอง)'
+          : 'สร้างชุดส่ง ' + selected.size + ' ใบ');
 }
 
 ['q', 'fDest', 'fFrom', 'fScan'].forEach(id =>
@@ -684,14 +690,31 @@ function updateCreateBtn() {
   $(id).addEventListener('input', updateCreateBtn));
 
 $('channel').addEventListener('change', () => {
-  /* เก็บไว้เองไม่ต้องมีผู้รับ ปลายทาง หรือพาหนะ
-     ถ้ายังถามอยู่ คนจะงงแล้วกรอกมั่ว */
-  const self = $('channel').value === 'keep_self';
-  document.querySelectorAll('#toSiteBox, #recvBox, #vehBox')
-    .forEach(el => { if (el) el.style.display = self ? 'none' : ''; });
+  const c = $('channel').value;
+
+  /* ช่องที่เหลือขึ้นตามช่องทางที่เลือก
+   *
+   * ยังไม่เลือก  ซ่อนหมด ไม่ให้กรอกก่อนแล้วต้องลบทิ้ง
+   * เก็บไว้เอง   ซ่อนหมด เพราะเอกสารไม่ได้ออกไปไหน
+   * ส่งจริง      ขึ้นครบ
+   */
+  const show = c && c !== 'keep_self';
+  ['toSiteBox', 'recvBox', 'vehBox'].forEach(id => {
+    const el = $(id);
+    if (el) el.style.display = show ? '' : 'none';
+  });
+
+  const hint = $('chHint');
+  if (hint) {
+    hint.textContent = !c ? 'เลือกก่อน แล้วจะขึ้นช่องที่ต้องกรอก'
+      : c === 'keep_self'
+        ? 'เอกสารอยู่ที่เดิม ระบบจะปิดงานให้ทันที ไม่ต้องรอใครรับ'
+        : '';
+    hint.style.display = hint.textContent ? '' : 'none';
+  }
+
   updateCreateBtn();
 
-  const c = $('channel').value;
   $('vehLabel').textContent = VEHICLE_LABEL[c] || 'รายละเอียดเพิ่มเติม';
   $('vehicle').placeholder = c === 'company_van' ? 'เช่น 70-1265'
     : c === 'courier' ? 'เช่น Kerry 1234567890'
@@ -732,11 +755,18 @@ $('btnCreate').addEventListener('click', async () => {
 
     /* บอกให้ครบว่าใบไหนไม่ได้ไป
        ถ้าเงียบ คนจะคิดว่าส่งครบแล้วมาพบทีหลังว่าขาด */
-    let msg = 'สร้างชุด ' + r.batch_id + ' · ' + r.count + ' ใบ';
+    const keptSelf = detail.channel === 'keep_self';
+    let msg = keptSelf
+      ? 'ปิดงาน ' + r.count + ' ใบ · เก็บไว้เอง\nเลขอ้างอิง ' + r.batch_id
+      : 'สร้างชุด ' + r.batch_id + ' · ' + r.count + ' ใบ';
     if (r.already && r.already.length) msg += '\nส่งไปแล้ว ' + r.already.length + ' ใบ (ข้าม)';
     if (r.not_scanned && r.not_scanned.length) msg += '\nยังไม่ได้สแกน ' + r.not_scanned.length + ' ใบ (ข้าม)';
     if (r.not_found && r.not_found.length) msg += '\nไม่พบในระบบ ' + r.not_found.length + ' ใบ';
     alert(msg);
+
+    /* เก็บไว้เองไม่ต้องมีใบปะหน้า เพราะไม่มีใครรับ
+       พิมพ์ไปก็เปลืองกระดาษและทำให้สับสนว่าต้องส่งให้ใคร */
+    if (keptSelf) { load(); return; }
 
     showCover(r);
   } catch (e) {
