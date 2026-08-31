@@ -281,12 +281,12 @@ tr.unk td:first-child{box-shadow:inset 3px 0 0 var(--danger)}
     </div>
 
     <div class="form2">
-      <div class="fld">
+      <div class="fld" id="toSiteBox">
         <label>คลัง/โรงงานปลายทางที่จัดเก็บ <span class="req">*</span></label>
         <select id="toSite"><option value="">— เลือกคลัง/โรงงาน —</option></select>
           <div class="hint">สถานที่ที่เอกสารตัวจริงจะถูกส่งไปเก็บ</div>
       </div>
-      <div class="fld">
+      <div class="fld" id="recvBox">
         <label>ผู้รับ <span class="req">*</span></label>
         <input id="receiver" placeholder="ชื่อผู้รับปลายทาง" maxlength="60">
       </div>
@@ -298,6 +298,9 @@ tr.unk td:first-child{box-shadow:inset 3px 0 0 var(--danger)}
           <option value="courier">ขนส่งเอกชน</option>
           <option value="post">ไปรษณีย์</option>
           <option value="hand">คนถือไปเอง</option>
+          <!-- ไม่ได้ส่งไปไหน จัดส่งเก็บเอกสารไว้เอง
+               ถ้าไม่มีตัวเลือกนี้ เอกสารจะค้างในหน้าส่งตลอดไป -->
+          <option value="keep_self">เก็บไว้เอง ไม่ได้ส่งออก</option>
         </select>
       </div>
       <div class="fld" id="vehBox">
@@ -373,6 +376,7 @@ function fmt(v) {
 }
 
 const CHANNEL_LABEL = {
+  keep_self: 'เก็บไว้เอง ไม่ได้ส่งออก',
   company_van: 'รถบริษัท', courier: 'ขนส่งเอกชน',
   post: 'ไปรษณีย์', hand: 'คนถือไปเอง'
 };
@@ -380,6 +384,7 @@ const CHANNEL_LABEL = {
 /* ช่องรายละเอียดเปลี่ยนตามช่องทาง
    ถ้าถามทะเบียนรถตอนส่งไปรษณีย์ คนจะงงแล้วกรอกมั่ว */
 const VEHICLE_LABEL = {
+  keep_self: '',
   company_van: 'ทะเบียนรถ', courier: 'เลขพัสดุ / ชื่อบริษัทขนส่ง',
   post: 'เลข EMS', hand: 'ชื่อผู้ถือไป'
 };
@@ -426,7 +431,7 @@ async function load() {
 
     step = 'เติมตัวกรองปลายทาง';   fillDestFilter();
     step = 'เติมตัวกรองต้นทาง';    fillFromFilter();
-    step = 'เติมรายชื่อไซต์';       fillSiteOptions();
+    step = 'เติมรายชื่อคลัง';       await fillSiteOptions();
     step = 'วาดตาราง';              render();
   } catch (e) {
     console.error('[DocScan] พังตอน: ' + step, e);
@@ -461,11 +466,26 @@ function fillDestFilter() {
     dests.map(d => `<option value="${esc(d)}">${esc(d)}</option>`).join('');
 }
 
-function fillSiteOptions() {
-  const dests = [...new Set(allDocs.map(d => d.dest_warehouse || d.transfer_to)
-                                   .filter(Boolean))].sort();
-  $('toSite').innerHTML = '<option value="">— เลือกคลัง/โรงงาน —</option>' +
-    dests.map(d => `<option value="${esc(d)}">${esc(d)}</option>`).join('');
+/* รายชื่อคลัง/โรงงานที่จะส่งเอกสารไปเก็บ
+ *
+ * ดึงจากรายชื่อไซต์จริงของเรา ไม่ใช่ dest_warehouse ในเอกสาร
+ * เพราะตัวนั้นคือปลายทางที่ส่งของ ซึ่งเป็นลูกค้าหรือสาขา
+ * คนละเรื่องกับคลังที่เก็บเอกสารตัวจริง
+ */
+let siteOptionsLoaded = false;
+
+async function fillSiteOptions() {
+  if (siteOptionsLoaded) return;
+  try {
+    const r = await call('siteListForShip', {}, 30000);
+    const list = (r && r.sites) || [];
+    $('toSite').innerHTML = '<option value="">— เลือกคลัง/โรงงาน —</option>' +
+      list.map(d => `<option value="${esc(d)}">${esc(d)}</option>`).join('');
+    siteOptionsLoaded = true;
+  } catch (e) {
+    console.error('[DocScan] โหลดรายชื่อคลังไม่สำเร็จ', e);
+    $('toSite').innerHTML = '<option value="">โหลดรายชื่อไม่สำเร็จ</option>';
+  }
 }
 
 /* ---------- ตาราง ---------- */
@@ -627,15 +647,19 @@ function afterSelect() {
 /* ---------- ตรวจก่อนสร้าง ---------- */
 function blockingReason() {
   if (!selected.size) return 'เลือกเอกสารก่อน';
-  if (!$('toSite').value) return 'เลือกคลัง/โรงงานปลายทาง';
-  if (!$('receiver').value.trim()) return 'ระบุชื่อผู้รับ';
+  /* เก็บไว้เองไม่ต้องมีปลายทางและผู้รับ
+     เพราะเอกสารไม่ได้ออกไปไหน */
+  const selfKeep = $('channel').value === 'keep_self';
+  if (!selfKeep && !$('toSite').value) return 'เลือกคลัง/โรงงานปลายทาง';
+  if (!selfKeep && !$('receiver').value.trim()) return 'ระบุชื่อผู้รับ';
   if (!$('channel').value) return 'เลือกช่องทางการส่ง';
 
   /* หนึ่งชุดไปไซต์เดียว ถ้าเลือกข้ามไซต์ ปลายทางจะได้ของที่ไม่ใช่ของตัวเอง
      แล้วต้องมาแยกเองซึ่งเสียเวลาและผิดพลาดง่าย */
   const dests = new Set(allDocs.filter(d => selected.has(d.ref_no))
     .map(d => d.dest_warehouse || d.transfer_to).filter(Boolean));
-  if (dests.size > 1) {
+  // เก็บเองไม่ต้องสนปลายทางในเอกสาร เพราะไม่ได้ส่งออกไป
+  if (!selfKeep && dests.size > 1) {
     return 'เลือกข้ามปลายทาง ' + dests.size + ' แห่ง — หนึ่งชุดส่งได้ที่เดียว';
   }
 
@@ -660,6 +684,13 @@ function updateCreateBtn() {
   $(id).addEventListener('input', updateCreateBtn));
 
 $('channel').addEventListener('change', () => {
+  /* เก็บไว้เองไม่ต้องมีผู้รับ ปลายทาง หรือพาหนะ
+     ถ้ายังถามอยู่ คนจะงงแล้วกรอกมั่ว */
+  const self = $('channel').value === 'keep_self';
+  document.querySelectorAll('#toSiteBox, #recvBox, #vehBox')
+    .forEach(el => { if (el) el.style.display = self ? 'none' : ''; });
+  updateCreateBtn();
+
   const c = $('channel').value;
   $('vehLabel').textContent = VEHICLE_LABEL[c] || 'รายละเอียดเพิ่มเติม';
   $('vehicle').placeholder = c === 'company_van' ? 'เช่น 70-1265'
