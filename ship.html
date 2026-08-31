@@ -256,12 +256,12 @@ tr.unk td:first-child{box-shadow:inset 3px 0 0 var(--danger)}
 
 /* ผู้ส่ง / ผู้รับ */
 .cover .pair{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
-.cover .box{border:1px solid #bbb;border-radius:6px;padding:12px 14px}
-.cover .box.to{border:2px solid #111;background:#fafafa}
-.cover .box-t{font-size:10.5px;font-weight:700;text-transform:uppercase;
+.cover .hs-box{border:1px solid #bbb;border-radius:6px;padding:12px 14px}
+.cover .hs-box.to{border:2px solid #111;background:#fafafa}
+.cover .hs-box-t{font-size:10.5px;font-weight:700;text-transform:uppercase;
   letter-spacing:.08em;color:#666;padding-bottom:7px;margin-bottom:8px;
   border-bottom:1px solid #ddd}
-.cover .box.to .box-t{color:#111}
+.cover .hs-box.to .hs-box-t{color:#111}
 .cover .row{display:flex;gap:10px;font-size:12.5px;padding:2.5px 0}
 .cover .row .k{width:96px;flex:none;color:#666}
 .cover .row .v{font-weight:600;flex:1}
@@ -964,8 +964,8 @@ function showCover(r) {
 
       <!-- ผู้ส่งและผู้รับแยกกันชัดเจน แบบใบปะหน้าพัสดุ -->
       <div class="pair">
-        <div class="box">
-          <div class="box-t">ผู้ส่ง</div>
+        <div class="hs-box">
+          <div class="hs-box-t">ผู้ส่ง</div>
           <div class="row"><span class="k">คลัง/โรงงาน</span>
             <span class="v">${esc(r.from_site || '—')}</span></div>
           <div class="row"><span class="k">ผู้จัดส่ง</span>
@@ -976,8 +976,8 @@ function showCover(r) {
             <span class="v">${esc(r.vehicle)}</span></div>` : ''}
         </div>
 
-        <div class="box to">
-          <div class="box-t">ผู้รับ</div>
+        <div class="hs-box to">
+          <div class="hs-box-t">ผู้รับ</div>
           <div class="row"><span class="k">คลัง/โรงงาน</span>
             <span class="v big">${esc(r.to_site || '—')}</span></div>
           <div class="row"><span class="k">ชื่อผู้รับ</span>
