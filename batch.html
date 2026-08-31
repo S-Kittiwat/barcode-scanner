@@ -1230,9 +1230,16 @@ async function rematchRows(list) {
       var d = DocScan.searchCSV(idx, k) ||
               (r.barcode ? DocScan.searchCSV(idx, r.barcode) : null);
       if (!d) return;
-      // บาร์โค้ดเป็นรหัสภายใน ต้องแปลงเป็นเลข Reference ก่อนตั้งชื่อไฟล์
-      if (d.ref_no && !r.editVals.refNo) r.editVals.refNo = d.ref_no;
-      onBarcodeChange(r.id, r.editVals.refNo || r.barcode);
+      /* บาร์โค้ดกับเลข Reference เป็นคนละอย่าง ต้องเก็บแยกกัน
+       *
+       * เดิมเรียก onBarcodeChange ด้วยเลข Reference
+       * ซึ่งภายในทำ row.barcode = value จึงเขียนทับบาร์โค้ดเดิม
+       * ทำให้ทั้งสองช่องเท่ากันทุกแถวในชีต
+       *
+       * ตอนนี้เติมค่าจากรายการอ้างอิงตรง ๆ ไม่ผ่านฟังก์ชันนั้น
+       */
+      if (d.ref_no) r.editVals.refNo = d.ref_no;
+      fillFromRef(r, d);
       hit++;
     });
     renderTable();
@@ -2193,6 +2200,36 @@ function handleBarcodeInput(id, el) {
   }, 800);
 }
 
+/**
+ * เติมข้อมูลจากรายการอ้างอิงลงในแถว โดยไม่แตะบาร์โค้ด
+ *
+ * แยกออกมาจาก onBarcodeChange เพราะตัวนั้นตั้งใจรับบาร์โค้ดที่คนยิง
+ * ถ้าเรียกด้วยค่าอื่น บาร์โค้ดเดิมจะถูกเขียนทับ
+ */
+function fillFromRef(row, doc) {
+  if (!row || !doc) return;
+  var ev = row.editVals;
+
+  /* ค่าจริงมาจากไฟล์อ้างอิงเสมอ รวมถึงบาร์โค้ด
+     เพราะระบบจับคู่ก่อนบันทึกทุกครั้ง ข้อมูลจึงควรครบและถูกต้อง
+     สิ่งที่โปรแกรมอ่านได้เก็บไว้ใน readBarcode / readRef แล้ว */
+  if (doc['barcode']) row.barcode = doc['barcode'];
+  row.refSource = 'reference';
+  ev.refNo        = doc['ref_no']                    || ev.refNo || '';
+  ev.itemName     = doc['item_name']                 || ev.itemName || '';
+  ev.transferFrom = doc['customer_start_name']       || ev.transferFrom || '';
+  ev.originAcc    = doc['customer_start_code']       || ev.originAcc || '';
+  ev.transferTo   = doc['customer_destination_name'] || ev.transferTo || '';
+  ev.destAcc      = doc['customer_destination_code'] || ev.destAcc || '';
+  if (doc['create_at']) ev.despatch = toInputDate(doc['create_at']);
+  if (doc['real_recived_at']) ev.receivedDate = toInputDate(doc['real_recived_at']);
+  if (doc['total']) { ev.sentQty = doc['total']; ev.receivedQty = doc['total']; }
+
+  row.doc = doc;
+  row.status = 'found';
+  _updateRowDOM(row);
+}
+
 function onBarcodeChange(id, value) {
   clearTimeout(_bcTimer[id]);
   var idNum = Number(id);
@@ -2221,8 +2258,11 @@ function onBarcodeChange(id, value) {
   var doc = csvLoaded ? searchCSV(row.barcode) : null;
   row.doc = doc;
   row.status = doc ? 'found' : 'notfound';
+  // จับคู่ไม่ได้ = ค่าที่มีมาจากคนกรอกเอง ต้องรู้ไว้
+  if (!doc) row.refSource = 'manual';
 
   if (doc) {
+    row.refSource = 'reference';
     // คนอาจพิมพ์บาร์โค้ดแทนเลข Reference
     // ชื่อไฟล์ต้องใช้ ref_no จากรายการอ้างอิงเสมอ ไม่ใช่สิ่งที่พิมพ์มา
     row.editVals.refNo        = doc['ref_no']                    || '';
@@ -3453,10 +3493,12 @@ async function submitBatch(){
   // ไฟล์ต้องมีเลข Reference ไว้ตั้งชื่อ ไม่งั้นจะหาไฟล์ไม่เจอในภายหลัง
   var noRef = ready.filter(function (r) { return !r.editVals.refNo; });
   if (noRef.length) {
-    if (!confirm(noRef.length + ' รายการยังไม่มีเลข Reference\n' +
-        'ไฟล์จะถูกตั้งชื่อด้วยบาร์โค้ดแทน ซึ่งอาจหาไม่เจอภายหลัง\n\nบันทึกต่อไหม')) {
-      return;
-    }
+    /* ไม่ปล่อยผ่าน เพราะไฟล์ที่ตั้งชื่อด้วยบาร์โค้ดจะหาไม่เจอภายหลัง
+       และข้อมูลในชีตจะมีสองช่องเหมือนกันโดยไม่มีใครรู้ว่าทำไม */
+    alert(noRef.length + ' รายการยังไม่มีเลข Reference\n\n' +
+      'กรุณากรอกเลข Reference ให้ครบก่อน\n' +
+      'ถ้าไม่ทราบ ให้ดูจากเอกสารตัวจริง');
+    return;
   }
   if (!ready.length) {
     alert('ไม่มีรายการที่บันทึกได้\n\n' +
@@ -3621,6 +3663,9 @@ async function submitBatch(){
         ink_stamp: inkVal(row, 'stamp'),
         barcode      : row.barcode,
         ref_no       : ev.refNo        || '',
+        read_barcode : row.readBarcode || '',
+        read_ref     : row.readRef     || '',
+        ref_source   : row.refSource   || 'manual',
         item_name    : ev.itemName     || '',
         transfer_from: ev.transferFrom || '',
         origin_acc   : ev.originAcc    || '',
@@ -3638,22 +3683,34 @@ async function submitBatch(){
         photo_url    : row.photoUrl    || ''
       };
     });
-    /* ใบที่หาในรายการอ้างอิงไม่เจอ จะไม่มีเลข Reference
-       เซิร์ฟเวอร์จะใช้ barcode แทน ทำให้สองช่องเท่ากันในชีต
-       ต้องเตือนก่อน ไม่ใช่ปล่อยผ่านแล้วมาพบทีหลัง */
-    var noRef = items.filter(function (x) {
-      return !String(x.ref_no || '').trim();
-    });
-    if (noRef.length) {
-      if (!confirm('มี ' + noRef.length + ' ใบที่ยังไม่มีเลข Reference\n\n' +
-          noRef.slice(0, 8).map(function (x) { return '  ' + x.barcode; }).join('\n') +
-          (noRef.length > 8 ? '\n  และอีก ' + (noRef.length - 8) : '') + '\n\n' +
-          'ระบบจะใช้บาร์โค้ดเป็นเลข Reference แทน\n' +
-          'ซึ่งจะทำให้สองช่องเหมือนกันในระบบ\n\n' +
-          'บันทึกต่อไหม')) {
-        saveStep('save', 'ยกเลิกการบันทึก');
-        return;
+    /* ต้องมีทั้งบาร์โค้ดและเลข Reference ครบทุกใบ
+     *
+     * ปกติจับคู่กับไฟล์อ้างอิงได้ ข้อมูลจะครบเอง
+     * แต่ถ้าโปรแกรมอ่านไม่ออกและจับคู่ไม่ได้ คนต้องกรอกให้ครบก่อน
+     *
+     * ปล่อยผ่านไม่ได้ เพราะเอกสารที่ไม่มีเลข Reference
+     * จะค้นหาไม่เจอ และตั้งชื่อไฟล์ผิด
+     */
+    var missing = [];
+    items.forEach(function (x, n) {
+      var lack = [];
+      if (!String(x.ref_no || '').trim()) lack.push('เลข Reference');
+      if (!String(x.barcode || '').trim()) lack.push('บาร์โค้ด');
+      if (lack.length) {
+        missing.push('  แถวที่ ' + (n + 1) +
+          (x.barcode ? ' (' + x.barcode + ')' : '') +
+          ' — ขาด' + lack.join('และ'));
       }
+    });
+
+    if (missing.length) {
+      alert('กรอกข้อมูลไม่ครบ ' + missing.length + ' ใบ\n\n' +
+        missing.slice(0, 10).join('\n') +
+        (missing.length > 10 ? '\n  และอีก ' + (missing.length - 10) : '') +
+        '\n\nกรุณากรอกให้ครบก่อนบันทึก\n' +
+        'ถ้าไม่ทราบเลข Reference ให้ดูจากเอกสารตัวจริง');
+      saveStep('save', 'กรอกข้อมูลไม่ครบ');
+      return;
     }
 
     saveStep('save', 'กำลังบันทึก ' + items.length + ' รายการ');
@@ -4148,14 +4205,22 @@ async function runAutoRead() {
   /* รอให้รายการอ้างอิงพร้อมก่อน แทนที่จะถามแล้วปล่อยผ่าน
      อ่านไปโดยไม่มีรายการอ้างอิงแปลว่าต้องมาเทียบทีหลังทุกใบ
      ซึ่งเสียเวลากว่ารอสักครู่ตอนนี้ */
+  /* ไม่มีข้อมูลอ้างอิง = ทำงานต่อไม่ได้
+   *
+   * ถ้าปล่อยให้อ่านไปก่อน คนจะสแกนทั้งชุด แล้วมาพบว่าต้องกรอก
+   * บาร์โค้ดกับเลข Reference เองทุกใบ ซึ่งอาจเป็นร้อยใบ
+   *
+   * หยุดตั้งแต่ต้นแล้วแก้การเชื่อมต่อ เสียเวลาน้อยกว่ามาก
+   */
   if (!csvLoaded) {
     var ok = await waitForRefs(20000);
     if (!ok) {
-      if (!confirm('รายการอ้างอิงยังโหลดไม่เสร็จ\n\n' +
-          'ถ้าอ่านตอนนี้ ระบบจะแปลงบาร์โค้ดเป็นเลข Reference ไม่ได้\n' +
-          'และตรวจสอบความถูกต้องไม่ได้\n\n' +
-          'เมื่อรายการมาถึง ระบบจะถามให้เทียบย้อนหลังให้เอง\n\n' +
-          'อ่านต่อเลยไหม')) return;
+      alert('ยังโหลดข้อมูลอ้างอิงไม่ได้\n\n' +
+        'ถ้าอ่านเอกสารตอนนี้ ระบบจะเทียบข้อมูลไม่ได้\n' +
+        'และต้องกรอกบาร์โค้ดกับเลข Reference เองทุกใบ\n\n' +
+        'กรุณาแก้การเชื่อมต่อก่อน แล้วกด "ตรวจใหม่" ที่แถบด้านบน\n' +
+        'ถ้ายังไม่ได้ ให้แจ้งผู้ดูแลระบบ');
+      return;
     }
   }
 
@@ -4450,9 +4515,27 @@ async function applyReadResults(results, typeKey) {
         if (byBc && byBc.ref_no) fill = byBc.ref_no;   // แปลงบาร์โค้ดเป็น Reference
       }
 
-      first.barcode = fill;
-      onBarcodeChange(first.id, fill);
-      if (!first.editVals.refNo) first.editVals.refNo = fill;
+      /* บาร์โค้ดกับเลข Reference ต้องเก็บแยกกัน
+       *
+       * เดิมตั้ง first.barcode = fill ซึ่งเป็นเลข Reference
+       * ทำให้บาร์โค้ดที่อ่านได้จริงหายไป และสองช่องเท่ากันทุกแถวในชีต
+       *
+       * บาร์โค้ดคือรหัสบนกระดาษ ใช้ตรวจสอบย้อนหลังว่าสแกนใบไหน
+       * ถ้าเขียนทับไป จะพิสูจน์ไม่ได้ว่าเอกสารตรงกับที่บันทึก
+       */
+      /* เก็บสิ่งที่โปรแกรมอ่านได้ไว้ต่างหาก
+         ค่าจริงจะถูกเขียนทับด้วยข้อมูลจากไฟล์อ้างอิงในขั้นถัดไป */
+      first.readBarcode = d.barcodeValue || '';
+      first.readRef     = d.refNo || '';
+
+      first.barcode = d.barcodeValue || '';
+      first.editVals.refNo = fill;
+
+      // เติมข้อมูลอื่นจากรายการอ้างอิง โดยไม่แตะบาร์โค้ด
+      var refDoc = DocScan.searchCSV(idx, fill) ||
+                   (d.barcodeValue ? DocScan.searchCSV(idx, d.barcodeValue) : null);
+      if (refDoc) fillFromRef(first, refDoc);
+      else { first.status = 'notfound'; _updateRowDOM(first); }
     }
 
     // หน้าที่เหลือในกลุ่มเป็นสำเนาของใบเดียวกัน ไม่ต้องเป็นแถวแยก
