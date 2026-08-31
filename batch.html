@@ -2034,8 +2034,17 @@ function renderTable() {
 
     var bcHtml = readLine('', row.readBarcode, '', row.barcodeCrop, 'พื้นที่บาร์โค้ด');
 
-    var readHtml = readLine('', row.readValue,
-      row.readValue ? ((row.readSource === 'barcode' ? 'บาร์โค้ด' : 'OCR') + tierTag) : '',
+    /* ช่องนี้คือ "OCR อ่านเลขบนกระดาษได้อะไร" เท่านั้น
+     *
+     * เดิมแสดง readValue ซึ่งเป็นค่าที่ระบบเลือกใช้
+     * เมื่อ OCR อ่านไม่ออกแต่บาร์โค้ดอ่านได้ ระบบใช้บาร์โค้ดเป็นค่าหลัก
+     * ช่องนี้จึงโชว์บาร์โค้ด ซ้ำกับช่องซ้ายและผิดความหมาย
+     *
+     * ตอนนี้แสดง readRefNo ซึ่งเป็นค่าจาก OCR โดยตรง
+     * ถ้าอ่านไม่ออกก็บอกตรง ๆ ว่าอ่านไม่ได้
+     */
+    var readHtml = readLine('', row.readRefNo,
+      row.readRefNo ? ('OCR' + tierTag) : '',
       row.readCrop, 'พื้นที่เลขที่เอกสาร');
 
     if (row.why && !(row.candidates && row.candidates.length > 1)) {
@@ -4498,21 +4507,30 @@ async function applyReadResults(results, typeKey) {
     first.candidates = (cls.tier !== 'green' && cls.candidates && cls.candidates.length)
       ? cls.candidates : [];
 
-    if (d.value) {
-      /* ช่องนี้ต้องเป็นเลข Reference ที่ใช้ตั้งชื่อไฟล์ ไม่ใช่ค่าบาร์โค้ดดิบ
+    /* ทำงานเมื่ออ่านได้อย่างใดอย่างหนึ่ง ไม่ใช่เฉพาะตอนมี d.value
+     *
+     * d.value คือค่าที่ระบบเลือกใช้ ซึ่งว่างเมื่อ OCR อ่านไม่ออก
+     * แถวที่อ่านบาร์โค้ดได้แต่ OCR ไม่ได้ จึงไม่เคยถูกเติมเลข Reference
+     */
+    if (d.value || d.barcodeValue || d.refNo) {
+      /* ช่องตั้งชื่อไฟล์ต้องเป็นเลข Reference เสมอ ไม่ใช่บาร์โค้ด
        *
-       * บาร์โค้ดของ LOSCAM เป็นรหัสภายใน (เช่น 990ECB) ไม่ใช่เลขเอกสาร
-       * ถ้าเอาไปกรอกตรง ๆ ไฟล์จะถูกตั้งชื่อว่า 990ECB.pdf ซึ่งหาไม่เจอภายหลัง
+       * ลำดับที่ถูก
+       *   1. หาในไฟล์อ้างอิงด้วยบาร์โค้ด — แม่นที่สุด เพราะบาร์โค้ดอ่านผิดยาก
+       *   2. ถ้าไม่มีบาร์โค้ด ใช้เลขที่ OCR อ่านได้
+       *   3. หาไม่เจอเลย ปล่อยว่างให้คนกรอก ไม่ใส่บาร์โค้ดแทน
        *
-       * ลำดับที่ถูก: ถ้าอ่านบาร์โค้ดได้ ให้ไปหาเลข Reference จากรายการอ้างอิงก่อน
-       * ใช้ค่าบาร์โค้ดเป็นเลขเอกสารเฉพาะเมื่อบาร์โค้ดคือเลขนั้นจริง (barcodeIsRef)
+       * ข้อ 3 สำคัญ เพราะถ้าใส่บาร์โค้ดแทน ชื่อไฟล์จะผิด
+       * และช่อง "ต้องเลือก" จะให้เลือกบาร์โค้ดซึ่งไม่ใช่สิ่งที่ต้องตรวจ
        */
-      var fill = d.value;
-      if (d.refNo) {
-        fill = d.refNo;                       // OCR อ่านเลข Reference มาโดยตรง
-      } else if (d.barcodeValue) {
+      var fill = '';
+      if (d.barcodeValue) {
         var byBc = DocScan.searchCSV(idx, d.barcodeValue);
-        if (byBc && byBc.ref_no) fill = byBc.ref_no;   // แปลงบาร์โค้ดเป็น Reference
+        if (byBc && byBc.ref_no) fill = byBc.ref_no;
+      }
+      if (!fill && d.refNo) {
+        var byRef = DocScan.searchCSV(idx, d.refNo);
+        fill = (byRef && byRef.ref_no) || d.refNo;
       }
 
       /* บาร์โค้ดกับเลข Reference ต้องเก็บแยกกัน
