@@ -219,19 +219,6 @@ tr.unk td:first-child{box-shadow:inset 3px 0 0 var(--danger)}
 
 /* ใบปะหน้า — ต้องพิมพ์ออกมาแล้วอ่านง่ายบนกระดาษขาว
    จึงใช้สีตรงข้ามกับหน้าจอ ไม่ใช่สีเดียวกัน */
-.cover{background:#fff;color:#111;border-radius:var(--r);padding:26px;margin-top:16px}
-.cover h2{margin:0 0 4px;font-size:21px}
-.cover .cid{font-family:var(--mono);font-size:31px;font-weight:700;letter-spacing:.04em}
-.cover .meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
-  gap:11px;margin:18px 0;padding:14px 0;border-top:1px solid #ccc;border-bottom:1px solid #ccc}
-.cover .mk{font-size:10.5px;color:#666;text-transform:uppercase;letter-spacing:.04em}
-.cover .mv{font-size:14px;font-weight:600;margin-top:2px}
-.cover table{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px}
-.cover th,.cover td{border:1px solid #ccc;padding:5px 8px;text-align:left}
-.cover th{background:#f0f0f0}
-.cover .sign{display:grid;grid-template-columns:1fr 1fr;gap:34px;margin-top:34px}
-.cover .sline{border-top:1px solid #333;padding-top:6px;font-size:11.5px;text-align:center}
-.cover .bc{text-align:center;margin:14px 0}
 
 @media print{
   body>*:not(.cover-wrap){display:none !important}
@@ -242,6 +229,83 @@ tr.unk td:first-child{box-shadow:inset 3px 0 0 var(--danger)}
 .bldtag{position:fixed;right:8px;bottom:6px;z-index:5;font-family:var(--mono);
   font-size:10px;color:var(--muted);opacity:.5;pointer-events:none}
 @media print{.bldtag{display:none}}
+
+/* ============================================================
+   ใบส่งมอบเอกสาร
+   ============================================================
+   ออกแบบให้ผู้รับตรวจของได้จากใบนี้โดยไม่ต้องเปิดระบบ
+   ผู้ส่งกับผู้รับแยกกล่องกันชัด แบบใบปะหน้าพัสดุ
+   ============================================================ */
+.cover-wrap{display:none;max-width:1000px;margin:0 auto;padding:20px 24px 80px}
+.cover{background:#fff;color:#111;border-radius:8px;padding:26px 30px;
+  font-family:'IBM Plex Sans Thai',system-ui,sans-serif;line-height:1.5}
+
+/* หัวเอกสาร — บาร์โค้ดอยู่ซ้ายสุด */
+.cover .hd{display:flex;align-items:flex-start;gap:20px;
+  padding-bottom:14px;border-bottom:2px solid #111;margin-bottom:16px}
+.cover .hd-bc{flex:none}
+.cover .hd-bc svg{display:block}
+.cover .hd-tt{flex:1;padding-top:2px}
+.cover .hd-tt h2{margin:0;font-size:21px;font-weight:700;letter-spacing:-.01em}
+.cover .hd-sub{font-size:11.5px;color:#666;margin-top:2px}
+.cover .hd-no{text-align:right;flex:none;min-width:150px}
+.cover .hd-no .k{font-size:9.5px;color:#666;text-transform:uppercase;
+  letter-spacing:.05em}
+.cover .hd-no .v{font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:700}
+.cover .hd-no .v.sm{font-size:11.5px;font-weight:500}
+
+/* ผู้ส่ง / ผู้รับ */
+.cover .pair{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.cover .box{border:1px solid #bbb;border-radius:6px;padding:12px 14px}
+.cover .box.to{border:2px solid #111;background:#fafafa}
+.cover .box-t{font-size:10.5px;font-weight:700;text-transform:uppercase;
+  letter-spacing:.08em;color:#666;padding-bottom:7px;margin-bottom:8px;
+  border-bottom:1px solid #ddd}
+.cover .box.to .box-t{color:#111}
+.cover .row{display:flex;gap:10px;font-size:12.5px;padding:2.5px 0}
+.cover .row .k{width:96px;flex:none;color:#666}
+.cover .row .v{font-weight:600;flex:1}
+.cover .row .v.big{font-size:15px}
+
+.cover .note{border:1px solid #ddd;border-radius:5px;padding:8px 12px;
+  font-size:12px;margin-bottom:14px;background:#fafafa}
+
+/* รายการเอกสาร */
+.cover table.items{width:100%;border-collapse:collapse;margin-bottom:20px;
+  font-size:11.5px}
+.cover .items th,.cover .items td{border:1px solid #ccc;padding:5px 7px;
+  text-align:left;vertical-align:middle}
+.cover .items th{background:#eee;font-weight:600;font-size:10.5px}
+.cover .items td.c{text-align:center}
+.cover .items td.r{text-align:right;font-weight:600}
+.cover .items .mono{font-family:'IBM Plex Mono',monospace;font-weight:600}
+.cover .items .sm{font-size:10.5px}
+.cover .items .ar{color:#999}
+/* ช่องให้ผู้รับติ๊กตอนตรวจนับ */
+.cover .items .chkbox{width:34px}
+.cover .items tbody .chkbox::after{content:'';display:block;width:13px;height:13px;
+  border:1.5px solid #666;margin:0 auto}
+.cover .items tfoot td{background:#f5f5f5;font-weight:700}
+
+/* ลายเซ็น */
+.cover .sign{display:grid;grid-template-columns:1fr 1fr;gap:34px;margin-top:8px}
+.cover .sg{border:1px solid #ddd;border-radius:6px;padding:12px 14px}
+.cover .sg-t{font-size:11.5px;font-weight:700;margin-bottom:16px}
+.cover .ln{border-bottom:1px dotted #999;height:26px;margin-bottom:12px;
+  font-size:10.5px;color:#888}
+.cover .ft{margin-top:22px;padding-top:10px;border-top:1px solid #ddd;
+  font-size:10px;color:#777;text-align:center;line-height:1.7}
+
+.cover-act{display:flex;gap:10px;justify-content:center;margin-top:18px}
+
+@media print{
+  @page{size:A4 portrait;margin:10mm 12mm}
+  body>*:not(.cover-wrap){display:none !important}
+  .cover-wrap{display:block !important;max-width:none;margin:0;padding:0}
+  .cover{border-radius:0;padding:0;box-shadow:none}
+  .noprint{display:none !important}
+  .cover .items{font-size:10.5px}
+}
 </style>
 </head>
 <body>
@@ -657,13 +721,9 @@ function afterSelect() {
   renderCart();
   $('pickInfo').textContent = 'เลือกแล้ว ' + selected.size + ' จาก ' + shown().length + ' ใบ';
 
-  /* เลือกปลายทางให้เองถ้าทุกใบที่เลือกไปที่เดียวกัน
-     ลดการกรอกและลดโอกาสเลือกผิด */
-  const dests = new Set(allDocs.filter(d => selected.has(d.ref_no))
-    .map(d => d.dest_warehouse || d.transfer_to).filter(Boolean));
-  if (dests.size === 1 && !$('toSite').value) {
-    $('toSite').value = [...dests][0];
-  }
+  /* ไม่เดาคลังปลายทางจากเอกสาร
+     เพราะ dest_warehouse คือปลายทางที่ส่งของ ไม่ใช่คลังที่เก็บเอกสาร
+     เดาผิดแล้วคนอาจไม่ทันสังเกต */
 
   const all = $('selAll');
   if (all) {
@@ -685,14 +745,14 @@ function blockingReason() {
   if (!selfKeep && !$('receiver').value.trim()) return 'ระบุชื่อผู้รับ';
   if (!$('channel').value) return 'เลือกช่องทางการส่ง';
 
-  /* หนึ่งชุดไปไซต์เดียว ถ้าเลือกข้ามไซต์ ปลายทางจะได้ของที่ไม่ใช่ของตัวเอง
-     แล้วต้องมาแยกเองซึ่งเสียเวลาและผิดพลาดง่าย */
-  const dests = new Set(allDocs.filter(d => selected.has(d.ref_no))
-    .map(d => d.dest_warehouse || d.transfer_to).filter(Boolean));
-  // เก็บเองไม่ต้องสนปลายทางในเอกสาร เพราะไม่ได้ส่งออกไป
-  if (!selfKeep && dests.size > 1) {
-    return 'เลือกข้ามปลายทาง ' + dests.size + ' แห่ง — หนึ่งชุดส่งได้ที่เดียว';
-  }
+  /* ไม่ต้องตรวจว่าเอกสารไปปลายทางเดียวกันไหม
+   *
+   * เดิมเข้าใจผิดว่าต้องจำกัด แต่ dest_warehouse ในเอกสาร
+   * คือปลายทางที่ส่งของ ซึ่งเป็นลูกค้าหรือสาขา มีหลายแห่งเป็นเรื่องปกติ
+   *
+   * สิ่งที่ต้องเป็นแห่งเดียวคือคลัง/โรงงานที่เก็บเอกสาร
+   * ซึ่งเลือกจาก dropdown ได้อันเดียวอยู่แล้ว จึงไม่ต้องตรวจซ้ำ
+   */
 
   /* เลือกของไซต์อื่นปนมา ไม่ห้าม แต่ต้องรู้ตัว
      เพราะตอนนี้ยังไม่กรอง จึงเลือกผิดได้ง่าย */
@@ -868,86 +928,131 @@ function showCover(r) {
   const w = $('coverWrap');
   w.style.display = 'block';
 
-  const refs = r.shipped || [];
-  const per = 3;                       // แบ่งเป็นคอลัมน์ให้พิมพ์ลงหน้าเดียวได้มากขึ้น
-  const rows = [];
-  for (let i = 0; i < refs.length; i += per) rows.push(refs.slice(i, i + per));
+  const items = r.items || (r.shipped || []).map(x => ({ ref_no: x }));
+  const totalQty = items.reduce((a, d) => a + (Number(d.sent_qty) || 0), 0);
+
+  const rows = items.map((d, n) => `<tr>
+      <td class="c">${n + 1}</td>
+      <td class="mono">${esc(d.ref_no || '')}</td>
+      <td class="mono sm">${esc(d.barcode || '—')}</td>
+      <td>${esc(d.item_name || '—')}</td>
+      <td class="sm">${esc(d.transfer_from || '—')} <span class="ar">→</span>
+          ${esc(d.transfer_to || '—')}</td>
+      <td class="c">${d.sent_qty || '—'}</td>
+      <td class="chkbox"></td>
+    </tr>`).join('');
 
   w.innerHTML = `
     <div class="cover">
-      <div style="display:flex;align-items:flex-start">
-        <div>
-          <h2>ใบปะหน้าชุดส่งเอกสาร</h2>
-          <div class="cid">${esc(r.batch_id)}</div>
+
+      <!-- บาร์โค้ดมุมซ้ายบน ขนาดพอสแกน ไม่กินพื้นที่หัวเอกสาร -->
+      <div class="hd">
+        <div class="hd-bc"><svg id="coverBc"></svg></div>
+        <div class="hd-tt">
+          <h2>ใบส่งมอบเอกสาร</h2>
+          <div class="hd-sub">DocScan — ระบบติดตามเอกสารพาเลท</div>
         </div>
-        <div style="margin-left:auto;text-align:right;font-size:12px">
-          สร้างเมื่อ ${new Date(r.created_at).toLocaleString('th-TH')}<br>
-          โดย ${esc(r.created_name || '')}
+        <div class="hd-no">
+          <div class="k">เลขที่ชุด</div>
+          <div class="v">${esc(r.batch_id)}</div>
+          <div class="k" style="margin-top:6px">วันที่ส่ง</div>
+          <div class="v sm">${new Date(r.created_at)
+            .toLocaleString('th-TH', { day:'2-digit', month:'short', year:'numeric',
+                                       hour:'2-digit', minute:'2-digit' })}</div>
         </div>
       </div>
 
-      <div class="bc"><svg id="coverBc"></svg></div>
+      <!-- ผู้ส่งและผู้รับแยกกันชัดเจน แบบใบปะหน้าพัสดุ -->
+      <div class="pair">
+        <div class="box">
+          <div class="box-t">ผู้ส่ง</div>
+          <div class="row"><span class="k">คลัง/โรงงาน</span>
+            <span class="v">${esc(r.from_site || '—')}</span></div>
+          <div class="row"><span class="k">ผู้จัดส่ง</span>
+            <span class="v">${esc(r.created_name || '—')}</span></div>
+          <div class="row"><span class="k">ช่องทาง</span>
+            <span class="v">${esc(CHANNEL_LABEL[r.channel] || r.channel || '—')}</span></div>
+          ${r.vehicle ? `<div class="row"><span class="k">ทะเบียน/เลขพัสดุ</span>
+            <span class="v">${esc(r.vehicle)}</span></div>` : ''}
+        </div>
 
-      <div class="meta">
-        <div><div class="mk">ต้นทาง</div><div class="mv">${esc(r.from_site || '—')}</div></div>
-        <div><div class="mk">ปลายทาง</div><div class="mv">${esc(r.to_site)}</div></div>
-        <div><div class="mk">ผู้รับ</div><div class="mv">${esc(r.receiver)}</div></div>
-        <div><div class="mk">ช่องทาง</div><div class="mv">${
-          esc(CHANNEL_LABEL[r.channel] || r.channel)}${
-          r.vehicle ? ' · ' + esc(r.vehicle) : ''}</div></div>
-        <div><div class="mk">จำนวน</div><div class="mv">${r.count} ใบ</div></div>
+        <div class="box to">
+          <div class="box-t">ผู้รับ</div>
+          <div class="row"><span class="k">คลัง/โรงงาน</span>
+            <span class="v big">${esc(r.to_site || '—')}</span></div>
+          <div class="row"><span class="k">ชื่อผู้รับ</span>
+            <span class="v">${esc(r.receiver || '—')}</span></div>
+          <div class="row"><span class="k">จำนวนเอกสาร</span>
+            <span class="v big">${r.count} ฉบับ</span></div>
+          ${totalQty ? `<div class="row"><span class="k">รวมพาเลท</span>
+            <span class="v">${totalQty}</span></div>` : ''}
+        </div>
       </div>
 
-      ${r.note ? `<div style="font-size:12.5px;margin-bottom:10px"><b>หมายเหตุ:</b> ${esc(r.note)}</div>` : ''}
+      ${r.note ? `<div class="note"><b>หมายเหตุ</b> ${esc(r.note)}</div>` : ''}
 
-      <table>
-        <thead><tr>${Array(per).fill('<th>เลขเอกสาร</th>').join('')}</tr></thead>
-        <tbody>${rows.map(row =>
-          '<tr>' + row.map(x => `<td>${esc(x)}</td>`).join('') +
-          Array(per - row.length).fill('<td></td>').join('') + '</tr>').join('')}
-        </tbody>
+      <table class="items">
+        <thead><tr>
+          <th style="width:28px">#</th>
+          <th style="width:110px">Reference</th>
+          <th style="width:92px">Barcode</th>
+          <th>ประเภทเอกสาร</th>
+          <th style="width:200px">โอนจาก → โอนไป</th>
+          <th style="width:44px">พาเลท</th>
+          <th style="width:34px">ตรวจ</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot><tr>
+          <td colspan="5" class="r">รวม</td>
+          <td class="c">${totalQty || '—'}</td>
+          <td class="chkbox"></td>
+        </tr></tfoot>
       </table>
 
       <div class="sign">
-        <div class="sline">ผู้ส่ง / วันที่</div>
-        <div class="sline">ผู้รับ / วันที่</div>
+        <div class="sg">
+          <div class="sg-t">ผู้ส่งมอบ (ทีมจัดส่ง)</div>
+          <div class="ln">ลงชื่อ</div>
+          <div class="ln">ชื่อ-สกุล</div>
+          <div class="ln">วันที่ / เวลา</div>
+        </div>
+        <div class="sg">
+          <div class="sg-t">ผู้รับมอบ (ทีมคลัง)</div>
+          <div class="ln">ลงชื่อ</div>
+          <div class="ln">ชื่อ-สกุล</div>
+          <div class="ln">วันที่ / เวลา</div>
+        </div>
+      </div>
+
+      <div class="ft">
+        พิมพ์จากระบบ DocScan · ${esc(r.batch_id)} ·
+        ${new Date().toLocaleString('th-TH')}
+        <br>ผู้รับกรุณาตรวจนับตามรายการ แล้วยิงบาร์โค้ดชุดนี้ที่หน้า "รับเอกสาร"
       </div>
     </div>
 
-    <div class="noprint" style="margin-top:16px;display:flex;gap:10px;justify-content:center">
-      <button class="btn" id="btnPrint">พิมพ์ใบปะหน้า</button>
-      <button class="btn ghost" id="btnNew">สร้างชุดใหม่</button>
+    <div class="cover-act noprint">
+      <button class="btn" onclick="window.print()">พิมพ์ใบส่งมอบ</button>
+      <button class="btn ghost" id="backList">กลับไปหน้าส่งเอกสาร</button>
     </div>`;
 
-  drawBarcode(r.batch_id);
-
-  $('btnPrint').addEventListener('click', () => window.print());
-  $('btnNew').addEventListener('click', () => {
+  $('backList').addEventListener('click', () => {
     w.style.display = 'none';
     $('mainWrap').style.display = '';
-    ['receiver', 'vehicle', 'note'].forEach(id => { $(id).value = ''; });
-    $('channel').value = ''; $('toSite').value = '';
-    /* ถ้าโค้ดก่อนหน้าพัง จะไม่ถึงบรรทัดนี้ และหน้าจะว่างเปล่าเงียบ ๆ
-   ดักไว้เพื่อให้เห็นว่าพังก่อนเริ่มโหลด */
-window.addEventListener('error', function (e) {
-  var el = document.getElementById('dlist');
-  if (el && !el.dataset.started) {
-    el.innerHTML = '<div class="empty">หน้านี้ทำงานไม่สำเร็จ<br>' +
-      '<span class="hint">' + String(e.message || '') + '</span></div>';
-  }
-});
-
-load();
+    load();
   });
+
+  drawBarcode(r.batch_id);
 }
 
-/** บาร์โค้ดของเลขชุด ให้ปลายทางยิงรับทั้งชุดทีเดียว */
 async function drawBarcode(text) {
   try {
     if (!window.JsBarcode) await loadScript('vendor/JsBarcode.all.min.js');
+    /* ขนาดพอให้เครื่องสแกนอ่านได้ แต่ไม่กินพื้นที่หัวเอกสาร
+       ความกว้างแท่ง 1.6 ที่ความสูง 40 อ่านได้ในระยะปกติ */
     JsBarcode('#coverBc', text, {
-      format: 'CODE128', width: 2.4, height: 62,
-      displayValue: true, fontSize: 15, margin: 6
+      format: 'CODE128', width: 1.6, height: 40,
+      displayValue: true, fontSize: 11, margin: 2
     });
   } catch (e) {
     console.warn('[DocScan] วาดบาร์โค้ดไม่ได้', e);
