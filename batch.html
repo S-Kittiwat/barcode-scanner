@@ -2688,7 +2688,9 @@ async function drawVerify() {
     (row.pageNos && row.pageNos.length ? row.pageNos.join(', ') : (row.pageNo || '-'));
   document.getElementById('vfCount').textContent = (_vfPos + 1) + ' / ' + _vfList.length;
   document.getElementById('vfNote').textContent = row.why || '';
-  document.getElementById('vfManual').value = row.barcode || '';
+  /* ช่องนี้ให้ยืนยันเลข Reference ไม่ใช่บาร์โค้ด
+     เพราะสิ่งที่ต้องเทียบกับเอกสารคือเลขที่พิมพ์บนกระดาษ */
+  document.getElementById('vfManual').value = row.editVals.refNo || '';
 
   /* วาดภาพหน้าเอกสารก่อนแยกโหมดเสมอ
      ทุกโหมดต้องเห็นเอกสาร จึงไม่ควรผูกไว้กับเส้นทางใดเส้นทางหนึ่ง
@@ -2968,7 +2970,7 @@ function nextVerifyInk() {
 function chooseVerify(v) {
   var row = _vfList[_vfPos];
   if (!row) return;
-  var wasEmpty = !row.barcode;
+  var wasEmpty = !row.editVals.refNo;
   row.resolved = true;
   applySuggestion(row.id, v);
   showToast((wasEmpty ? 'กรอก ' : 'เลือก ') + v + ' แล้ว', 'success');
@@ -3144,11 +3146,15 @@ function confirmOverwrite(id) {
 function applySuggestion(id, value) {
   var row = rows.find(function (r) { return r.id === Number(id); });
   if (!row) return;
-  row.barcode = value;
+
+  /* ค่าที่คนยืนยันคือเลข Reference ไม่ใช่บาร์โค้ด
+     เดิมเขียน row.barcode ด้วย ทำให้บาร์โค้ดที่อ่านมาได้หายไป */
+  row.editVals.refNo = value;
+  row.refSource = 'manual';
+
   // คนตัดสินแล้ว ต้องปลดล็อกปุ่มบันทึก
   row.resolved = true;
   row.suggestion = '';
-  row.editVals.refNo = value;
   recomputeRow(row);
   // ผลสุ่มตรวจเดิมเป็นของเลขเก่า ใช้กับเลขใหม่ไม่ได้
   if (row.sampleChecked === 'fix') row.sampleChecked = '';
