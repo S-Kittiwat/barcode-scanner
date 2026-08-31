@@ -169,6 +169,23 @@ tr.unk td{background:rgba(248,113,113,.07)}
 tr.unk td:first-child{box-shadow:inset 3px 0 0 var(--danger)}
 .unk-tag{font-size:10.5px;color:var(--danger);margin-top:2px}
 
+/* ตะกร้าเอกสารที่เลือก */
+.cart{position:sticky;top:56px;z-index:30;background:var(--surface);
+  border:1px solid var(--accent);border-radius:var(--r);
+  padding:10px 14px;margin-bottom:14px}
+.cart-h{display:flex;align-items:center;gap:10px;font-size:13.5px}
+.cart-h b{font-size:15px}
+.cart-h .btn{margin-left:auto}
+.cart-h .btn+.btn{margin-left:6px}
+.btn.sm{padding:4px 10px;font-size:12px}
+.cart-list{max-height:190px;overflow:auto;margin-top:10px;
+  border-top:1px solid var(--border);padding-top:9px}
+.cart-item{display:flex;align-items:center;gap:9px;padding:4px 0;font-size:12.5px}
+.cart-item .ref{flex:none;width:140px}
+.cart-item .to{color:var(--muted);flex:1}
+.cart-item button{background:none;border:none;color:var(--danger);
+  cursor:pointer;font-size:13px;padding:0 4px}
+
 /* ── หน้าส่งเอกสารตัวจริง ── */
 .shp-step{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
   padding:16px 18px;margin-bottom:14px}
@@ -245,6 +262,17 @@ tr.unk td:first-child{box-shadow:inset 3px 0 0 var(--danger)}
   <div class="shp-alert" id="alert"></div>
 
   <div class="dupbanner bad" id="unkBanner" style="display:none"></div>
+
+<!-- ตะกร้า — เห็นตลอดว่าเลือกอะไรไปแล้ว
+     เดิมต้องเลื่อนหาว่าติ๊กใบไหนไว้ ซึ่งเสียเวลาและพลาดง่าย -->
+<div class="cart" id="cart" style="display:none">
+  <div class="cart-h">
+    <b id="cartCount">0 ใบ</b>
+    <button class="btn ghost sm" id="cartToggle">ดูรายการ</button>
+    <button class="btn ghost sm" id="cartClear">ล้างทั้งหมด</button>
+  </div>
+  <div class="cart-list" id="cartList" style="display:none"></div>
+</div>
 
   <div class="shp-step">
     <div class="shp-step-h">
@@ -567,6 +595,7 @@ function render() {
     afterSelect();
   });
 
+  renderCart();
   updateCreateBtn();
 }
 
@@ -625,6 +654,7 @@ function rowHtml(d) {
 }
 
 function afterSelect() {
+  renderCart();
   $('pickInfo').textContent = 'เลือกแล้ว ' + selected.size + ' จาก ' + shown().length + ' ใบ';
 
   /* เลือกปลายทางให้เองถ้าทุกใบที่เลือกไปที่เดียวกัน
@@ -670,6 +700,36 @@ function blockingReason() {
   if (foreign) return 'เลือกเอกสารของไซต์อื่น ' + foreign + ' ใบ — ตรวจก่อนสร้างชุด';
 
   return '';
+}
+
+/* แสดงตะกร้า — เลือกอะไรไปแล้วบ้าง กี่ใบ
+   ต้องเห็นตลอด ไม่ใช่ต้องเลื่อนหาว่าติ๊กใบไหนไว้ */
+function renderCart() {
+  const box = $('cart');
+  if (!box) return;
+
+  if (!selected.size) { box.style.display = 'none'; return; }
+  box.style.display = '';
+
+  const picked = allDocs.filter(d => selected.has(d.ref_no));
+  const qty = picked.reduce((a, d) => a + (Number(d.sent_qty) || 0), 0);
+
+  $('cartCount').textContent = selected.size + ' ใบ' +
+    (qty ? ' · ' + qty + ' พาเลท' : '');
+
+  $('cartList').innerHTML = picked.map(d =>
+    '<div class="cart-item">' +
+      '<div class="ref">' + esc(d.ref_no) + '</div>' +
+      '<div class="to">' + esc(d.transfer_from || d.site || '—') +
+        ' → ' + esc(d.dest_warehouse || d.transfer_to || '—') + '</div>' +
+      '<button data-drop="' + esc(d.ref_no) + '" title="เอาออก">✕</button>' +
+    '</div>').join('');
+
+  $('cartList').querySelectorAll('[data-drop]').forEach(b =>
+    b.addEventListener('click', () => {
+      selected.delete(b.dataset.drop);
+      render();
+    }));
 }
 
 function updateCreateBtn() {
@@ -727,26 +787,52 @@ $('btnAll').addEventListener('click', () => {
   render();
 });
 $('btnNone').addEventListener('click', () => { selected.clear(); render(); });
+
+/* ปุ่มในตะกร้า */
+$('cartToggle').addEventListener('click', () => {
+  const l = $('cartList');
+  const open = l.style.display !== 'none';
+  l.style.display = open ? 'none' : '';
+  $('cartToggle').textContent = open ? 'ดูรายการ' : 'ซ่อนรายการ';
+});
+
+$('cartClear').addEventListener('click', () => {
+  if (!confirm('ล้างเอกสารที่เลือกไว้ทั้งหมด ' + selected.size + ' ใบ')) return;
+  selected.clear();
+  render();
+});
 $('btnReload').addEventListener('click', load);
 
 /* ---------- สร้างชุดส่ง ---------- */
 $('btnCreate').addEventListener('click', async () => {
   const refs = [...selected];
   const btn = $('btnCreate');
+  const keep = $('channel').value === 'keep_self';
+
+  /* เก็บไว้เองไม่ส่งค่าปลายทางและผู้รับ
+     คนอาจกรอกไว้ก่อนแล้วเปลี่ยนใจ ช่องถูกซ่อนแต่ค่ายังอยู่
+     ถ้าส่งไปด้วย จะบันทึกว่าส่งไปที่นั่นทั้งที่ไม่ได้ส่ง */
   const detail = {
-    to_site: $('toSite').value,
-    receiver: $('receiver').value.trim(),
-    channel: $('channel').value,
-    vehicle: $('vehicle').value.trim(),
-    note: $('note').value.trim(),
+    to_site:  keep ? '' : $('toSite').value,
+    receiver: keep ? '' : $('receiver').value.trim(),
+    channel:  $('channel').value,
+    vehicle:  keep ? '' : $('vehicle').value.trim(),
+    note:     $('note').value.trim(),
     from_site: fromSite
   };
 
-  if (!confirm('สร้างชุดส่ง ' + refs.length + ' ใบ\n\n' +
-      'ปลายทาง: ' + detail.to_site + '\n' +
-      'ผู้รับ: ' + detail.receiver + '\n' +
-      'ช่องทาง: ' + (CHANNEL_LABEL[detail.channel] || detail.channel) + '\n\n' +
-      'เอกสารเหล่านี้จะถูกบันทึกว่าส่งแล้ว')) return;
+  // ข้อความยืนยันต้องตรงกับสิ่งที่จะเกิดขึ้นจริง
+  const lines = keep
+    ? ['ปิดงาน ' + refs.length + ' ใบ', '',
+       'เก็บเอกสารไว้เอง ไม่ได้ส่งออกไปไหน',
+       'ระบบจะปิดงานทันที ไม่ต้องรอใครรับ']
+    : ['สร้างชุดส่ง ' + refs.length + ' ใบ', '',
+       'ปลายทาง: ' + detail.to_site,
+       'ผู้รับ: ' + detail.receiver,
+       'ช่องทาง: ' + (CHANNEL_LABEL[detail.channel] || detail.channel), '',
+       'เอกสารเหล่านี้จะถูกบันทึกว่าส่งแล้ว'];
+
+  if (!confirm(lines.join('\n'))) return;
 
   btn.disabled = true; btn.textContent = 'กำลังสร้าง…';
   try {
@@ -755,8 +841,7 @@ $('btnCreate').addEventListener('click', async () => {
 
     /* บอกให้ครบว่าใบไหนไม่ได้ไป
        ถ้าเงียบ คนจะคิดว่าส่งครบแล้วมาพบทีหลังว่าขาด */
-    const keptSelf = detail.channel === 'keep_self';
-    let msg = keptSelf
+    let msg = keep
       ? 'ปิดงาน ' + r.count + ' ใบ · เก็บไว้เอง\nเลขอ้างอิง ' + r.batch_id
       : 'สร้างชุด ' + r.batch_id + ' · ' + r.count + ' ใบ';
     if (r.already && r.already.length) msg += '\nส่งไปแล้ว ' + r.already.length + ' ใบ (ข้าม)';
@@ -766,7 +851,7 @@ $('btnCreate').addEventListener('click', async () => {
 
     /* เก็บไว้เองไม่ต้องมีใบปะหน้า เพราะไม่มีใครรับ
        พิมพ์ไปก็เปลืองกระดาษและทำให้สับสนว่าต้องส่งให้ใคร */
-    if (keptSelf) { load(); return; }
+    if (keep) { load(); return; }
 
     showCover(r);
   } catch (e) {
