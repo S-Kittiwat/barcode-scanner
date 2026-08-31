@@ -269,6 +269,8 @@ tr.lv-critical td:first-child{box-shadow:inset 3px 0 0 var(--warn)}
   border-radius:var(--rs);color:var(--text);padding:8px 11px;
   font-family:var(--font);font-size:13px}
 .filters input{min-width:210px}
+/* ช่องวันที่แคบกว่าช่องค้นหา และปรับสีปุ่มปฏิทินให้เข้ากับธีมมืด */
+.filters input[type=date]{min-width:auto;width:140px;color-scheme:dark}
 .grow{flex:1}
 
 .blist{display:flex;flex-direction:column;gap:11px}
@@ -276,7 +278,7 @@ tr.lv-critical td:first-child{box-shadow:inset 3px 0 0 var(--warn)}
 .bcard{background:var(--surface);border:1px solid var(--border);
   border-radius:var(--r);padding:14px 16px}
 .bcard.cancelled{opacity:.6;border-style:dashed}
-.bcard.received{border-color:rgba(52,211,153,.4)}
+.bcard.received,.bcard.kept{border-color:rgba(52,211,153,.4)}
 
 .bc-top{display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap}
 .bc-id{font-family:var(--mono);font-size:17px;font-weight:700}
@@ -323,8 +325,21 @@ tr.lv-critical td:first-child{box-shadow:inset 3px 0 0 var(--warn)}
       <option value="">ทุกสถานะ</option>
       <option value="sent">ส่งแล้ว รอปลายทางรับ</option>
       <option value="received">ปลายทางรับแล้ว</option>
+      <option value="kept">เก็บไว้เอง</option>
       <option value="cancelled">ยกเลิกแล้ว</option>
     </select>
+
+    <!-- คนจำจากวันที่ตัวเองส่งออกไป จึงต้องกรองด้วยวันที่ได้ -->
+    <select id="fDate">
+      <option value="">ทุกวัน</option>
+      <option value="0">วันนี้</option>
+      <option value="1">เมื่อวาน</option>
+      <option value="7">7 วันล่าสุด</option>
+      <option value="30">30 วันล่าสุด</option>
+      <option value="pick">ระบุวันเอง…</option>
+    </select>
+    <input type="date" id="fFrom" style="display:none" title="ตั้งแต่วันที่">
+    <input type="date" id="fTo" style="display:none" title="ถึงวันที่">
     <div class="grow"></div>
     <span class="hint" id="cnt"></span>
     <button class="btn ghost" id="btnReload">รีเฟรช</button>
@@ -414,11 +429,52 @@ async function load() {
   }
 }
 
-/** สถานะของชุด — ใช้ทั้งกรองและแสดงป้าย */
+/** สถานะของชุด — ใช้ทั้งกรองและแสดงป้าย
+ *
+ * เก็บไว้เองแยกจากรับแล้ว เพราะความหมายต่างกัน
+ * รับแล้ว = ปลายทางอีกที่หนึ่งรับไป
+ * เก็บเอง = จัดส่งเก็บไว้เอง ไม่ได้ส่งไปไหน
+ */
 function statusOf(b) {
   if (String(b.status || '') === 'cancelled') return 'cancelled';
+  if (b.channel === 'keep_self') return 'kept';
   if (b.received_at) return 'received';
   return 'sent';
+}
+
+/** เริ่มต้นวัน — ใช้เทียบช่วงวันโดยไม่สนเวลา */
+function dayStart(v) {
+  const d = new Date(v);
+  if (isNaN(d.getTime())) return null;
+  d.setHours(0, 0, 0, 0);
+  return d.getTime();
+}
+
+/** ชุดนี้อยู่ในช่วงวันที่เลือกไหม */
+function inDateRange(b) {
+  const mode = $('fDate').value;
+  if (!mode) return true;
+
+  const t = dayStart(b.created_at);
+  if (t == null) return false;
+
+  if (mode === 'pick') {
+    /* ระบุเองแล้วยังไม่กรอก ให้ผ่านไปก่อน
+       ไม่งั้นรายการจะหายหมดตอนเพิ่งเลือกโหมด */
+    const f = $('fFrom').value ? dayStart($('fFrom').value) : null;
+    const to = $('fTo').value ? dayStart($('fTo').value) : null;
+    if (f != null && t < f) return false;
+    if (to != null && t > to) return false;
+    return true;
+  }
+
+  const today = dayStart(new Date());
+  const n = Number(mode);
+
+  // เมื่อวานคือวันเดียว ไม่ใช่ช่วง จึงเทียบแบบเท่ากับ
+  if (n === 1) return t === today - 86400000;
+
+  return t >= today - n * 86400000 && t <= today;
 }
 
 function shown() {
@@ -426,6 +482,7 @@ function shown() {
   const st = $('fStatus').value;
   return batches.filter(b => {
     if (st && statusOf(b) !== st) return false;
+    if (!inDateRange(b)) return false;
     if (!q) return true;
     return String(b.batch_id).toUpperCase().includes(q) ||
            String(b.receiver || '').toUpperCase().includes(q) ||
@@ -463,13 +520,19 @@ function cardHtml(b) {
   const st = statusOf(b);
   const badge = st === 'cancelled'
       ? '<span class="bc-badge cx">ยกเลิกแล้ว</span>'
+    : st === 'kept'
+      ? '<span class="bc-badge got">เก็บไว้เอง · ปิดงานแล้ว</span>'
     : st === 'received'
       ? '<span class="bc-badge got">ปลายทางรับแล้ว ' + fmt(b.received_at) + '</span>'
       : '<span class="bc-badge sent">รอปลายทางรับ</span>';
 
-  /* ยกเลิกได้เฉพาะชุดที่ยังไม่ถูกรับ
-     ถ้ารับไปแล้วต้องให้ปลายทางจัดการ ไม่ใช่ต้นทางย้อนเอง */
-  const canCancel = st === 'sent';
+  /* ยกเลิกได้ถ้าของยังอยู่กับเรา
+   *
+   * รอปลายทางรับ  ยกเลิกได้ ของยังไม่ถึงมือใคร
+   * เก็บไว้เอง     ยกเลิกได้ ของอยู่กับจัดส่งเอง
+   * ปลายทางรับแล้ว ยกเลิกไม่ได้ ต้องให้ปลายทางจัดการ
+   */
+  const canCancel = st === 'sent' || st === 'kept';
 
   return `<div class="bcard ${st}">
     <div class="bc-top">
@@ -480,7 +543,8 @@ function cardHtml(b) {
       ${badge}
       <div class="bc-act">
         <button class="btn ghost sm" data-refs="${esc(b.batch_id)}">ดูรายการ</button>
-        <button class="btn ghost sm" data-print="${esc(b.batch_id)}">พิมพ์ใบส่งมอบ</button>
+        ${st === 'kept' ? ''
+          : `<button class="btn ghost sm" data-print="${esc(b.batch_id)}">พิมพ์ใบส่งมอบ</button>`}
         ${canCancel
           ? `<button class="btn ghost sm" data-cancel="${esc(b.batch_id)}"
                      style="color:var(--danger)">ยกเลิก</button>` : ''}
@@ -489,8 +553,10 @@ function cardHtml(b) {
 
     <div class="bc-meta">
       <div><div class="bk">ต้นทาง</div><div class="bv">${esc(b.from_site || '—')}</div></div>
-      <div><div class="bk">คลังปลายทาง</div><div class="bv">${esc(b.to_site || '—')}</div></div>
-      <div><div class="bk">ผู้รับ</div><div class="bv">${esc(b.receiver || '—')}</div></div>
+      <div><div class="bk">${st === 'kept' ? 'เก็บไว้ที่' : 'คลังปลายทาง'}</div>
+        <div class="bv">${esc(b.to_site || '—')}</div></div>
+      <div><div class="bk">${st === 'kept' ? 'ผู้เก็บ' : 'ผู้รับ'}</div>
+        <div class="bv">${esc(b.receiver || '—')}</div></div>
       <div><div class="bk">ช่องทาง</div><div class="bv">${
         esc(CHANNEL_LABEL[b.channel] || b.channel || '—')}${
         b.vehicle ? ' · ' + esc(b.vehicle) : ''}</div></div>
@@ -543,7 +609,16 @@ async function reprint(id) {
 }
 
 $('btnReload').addEventListener('click', load);
-['q', 'fStatus'].forEach(id => $(id).addEventListener('input', render));
+['q', 'fStatus', 'fFrom', 'fTo'].forEach(id =>
+  $(id).addEventListener('input', render));
+
+// ช่องระบุวันโผล่เฉพาะตอนเลือกโหมดนั้น
+$('fDate').addEventListener('change', () => {
+  const pick = $('fDate').value === 'pick';
+  $('fFrom').style.display = pick ? '' : 'none';
+  $('fTo').style.display = pick ? '' : 'none';
+  render();
+});
 
 load();
 
