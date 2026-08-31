@@ -3,1238 +3,700 @@
 <head>
 <meta charset="UTF-8">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230f172a'/%3E%3Crect x='8' y='6' width='16' height='20' rx='2' fill='%23f1f5f9'/%3E%3Crect x='11' y='10' width='2' height='12' fill='%230f172a'/%3E%3Crect x='14.5' y='10' width='1' height='12' fill='%230f172a'/%3E%3Crect x='17' y='10' width='2' height='12' fill='%230f172a'/%3E%3Crect x='20.5' y='10' width='1' height='12' fill='%230f172a'/%3E%3C/svg%3E">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>DocScan — ประวัติการรับส่งเอกสาร</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DocScan — ติดตามเอกสาร</title>
 <script src="config.js"></script>
-<script src="vendor/JsBarcode.all.min.js"></script>
+<link rel="stylesheet" href="css/auth.css">
 <style>
-/* ── Print Handover Sheet ── */
-@media print {
-  @page { size: A4 portrait; margin: 10mm 12mm; }
-  body > *:not(#printArea) { display:none !important; }
-  #printArea {
-    display:block !important;
-    background:#fff !important;
-    color:#000 !important;
-    -webkit-print-color-adjust:exact !important;
-    print-color-adjust:exact !important;
-  }
-  #printArea * { color:#000 !important; }
-  #printArea .hs-table th { background:#e8e8e8 !important; }
-  #printArea .hs-table tbody tr:nth-child(even) td { background:#f5f5f5 !important; }
+  body{display:block;padding:0;align-items:stretch}
+  .wrap{max-width:1340px;margin:0 auto;padding:22px 24px 90px}
+
+  .topbar{background:var(--surface);border-bottom:1px solid var(--border);
+    padding:12px 24px;display:flex;align-items:center;gap:18px;flex-wrap:wrap;
+    position:sticky;top:0;z-index:20}
+  .topbar .back{color:var(--accent);text-decoration:none;font-size:13.5px}
+  .tb-title{border-left:1px solid var(--border);padding-left:18px}
+  .tb-name{font-size:16px;font-weight:600}
+  .tb-sub{font-size:12px;color:var(--muted);margin-top:1px}
+  .tb-user{margin-left:auto;text-align:right;font-size:12.5px}
+  .tb-site{font-size:11.5px;color:var(--muted);font-family:var(--mono)}
+
+  /* ช่องค้นหาเป็นพระเอกของหน้านี้ */
+  .hero{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+    padding:22px;margin-bottom:16px}
+  .srow{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  .sbox{flex:1;min-width:280px;position:relative}
+  .sbox input{width:100%;background:var(--surface2);border:1.5px solid var(--accent);
+    border-radius:10px;color:var(--text);font-family:var(--mono);font-size:19px;
+    padding:15px 15px 15px 48px;letter-spacing:.05em;outline:none}
+  .sbox .mag{position:absolute;left:16px;top:50%;transform:translateY(-50%);font-size:18px;opacity:.7}
+  .btn{border:none;border-radius:var(--rs);padding:14px 24px;font-family:var(--font);
+    font-size:14.5px;font-weight:600;cursor:pointer;background:var(--accent);color:#0f172a}
+  .btn.ghost{background:transparent;border:1px solid var(--border);color:var(--text);
+    font-weight:400;padding:10px 16px;font-size:13px}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+  /* ตะกร้า */
+.csum .cw{color:var(--warn)} .csum .cbad{color:var(--danger)}
+.cfoot .btn{width:100%;padding:11px}
+body.cart-on .wrap{padding-right:324px}
+
+/* กล่องวางรายการ */
+#dlgPaste{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+  color:var(--text);padding:22px;max-width:520px;width:92vw;margin:auto;inset:0}
+#dlgPaste::backdrop{background:rgba(15,23,42,.82)}
+#pasteBox{width:100%;height:210px;background:var(--surface2);border:1px solid var(--border);
+  border-radius:var(--rs);color:var(--text);font-family:var(--mono);font-size:13.5px;
+  padding:12px;resize:vertical;line-height:1.8}
+.hint{font-size:12.5px;color:var(--muted);margin-top:12px;line-height:1.7}
+  .hint code{font-family:var(--mono);color:var(--accent);background:var(--surface2);
+    padding:1px 7px;border-radius:4px;cursor:pointer}
+
+    .fld{display:flex;flex-direction:column;gap:5px}
+  .fld label{font-size:11.5px;color:var(--muted)}
+  .fld select,.fld input{background:var(--surface2);border:1px solid var(--border);
+    border-radius:var(--rs);color:var(--text);font-family:var(--font);font-size:13px;padding:8px 11px}
+
+  .kpis{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));margin-bottom:16px}
+  .kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px}
+  .kpi .n{font-family:var(--mono);font-size:25px;font-weight:600;line-height:1.15}
+  .kpi .k{font-size:11.5px;color:var(--muted);margin-top:3px;line-height:1.45}
+  .kpi.bad{border-color:rgba(248,113,113,.5)} .kpi.bad .n{color:var(--danger)}
+  .kpi.warn .n{color:var(--warn)} .kpi.ok .n{color:var(--success)}
+  .kpi.click{cursor:pointer} .kpi.click:hover{border-color:var(--accent)}
+
+  .rhead{display:flex;align-items:baseline;gap:12px;margin-bottom:10px;flex-wrap:wrap}
+  .rhead h2{font-size:14px;font-weight:600}
+  .rhead .c{font-size:12.5px;color:var(--muted);font-family:var(--mono)}
+  .rhead .r{margin-left:auto;display:flex;gap:10px;align-items:center}
+
+  .tw{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{text-align:left;font-size:10.5px;font-family:var(--mono);letter-spacing:.1em;
+    text-transform:uppercase;color:var(--muted);padding:11px 14px;background:var(--surface2);
+    border-bottom:1px solid var(--border);white-space:nowrap}
+  td{padding:12px 14px;border-bottom:1px solid var(--border);vertical-align:middle}
+  tbody tr.main{cursor:pointer}
+  tbody tr.main:hover td{background:var(--surface2)}
+  tbody tr.main.open td{background:var(--surface2)}
+  .mono{font-family:var(--mono)}
+  .ref{font-family:var(--mono);font-size:14px;font-weight:600;letter-spacing:.03em}
+  .sub{font-size:11px;color:var(--muted);font-family:var(--mono);margin-top:2px}
+
+  .pill{display:inline-block;font-size:10.5px;font-family:var(--mono);padding:2px 9px;
+    border-radius:11px;border:1px solid;white-space:nowrap}
+  .p-ok{color:var(--success);border-color:var(--success)}
+  .p-warn{color:var(--warn);border-color:var(--warn)}
+  .p-bad{color:var(--danger);border-color:var(--danger)}
+  .p-mute{color:var(--muted);border-color:var(--border)}
+
+  /* จุดบอกความคืบหน้า อ่านเร็วกว่าตัวหนังสือเมื่อกวาดสายตาทั้งตาราง */
+  .flow{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);margin-top:4px}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--border);flex-shrink:0}
+  .dot.on{background:var(--success)} .dot.now{background:var(--accent)}
+  .dot.late{background:var(--danger)}
+
+  .detail td{background:#16202f;padding:0}
+  .dwrap{padding:20px 24px;display:grid;gap:26px;grid-template-columns:1.15fr 1fr}
+  .dsec h4{font-size:11px;font-family:var(--mono);letter-spacing:.11em;text-transform:uppercase;
+    color:var(--muted);margin-bottom:11px}
+  .kv{display:grid;grid-template-columns:120px 1fr;gap:7px 14px;font-size:13px}
+  .kv .k{color:var(--muted)}
+  .tl{border-left:2px solid var(--border);padding-left:16px;margin-left:5px}
+  .ev{position:relative;padding-bottom:15px;font-size:12.5px}
+  .ev:last-child{padding-bottom:0}
+  .ev::before{content:'';position:absolute;left:-22px;top:4px;width:9px;height:9px;
+    border-radius:50%;background:var(--success);border:2px solid var(--bg)}
+  .ev .t{font-family:var(--mono);font-size:11px;color:var(--muted)}
+  .ev .who{font-size:11.5px;color:var(--muted)}
+  .boxcard{background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);
+    padding:13px 15px;margin-top:12px;display:flex;gap:13px;align-items:center}
+  .boxcard img{width:62px;height:62px;object-fit:cover;border-radius:6px;flex-shrink:0;
+    cursor:zoom-in;border:1px solid var(--border)}
+  .boxcard .ph{width:62px;height:62px;border-radius:6px;background:var(--bg);flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;font-size:21px}
+  .boxcard .bid{font-family:var(--mono);font-size:13.5px;font-weight:600}
+  .boxcard .bl{font-size:12px;color:var(--muted);margin-top:3px;line-height:1.55}
+  .dacts{display:flex;gap:9px;margin-top:14px;flex-wrap:wrap}
+  .dacts a{text-decoration:none;display:inline-block}
+
+  .empty{color:var(--muted);font-size:13.5px;padding:34px;text-align:center;
+    border:1px dashed var(--border);border-radius:var(--r);line-height:1.8}
+  .empty b{color:var(--text);display:block;margin-bottom:6px;font-size:15px}
+   }
+
+/* ── หน้าติดตามเอกสาร ── */
+
+.tab b{margin-left:6px;font-family:var(--mono)}
+.empty{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+  padding:38px;text-align:center;color:var(--muted);font-size:13.5px}
+
+.ref{font-family:var(--mono);font-size:13.5px;font-weight:600}
+.sub{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.5}
+.sub.note{color:var(--text);opacity:.75;font-style:italic}
+.bad{color:var(--danger)} .warn{color:var(--warn)} .ok{color:var(--success)}
+tr.lv-over td{background:rgba(248,113,113,.07)}
+tr.lv-over td:first-child{box-shadow:inset 3px 0 0 var(--danger)}
+tr.lv-critical td:first-child{box-shadow:inset 3px 0 0 var(--warn)}
+
+
+#dlgReason{background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r);color:var(--text);padding:20px;max-width:560px;width:94vw;
+  margin:auto;inset:0;max-height:90vh;overflow:auto}
+#dlgReason::backdrop{background:rgba(15,23,42,.82)}
+ .rs-gl.bad{color:var(--danger)}
+ .rs-gl.muted{color:var(--muted)}
+.rs-fld label{display:block;font-size:11.5px;color:var(--muted);margin-bottom:4px}
+.rs-fld input,.rs-fld select{width:100%;background:var(--surface2);
+  border:1px solid var(--border);border-radius:var(--rs);color:var(--text);
+  padding:9px 11px;font-family:var(--font);font-size:13px}
+.rs-act .hint{margin-right:auto;text-align:left}
+
+/* กล่องแจ้งข้อผิดพลาด — ถูกลบไปตอนตัด CSS ที่ไม่เกี่ยว
+   ต้องมี ไม่งั้นข้อความผิดพลาดจะไม่แสดงอะไรเลย */
+.shp-alert{display:none;background:rgba(248,113,113,.1);border:1px solid var(--danger);
+  border-radius:var(--r);padding:12px 15px;margin-bottom:14px;font-size:13px}
+.shp-alert.on{display:block}
+
+/* แถบเตือน */
+.dupbanner{display:none;background:rgba(251,191,36,.1);border:1px solid var(--warn);
+  border-radius:var(--r);padding:12px 15px;margin-bottom:14px;font-size:13px;line-height:1.8}
+.dupbanner.bad{background:rgba(248,113,113,.1);border-color:var(--danger)}
+
+/* แถวที่ระบบยังไม่รู้จักไซต์ — ต้องเห็นชัดว่าต่างจากแถวปกติ */
+
+/* ตะกร้าเอกสารที่เลือก */
+.btn.sm{padding:4px 10px;font-size:12px}
+
+/* ── หน้าส่งเอกสารตัวจริง ── */
+
+
+
+
+
+/* ใบปะหน้า — ต้องพิมพ์ออกมาแล้วอ่านง่ายบนกระดาษขาว
+   จึงใช้สีตรงข้ามกับหน้าจอ ไม่ใช่สีเดียวกัน */
+
+@media print{
+  body>*:not(.cover-wrap){display:none !important}
+  .cover-wrap,.cover{display:block !important;margin:0;padding:0}
+  .cover{box-shadow:none;border-radius:0}
+  .noprint{display:none !important}
 }
-#printArea{
-  display:none;
-  font-family:'IBM Plex Sans Thai','Sarabun',sans-serif;
-  color:#000;
-  background:#fff;
-  padding:10mm 12mm;
-  width:100%;
+.bldtag{position:fixed;right:8px;bottom:6px;z-index:5;font-family:var(--mono);
+  font-size:10px;color:var(--muted);opacity:.5;pointer-events:none}
+@media print{.bldtag{display:none}}
+
+/* ============================================================
+   ใบส่งมอบเอกสาร
+   ============================================================
+   ออกแบบให้ผู้รับตรวจของได้จากใบนี้โดยไม่ต้องเปิดระบบ
+   ผู้ส่งกับผู้รับแยกกล่องกันชัด แบบใบปะหน้าพัสดุ
+   ============================================================ */
+.cover-wrap{display:none;max-width:1000px;margin:0 auto;padding:20px 24px 80px}
+.cover{background:#fff;color:#111;border-radius:8px;padding:26px 30px;
+  font-family:'IBM Plex Sans Thai',system-ui,sans-serif;line-height:1.5}
+
+/* หัวเอกสาร — บาร์โค้ดอยู่ซ้ายสุด */
+.cover .hd{display:flex;align-items:flex-start;gap:20px;
+  padding-bottom:14px;border-bottom:2px solid #111;margin-bottom:16px}
+.cover .hd-bc{flex:none}
+.cover .hd-bc svg{display:block}
+.cover .hd-tt{flex:1;padding-top:2px}
+.cover .hd-tt h2{margin:0;font-size:21px;font-weight:700;letter-spacing:-.01em}
+.cover .hd-sub{font-size:11.5px;color:#666;margin-top:2px}
+.cover .hd-no{text-align:right;flex:none;min-width:150px}
+.cover .hd-no .k{font-size:9.5px;color:#666;text-transform:uppercase;
+  letter-spacing:.05em}
+.cover .hd-no .v{font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:700}
+.cover .hd-no .v.sm{font-size:11.5px;font-weight:500}
+
+/* ผู้ส่ง / ผู้รับ */
+.cover .pair{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.cover .hs-box{border:1px solid #bbb;border-radius:6px;padding:12px 14px}
+.cover .hs-box.to{border:2px solid #111;background:#fafafa}
+.cover .hs-box-t{font-size:10.5px;font-weight:700;text-transform:uppercase;
+  letter-spacing:.08em;color:#666;padding-bottom:7px;margin-bottom:8px;
+  border-bottom:1px solid #ddd}
+.cover .hs-box.to .hs-box-t{color:#111}
+.cover .row{display:flex;gap:10px;font-size:12.5px;padding:2.5px 0}
+.cover .row .k{width:96px;flex:none;color:#666}
+.cover .row .v{font-weight:600;flex:1}
+.cover .row .v.big{font-size:15px}
+
+.cover .note{border:1px solid #ddd;border-radius:5px;padding:8px 12px;
+  font-size:12px;margin-bottom:14px;background:#fafafa}
+
+/* รายการเอกสาร */
+.cover table.items{width:100%;border-collapse:collapse;margin-bottom:20px;
+  font-size:11.5px}
+.cover .items th,.cover .items td{border:1px solid #ccc;padding:5px 7px;
+  text-align:left;vertical-align:middle}
+.cover .items th{background:#eee;font-weight:600;font-size:10.5px}
+.cover .items td.c{text-align:center}
+.cover .items td.r{text-align:right;font-weight:600}
+.cover .items .mono{font-family:'IBM Plex Mono',monospace;font-weight:600}
+.cover .items .sm{font-size:10.5px}
+.cover .items .ar{color:#999}
+/* ช่องให้ผู้รับติ๊กตอนตรวจนับ */
+.cover .items .chkbox{width:34px}
+.cover .items tbody .chkbox::after{content:'';display:block;width:13px;height:13px;
+  border:1.5px solid #666;margin:0 auto}
+.cover .items tfoot td{background:#f5f5f5;font-weight:700}
+
+/* ลายเซ็น */
+.cover .sign{display:grid;grid-template-columns:1fr 1fr;gap:34px;margin-top:8px}
+.cover .sg{border:1px solid #ddd;border-radius:6px;padding:12px 14px}
+.cover .sg-t{font-size:11.5px;font-weight:700;margin-bottom:16px}
+.cover .ln{border-bottom:1px dotted #999;height:26px;margin-bottom:12px;
+  font-size:10.5px;color:#888}
+.cover .ft{margin-top:22px;padding-top:10px;border-top:1px solid #ddd;
+  font-size:10px;color:#777;text-align:center;line-height:1.7}
+
+.cover-act{display:flex;gap:10px;justify-content:center;margin-top:18px}
+
+@media print{
+  @page{size:A4 portrait;margin:10mm 12mm}
+  body>*:not(.cover-wrap){display:none !important}
+  .cover-wrap{display:block !important;max-width:none;margin:0;padding:0}
+  .cover{border-radius:0;padding:0;box-shadow:none}
+  .noprint{display:none !important}
+  .cover .items{font-size:10.5px}
 }
-body.printing #printArea { display:block; }
-body.printing > *:not(#printArea) { display:none !important; }
-.hs-header{ display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px; border-bottom:2px solid #000; padding-bottom:8px; }
-.hs-title{ font-size:17px; font-weight:700; }
-.hs-sub{ font-size:11px; color:#555; margin-top:3px; }
-.hs-meta{ display:grid; grid-template-columns:repeat(3,1fr); gap:5px 14px; margin-bottom:10px; font-size:12px; }
-.hs-meta-item{ display:flex; gap:5px; }
-.hs-meta-label{ font-weight:600; min-width:90px; }
-.hs-table{ width:100%; border-collapse:collapse; font-size:10.5px; margin-bottom:10px; }
-.hs-table th{ background:#e8e8e8; padding:4px 7px; text-align:left; border:1px solid #bbb; font-size:10px; }
-.hs-table td{ padding:3px 7px; border:1px solid #ccc; vertical-align:top; }
-.hs-table tbody tr:nth-child(even) td{ background:#f7f7f7; }
-.hs-sign{ display:grid; grid-template-columns:1fr 1fr; gap:24px; margin-top:16px; }
-.hs-sign-box{ border-top:1px solid #000; padding-top:6px; font-size:12px; }
-.hs-sign-label{ font-weight:600; margin-bottom:18px; }
-.hs-footer{ font-size:9px; color:#777; text-align:center; margin-top:12px; border-top:1px solid #ccc; padding-top:6px; }
+
+/* ── หน้าชุดที่ส่งไปแล้ว ── */
+.filters{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+.filters input,.filters select{background:var(--surface2);border:1px solid var(--border);
+  border-radius:var(--rs);color:var(--text);padding:8px 11px;
+  font-family:var(--font);font-size:13px}
+.filters input{min-width:210px}
+.grow{flex:1}
+
+.blist{display:flex;flex-direction:column;gap:11px}
+
+.bcard{background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r);padding:14px 16px}
+.bcard.cancelled{opacity:.6;border-style:dashed}
+.bcard.received{border-color:rgba(52,211,153,.4)}
+
+.bc-top{display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.bc-id{font-family:var(--mono);font-size:17px;font-weight:700}
+.bc-when{font-size:11.5px;color:var(--muted);margin-top:2px}
+.bc-badge{font-size:11px;font-weight:600;padding:3px 10px;border-radius:99px;
+  border:1px solid var(--border);color:var(--muted)}
+.bc-badge.sent{border-color:var(--warn);color:var(--warn)}
+.bc-badge.got{border-color:var(--success);color:var(--success)}
+.bc-badge.cx{border-color:var(--danger);color:var(--danger)}
+.bc-act{margin-left:auto;display:flex;gap:7px;flex-wrap:wrap}
+
+.bc-meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));
+  gap:10px;margin-top:12px;padding-top:11px;border-top:1px solid var(--border)}
+.bk{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.bv{font-size:13px;font-weight:600;margin-top:2px}
+
+.bc-refs{margin-top:11px;font-size:11.5px;color:var(--muted);
+  font-family:var(--mono);line-height:1.8;word-break:break-all}
+.bc-note{margin-top:9px;font-size:12px;color:var(--warn);line-height:1.6}
+
+.btn.sm{padding:5px 11px;font-size:12px}
 </style>
-<style>
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
-:root{
-  --bg:#0f172a;--surface:#1e293b;--surface2:#263348;--border:#334155;
-  --accent:#38bdf8;--success:#34d399;--warn:#fbbf24;--danger:#f87171;
-  --text:#f1f5f9;--muted:#94a3b8;
-  --font:'IBM Plex Sans Thai',sans-serif;--mono:'IBM Plex Mono',monospace;
-  --r:12px;--rs:8px;
-}
-*{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;font-size:15px;}
-
-/* ── Sidebar ── */
-.sidebar{width:var(--sidebar);flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:200;}
-.sidebar-brand{padding:20px 20px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
-.brand-icon{width:36px;height:36px;background:var(--warn);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-.brand-name{font-size:14px;font-weight:600;}.brand-sub{font-size:10px;color:var(--muted);}
-.sidebar-user{padding:14px 16px;border-bottom:1px solid var(--border);background:var(--surface2);}
-.user-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.user-role{font-size:11px;color:var(--warn);margin-top:2px;}
-.sidebar-nav{flex:1;padding:12px 8px;display:flex;flex-direction:column;gap:4px;}
-.nav-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;padding:8px 8px 4px;font-weight:500;}
-.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--rs);text-decoration:none;color:var(--muted);font-size:13px;font-weight:500;transition:background .15s,color .15s;}
-.nav-item:hover{background:var(--surface2);color:var(--text);}
-.nav-item.active{background:rgba(251,191,36,.1);color:var(--warn);border:1px solid rgba(251,191,36,.2);}
-.nav-icon{font-size:16px;flex-shrink:0;}
-.sidebar-footer{padding:12px 8px;border-top:1px solid var(--border);}
-.logout-btn{display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:var(--rs);cursor:pointer;color:var(--muted);font-size:13px;background:none;border:none;width:100%;font-family:var(--font);transition:color .15s,background .15s;}
-.logout-btn:hover{color:var(--danger);background:rgba(248,113,113,.08);}
-
-/* ── Page ── */
-/* ── Top Navbar ── */
-.nav-bar{position:fixed;top:0;left:0;right:0;height:52px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:0;z-index:1000;}
-.nav-brand{display:flex;align-items:center;gap:10px;margin-right:24px;text-decoration:none;}
-.nav-brand-icon{width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-.nav-brand-name{font-size:14px;font-weight:700;color:var(--text);}
-.nav-brand-sub{font-size:10px;color:var(--muted);margin-top:1px;}
-.nav-pages{display:flex;gap:0;flex:1;}
-.nav-link{display:flex;align-items:center;gap:6px;padding:0 16px;height:52px;background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-family:var(--font);font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap;transition:all .15s;text-decoration:none;}
-.nav-link:hover{color:var(--text);}
-.nav-link.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:600;}
-.nav-user{display:flex;align-items:center;gap:8px;margin-left:auto;padding-left:16px;border-left:1px solid var(--border);}
-.nav-user-name{font-size:12px;color:var(--text);font-weight:500;}
-.nav-user-site{font-size:11px;color:var(--muted);}
-.nav-logout{background:none;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:5px 10px;font-family:var(--font);font-size:11px;cursor:pointer;margin-left:8px;}
-.nav-logout:hover{border-color:var(--danger);color:var(--danger);}
-.page-wrap{margin-top:52px;flex:1;display:flex;flex-direction:column;min-height:100vh;}
-.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:52px;z-index:100;}
-.topbar-title{font-size:15px;font-weight:600;}.topbar-sub{font-size:11px;color:var(--muted);margin-top:2px;}
-.content{padding:24px;flex:1;}
-
-/* ── Tabs ── */
-.tab-bar{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:20px;}
-.tab-btn{padding:10px 24px;font-family:var(--font);font-size:13px;font-weight:500;background:none;border:none;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:color .15s,border-color .15s;display:flex;align-items:center;gap:8px;}
-.tab-btn:hover{color:var(--text);}
-.tab-btn.active{color:var(--warn);border-bottom-color:var(--warn);}
-.tab-btn .tab-count{background:var(--surface2);border:1px solid var(--border);font-size:10px;font-weight:600;padding:1px 7px;border-radius:20px;font-family:var(--mono);}
-.tab-btn.active .tab-count{background:rgba(251,191,36,.15);border-color:rgba(251,191,36,.3);color:var(--warn);}
-
-/* ── Filter bar ── */
-.filter-bar{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;margin-bottom:16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
-.f-input{background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);color:var(--text);font-family:var(--font);font-size:13px;padding:7px 12px;outline:none;}
-.f-input:focus{border-color:var(--warn);}
-.f-input::placeholder{color:var(--muted);}
-.f-input.mono{font-family:var(--mono);}
-.f-clear{background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;padding:4px 8px;border-radius:var(--rs);font-family:var(--font);}
-.f-clear:hover{color:var(--danger);}
-.export-btn{margin-left:auto;background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.3);color:var(--success);border-radius:var(--rs);padding:7px 14px;font-family:var(--font);font-size:12px;cursor:pointer;white-space:nowrap;}
-.export-btn:hover{background:rgba(52,211,153,.2);}
-
-/* ── Table ── */
-.table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;}
-.table-wrap table{width:100%;border-collapse:collapse;}
-.table-wrap th{background:var(--surface2);padding:9px 14px;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;}
-.table-wrap td{padding:10px 14px;font-size:12px;border-bottom:1px solid var(--border);vertical-align:middle;}
-.table-wrap tr:last-child td{border-bottom:none;}
-.table-wrap tr:hover td{background:rgba(255,255,255,.02);}
-.mono{font-family:var(--mono);}
-.badge-delivery{background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.3);color:var(--warn);font-size:10px;padding:2px 8px;border-radius:20px;white-space:nowrap;}
-.badge-warehouse{background:rgba(56,189,248,.12);border:1px solid rgba(56,189,248,.3);color:var(--accent);font-size:10px;padding:2px 8px;border-radius:20px;white-space:nowrap;}
-.expand-btn{background:none;border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:3px 10px;font-size:11px;cursor:pointer;font-family:var(--font);white-space:nowrap;}
-.expand-btn:hover{border-color:var(--warn);color:var(--warn);}
-
-/* ── Detail rows ── */
-.detail-row{display:none;}
-.detail-row.open{display:table-row;}
-.detail-inner{padding:0;background:var(--surface2);}
-.detail-table{width:100%;border-collapse:collapse;}
-.detail-table th{background:rgba(0,0,0,.2);padding:7px 14px;font-size:10px;color:var(--muted);text-align:left;border-bottom:1px solid var(--border);}
-.detail-table td{padding:7px 14px;font-size:11px;border-bottom:1px solid rgba(255,255,255,.04);color:var(--muted);}
-.detail-table tr:last-child td{border-bottom:none;}
-
-/* ── States ── */
-.loading{text-align:center;padding:48px;color:var(--muted);font-size:13px;}
-.empty{text-align:center;padding:48px;color:var(--muted);font-size:13px;}
-.spinner{width:18px;height:18px;border:2px solid rgba(251,191,36,.3);border-top-color:var(--warn);border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:8px;}
-@keyframes spin{to{transform:rotate(360deg);}}
-
-/* ── Modal ── */
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:500;display:none;align-items:center;justify-content:center;padding:20px;}
-.modal-overlay.open{display:flex;}
-.modal-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);width:100%;max-width:460px;overflow:hidden;}
-.modal-head{padding:18px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
-.modal-title{font-size:15px;font-weight:600;}
-.modal-close{background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;line-height:1;padding:0 4px;}
-.modal-close:hover{color:var(--danger);}
-.modal-body{padding:20px;}
-.modal-label{font-size:12px;color:var(--muted);margin-bottom:6px;display:block;font-weight:500;}
-.modal-select{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);color:var(--text);font-family:var(--font);font-size:14px;padding:10px 12px;outline:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;cursor:pointer;margin-bottom:16px;}
-.modal-select:focus{border-color:var(--accent);}
-.modal-select option{background:var(--surface2);}
-.modal-summary{background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);padding:12px 14px;margin-bottom:16px;font-size:12px;line-height:1.8;}
-.modal-summary strong{color:var(--text);}
-.modal-foot{display:flex;gap:10px;}
-.modal-cancel{flex:1;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:var(--rs);padding:11px;font-family:var(--font);font-size:13px;cursor:pointer;}
-.modal-confirm{flex:2;background:var(--accent);border:none;color:#0f172a;border-radius:var(--rs);padding:11px;font-family:var(--font);font-size:14px;font-weight:700;cursor:pointer;}
-.modal-confirm:disabled{opacity:.35;cursor:not-allowed;}
-.modal-cancel-btn{flex:1;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:var(--rs);padding:10px;font-family:var(--font);font-size:13px;cursor:pointer;}
-.modal-confirm-btn{flex:2;background:var(--accent);border:none;color:#0f172a;border-radius:var(--rs);padding:10px;font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer;}
-.modal-confirm-btn:disabled{opacity:.35;cursor:not-allowed;}
-
-.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-80px);background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);padding:12px 20px;font-size:13px;transition:transform .3s;z-index:600;white-space:nowrap;box-shadow:0 8px 24px rgba(0,0,0,.4);}
-.toast.show{transform:translateX(-50%) translateY(0);}
-.toast.success{border-color:rgba(52,211,153,.4);color:var(--success);}
-.toast.error{border-color:rgba(248,113,113,.4);color:var(--danger);}
-.toast.info{border-color:rgba(56,189,248,.4);color:var(--accent);}
-</style>
-<script type="module">
-// ── โมดูลร่วม DocScan ────────────────────────────────────
-// module script ทำงานหลัง classic script แต่ก่อน window.onload
-// โค้ดเดิมเรียก requireAuth ใน window.onload จึงปลอดภัย
-import { apiFetch, uploadBatch, newClientId } from './js/api.js';
-import { parseCSV, buildIndex, searchCSV, classify } from './js/csv.js';
-import { parseDateInput, toDisplayDate, toInputDate, todayISO } from './js/date.js';
-import { requireAuth, authFetch, authGet, authGetText, logout, loadSession, daysLeft, AUTH_JS_VERSION } from './js/auth.js';
-import { installNav, guardPage, homeFor as navHome } from './js/nav.js';
-import { installRefBar } from './js/refstatus.js';
-import { installSupport, installErrorCapture } from './js/support.js';
-
-window.DocScan = {
-  apiFetch, authFetch, authGet, authGetText, uploadBatch, newClientId,
-  parseCSV, buildIndex, searchCSV, classify,
-  parseDateInput, toDisplayDate, toInputDate, todayISO,
-  requireAuth, logout, loadSession, daysLeft, AUTH_JS_VERSION,
-  installNav, guardPage, navHome, installRefBar, installSupport, installErrorCapture
-};
-// ประทับเลขเวอร์ชันไว้ให้หาเวลาผู้ใช้แจ้งปัญหา
-document.documentElement.setAttribute('data-docscan-version',
-  (window.DOCSCAN_CONFIG && DOCSCAN_CONFIG.VERSION) || '');
-window.dispatchEvent(new Event('docscan-ready'));
-</script>
 </head>
 <body>
 
-<!-- Sidebar -->
-<!-- Page -->
-<nav class="nav-bar">
-  <a class="nav-brand" href="delivery.html">
-    <div class="nav-brand-icon">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0f172a" stroke-width="2.5">
-        <rect x="3" y="4" width="3" height="16" rx="1"/><rect x="8" y="4" width="1.5" height="16" rx=".5"/>
-        <rect x="11" y="4" width="3" height="16" rx="1"/><rect x="16" y="4" width="1.5" height="16" rx=".5"/>
-        <rect x="19" y="4" width="2" height="16" rx="1"/>
-      </svg>
-    </div>
-    <div><div class="nav-brand-name">DocScan</div><div class="nav-brand-sub">Pallet Tracking</div></div>
-  </a>
-  <div class="nav-pages">
-  <a class="nav-link" href="delivery.html">📥 รับจากขนส่ง</a>
-  <a class="nav-link active" href="delivery_batches.html">📋 ประวัติ Batch</a>
+<div class="topbar noprint">
+  <a class="back" href="home.html">← หน้าหลัก</a>
+  <div class="tb-title">
+    <div class="tb-name">ชุดที่ส่งไปแล้ว</div>
+    <div class="tb-sub" id="scopeInfo">ตรวจสอบ ยกเลิก และพิมพ์ใบส่งมอบซ้ำ</div>
   </div>
-  <div class="nav-user">
-    <div>
-      <div class="nav-user-name" id="sidebarName">—</div>
-      <div class="nav-user-site" id="sidebarSite">—</div>
-    </div>
-    <button class="nav-logout" onclick="logout()">↩ ออก</button>
-  </div>
-</nav>
-
-<div class="page-wrap">
-  <div class="topbar">
-    <div>
-      <div class="topbar-title">ประวัติการรับส่งเอกสาร</div>
-      <div class="topbar-sub" id="topbarSub">—</div>
-    </div>
-    <button class="export-btn" onclick="exportCSV()" style="background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.3);color:var(--success);border-radius:var(--rs);padding:7px 14px;font-family:var(--font);font-size:13px;cursor:pointer;">
-      ⬇ Export CSV
-    </button>
-  </div>
-
-  <div class="content">
-
-    <!-- Tabs -->
-    <div class="tab-bar">
-      <button class="tab-btn active" id="tab1Btn" onclick="switchTab(1)">
-        📋 รายการค้างส่ง
-        <span class="tab-count" id="tab1Count">—</span>
-      </button>
-      <button class="tab-btn" id="tab2Btn" onclick="switchTab(2)">
-        🚛 รายการระหว่างทาง
-        <span class="tab-count" id="tab2Count">—</span>
-      </button>
-      <button class="tab-btn" id="tab3Btn" onclick="switchTab(3)">
-        ✅ รายการรับแล้ว
-        <span class="tab-count" id="tab3Count">—</span>
-      </button>
-      <button class="tab-btn" id="tab4Btn" onclick="switchTab(4)">
-        ⚠️ รายการแก้ไข
-        <span class="tab-count" id="tab4Count">—</span>
-      </button>
-    </div>
-
-    <!-- Tab 1: รับเอกสาร (with_delivery) -->
-    <div id="tab1Panel">
-      <div class="filter-bar">
-        <input class="f-input mono" id="f1BatchId" placeholder="Batch No. เช่น DEL-20260605-001" style="width:240px;" oninput="applyFilter1()">
-        <input class="f-input" type="date" id="f1Date" onchange="applyFilter1()" title="วันที่รับเอกสาร">
-        <button class="f-clear" onclick="clearFilter1()">✕ ล้าง</button>
-        <span id="f1Result" style="font-size:12px;color:var(--muted);"></span>
-      </div>
-      <div id="table1Wrap">
-        <div class="loading"><span class="spinner"></span>กำลังโหลด...</div>
-      </div>
-    </div>
-
-    <!-- Tab 2: ส่งเอกสาร (with_warehouse) -->
-    <div id="tab2Panel" style="display:none;">
-      <div class="filter-bar">
-        <input class="f-input mono" id="f2BatchId" placeholder="Batch No. เช่น DEL-20260605-001" style="width:240px;" oninput="applyFilter2()">
-        <input class="f-input" type="date" id="f2Date" onchange="applyFilter2()" title="วันที่ส่งเอกสาร">
-        <button class="f-clear" onclick="clearFilter2()">✕ ล้าง</button>
-        <span id="f2Result" style="font-size:12px;color:var(--muted);"></span>
-      </div>
-      <div id="table2Wrap">
-        <div class="loading"><span class="spinner"></span>กำลังโหลด...</div>
-      </div>
-    </div>
-
-    <!-- Tab 3: รายการรับแล้ว -->
-    <div id="tab3Panel" style="display:none;">
-      <div class="filter-bar">
-        <input class="f-input mono" id="f3BatchId" placeholder="Batch No." style="width:240px;" oninput="applyFilter3()">
-        <input class="f-input" type="date" id="f3Date" onchange="applyFilter3()">
-        <button class="f-clear" onclick="clearFilter3()">✕ ล้าง</button>
-        <span id="f3Result" style="font-size:12px;color:var(--muted);"></span>
-      </div>
-      <div id="table3Wrap">
-        <div class="loading"><span class="spinner"></span>กำลังโหลด...</div>
-      </div>
-    </div>
-
-    <!-- Tab 4: รายการแก้ไข -->
-    <div id="tab4Panel" style="display:none;">
-      <div class="filter-bar">
-        <input class="f-input mono" id="f4BatchId" placeholder="Batch No." style="width:240px;" oninput="applyFilter4()">
-        <input class="f-input" type="date" id="f4Date" onchange="applyFilter4()">
-        <button class="f-clear" onclick="clearFilter4()">✕ ล้าง</button>
-        <span id="f4Result" style="font-size:12px;color:var(--muted);"></span>
-      </div>
-      <div id="table4Wrap">
-        <div class="loading"><span class="spinner"></span>กำลังโหลด...</div>
-      </div>
-    </div>
-<div class="modal-overlay" id="modalOverlay">
-  <div class="modal-box">
-    <div class="modal-head">
-      <div class="modal-title">📦 ส่งเอกสารให้คลังพาเลท</div>
-      <button class="modal-close" onclick="closeModal()">×</button>
-    </div>
-    <div class="modal-body">
-      <label class="modal-label">เลือกคลังปลายทาง</label>
-      <select class="modal-select" id="warehouseSelect" onchange="checkModal()">
-        <option value="">— กรุณาเลือกคลัง —</option>
-        <optgroup label="คลังสินค้า">
-          <option>RDC-ขอนแก่น</option><option>RDC-ลำพูน</option>
-          <option>RDC-สุราษฎร์ธานี</option><option>คลังชลบุรี</option>
-          <option>คลังทวีวัฒนา</option><option>คลังบางบัวทอง</option>
-          <option>คลังบางบัวทอง 2</option><option>คลังพิษณุโลก</option>
-          <option>คลังมีนบุรี</option><option>NDC-วังน้อย</option>
-          <option>คลังหาดใหญ่</option><option>คลังอุบลราชธานี</option>
-          <option>คลังลาดหลุมแก้ว</option><option>คลังลำไทร (Over Flow)</option>
-        </optgroup>
-      </select>
-      <div class="modal-summary" id="modalSummary">—</div>
-      <div class="modal-foot">
-        <button class="modal-cancel" onclick="closeModal()">ยกเลิก</button>
-        <button class="modal-confirm" id="modalConfirmBtn" onclick="confirmSend()" disabled>📦 ยืนยันส่ง</button>
-      </div>
-    </div>
+  <div class="tb-user">
+    <span id="who">—</span>
+    <div class="tb-site" id="whoSite"></div>
   </div>
 </div>
 
-<!-- Print Area (hidden ยกเว้นตอน print) -->
-<div id="printArea">
-  <div class="hs-header">
-    <div>
-      <div class="hs-title">ใบส่งมอบเอกสาร (Handover Sheet)</div>
-      <div class="hs-sub">DocScan — Pallet Tracking System</div>
-    </div>
-    <div id="hsQR" style="text-align:center;min-width:120px;">
-      <svg id="hsBarcodesvg" style="max-width:160px;"></svg>
-    </div>
+<div class="wrap noprint" id="mainWrap">
+  <div class="shp-alert" id="alert"></div>
+
+  <div class="filters">
+    <input id="q" placeholder="ค้นเลขชุด เลข Reference หรือผู้รับ" autocomplete="off">
+    <select id="fStatus">
+      <option value="">ทุกสถานะ</option>
+      <option value="sent">ส่งแล้ว รอปลายทางรับ</option>
+      <option value="received">ปลายทางรับแล้ว</option>
+      <option value="cancelled">ยกเลิกแล้ว</option>
+    </select>
+    <div class="grow"></div>
+    <span class="hint" id="cnt"></span>
+    <button class="btn ghost" id="btnReload">รีเฟรช</button>
   </div>
-  <div class="hs-meta">
-    <div class="hs-meta-item"><span class="hs-meta-label">Batch ID:</span><span id="hsBatchId">—</span></div>
-    <div class="hs-meta-item"><span class="hs-meta-label">วันที่ส่ง:</span><span id="hsDate">—</span></div>
-    <div class="hs-meta-item"><span class="hs-meta-label">ส่งจาก:</span><span id="hsSite">—</span></div>
-    <div class="hs-meta-item"><span class="hs-meta-label">คลังปลายทาง:</span><span id="hsDest">—</span></div>
-    <div class="hs-meta-item"><span class="hs-meta-label">ผู้ส่ง:</span><span id="hsEmp">—</span></div>
-    <div class="hs-meta-item"><span class="hs-meta-label">จำนวน:</span><span id="hsCount">—</span> ฉบับ</div>
-  </div>
-  <table class="hs-table">
-    <thead><tr><th>#</th><th>Barcode</th><th>Reference</th><th>ประเภท</th><th>โอนจาก → โอนไป</th><th>QTY</th></tr></thead>
-    <tbody id="hsTableBody"></tbody>
-  </table>
-  <div class="hs-sign">
-    <div class="hs-sign-box">
-      <div class="hs-sign-label">ผู้ส่ง (ทีมจัดส่ง)</div>
-      <div>ชื่อ: ................................</div><br>
-      <div>วันที่: ..............................</div>
-    </div>
-    <div class="hs-sign-box">
-      <div class="hs-sign-label">ผู้รับ (ทีมคลังพาเลท)</div>
-      <div>ชื่อ: ................................</div><br>
-      <div>วันที่: ..............................</div>
-    </div>
-  </div>
-  <div class="hs-footer">พิมพ์จากระบบ DocScan — Batch: <span id="hsFooterBatch">—</span> — <span id="hsFooterDate">—</span></div>
+
+  <div class="blist" id="blist"></div>
 </div>
 
-<!-- Resend Modal -->
-<div class="modal-overlay" id="resendOverlay" style="display:none;">
-  <div class="modal-box">
-    <div class="modal-head">
-      <div class="modal-title">📦 ส่งเอกสารซ้ำให้คลัง</div>
-      <button class="modal-close" onclick="closeResendModal()">×</button>
-    </div>
-    <div class="modal-body">
-      <div style="font-size:12px;color:var(--muted);background:var(--surface2);border-radius:var(--rs);padding:10px 12px;margin-bottom:12px;" id="resendInfo"></div>
-      <label class="modal-label">คลังปลายทาง</label>
-      <select class="modal-select" id="resendWarehouse" onchange="checkResend()">
-        <option value="">— กรุณาเลือกคลัง —</option>
-        <optgroup label="คลังสินค้า">
-          <option>RDC-ขอนแก่น</option><option>RDC-ลำพูน</option>
-          <option>RDC-สุราษฎร์ธานี</option><option>คลังชลบุรี</option>
-          <option>คลังทวีวัฒนา</option><option>คลังบางบัวทอง</option>
-          <option>คลังบางบัวทอง 2</option><option>คลังพิษณุโลก</option>
-          <option>คลังมีนบุรี</option><option>NDC-วังน้อย</option>
-          <option>คลังหาดใหญ่</option><option>คลังอุบลราชธานี</option>
-          <option>คลังลาดหลุมแก้ว</option><option>คลังลำไทร (Over Flow)</option>
-        </optgroup>
-      </select>
-    </div>
-    <div class="modal-foot">
-      <button class="modal-cancel-btn" onclick="closeResendModal()">ยกเลิก</button>
-      <button class="modal-confirm-btn" id="resendConfirmBtn" onclick="confirmResend()" disabled>📦 ส่งซ้ำ</button>
-    </div>
-  </div>
-</div>
+<div class="cover-wrap" id="coverWrap" style="display:none"></div>
 
-<div id="toast" class="toast"></div>
+<script type="module">
 
-<script>
-// ── Auth ─────────────────────────────────────────────────
-// ── สะพานไปยังโมดูลร่วม ──────────────────────────────────
-// เก็บชื่อเดิมไว้เพื่อไม่ต้องแก้โค้ดที่เรียกใช้ทั้งไฟล์
-var DocScanAuth = {
-  load: function () { return DocScan.loadSession(); },
-  clear: function () {
-    // ล้างในเครื่องทันที ไม่ต้องรอเซิร์ฟเวอร์ เพราะผู้เรียกมักเปลี่ยนหน้าต่อทันที
-    return DocScan.logout(DOCSCAN_CONFIG.API_URL);
-  },
-  requireAuth: function () {
-    var s = DocScan.requireAuth();
-    if (!s) return null;
-    if (s.mustChangePassword) { location.href = 'change-password.html'; return null; }
-    if (!DocScan.guardPage(s)) return null;
-    DocScan.installNav(s, { onLogout: logout });
-    /* แถบสถานะข้อมูลอ้างอิง — ต้องรู้ก่อนเริ่มทำอะไร
-       ว่าข้อมูลมีไหม เก่าแค่ไหน และเชื่อมเซิร์ฟเวอร์ได้ไหม */
-    try {
-      DocScan.installRefBar(function (a, p) {
-        return apiPost(Object.assign({ action: a }, p || {}));
-      });
-    } catch (e) { console.error('[DocScan] แถบสถานะติดตั้งไม่สำเร็จ', e); }
-    /* เก็บ error ไว้ในเครื่อง และติดปุ่มแจ้งปัญหา
-       ระบบใช้หลายไซต์ การถามกลับไปกลับมาไม่ได้ผลกับคนหน้างาน */
-    /* ของเสริมต้องไม่ทำให้หน้าหลักพัง */
-    try {
-      DocScan.installErrorCapture();
-      DocScan.installSupport(s, function (a, p) {
-        return apiPost(Object.assign({ action: a }, p || {}));
-      });
-    } catch (e) {
-      console.error('[DocScan] ติดตั้งส่วนเสริมไม่สำเร็จ', e);
-    }
-    return s;
+import { authFetch, requireAuth, logout } from './js/auth.js';
+import { installNav, guardPage } from './js/nav.js';
+import { installSupport, installErrorCapture } from './js/support.js';
+import { installRefBar } from './js/refstatus.js';
+
+const API = DOCSCAN_CONFIG.API_URL;
+const $ = id => document.getElementById(id);
+
+const session = requireAuth();
+if (session) {
+  if (!guardPage(session)) throw new Error('no access');
+  installNav(session, { onLogout: () => logout(API) });
+  $('who').textContent = session.empName || session.empId || '';
+  $('whoSite').textContent = session.site || '';
+
+  /* ของเสริมต้องไม่ทำให้หน้าหลักพัง */
+  try {
+    installErrorCapture();
+    installSupport(session, call);
+  } catch (e) {
+    console.error('[DocScan] ติดตั้งส่วนเสริมไม่สำเร็จ', e);
   }
+}
+
+async function call(action, payload = {}, timeoutMs) {
+  try {
+    return await authFetch(API, { action, ...payload },
+      timeoutMs ? { timeoutMs } : undefined);
+  } catch (err) {
+    if (err.code === 'auth_required') {
+      alert('เซสชันหมดอายุ'); location.href = 'login.html';
+    }
+    throw err;
+  }
+}
+
+const esc = s => String(s == null ? '' : s)
+  .replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+
+try { installRefBar(call); }
+catch (e) { console.error('[DocScan] แถบสถานะติดตั้งไม่สำเร็จ', e); }
+
+const CHANNEL_LABEL = {
+  company_van: 'รถบริษัท', courier: 'ขนส่งเอกชน',
+  post: 'ไปรษณีย์', hand: 'คนถือไปเอง',
+  keep_self: 'เก็บไว้เอง ไม่ได้ส่งออก'
 };
 
-/** ยิงคำขอแบบ POST พร้อม token, timeout, retry และกันข้อมูลซ้ำ */
-function apiPost(payload) { return DocScan.authFetch(API_URL, payload); }
-/** ยิงคำขอแบบ GET พร้อม token */
-function apiGetText(action, params) {
-  // getCSV คืนข้อความดิบ ไม่ใช่ JSON
-  return DocScan.authGetText(API_URL, action, params || {});
-}
-/** ยิงคำขอแบบ GET พร้อม token */
-function apiGetJson(action, params, extraQS) {
-  var p = params || {};
-  // getSiteFilterParam คืนสตริงแบบ "&site_filter=..." ต้องแตกกลับเป็น object
-  if (extraQS) {
-    String(extraQS).replace(/^&/, '').split('&').forEach(function (kv) {
-      if (!kv) return;
-      var i = kv.indexOf('=');
-      if (i > 0) p[kv.slice(0, i)] = decodeURIComponent(kv.slice(i + 1));
-    });
-  }
-  return DocScan.authGet(API_URL, action, p);
+function fmt(v) {
+  if (!v) return '—';
+  const d = new Date(v);
+  if (isNaN(d.getTime())) return String(v);
+  return d.toLocaleString('th-TH', { day:'2-digit', month:'short', year:'2-digit',
+                                     hour:'2-digit', minute:'2-digit' });
 }
 
-/** พาไปหน้าเข้าสู่ระบบเมื่อเซสชันหมดอายุกลางคัน โดยไม่ทิ้งงานที่ค้าง */
-function handleAuthError(err) {
-  if (err && err.code === 'auth_required') {
-    alert('เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่\n\nงานที่ค้างอยู่ยังอยู่ในเครื่อง ไม่หายไปไหน');
-    location.href = 'login.html';
-    return true;
-  }
-  return false;
-}
+let batches = [];
 
-var API_URL = DOCSCAN_CONFIG.API_URL;
-var session;
-var _allReceived = [];  // with_delivery batches (raw)
-var _allSent     = [];  // with_warehouse batches (raw)
-var _filteredR   = [];
-var _filteredS   = [];
-var _detailCache = {};
-var _sendBatchId = '';
-var _activeTab   = 1;
-var _tab2Loaded  = false;
-var _tab3Loaded  = false;
-var _tab4Loaded  = false;
-var _allDisputed = [];
-var _filteredD   = [];
-var _allDone     = [];
-var _filteredDone= [];
-
-// ── Init ─────────────────────────────────────────────────
-window.onload = function(){
-  session = DocScanAuth.requireAuth();
-  if(!session) return;
-  if(session.role && session.role!=='delivery'){ window.location.href='dashboard.html'; return; }
-  document.getElementById('sidebarName').textContent = session.empName+' ('+session.empId+')';
-  document.getElementById('sidebarSite').textContent = session.site;
-  loadTab1();
-  // highlight จาก query string
-  var hl = new URLSearchParams(window.location.search).get('highlight');
-  if(hl) window._highlight = hl;
-};
-
-// ── Tab switch ────────────────────────────────────────────
-function switchTab(n){
-  _activeTab = n;
-  [1,2,3,4].forEach(function(i){
-    document.getElementById('tab'+i+'Btn').classList.toggle('active', i===n);
-    var p = document.getElementById('tab'+i+'Panel');
-    if(p) p.style.display = i===n ? 'block' : 'none';
-  });
-  if(n===2 && !_tab2Loaded) loadTab2();
-  if(n===3 && !_tab3Loaded) loadTab3();
-  if(n===4 && !_tab4Loaded) loadTab4();
-}
-
-// ── Load Tab 1: รับเอกสาร ────────────────────────────────
-function loadTab1(){
-  document.getElementById('table1Wrap').innerHTML = '<div class="loading"><span class="spinner"></span>กำลังโหลด...</div>';
-  apiGetJson('getBatches', {status_filter: 'with_delivery'}, getSiteFilterParam(session))
-    .then(function(data){
-      if(data.status!=='ok') throw new Error(data.message||'Error');
-      _allReceived = (data.batches||[]).filter(function(b){
-        return (!session.site || b.site===session.site) && b.status==='with_delivery';
-      });
-      _filteredR = _allReceived.slice();
-      document.getElementById('tab1Count').textContent = _allReceived.length;
-      renderTable1();
-      // highlight
-      if(window._highlight){
-        setTimeout(function(){
-          var row = document.getElementById('brow-'+window._highlight);
-          if(row){ row.scrollIntoView({behavior:'smooth',block:'center'}); row.style.background='rgba(52,211,153,.1)'; setTimeout(function(){row.style.background='';},2000); }
-        },300);
-      }
-    })
-    .catch(function(err){
-      document.getElementById('table1Wrap').innerHTML='<div class="empty" style="color:var(--danger);">โหลดไม่สำเร็จ: '+err.message+'</div>';
-    });
-}
-
-// ── Load Tab 3: รายการรับแล้ว ────────────────────────────
-function loadTab3(){
-  _tab3Loaded = true;
-  document.getElementById('table3Wrap').innerHTML = '<div class="loading"><span class="spinner"></span>กำลังโหลด...</div>';
-  apiGetJson('getIncoming', {tab: 'done'}, getSiteFilterParam(session))
-    .then(function(data){
-      _allDone    = data.batches || [];
-      _filteredDone = _allDone.slice();
-      document.getElementById('tab3Count').textContent = _allDone.length;
-      renderTable3();
-    })
-    .catch(function(err){
-      document.getElementById('table3Wrap').innerHTML='<div class="empty" style="color:var(--danger);">โหลดไม่สำเร็จ: '+err.message+'</div>';
-    });
-}
-
-function applyFilter3(){
-  var fBatch = document.getElementById('f3BatchId').value.trim().toLowerCase();
-  var fDate  = document.getElementById('f3Date').value;
-  _filteredDone = _allDone.filter(function(b){
-    if(fBatch && b.batch_id.toLowerCase().indexOf(fBatch)===-1) return false;
-    if(fDate  && toDateStr(b.sent_date||b.scan_date)!==fDate) return false;
-    return true;
-  });
-  document.getElementById('f3Result').textContent = (fBatch||fDate) ? 'พบ '+_filteredDone.length+' batch' : '';
-  renderTable3();
-}
-
-function clearFilter3(){
-  document.getElementById('f3BatchId').value='';
-  document.getElementById('f3Date').value='';
-  _filteredDone=_allDone.slice();
-  document.getElementById('f3Result').textContent='';
-  renderTable3();
-}
-
-function renderTable3(){
-  var wrap = document.getElementById('table3Wrap');
-  if(!_filteredDone.length){ wrap.innerHTML='<div class="empty">ยังไม่มีรายการที่รับแล้ว</div>'; return; }
-  wrap.innerHTML='<div class="table-wrap"><table>'+
-    '<thead><tr>'+
-      '<th>#</th><th>Batch No.</th><th>วันที่ส่ง</th>'+
-      '<th>คลังปลายทาง</th><th>รับโดย</th><th>วันที่รับ</th>'+
-      '<th style="text-align:right;">จำนวน</th><th style="text-align:center;">สถานะ</th>'+
-    '</tr></thead><tbody>'+
-    _filteredDone.map(function(b,i){
-      var isScanned = b.status === 'scanned' || b.status === 'batch_closed';
-      return '<tr>'+
-        '<td style="color:var(--muted);">'+(i+1)+'</td>'+
-        '<td class="mono" style="color:var(--success);">'+esc(b.batch_id)+'</td>'+
-        '<td class="mono" style="font-size:11px;">'+fmtDT(b.sent_date||b.scan_date)+'</td>'+
-        '<td style="font-size:11px;">'+esc(b.dest_warehouse||'—')+'</td>'+
-        '<td style="font-size:11px;">'+esc(b.received_by||'—')+'</td>'+
-        '<td class="mono" style="font-size:11px;">'+fmtDT(b.received_at)+'</td>'+
-        '<td class="mono" style="text-align:right;">'+b.barcode_count+'</td>'+
-        '<td style="text-align:center;">'+
-          (isScanned
-            ? '<span style="font-size:11px;color:var(--success);font-weight:600;">✅ Scan แล้ว</span>'
-            : '<span style="font-size:11px;color:var(--success);">✅ รับแล้ว</span>')+
-        '</td>'+
-      '</tr>';
-    }).join('')+
-    '</tbody></table></div>';
-}
-
-// ── Load Tab 4: รายการแก้ไข ──────────────────────────────
-function loadTab4(){
-  _tab4Loaded = true;
-  document.getElementById('table4Wrap').innerHTML = '<div class="loading"><span class="spinner"></span>กำลังโหลด...</div>';
-  apiGetJson('getBatches', {status_filter: 'disputed'}, getSiteFilterParam(session))
-    .then(function(data){
-      if(data.status!=='ok') throw new Error(data.message||'Error');
-      _allDisputed = (data.batches||[]).filter(function(b){
-        return !session.site || b.site===session.site;
-      });
-      _filteredD = _allDisputed.slice();
-      document.getElementById('tab4Count').textContent = _allDisputed.length;
-      renderTable4();
-    })
-    .catch(function(err){
-      document.getElementById('table4Wrap').innerHTML='<div class="empty" style="color:var(--danger);">โหลดไม่สำเร็จ: '+err.message+'</div>';
-    });
-}
-
-function applyFilter4(){
-  var fBatch = document.getElementById('f4BatchId').value.trim().toLowerCase();
-  var fDate  = document.getElementById('f4Date').value;
-  _filteredD = _allDisputed.filter(function(b){
-    if(fBatch && b.batch_id.toLowerCase().indexOf(fBatch)===-1) return false;
-    if(fDate  && toDateStr(b.scan_date)!==fDate) return false;
-    return true;
-  });
-  document.getElementById('f4Result').textContent = (fBatch||fDate) ? 'พบ '+_filteredD.length+' batch' : '';
-  renderTable4();
-}
-
-function clearFilter4(){
-  document.getElementById('f4BatchId').value='';
-  document.getElementById('f4Date').value='';
-  _filteredD=_allDisputed.slice();
-  document.getElementById('f4Result').textContent='';
-  renderTable4();
-}
-
-function renderTable4(){
-  var wrap = document.getElementById('table4Wrap');
-  if(!_filteredD.length){ wrap.innerHTML='<div class="empty">ไม่มีรายการที่มีปัญหา 🎉</div>'; return; }
-  wrap.innerHTML='<div class="table-wrap"><table>'+
-    '<thead><tr>'+
-      '<th style="width:36px;">#</th>'+
-      '<th>Batch PEND</th>'+
-      '<th>Batch ต้นทาง</th>'+
-      '<th>วันที่แจ้งปัญหา</th>'+
-      '<th>คลังปลายทาง</th>'+
-      '<th style="text-align:right;">จำนวน</th>'+
-      '<th style="text-align:center;">สถานะ</th>'+
-      '<th style="text-align:center;">ดำเนินการ</th>'+
-    '</tr></thead><tbody>'+
-    _filteredD.map(function(b,i){
-      var dt           = fmtDT(b.scan_date);
-      var originalBatch= b.batch_id.replace(/-PEND.*/,'');
-      var isLost       = b.status === 'lost_document';
-      var isResolved   = b.status === 'resolved';
-      var statusBadge  = isLost
-        ? '<span style="font-size:11px;color:var(--danger);font-weight:600;">🔴 เอกสารหาย</span>'
-        : isResolved
-        ? '<span style="font-size:11px;color:var(--success);font-weight:600;">✅ แก้ไขแล้ว</span>'
-        : '<span style="font-size:11px;color:var(--warn);">⚠️ รอดำเนินการ</span>';
-      var actionBtns = isResolved
-        ? '<span style="font-size:11px;color:var(--muted);">—</span>'
-        : '<div style="display:flex;gap:6px;justify-content:center;">'+
-            '<button class="expand-btn" onclick="toggleDetail(\''+esc(b.batch_id)+'\',3)" title="ดู barcode">▾ ดู</button>'+
-            '<button class="expand-btn" style="color:var(--accent);border-color:rgba(56,189,248,.3);" '+
-              'onclick="openResendModal(\''+esc(b.batch_id)+'\',\''+esc(originalBatch)+'\',\''+esc(b.dest_warehouse||b.site||'')+'\','+b.barcode_count+')" '+
-              'title="ส่งซ้ำ">📦 ส่งซ้ำ</button>'+
-            '<button class="expand-btn" style="color:var(--success);border-color:rgba(52,211,153,.3);" '+
-              'onclick="confirmResolve(\''+esc(b.batch_id)+'\')" '+
-              'title="ยืนยันว่าส่งครบแล้ว">✅ ยืนยัน</button>'+
-          '</div>';
-      return '<tr>'+
-        '<td style="color:var(--muted);">'+(i+1)+'</td>'+
-        '<td class="mono" style="color:var(--danger);">'+esc(b.batch_id)+'</td>'+
-        '<td class="mono" style="font-size:11px;color:var(--muted);">'+esc(originalBatch)+'</td>'+
-        '<td class="mono" style="font-size:11px;">'+dt+'</td>'+
-        '<td style="font-size:11px;">'+(esc(b.dest_warehouse||b.site||'—'))+'</td>'+
-        '<td class="mono" style="text-align:right;">'+b.barcode_count+'</td>'+
-        '<td style="text-align:center;">'+statusBadge+'</td>'+
-        '<td style="text-align:center;">'+actionBtns+'</td>'+
-      '</tr>'+
-      '<tr class="detail-row" id="drow3-'+esc(b.batch_id)+'">'+
-        '<td colspan="8" class="detail-inner"><div id="dcontent3-'+esc(b.batch_id)+'"></div></td>'+
-      '</tr>';
-    }).join('')+
-    '</tbody></table></div>';
-}
-function loadTab2(){
-  _tab2Loaded = true;
-  document.getElementById('table2Wrap').innerHTML = '<div class="loading"><span class="spinner"></span>กำลังโหลด...</div>';
-  apiGetJson('getBatches', {status_filter: 'with_warehouse'}, getSiteFilterParam(session))
-    .then(function(data){
-      if(data.status!=='ok') throw new Error(data.message||'Error');
-      _allSent = (data.batches||[]).filter(function(b){
-        return !session.site || b.site===session.site;
-      });
-      _filteredS = _allSent.slice();
-      document.getElementById('tab2Count').textContent = _allSent.length;
-      renderTable2();
-    })
-    .catch(function(err){
-      document.getElementById('table2Wrap').innerHTML='<div class="empty" style="color:var(--danger);">โหลดไม่สำเร็จ: '+err.message+'</div>';
-    });
-}
-
-// ── Filter Tab 1 ──────────────────────────────────────────
-function applyFilter1(){
-  var fBatch = document.getElementById('f1BatchId').value.trim().toLowerCase();
-  var fDate  = document.getElementById('f1Date').value;
-  _filteredR = _allReceived.filter(function(b){
-    if(fBatch && b.batch_id.toLowerCase().indexOf(fBatch)===-1) return false;
-    if(fDate  && toDateStr(b.scan_date)!==fDate) return false;
-    return true;
-  });
-  document.getElementById('f1Result').textContent = fBatch||fDate ? 'พบ '+_filteredR.length+' batch' : '';
-  renderTable1();
-}
-
-function clearFilter1(){
-  document.getElementById('f1BatchId').value='';
-  document.getElementById('f1Date').value='';
-  _filteredR=_allReceived.slice();
-  document.getElementById('f1Result').textContent='';
-  renderTable1();
-}
-
-// ── Filter Tab 2 ──────────────────────────────────────────
-function applyFilter2(){
-  var fBatch = document.getElementById('f2BatchId').value.trim().toLowerCase();
-  var fDate  = document.getElementById('f2Date').value;
-  _filteredS = _allSent.filter(function(b){
-    if(fBatch && b.batch_id.toLowerCase().indexOf(fBatch)===-1) return false;
-    if(fDate  && toDateStr(b.sent_date||b.scan_date)!==fDate) return false;
-    return true;
-  });
-  document.getElementById('f2Result').textContent = fBatch||fDate ? 'พบ '+_filteredS.length+' batch' : '';
-  renderTable2();
-}
-
-function clearFilter2(){
-  document.getElementById('f2BatchId').value='';
-  document.getElementById('f2Date').value='';
-  _filteredS=_allSent.slice();
-  document.getElementById('f2Result').textContent='';
-  renderTable2();
-}
-
-// ── Render Table 1 ────────────────────────────────────────
-function renderTable1(){
-  var wrap = document.getElementById('table1Wrap');
-  if(!_filteredR.length){ wrap.innerHTML='<div class="empty">ไม่มีรายการ</div>'; return; }
-  wrap.innerHTML='<div class="table-wrap"><table>'+
-    '<thead><tr>'+
-      '<th style="width:40px;">#</th>'+
-      '<th>Batch No.</th>'+
-      '<th>วันที่รับ</th>'+
-      '<th>ผู้รับ</th>'+
-      '<th>Site</th>'+
-      '<th style="width:80px;text-align:right;">จำนวน</th>'+
-      '<th style="width:100px;text-align:center;">สถานะ</th>'+
-      '<th style="width:80px;text-align:center;">รายละเอียด</th>'+
-      '<th style="width:90px;text-align:center;">ส่งคลัง</th>'+
-    '</tr></thead><tbody id="tbody1">'+
-    _filteredR.map(function(b,i){
-      var dt = fmtDT(b.scan_date);
-      var sent = b.status==='with_warehouse';
-      return '<tr id="brow-'+esc(b.batch_id)+'">'+
-        '<td style="color:var(--muted);">'+(i+1)+'</td>'+
-        '<td class="mono" style="color:var(--accent);">'+esc(b.batch_id)+'</td>'+
-        '<td class="mono" style="font-size:11px;">'+dt+'</td>'+
-        '<td style="font-size:11px;">'+esc(b.emp_name||'—')+'</td>'+
-        '<td style="font-size:11px;">'+esc(b.site||'—')+'</td>'+
-        '<td class="mono" style="text-align:right;">'+b.barcode_count+'</td>'+
-        '<td style="text-align:center;">'+(sent?'<span class="badge-warehouse">ส่งแล้ว</span>':'<span class="badge-delivery">รอส่ง</span>')+'</td>'+
-        '<td style="text-align:center;"><button class="expand-btn" onclick="toggleDetail(\''+esc(b.batch_id)+'\',1)">▾ ดู</button></td>'+
-        '<td style="text-align:center;">'+(sent?'<span style="font-size:11px;color:var(--muted);">→ '+esc(b.dest_warehouse||'')+'</span>':'<button class="expand-btn" style="color:var(--accent);border-color:rgba(56,189,248,.3);" onclick="openModal(\''+esc(b.batch_id)+'\',event)">📦 ส่ง</button>')+'</td>'+
-      '</tr>'+
-      '<tr class="detail-row" id="drow-'+esc(b.batch_id)+'">'+
-        '<td colspan="9" class="detail-inner"><div id="dcontent-'+esc(b.batch_id)+'"></div></td>'+
-      '</tr>';
-    }).join('')+
-    '</tbody></table></div>';
-}
-
-// ── Render Table 2 ────────────────────────────────────────
-function renderTable2(){
-  var wrap = document.getElementById('table2Wrap');
-  if(!_filteredS.length){ wrap.innerHTML='<div class="empty">ยังไม่มีรายการส่ง</div>'; return; }
-  wrap.innerHTML='<div class="table-wrap"><table>'+
-    '<thead><tr>'+
-      '<th style="width:40px;">#</th>'+
-      '<th>Batch No.</th>'+
-      '<th>วันที่รับ (จากขนส่ง)</th>'+
-      '<th>วันที่ส่ง (ส่งให้คลังพาเลท)</th>'+
-      '<th>คลังที่ส่ง</th>'+
-      '<th>ผู้ส่ง</th>'+
-      '<th>Site</th>'+
-      '<th style="width:80px;text-align:right;">จำนวนเอกสาร</th>'+
-      '<th style="width:80px;text-align:center;">รายละเอียด</th>'+
-    '</tr></thead><tbody>'+
-    _filteredS.map(function(b,i){
-      var receivedDate = fmtDT(b.scan_date);
-      var sentDate     = b.sent_date ? fmtDT(b.sent_date) : '—';
-      return '<tr>'+
-        '<td style="color:var(--muted);">'+(i+1)+'</td>'+
-        '<td class="mono" style="color:var(--accent);font-size:11px;">'+esc(b.batch_id)+'</td>'+
-        '<td class="mono" style="font-size:11px;">'+receivedDate+'</td>'+
-        '<td class="mono" style="font-size:11px;">'+sentDate+'</td>'+
-        '<td><span class="badge-warehouse">'+esc(b.dest_warehouse||'—')+'</span></td>'+
-        '<td style="font-size:11px;">'+esc(b.emp_name||'—')+'</td>'+
-        '<td style="font-size:11px;">'+esc(b.site||'—')+'</td>'+
-        '<td class="mono" style="text-align:right;">'+b.barcode_count+'</td>'+
-        '<td style="text-align:center;"><button class="expand-btn" onclick="toggleDetail(\''+esc(b.batch_id)+'\',2)">▾ ดู</button> '+
-        '<button class="expand-btn no-print" style="color:var(--success);border-color:rgba(52,211,153,.3);" onclick="printHandover(\''+esc(b.batch_id)+'\')">🖨 พิมพ์</button></td>'+
-      '</tr>'+
-      '<tr class="detail-row" id="drow2-'+esc(b.batch_id)+'">'+
-        '<td colspan="9" class="detail-inner"><div id="dcontent2-'+esc(b.batch_id)+'"></div></td>'+
-      '</tr>';
-    }).join('')+
-    '</tbody></table></div>';
-}
-
-// ── Toggle detail accordion ───────────────────────────────
-function toggleDetail(batchId, tab){
-  var prefix  = tab===2?'2':tab===3?'3':'';
-  var rowId   = 'drow'+prefix+'-'+batchId;
-  var row     = document.getElementById(rowId);
-  if(!row) return;
-  var isOpen  = row.classList.contains('open');
-  if(isOpen){ row.classList.remove('open'); return; }
-  row.classList.add('open');
-  var contentId = 'dcontent'+prefix+'-'+batchId;
-  var content   = document.getElementById(contentId);
-  if(_detailCache[batchId]){ renderDetailContent(content, _detailCache[batchId]); return; }
-  content.innerHTML = '<div style="padding:14px;color:var(--muted);font-size:12px;"><span class="spinner"></span> กำลังโหลด...</div>';
-  apiGetJson('getBatchDetail', {batch_id: batchId})
-    .then(function(data){
-      if(data.status!=='ok') throw new Error(data.message);
-      _detailCache[batchId]=data;
-      renderDetailContent(content, data);
-    })
-    .catch(function(err){ content.innerHTML='<div style="padding:14px;color:var(--danger);font-size:12px;">โหลดไม่สำเร็จ: '+err.message+'</div>'; });
-}
-
-function renderDetailContent(el, data){
-  el.innerHTML='<table class="detail-table"><thead><tr>'+
-    '<th>#</th><th>Barcode</th><th>Reference</th><th>ประเภท</th><th>โอนจาก → โอนไป</th><th>QTY</th>'+
-    '</tr></thead><tbody>'+
-    (data.barcodes||[]).map(function(item,i){
-      return '<tr>'+
-        '<td>'+(i+1)+'</td>'+
-        '<td class="mono" style="color:var(--warn);">'+esc(item.barcode)+'</td>'+
-        '<td class="mono">'+esc(item.ref_no||'—')+'</td>'+
-        '<td>'+esc(item.item_name||'—')+'</td>'+
-        '<td>'+esc(item.transfer_from||'—')+' → '+esc(item.transfer_to||'—')+'</td>'+
-        '<td class="mono" style="text-align:right;">'+esc(item.sent_qty||'—')+'</td>'+
-      '</tr>';
-    }).join('')+
-    '</tbody></table>';
-}
-
-// ── Modal ─────────────────────────────────────────────────
-function openModal(batchId, event){
-  if(event) event.stopPropagation();
-  _sendBatchId = batchId;
-  var b = _allReceived.find(function(x){return x.batch_id===batchId;});
-  document.getElementById('warehouseSelect').value='';
-  document.getElementById('modalConfirmBtn').disabled=true;
-  document.getElementById('modalSummary').innerHTML=
-    '<strong>Batch:</strong> '+esc(batchId)+'<br>'+
-    '<strong>จำนวน:</strong> '+(b?b.barcode_count:0)+' barcode<br>'+
-    '<strong>วันที่รับ:</strong> '+(b?fmtDT(b.scan_date):'—')+'<br>'+
-    '<strong>ผู้รับ:</strong> '+esc(b?b.emp_name||'—':'—');
-  document.getElementById('modalOverlay').classList.add('open');
-}
-
-function closeModal(){ document.getElementById('modalOverlay').classList.remove('open'); _sendBatchId=''; }
-function checkModal(){ document.getElementById('modalConfirmBtn').disabled=!document.getElementById('warehouseSelect').value; }
-
-async function confirmSend(){
-  var dest=document.getElementById('warehouseSelect').value;
-  if(!dest||!_sendBatchId) return;
-  var b=_allReceived.find(function(x){return x.batch_id===_sendBatchId;});
-  var count=b?b.barcode_count:0;
-  var btn=document.getElementById('modalConfirmBtn');
-  btn.disabled=true; btn.textContent='กำลังส่ง...';
-  try{
-    var detail=_detailCache[_sendBatchId];
-    if(!detail){
-      var r=await apiGetJson('getBatchDetail', {batch_id: _sendBatchId});
-      detail = r;
-      _detailCache[_sendBatchId]=detail;
-    }
-    var items=(detail.barcodes||[]).map(function(item){
-      return{barcode:item.barcode,status:'with_warehouse',emp_id:session.empId,
-             emp_name:session.empName,site:session.site,
-             note:'ส่งให้คลังพาเลท',batch_id:_sendBatchId,dest_warehouse:dest};
-    });
-    var res=await apiPost({action:'updateStatus',items:items});
-    var data = res;
-    if(data.status==='ok'){
-      // พิมพ์ใบส่งมอบก่อน clear cache
-      await printHandover(_sendBatchId, dest);
-      showToast('📦 ส่งเอกสารไป ' + dest + ' แล้ว', 'success');
-      closeModal();
-      _tab2Loaded=false;
-      _detailCache={};
-      loadTab1();
-    } else { showToast(data.message||'Error','error'); }
-  }catch(err){showToast('เกิดข้อผิดพลาด: '+err.message,'error');}
-  btn.disabled=false; btn.textContent='📦 ยืนยันส่ง';
-}
-
-// ── Export CSV ────────────────────────────────────────────
-async function exportCSV(){
-  var source   = _activeTab===1 ? _filteredR : _filteredS;
-  var tabName  = _activeTab===1 ? 'รับเอกสาร' : 'ส่งเอกสาร';
-  if(!source.length){ showToast('ไม่มีข้อมูลให้ export','error'); return; }
-
-  showToast('กำลัง export...','info');
-
-  // fetch detail ที่ยังไม่มี cache
-  for(var i=0;i<source.length;i++){
-    var bid=source[i].batch_id;
-    if(!_detailCache[bid]){
-      try{
-        var r=await apiGetJson('getBatchDetail', {batch_id: bid});
-        var d = r;
-        if(d.status==='ok') _detailCache[bid]=d;
-      }catch(e){}
-    }
-  }
-
-  // flatten batch → barcode rows
-  var headers=['BATCH NO','BARCODE','REFERENCE','วันที่รับ (จากขนส่ง)','วันที่ส่ง (ส่งให้คลังพาเลท)'];
-  var rows=[];
-  source.forEach(function(b){
-    var detail=_detailCache[b.batch_id];
-    var barcodes=detail?detail.barcodes:[];
-    var receivedDate = fmtDT(b.scan_date);
-    var sentDate     = b.status==='with_warehouse' ? fmtDT(b.sent_date||b.scan_date) : '—';
-    // หา sent_date จาก tab 2 ถ้ามี
-    var matchSent=_allSent.find(function(s){return s.batch_id===b.batch_id;});
-    if(matchSent) sentDate=fmtDT(matchSent.scan_date);
-
-    if(barcodes.length){
-      barcodes.forEach(function(item){
-        rows.push([b.batch_id, item.barcode, item.ref_no||'', receivedDate, sentDate]);
-      });
-    } else {
-      // ถ้ายังไม่มี detail ใส่แค่ batch level
-      rows.push([b.batch_id,'(โหลดรายละเอียดไม่สำเร็จ)','',receivedDate,sentDate]);
-    }
-  });
-
-  var csv='\uFEFF'+[headers].concat(rows).map(function(r){
-    return r.map(function(v){return '"'+String(v||'').replace(/"/g,'""')+'"';}).join(',');
-  }).join('\n');
-
-  var blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
-  var url=URL.createObjectURL(blob);
-  var a=document.createElement('a');
-  a.href=url;
-  a.download=tabName+'_'+toDateStr(new Date().toISOString())+'.csv';
-  a.click();URL.revokeObjectURL(url);
-  showToast('Export '+rows.length+' รายการเรียบร้อย','success');
-}
-
-// ── Helpers ───────────────────────────────────────────────
-// ── Print Handover Sheet ─────────────────────────────────
-async function printHandover(batchId, destOverride) {
-  if (!_detailCache[batchId]) {
-    showToast('กำลังโหลดข้อมูล...','info');
-    try {
-      var r = await apiGetJson('getBatchDetail', {batch_id: batchId});
-      var d = r;
-      if (d.status==='ok') _detailCache[batchId]=d;
-      else { showToast('โหลดข้อมูลไม่สำเร็จ','error'); return; }
-    } catch(err) { showToast('โหลดข้อมูลไม่สำเร็จ','error'); return; }
-  }
-  var detail   = _detailCache[batchId];
-  var b        = (_allReceived.concat(_allSent)).find(function(x){return x.batch_id===batchId;})||{};
-  var dest     = destOverride||b.dest_warehouse||detail.dest_warehouse||'—';
-  var barcodes = (detail.barcodes||[]).slice(0,200);
-  var empName  = session.empName||b.emp_name||detail.emp_name||'—';
-  var site     = b.site||detail.site||'—';
-  var scanDate = fmtDT(b.scan_date||detail.scan_date||'');
-  var now      = new Date().toLocaleString('th-TH');
-
-  // render barcode SVG — เล็กลง scan ง่าย
-  var tempSvg = document.createElementNS('http://www.w3.org/2000/svg','svg');
-  document.body.appendChild(tempSvg);
-  var barcodeSVGStr = '';
-  if (typeof JsBarcode !== 'undefined') {
-    try {
-      JsBarcode(tempSvg, batchId, {
-        format:'CODE128', width:1.4, height:36,
-        displayValue:true, fontSize:9, margin:1,
-        lineColor:'#000', background:'#ffffff'
-      });
-      barcodeSVGStr = tempSvg.outerHTML;
-    } catch(e) { barcodeSVGStr = '<b>'+batchId+'</b>'; }
-  }
-  document.body.removeChild(tempSvg);
-
-  // rows ขนาดเล็ก รองรับ 200 รายการ
-  var rows = barcodes.map(function(item,i){
-    return '<tr style="background:'+(i%2===0?'#fff':'#f5f5f5')+'">'+
-      '<td style="text-align:center;">'+(i+1)+'</td>'+
-      '<td style="font-family:monospace;">'+(item.barcode||'—')+'</td>'+
-      '<td>'+(item.ref_no||'—')+'</td>'+
-      '<td>'+(item.item_name||'—')+'</td>'+
-      '<td>'+(item.transfer_from||'—')+' → '+(item.transfer_to||'—')+'</td>'+
-      '<td style="text-align:center;">'+(item.sent_qty||'—')+'</td>'+
-    '</tr>';
-  }).join('');
-
-  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8">'+
-    '<title>ใบส่งมอบ — '+batchId+'</title>'+
-    '<style>'+
-    '@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;600&display=swap");'+
-    '@page{size:A4 portrait;margin:8mm 10mm;}'+
-    '*{box-sizing:border-box;margin:0;padding:0;}'+
-    'body{font-family:"IBM Plex Sans Thai","Sarabun",sans-serif;color:#000;background:#fff;font-size:11px;}'+
-
-    /* Header: title ซ้าย + barcode ขวา */
-    '.hdr{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #000;padding-bottom:8px;margin-bottom:6px;}'+
-    '.ttl{font-size:15px;font-weight:700;line-height:1.2;}'+
-    '.sub{font-size:9px;color:#555;margin-top:2px;}'+
-    '.bc-box{text-align:right;}'+
-    /* Meta: แถวใต้ header ก่อน table */
-    '.meta-row{display:grid;grid-template-columns:repeat(3,1fr);gap:4px 16px;font-size:9px;border:1px solid #ddd;border-radius:3px;padding:6px 10px;background:#fafafa;margin-bottom:8px;}'+
-    '.ml{color:#666;font-weight:500;text-transform:uppercase;font-size:8px;letter-spacing:.03em;}'+
-    '.mv{font-size:10px;font-weight:600;margin-top:1px;}'+
-
-    /* Table เล็กมาก รองรับ 200 rows */
-    'table{width:100%;border-collapse:collapse;font-size:8.5px;margin-bottom:10px;}'+
-    'th{background:#e0e0e0;padding:3px 5px;text-align:left;border:1px solid #bbb;font-size:8px;font-weight:600;}'+
-    'td{padding:2px 5px;border:1px solid #d0d0d0;vertical-align:middle;line-height:1.3;}'+
-
-    /* Sign */
-    '.sign{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:12px;}'+
-    '.sb{border-top:1.5px solid #000;padding-top:6px;}'+
-    '.st{font-weight:600;font-size:10px;margin-bottom:16px;}'+
-    '.sl{font-size:10px;margin-bottom:8px;color:#333;}'+
-    '.ft{font-size:8px;color:#888;text-align:center;margin-top:10px;border-top:1px solid #ccc;padding-top:4px;}'+
-    '</style></head><body>'+
-
-    /* Header: title + barcode */
-    '<div class="hdr">'+
-      '<div><div class="ttl">ใบส่งมอบเอกสาร (Handover Sheet)</div>'+
-      '<div class="sub">DocScan — Pallet Tracking System</div></div>'+
-      '<div class="bc-box">'+barcodeSVGStr+'</div>'+
-    '</div>'+
-    /* Meta ใต้ header */
-    '<div class="meta-row">'+
-      '<div><div class="ml">Batch ID</div><div class="mv">'+batchId+'</div></div>'+
-      '<div><div class="ml">วันที่ส่ง</div><div class="mv">'+scanDate+'</div></div>'+
-      '<div><div class="ml">จำนวน</div><div class="mv">'+barcodes.length+' ฉบับ</div></div>'+
-      '<div><div class="ml">ส่งจาก</div><div class="mv">'+site+'</div></div>'+
-      '<div><div class="ml">คลังปลายทาง</div><div class="mv">'+dest+'</div></div>'+
-      '<div><div class="ml">ผู้ส่ง</div><div class="mv">'+empName+'</div></div>'+
-    '</div>'+
-
-    /* Table */
-    '<table><thead><tr>'+
-      '<th style="width:22px;">#</th>'+
-      '<th style="width:72px;">Barcode</th>'+
-      '<th style="width:70px;">Reference</th>'+
-      '<th style="width:100px;">ประเภทเอกสาร</th>'+
-      '<th>โอนจาก → โอนไป</th>'+
-      '<th style="width:32px;text-align:center;">QTY</th>'+
-    '</tr></thead><tbody>'+rows+'</tbody></table>'+
-
-    /* Sign */
-    '<div class="sign">'+
-      '<div class="sb"><div class="st">ผู้ส่ง (ทีมจัดส่ง)</div>'+
-        '<div class="sl">ชื่อ: ............................................</div>'+
-        '<div class="sl">วันที่: ..........................................</div></div>'+
-      '<div class="sb"><div class="st">ผู้รับ (ทีมคลังพาเลท)</div>'+
-        '<div class="sl">ชื่อ: ............................................</div>'+
-        '<div class="sl">วันที่: ..........................................</div></div>'+
-    '</div>'+
-    '<div class="ft">พิมพ์จากระบบ DocScan — Batch: '+batchId+' — '+now+'</div>'+
-    '</body></html>';
-
-  var pw = window.open('','_blank','width=820,height=1160');
-  if (!pw) { showToast('กรุณาอนุญาต Popup แล้วลองใหม่','error'); return; }
-  pw.document.open();
-  pw.document.write(html);
-  pw.document.close();
-  pw.addEventListener('load', function(){
-    setTimeout(function(){
-      pw.focus();
-      pw.print();
-      pw.addEventListener('afterprint', function(){ pw.close(); });
-    }, 500);
-  });
-}
-
-
-
-function fmtDT(iso){
-  if(!iso) return '—';
-  try{ return new Date(iso).toLocaleString('th-TH',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}); }catch(e){return iso;}
-}
-function toDateStr(iso){
-  if(!iso) return '';
-  try{ return new Date(iso).toISOString().split('T')[0]; }catch(e){return '';}
-}
-function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');}
-document.addEventListener('click',function(e){if(e.target.id==='modalOverlay')closeModal();});
-function getSiteFilterParam(s){
-  if(!s)return "";
-  var f=s.site_filter;
-  if(f&&f.length)return "&site_filter="+encodeURIComponent(f.join("|"));
-  return "&site="+encodeURIComponent(s.site||"");
-}
-// ── Tab 3: Resend + Resolve ──────────────────────────────
-var _resendBatchId = '';
-
-function openResendModal(pendBatchId, originalBatch, destWarehouse, count) {
-  _resendBatchId = pendBatchId;
-  document.getElementById('resendInfo').innerHTML =
-    '<div><b>Batch PEND:</b> <span style="color:var(--danger);font-family:var(--mono);">'+esc(pendBatchId)+'</span></div>'+
-    '<div style="margin-top:4px;"><b>Batch ต้นทาง:</b> <span style="font-family:var(--mono);">'+esc(originalBatch)+'</span></div>'+
-    '<div style="margin-top:4px;"><b>จำนวน:</b> '+count+' ใบ</div>';
-  // pre-fill คลังเดิม
-  var sel = document.getElementById('resendWarehouse');
-  if (destWarehouse) {
-    for (var i=0;i<sel.options.length;i++) {
-      if (sel.options[i].value === destWarehouse) { sel.selectedIndex=i; break; }
-    }
-  } else { sel.selectedIndex=0; }
-  checkResend();
-  document.getElementById('resendOverlay').style.display = 'flex';
-}
-
-function closeResendModal() {
-  document.getElementById('resendOverlay').style.display = 'none';
-  _resendBatchId = '';
-}
-
-function checkResend() {
-  document.getElementById('resendConfirmBtn').disabled =
-    !document.getElementById('resendWarehouse').value;
-}
-
-async function confirmResend() {
-  var dest = document.getElementById('resendWarehouse').value;
-  if (!dest || !_resendBatchId) return;
-  var btn = document.getElementById('resendConfirmBtn');
-  btn.disabled=true; btn.textContent='กำลังส่ง...';
+/* ---------- โหลดรายการ ---------- */
+async function load() {
+  $('blist').innerHTML = '<div class="empty">กำลังโหลด…</div>';
   try {
-    // ดึง barcode list จาก PEND batch
-    var r = await apiGetJson('getBatchDetail', {batch_id: _resendBatchId});
-    var d = r;
-    if (d.status!=='ok') throw new Error(d.message);
-    var barcodes = (d.barcodes||[]).map(function(b){return b.barcode;});
-    // ส่ง updateStatus → with_warehouse สำหรับ barcodes ใน PEND batch
-    var items = barcodes.map(function(bc){
-      return {
-        barcode        : bc,
-        status         : 'with_warehouse',
-        emp_id         : session.empId,
-        emp_name       : session.empName,
-        site           : session.site,
-        note           : 'ส่งซ้ำจาก '+_resendBatchId,
-        batch_id       : _resendBatchId,
-        dest_warehouse : dest
-      };
-    });
-    var r2 = await apiPost({action:'updateStatus',items:items});
-    var d2 = r2;
-    if (d2.status!=='ok') throw new Error(d2.message);
-    showToast('📦 ส่งซ้ำ '+barcodes.length+' barcode ไป '+dest+' แล้ว','success');
-    closeResendModal();
-    // refresh tab 3
-    _tab4Loaded=false; loadTab4();
-  } catch(err) {
-    showToast('เกิดข้อผิดพลาด: '+err.message,'error');
+    const r = await call('shipBatchList', {}, 60000);
+    if (!r || r.status !== 'ok') throw new Error((r && r.message) || 'โหลดไม่สำเร็จ');
+    if (!Array.isArray(r.rows)) {
+      throw new Error('เซิร์ฟเวอร์ไม่ได้ส่งรายการกลับมา\n' +
+        'มักเกิดเมื่อยังไม่ได้ Deploy Documents.gs เป็นเวอร์ชันใหม่');
+    }
+    batches = r.rows;
+    render();
+  } catch (e) {
+    console.error('[DocScan] โหลดชุดส่งไม่สำเร็จ', e);
+    $('blist').innerHTML = '<div class="empty">โหลดไม่สำเร็จ<br>' +
+      '<span class="hint">' + esc(e.message || String(e)) + '</span></div>';
   }
-  btn.disabled=false; btn.textContent='📦 ส่งซ้ำ';
 }
 
-async function confirmResolve(pendBatchId) {
-  if (!confirm('ยืนยันว่าส่งเอกสารครบแล้วสำหรับ '+pendBatchId+' ?')) return;
+/** สถานะของชุด — ใช้ทั้งกรองและแสดงป้าย */
+function statusOf(b) {
+  if (String(b.status || '') === 'cancelled') return 'cancelled';
+  if (b.received_at) return 'received';
+  return 'sent';
+}
+
+function shown() {
+  const q = $('q').value.trim().toUpperCase();
+  const st = $('fStatus').value;
+  return batches.filter(b => {
+    if (st && statusOf(b) !== st) return false;
+    if (!q) return true;
+    return String(b.batch_id).toUpperCase().includes(q) ||
+           String(b.receiver || '').toUpperCase().includes(q) ||
+           (b.refs || []).some(r => String(r).toUpperCase().includes(q));
+  });
+}
+
+function render() {
+  const rows = shown();
+  $('cnt').textContent = rows.length + ' ชุด จากทั้งหมด ' + batches.length;
+
+  if (!rows.length) {
+    $('blist').innerHTML = '<div class="empty">' +
+      (batches.length ? 'ไม่มีชุดที่ตรงกับที่ค้น' : 'ยังไม่เคยส่งเอกสาร') +
+      '</div>';
+    return;
+  }
+
+  $('blist').innerHTML = rows.map(cardHtml).join('');
+
+  $('blist').querySelectorAll('[data-print]').forEach(b =>
+    b.addEventListener('click', () => reprint(b.dataset.print)));
+  $('blist').querySelectorAll('[data-cancel]').forEach(b =>
+    b.addEventListener('click', () => cancelBatch(b.dataset.cancel)));
+  $('blist').querySelectorAll('[data-refs]').forEach(b =>
+    b.addEventListener('click', () => {
+      const box = document.getElementById('refs-' + b.dataset.refs);
+      const open = box.style.display !== 'none';
+      box.style.display = open ? 'none' : '';
+      b.textContent = open ? 'ดูรายการ' : 'ซ่อนรายการ';
+    }));
+}
+
+function cardHtml(b) {
+  const st = statusOf(b);
+  const badge = st === 'cancelled'
+      ? '<span class="bc-badge cx">ยกเลิกแล้ว</span>'
+    : st === 'received'
+      ? '<span class="bc-badge got">ปลายทางรับแล้ว ' + fmt(b.received_at) + '</span>'
+      : '<span class="bc-badge sent">รอปลายทางรับ</span>';
+
+  /* ยกเลิกได้เฉพาะชุดที่ยังไม่ถูกรับ
+     ถ้ารับไปแล้วต้องให้ปลายทางจัดการ ไม่ใช่ต้นทางย้อนเอง */
+  const canCancel = st === 'sent';
+
+  return `<div class="bcard ${st}">
+    <div class="bc-top">
+      <div>
+        <div class="bc-id">${esc(b.batch_id)}</div>
+        <div class="bc-when">ส่งเมื่อ ${fmt(b.created_at)} · โดย ${esc(b.created_name || '—')}</div>
+      </div>
+      ${badge}
+      <div class="bc-act">
+        <button class="btn ghost sm" data-refs="${esc(b.batch_id)}">ดูรายการ</button>
+        <button class="btn ghost sm" data-print="${esc(b.batch_id)}">พิมพ์ใบส่งมอบ</button>
+        ${canCancel
+          ? `<button class="btn ghost sm" data-cancel="${esc(b.batch_id)}"
+                     style="color:var(--danger)">ยกเลิก</button>` : ''}
+      </div>
+    </div>
+
+    <div class="bc-meta">
+      <div><div class="bk">ต้นทาง</div><div class="bv">${esc(b.from_site || '—')}</div></div>
+      <div><div class="bk">คลังปลายทาง</div><div class="bv">${esc(b.to_site || '—')}</div></div>
+      <div><div class="bk">ผู้รับ</div><div class="bv">${esc(b.receiver || '—')}</div></div>
+      <div><div class="bk">ช่องทาง</div><div class="bv">${
+        esc(CHANNEL_LABEL[b.channel] || b.channel || '—')}${
+        b.vehicle ? ' · ' + esc(b.vehicle) : ''}</div></div>
+      <div><div class="bk">จำนวน</div><div class="bv">${b.doc_count || 0} ฉบับ</div></div>
+    </div>
+
+    ${b.note ? `<div class="bc-note">${esc(b.note)}</div>` : ''}
+
+    <div class="bc-refs" id="refs-${esc(b.batch_id)}" style="display:none">
+      ${(b.refs || []).map(esc).join(' · ') || '—'}
+    </div>
+  </div>`;
+}
+
+/* ---------- ยกเลิกชุด ---------- */
+async function cancelBatch(id) {
+  const b = batches.find(x => x.batch_id === id);
+  if (!b) return;
+
+  /* บอกให้ชัดว่าจะเกิดอะไรขึ้น ไม่ใช่แค่ถามว่าแน่ใจไหม */
+  const reason = prompt(
+    'ยกเลิกชุด ' + id + '\n\n' +
+    'เอกสาร ' + (b.doc_count || 0) + ' ฉบับจะกลับไปอยู่หน้าส่งเอกสาร\n' +
+    'เพื่อให้สร้างชุดใหม่ได้\n\n' +
+    'กรุณาระบุเหตุผลที่ยกเลิก');
+
+  if (reason === null) return;
+  if (reason.trim().length < 3) { alert('กรุณาระบุเหตุผล'); return; }
+
   try {
-    var r = await apiPost({
-        action   : 'resolveDispute',
-        batch_id : pendBatchId,
-        emp_id   : session.empId,
-        emp_name : session.empName
-      });
-    var d = r;
-    if (d.status!=='ok') throw new Error(d.message);
-    showToast('✅ ยืนยันแก้ไขแล้ว — '+pendBatchId,'success');
-    _tab4Loaded=false; loadTab4();
-  } catch(err) {
-    showToast('เกิดข้อผิดพลาด: '+err.message,'error');
+    const r = await call('shipCancelBatch',
+      { batch_id: id, reason: reason.trim() }, 90000);
+    if (!r || r.status !== 'ok') { alert((r && r.message) || 'ยกเลิกไม่สำเร็จ'); return; }
+    alert(r.message);
+    load();
+  } catch (e) {
+    alert('ยกเลิกไม่สำเร็จ: ' + (e.message || e));
   }
 }
 
-document.addEventListener('click',function(e){
-  if(e.target.id==='resendOverlay') closeResendModal();
-});
-
-function logout() {
-  if (!confirm('ออกจากระบบ?')) return;
-  // ล้างตรง ๆ ก่อนเป็นอันดับแรก ไม่พึ่งโมดูล
-  // เผื่อกรณีเบราว์เซอร์ยังใช้ js/auth.js ตัวเก่าจากแคช
-  try { localStorage.removeItem('docScanSession'); } catch (e) {}
-  try { DocScanAuth.clear(); } catch (e) {}
-  // replace เพื่อไม่ให้กดย้อนกลับเข้าหน้าเดิมได้
-  location.replace('login.html');
+/* ---------- พิมพ์ใบส่งมอบซ้ำ ---------- */
+async function reprint(id) {
+  try {
+    const r = await call('shipBatchDetail', { batch_id: id }, 60000);
+    if (!r || r.status !== 'ok') { alert((r && r.message) || 'ดึงข้อมูลไม่สำเร็จ'); return; }
+    showCover(r);
+  } catch (e) {
+    alert('ดึงข้อมูลไม่สำเร็จ: ' + (e.message || e));
+  }
 }
 
-var toastTimer;
-function showToast(msg,type){var t=document.getElementById('toast');t.textContent=msg;t.className='toast '+(type||'info')+' show';clearTimeout(toastTimer);toastTimer=setTimeout(function(){t.classList.remove('show');},4000);}
+$('btnReload').addEventListener('click', load);
+['q', 'fStatus'].forEach(id => $(id).addEventListener('input', render));
+
+load();
+
+/* ============================================================
+   ใบส่งมอบเอกสาร — โครงเดียวกับหน้าส่งเอกสาร
+   ============================================================
+   ใช้ซ้ำเพื่อให้ใบที่พิมพ์ซ้ำหน้าตาเหมือนตอนส่งจริงทุกอย่าง
+   ถ้าเขียนแยก สองที่จะค่อย ๆ ต่างกันโดยไม่มีใครสังเกต
+   ============================================================ */
+function showCover(r) {
+  $('mainWrap').style.display = 'none';
+  const w = $('coverWrap');
+  w.style.display = 'block';
+
+  const items = r.items || (r.shipped || []).map(x => ({ ref_no: x }));
+  const totalQty = items.reduce((a, d) => a + (Number(d.sent_qty) || 0), 0);
+
+  const rows = items.map((d, n) => `<tr>
+      <td class="c">${n + 1}</td>
+      <td class="mono">${esc(d.ref_no || '')}</td>
+      <td class="mono sm">${esc(d.barcode || '—')}</td>
+      <td>${esc(d.item_name || '—')}</td>
+      <td class="sm">${esc(d.transfer_from || '—')} <span class="ar">→</span>
+          ${esc(d.transfer_to || '—')}</td>
+      <td class="c">${d.sent_qty || '—'}</td>
+      <td class="chkbox"></td>
+    </tr>`).join('');
+
+  w.innerHTML = `
+    <div class="cover">
+
+      <!-- บาร์โค้ดมุมซ้ายบน ขนาดพอสแกน ไม่กินพื้นที่หัวเอกสาร -->
+      <div class="hd">
+        <div class="hd-bc"><svg id="coverBc"></svg></div>
+        <div class="hd-tt">
+          <h2>ใบส่งมอบเอกสาร</h2>
+          <div class="hd-sub">DocScan — ระบบติดตามเอกสารพาเลท</div>
+        </div>
+        <div class="hd-no">
+          <div class="k">เลขที่ชุด</div>
+          <div class="v">${esc(r.batch_id)}</div>
+          <div class="k" style="margin-top:6px">วันที่ส่ง</div>
+          <div class="v sm">${new Date(r.created_at)
+            .toLocaleString('th-TH', { day:'2-digit', month:'short', year:'numeric',
+                                       hour:'2-digit', minute:'2-digit' })}</div>
+        </div>
+      </div>
+
+      <!-- ผู้ส่งและผู้รับแยกกันชัดเจน แบบใบปะหน้าพัสดุ -->
+      <div class="pair">
+        <div class="hs-box">
+          <div class="hs-box-t">ผู้ส่ง</div>
+          <div class="row"><span class="k">คลัง/โรงงาน</span>
+            <span class="v">${esc(r.from_site || '—')}</span></div>
+          <div class="row"><span class="k">ผู้จัดส่ง</span>
+            <span class="v">${esc(r.created_name || '—')}</span></div>
+          <div class="row"><span class="k">ช่องทาง</span>
+            <span class="v">${esc(CHANNEL_LABEL[r.channel] || r.channel || '—')}</span></div>
+          ${r.vehicle ? `<div class="row"><span class="k">ทะเบียน/เลขพัสดุ</span>
+            <span class="v">${esc(r.vehicle)}</span></div>` : ''}
+        </div>
+
+        <div class="hs-box to">
+          <div class="hs-box-t">ผู้รับ</div>
+          <div class="row"><span class="k">คลัง/โรงงาน</span>
+            <span class="v big">${esc(r.to_site || '—')}</span></div>
+          <div class="row"><span class="k">ชื่อผู้รับ</span>
+            <span class="v">${esc(r.receiver || '—')}</span></div>
+          <div class="row"><span class="k">จำนวนเอกสาร</span>
+            <span class="v big">${r.count} ฉบับ</span></div>
+          ${totalQty ? `<div class="row"><span class="k">รวมพาเลท</span>
+            <span class="v">${totalQty}</span></div>` : ''}
+        </div>
+      </div>
+
+      ${r.note ? `<div class="note"><b>หมายเหตุ</b> ${esc(r.note)}</div>` : ''}
+
+      <table class="items">
+        <thead><tr>
+          <th style="width:28px">#</th>
+          <th style="width:110px">Reference</th>
+          <th style="width:92px">Barcode</th>
+          <th>ประเภทเอกสาร</th>
+          <th style="width:200px">โอนจาก → โอนไป</th>
+          <th style="width:44px">พาเลท</th>
+          <th style="width:34px">ตรวจ</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot><tr>
+          <td colspan="5" class="r">รวม</td>
+          <td class="c">${totalQty || '—'}</td>
+          <td class="chkbox"></td>
+        </tr></tfoot>
+      </table>
+
+      <div class="sign">
+        <div class="sg">
+          <div class="sg-t">ผู้ส่งมอบ (ทีมจัดส่ง)</div>
+          <div class="ln">ลงชื่อ</div>
+          <div class="ln">ชื่อ-สกุล</div>
+          <div class="ln">วันที่ / เวลา</div>
+        </div>
+        <div class="sg">
+          <div class="sg-t">ผู้รับมอบ (ทีมคลัง)</div>
+          <div class="ln">ลงชื่อ</div>
+          <div class="ln">ชื่อ-สกุล</div>
+          <div class="ln">วันที่ / เวลา</div>
+        </div>
+      </div>
+
+      <div class="ft">
+        พิมพ์จากระบบ DocScan · ${esc(r.batch_id)} ·
+        ${new Date().toLocaleString('th-TH')}
+        <br>ผู้รับกรุณาตรวจนับตามรายการ แล้วยิงบาร์โค้ดชุดนี้ที่หน้า "รับเอกสาร"
+      </div>
+    </div>
+
+    <div class="cover-act noprint">
+      <button class="btn" onclick="window.print()">พิมพ์ใบส่งมอบ</button>
+      <button class="btn ghost" id="backList">กลับไปรายการชุดส่ง</button>
+    </div>`;
+
+  $('backList').addEventListener('click', () => {
+    w.style.display = 'none';
+    $('mainWrap').style.display = '';
+    load();
+  });
+
+  drawBarcode(r.batch_id);
+}
+
+async function drawBarcode(text) {
+  try {
+    if (!window.JsBarcode) await loadScript('vendor/JsBarcode.all.min.js');
+    /* ขนาดพอให้เครื่องสแกนอ่านได้ แต่ไม่กินพื้นที่หัวเอกสาร
+       ความกว้างแท่ง 1.6 ที่ความสูง 40 อ่านได้ในระยะปกติ */
+    JsBarcode('#coverBc', text, {
+      format: 'CODE128', width: 1.6, height: 40,
+      displayValue: true, fontSize: 11, margin: 2
+    });
+  } catch (e) {
+    console.warn('[DocScan] วาดบาร์โค้ดไม่ได้', e);
+  }
+}
+
+function loadScript(src) {
+  return new Promise((res, rej) => {
+    const el = document.createElement('script');
+    el.src = src; el.onload = res; el.onerror = rej;
+    document.head.appendChild(el);
+  });
+}
+
 </script>
 </body>
 </html>
