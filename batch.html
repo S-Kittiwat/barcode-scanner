@@ -4524,14 +4524,23 @@ async function applyReadResults(results, typeKey) {
        * และช่อง "ต้องเลือก" จะให้เลือกบาร์โค้ดซึ่งไม่ใช่สิ่งที่ต้องตรวจ
        */
       var fill = '';
+      var fillFrom = '';
       if (d.barcodeValue) {
         var byBc = DocScan.searchCSV(idx, d.barcodeValue);
-        if (byBc && byBc.ref_no) fill = byBc.ref_no;
+        if (byBc && byBc.ref_no) { fill = byBc.ref_no; fillFrom = 'บาร์โค้ด'; }
       }
       if (!fill && d.refNo) {
         var byRef = DocScan.searchCSV(idx, d.refNo);
         fill = (byRef && byRef.ref_no) || d.refNo;
+        fillFrom = byRef ? 'OCR+อ้างอิง' : 'OCR อย่างเดียว';
       }
+
+      /* บอกว่าเติมค่าจากไหน เพราะถ้าได้ค่าผิดจะได้รู้ทันทีว่าติดขั้นไหน
+         ไม่ต้องเดาว่าเป็นที่ตัวอ่าน ที่ไฟล์อ้างอิง หรือที่การจับคู่ */
+      console.log('[DocScan] เติมเลข Reference',
+        { barcode: d.barcodeValue, ocr: d.refNo,
+          value: d.value, ได้: fill || '(ว่าง)', จาก: fillFrom || '(ไม่ได้เติม)',
+          เจอในอ้างอิง: !!DocScan.searchCSV(idx, d.barcodeValue || d.refNo || '') });
 
       /* บาร์โค้ดกับเลข Reference ต้องเก็บแยกกัน
        *
