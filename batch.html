@@ -1322,7 +1322,13 @@ var _lastRefIndex = new Map();
  */
 async function lookupOne(id, value) {
   var k = String(value || '').trim().toUpperCase();
-  if (!k) { onBarcodeChange(id, value); return; }
+  /* ค่าที่ส่งมาคือเลข Reference ที่คนพิมพ์ ไม่ใช่บาร์โค้ด
+     จึงไม่เรียก onBarcodeChange ซึ่งจะเขียนทับ row.barcode */
+  if (!k) {
+    var r0 = rows.find(function (x) { return x.id === Number(id); });
+    if (r0) { r0.status = 'idle'; r0.doc = null; _updateRowDOM(r0); updateSubmitBtn(); }
+    return;
+  }
 
   var idNum = Number(id);
   var row = rows.find(function (r) { return r.id === idNum; });
@@ -1342,7 +1348,21 @@ async function lookupOne(id, value) {
     }
   }
 
-  onBarcodeChange(id, value);
+  /* จับคู่ด้วยเลขที่พิมพ์ โดยไม่แตะบาร์โค้ดที่อ่านมาได้
+     เดิมเรียก onBarcodeChange ซึ่งทำ row.barcode = value
+     ทำให้บาร์โค้ดถูกเขียนทับด้วยเลข Reference */
+  if (row) {
+    var found = _lastRefIndex.get(k) || null;
+    if (found) {
+      fillFromRef(row, found);
+    } else {
+      row.doc = null;
+      row.status = 'notfound';
+      row.refSource = 'manual';
+      _updateRowDOM(row);
+    }
+    updateSubmitBtn();
+  }
 
   /* ── ตรวจว่าเลขใหม่นี้เคยสแกนไปแล้วหรือยัง ──
    *
@@ -2168,7 +2188,10 @@ function renderTable() {
       '<td>' + inkCell(row, 'signature') + '</td>' +
       '<td>' + inkCell(row, 'stamp') + '</td>' +
       '<td>' +
-        '<input class="' + bcClass + '" value="' + esc(row.barcode) + '" ' +
+        /* ช่องนี้คือเลข Reference ที่ใช้ตั้งชื่อไฟล์
+           เดิมแสดง row.barcode ซึ่งเป็นรหัสบนกระดาษ คนละอย่างกัน
+           ทำให้เห็นบาร์โค้ดในช่องที่ควรเป็นเลขเอกสาร */
+        '<input class="' + bcClass + '" value="' + esc(ev.refNo || '') + '" ' +
           'placeholder="พิมพ์เลข Reference" ' +
           'oninput="handleBarcodeInput(\'' + rid + '\',this)" ' +
           /* เดิมกด Enter แล้วกระโดดไปช่องถัดไป ทำไว้ตอนที่ใช้เครื่องอ่านบาร์โค้ด
@@ -2203,6 +2226,14 @@ var _bcTimer={};
  * ทั้งที่เลขนั้นมีอยู่จริงในรายการอ้างอิง 51,254 แถว
  */
 function handleBarcodeInput(id, el) {
+  /* ช่องนี้รับเลข Reference ไม่ใช่บาร์โค้ด
+     ต้องเก็บลง editVals.refNo ทันที ไม่ให้ค่าที่พิมพ์หายตอน render ใหม่ */
+  var row = rows.find(function (r) { return r.id === Number(id); });
+  if (row) {
+    row.editVals.refNo = el.value.trim();
+    row.refSource = 'manual';
+  }
+
   clearTimeout(_bcTimer[id]);
   _bcTimer[id] = setTimeout(function () {
     if (el.value.trim()) lookupOne(id, el.value);
@@ -2317,6 +2348,16 @@ function _updateRowDOM(row) {
   // barcode input class
   var bcEl = tr.querySelector('.bc-input');
   if (bcEl) {
+    /* อัปค่าในช่องด้วย ไม่ใช่แค่สี
+       เพราะระบบเติมเลข Reference ให้หลังจับคู่กับไฟล์อ้างอิงเสร็จ
+       ถ้าไม่อัป ช่องจะยังว่างหรือค้างค่าเก่าอยู่
+
+       ยกเว้นตอนคนกำลังพิมพ์ จะได้ไม่ถูกเขียนทับกลางคัน */
+    var wanted = row.editVals.refNo || '';
+    if (document.activeElement !== bcEl && bcEl.value !== wanted) {
+      bcEl.value = wanted;
+    }
+
     bcEl.className = 'bc-input' +
       (st === 'found' || st === 'ready' ? ' found' : st === 'notfound' ? ' notfound' : st === 'dup' ? ' dup' : '');
   }
