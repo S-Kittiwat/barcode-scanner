@@ -3638,6 +3638,24 @@ async function submitBatch(){
         photo_url    : row.photoUrl    || ''
       };
     });
+    /* ใบที่หาในรายการอ้างอิงไม่เจอ จะไม่มีเลข Reference
+       เซิร์ฟเวอร์จะใช้ barcode แทน ทำให้สองช่องเท่ากันในชีต
+       ต้องเตือนก่อน ไม่ใช่ปล่อยผ่านแล้วมาพบทีหลัง */
+    var noRef = items.filter(function (x) {
+      return !String(x.ref_no || '').trim();
+    });
+    if (noRef.length) {
+      if (!confirm('มี ' + noRef.length + ' ใบที่ยังไม่มีเลข Reference\n\n' +
+          noRef.slice(0, 8).map(function (x) { return '  ' + x.barcode; }).join('\n') +
+          (noRef.length > 8 ? '\n  และอีก ' + (noRef.length - 8) : '') + '\n\n' +
+          'ระบบจะใช้บาร์โค้ดเป็นเลข Reference แทน\n' +
+          'ซึ่งจะทำให้สองช่องเหมือนกันในระบบ\n\n' +
+          'บันทึกต่อไหม')) {
+        saveStep('save', 'ยกเลิกการบันทึก');
+        return;
+      }
+    }
+
     saveStep('save', 'กำลังบันทึก ' + items.length + ' รายการ');
     saveProgress(0, 1, 'รอเซิร์ฟเวอร์ตอบกลับ');
 
