@@ -255,7 +255,16 @@ tr.unk td:first-child{box-shadow:inset 3px 0 0 var(--danger)}
 
     <div class="filters">
       <input id="q" placeholder="ค้นเลข Reference หรือปลายทาง" autocomplete="off">
+      <select id="fFrom"><option value="">ต้นทางทั้งหมด</option></select>
       <select id="fDest"><option value="">ปลายทางทั้งหมด</option></select>
+      <!-- กรองตามวันที่สแกน เพื่อให้หยิบงานที่เพิ่งทำไปได้เร็ว -->
+      <select id="fScan">
+        <option value="">สแกนเมื่อไหร่ก็ได้</option>
+        <option value="0">วันนี้</option>
+        <option value="1">ภายใน 2 วัน</option>
+        <option value="7">ภายใน 7 วัน</option>
+        <option value="30">ภายใน 30 วัน</option>
+      </select>
       <button class="btn ghost" id="btnAll">เลือกทั้งหมดที่เห็น</button>
       <button class="btn ghost" id="btnNone">ยกเลิกการเลือก</button>
       <div class="grow"></div>
@@ -273,8 +282,9 @@ tr.unk td:first-child{box-shadow:inset 3px 0 0 var(--danger)}
 
     <div class="form2">
       <div class="fld">
-        <label>ส่งไปที่ไซต์ <span class="req">*</span></label>
-        <select id="toSite"><option value="">— เลือกไซต์ —</option></select>
+        <label>คลัง/โรงงานปลายทางที่จัดเก็บ <span class="req">*</span></label>
+        <select id="toSite"><option value="">— เลือกคลัง/โรงงาน —</option></select>
+          <div class="hint">สถานที่ที่เอกสารตัวจริงจะถูกส่งไปเก็บ</div>
       </div>
       <div class="fld">
         <label>ผู้รับ <span class="req">*</span></label>
@@ -415,6 +425,7 @@ async function load() {
       ' · พร้อมส่ง ' + allDocs.length + ' ใบ';
 
     step = 'เติมตัวกรองปลายทาง';   fillDestFilter();
+    step = 'เติมตัวกรองต้นทาง';    fillFromFilter();
     step = 'เติมรายชื่อไซต์';       fillSiteOptions();
     step = 'วาดตาราง';              render();
   } catch (e) {
@@ -432,6 +443,17 @@ function showAlert(m) {
 }
 
 /** ปลายทางที่มีจริงในข้อมูล ไม่ต้องให้เลือกอันที่ไม่มีเอกสาร */
+/* เติมรายชื่อต้นทางจากข้อมูลจริง ไม่ให้พิมพ์เอง
+   เพราะพิมพ์ผิดนิดเดียวก็กรองไม่เจอ */
+function fillFromFilter() {
+  const set = [...new Set(allDocs
+    .map(d => d.transfer_from || d.site).filter(Boolean))].sort();
+  const cur = $('fFrom').value;
+  $('fFrom').innerHTML = '<option value="">ต้นทางทั้งหมด</option>' +
+    set.map(x => '<option value="' + esc(x) + '">' + esc(x) + '</option>').join('');
+  if (set.includes(cur)) $('fFrom').value = cur;
+}
+
 function fillDestFilter() {
   const dests = [...new Set(allDocs.map(d => d.dest_warehouse || d.transfer_to)
                                    .filter(Boolean))].sort();
@@ -442,7 +464,7 @@ function fillDestFilter() {
 function fillSiteOptions() {
   const dests = [...new Set(allDocs.map(d => d.dest_warehouse || d.transfer_to)
                                    .filter(Boolean))].sort();
-  $('toSite').innerHTML = '<option value="">— เลือกไซต์ —</option>' +
+  $('toSite').innerHTML = '<option value="">— เลือกคลัง/โรงงาน —</option>' +
     dests.map(d => `<option value="${esc(d)}">${esc(d)}</option>`).join('');
 }
 
@@ -450,12 +472,22 @@ function fillSiteOptions() {
 function shown() {
   const q = $('q').value.trim().toUpperCase();
   const dest = $('fDest').value;
+  const from = $('fFrom').value;
+  const scan = $('fScan').value;
+
   return allDocs.filter(d => {
     if (dest && (d.dest_warehouse || d.transfer_to) !== dest) return false;
+    if (from && (d.transfer_from || d.site) !== from) return false;
+
+    /* กรองตามวันที่สแกน — d.days คือจำนวนวันตั้งแต่สแกน
+       0 = วันนี้ จึงเทียบแบบน้อยกว่าหรือเท่ากับ */
+    if (scan !== '' && (d.days == null || d.days > Number(scan))) return false;
+
     if (!q) return true;
     return String(d.ref_no).toUpperCase().includes(q) ||
            String(d.dest_warehouse || '').toUpperCase().includes(q) ||
-           String(d.transfer_to || '').toUpperCase().includes(q);
+           String(d.transfer_to || '').toUpperCase().includes(q) ||
+           String(d.transfer_from || '').toUpperCase().includes(q);
   });
 }
 
@@ -495,8 +527,9 @@ function render() {
   $('dlist').innerHTML = '<table><thead><tr>' +
     '<th style="width:34px"><input type="checkbox" class="chk" id="selAll"></th>' +
     '<th style="width:150px">Reference</th>' +
-    '<th style="width:96px">วันที่เอกสาร</th>' +
+    '<th style="width:150px">ต้นทาง</th>' +
     '<th>ปลายทาง</th>' +
+    '<th style="width:90px">จำนวนพาเลท</th>' +
     '<th style="width:110px">สแกนไว้แล้ว</th>' +
     '</tr></thead><tbody>' + rows.map(rowHtml).join('') + '</tbody></table>';
 
@@ -559,10 +592,12 @@ function rowHtml(d) {
   return `<tr class="${d.other_site ? 'unk' : ''}">
     <td><input type="checkbox" class="chk rowchk" data-ref="${esc(d.ref_no)}"${
       selected.has(d.ref_no) ? ' checked' : ''}></td>
-    <td><div class="ref">${esc(d.ref_no)}</div></td>
-    <td>${fmt(d.doc_date)}</td>
-    <td>${esc(d.dest_warehouse || d.transfer_to || '—')}${
+    <td><div class="ref">${esc(d.ref_no)}</div>
+        <div class="sub">${fmt(d.doc_date)}</div></td>
+    <td>${esc(d.transfer_from || d.site || '—')}${
       d.other_site ? '<div class="unk-tag">ไม่ใช่ไซต์ของคุณ</div>' : ''}</td>
+    <td>${esc(d.dest_warehouse || d.transfer_to || '—')}</td>
+    <td>${d.sent_qty || '—'}</td>
     <td>${d.days == null ? '—'
       : `<b class="${late ? 'warn' : ''}">${d.days} วัน</b>`}</td>
   </tr>`;
@@ -592,7 +627,7 @@ function afterSelect() {
 /* ---------- ตรวจก่อนสร้าง ---------- */
 function blockingReason() {
   if (!selected.size) return 'เลือกเอกสารก่อน';
-  if (!$('toSite').value) return 'เลือกไซต์ปลายทาง';
+  if (!$('toSite').value) return 'เลือกคลัง/โรงงานปลายทาง';
   if (!$('receiver').value.trim()) return 'ระบุชื่อผู้รับ';
   if (!$('channel').value) return 'เลือกช่องทางการส่ง';
 
@@ -601,7 +636,7 @@ function blockingReason() {
   const dests = new Set(allDocs.filter(d => selected.has(d.ref_no))
     .map(d => d.dest_warehouse || d.transfer_to).filter(Boolean));
   if (dests.size > 1) {
-    return 'เลือกข้ามปลายทาง ' + dests.size + ' แห่ง — หนึ่งชุดส่งได้ไซต์เดียว';
+    return 'เลือกข้ามปลายทาง ' + dests.size + ' แห่ง — หนึ่งชุดส่งได้ที่เดียว';
   }
 
   /* เลือกของไซต์อื่นปนมา ไม่ห้าม แต่ต้องรู้ตัว
@@ -619,7 +654,8 @@ function updateCreateBtn() {
   btn.textContent = why || ('สร้างชุดส่ง ' + selected.size + ' ใบ');
 }
 
-['q', 'fDest'].forEach(id => $(id).addEventListener('input', render));
+['q', 'fDest', 'fFrom', 'fScan'].forEach(id =>
+  $(id).addEventListener('input', render));
 ['toSite', 'receiver', 'channel'].forEach(id =>
   $(id).addEventListener('input', updateCreateBtn));
 
