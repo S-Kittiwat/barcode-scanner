@@ -1007,14 +1007,18 @@ export function groupPages(results) {
         byValue.get(r.value).pages.push(r);
         return;
       }
+      /* ส่งตัวเลือกที่ OCR ลังเลไปด้วย
+         เพื่อให้บาร์โค้ดช่วยตัดสินได้โดยไม่ต้องถามคน */
       const d = { value: r.value, refNo: r.refNo || '', barcodeValue: r.barcodeValue || '',
                   barcodeCrop: (r.barcode && r.barcode.crop) || '',
+                  ocrCandidates: (r.ocr && r.ocr.candidates) || [],
                   needsLookup: !!r.needsLookup, source: r.source, ink: r.ink || null, pages: [r] };
       byValue.set(r.value, d);
       docs.push(d);
     } else {
       docs.push({ value: '', refNo: '', barcodeValue: r.barcodeValue || '',
                   barcodeCrop: (r.barcode && r.barcode.crop) || '',
+                  ocrCandidates: (r.ocr && r.ocr.candidates) || [],
                   needsLookup: !!r.needsLookup, source: 'manual', ink: r.ink || null, pages: [r] });
     }
   });
@@ -1057,13 +1061,33 @@ export function classifyDoc(doc, csvIndex, helpers) {
                  head: 'บาร์โค้ดกับ OCR ตรงกัน — ยืนยันสองทาง' };
       }
       if (trueRef) {
+        /* ก่อนถามคน ลองให้บาร์โค้ดตัดสินตัวเลือกที่ OCR ลังเลอยู่แล้ว
+         *
+         * OCR มักเก็บตัวเลือกไว้เมื่อไม่แน่ใจว่าเป็นเลขไหน
+         * เช่นอ่านได้ T1007520_ แล้วไม่แน่ใจว่า 6 หรือ 8
+         *
+         * ถ้าเลขที่บาร์โค้ดชี้ไปอยู่ในตัวเลือกนั้น แปลว่าสองทางเห็นตรงกัน
+         * ไม่ต้องถามคน เพราะ OCR เคยสงสัยค่านี้ไว้แล้วและบาร์โค้ดยืนยัน
+         *
+         * ถ้าไม่อยู่ในตัวเลือกเลย แปลว่าอาจเป็นคนละใบ ต้องให้คนดู
+         */
+        const ocrAlts = (doc.ocrCandidates || [])
+          .map(c => String(c && c.value !== undefined ? c.value : c).trim().toUpperCase())
+          .filter(Boolean);
+
+        if (ocrAlts.indexOf(trueRef) >= 0) {
+          return { tier: 'green', reason: 'barcode_resolved_ocr',
+                   value: byBarcode.ref_no,
+                   head: 'บาร์โค้ดยืนยันตัวเลือกที่ OCR ลังเล — ' + byBarcode.ref_no };
+        }
+
         return { tier: 'red', reason: 'cross_mismatch',
                  head: 'บาร์โค้ดกับ OCR ไม่ตรงกัน',
                  suggestion: byBarcode.ref_no,
                  candidates: [byBarcode.ref_no, doc.refNo],
                  candidateNotes: [
                    'จากบาร์โค้ด ' + doc.barcodeValue + ' — เชื่อถือได้มากกว่า',
-                   'จาก OCR — อาจอ่านผิด'
+                   'จาก OCR อ่านได้ ' + doc.refNo + ' — อาจอ่านผิด'
                  ] };
       }
     }
