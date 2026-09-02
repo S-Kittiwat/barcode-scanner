@@ -208,6 +208,42 @@ tr.got td:first-child{box-shadow:inset 3px 0 0 var(--success)}
 .bldtag{position:fixed;right:8px;bottom:6px;z-index:5;font-family:var(--mono);
   font-size:10px;color:var(--muted);opacity:.5;pointer-events:none}
 @media print{.bldtag{display:none}}
+/* ── ขั้นตรวจเอกสาร ── */
+.vhead{display:flex;align-items:flex-start;gap:14px;margin:18px 0 12px}
+.vh-t{font-size:15px;font-weight:600}
+.vlist{display:flex;flex-direction:column;gap:9px}
+
+.vrow{background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r);padding:12px 14px}
+.vrow.pass{border-color:rgba(52,211,153,.5)}
+.vrow.fix{border-color:var(--warn)}
+
+.vr-top{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.vr-ref{font-family:var(--mono);font-size:15px;font-weight:700}
+.vr-bc{font-family:var(--mono);font-size:11.5px;color:var(--muted)}
+.vr-act{margin-left:auto;display:flex;gap:7px}
+
+.vr-data{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));
+  gap:10px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
+.vd-k{font-size:10px;color:var(--muted);text-transform:uppercase}
+.vd-v{font-size:13px;font-weight:600;margin-top:2px}
+
+/* ช่องแก้ไข — โผล่เฉพาะเมื่อกดว่าไม่ตรง */
+.vr-edit{margin-top:11px;padding-top:11px;border-top:1px solid var(--warn)}
+.vr-edit .eg{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+  gap:9px;margin-bottom:9px}
+.vr-edit label{display:block;font-size:10.5px;color:var(--muted);margin-bottom:3px}
+.vr-edit input{width:100%;background:var(--surface2);border:1px solid var(--border);
+  border-radius:var(--rs);color:var(--text);padding:6px 9px;
+  font-family:var(--font);font-size:12.5px}
+.vr-edit input.changed{border-color:var(--warn)}
+
+.btn.sm{padding:5px 11px;font-size:12px}
+.tag{font-size:11px;font-weight:600;padding:3px 10px;border-radius:99px;
+  border:1px solid var(--border);color:var(--muted)}
+.tag.ok{border-color:var(--success);color:var(--success)}
+.tag.warn{border-color:var(--warn);color:var(--warn)}
+.btn.ok{border-color:var(--success);color:var(--success)}
 </style>
 </head>
 <body>
@@ -252,6 +288,20 @@ tr.got td:first-child{box-shadow:inset 3px 0 0 var(--success)}
     </div>
 
     <div class="ilist" id="ilist"></div>
+
+    <!-- ขั้นตรวจเอกสารจริง
+         เอกสารตัวจริงเป็นหลักฐาน ถ้าข้อมูลในระบบไม่ตรง แก้ตามกระดาษได้ทันที -->
+    <div id="verifyBox" style="display:none">
+      <div class="vhead">
+        <div>
+          <div class="vh-t">② ตรวจเอกสารจริงกับข้อมูลในระบบ</div>
+          <div class="hint" id="vhCount">—</div>
+        </div>
+        <button class="btn ghost" id="btnAllPass" style="margin-left:auto">
+          ผ่านทั้งหมด</button>
+      </div>
+      <div class="vlist" id="vlist"></div>
+    </div>
   </div>
 </div>
 
@@ -260,7 +310,8 @@ tr.got td:first-child{box-shadow:inset 3px 0 0 var(--success)}
 <div class="actbar" id="actBar" style="display:none">
   <span class="hint" id="actInfo">—</span>
   <div class="grow"></div>
-  <button class="btn" id="btnFinish">จบการรับ</button>
+  <button class="btn ghost" id="btnToVerify">ตรวจเอกสาร →</button>
+  <button class="btn" id="btnFinish" style="display:none">ยืนยันรับเอกสาร</button>
 </div>
 
 <script type="module">
@@ -396,8 +447,8 @@ async function openBatch(id) {
       (batch.vehicle ? ' · ' + batch.vehicle : '');
     $('bCount').textContent = items.length + ' ใบ';
 
-    $('scanLabel').textContent = '② ยิงเอกสารทีละใบ';
-    $('scanInput').placeholder = 'T10075206';
+    $('scanLabel').textContent = '② ยิงบาร์โค้ดบนเอกสารทีละใบ';
+    $('scanInput').placeholder = 'เช่น 990ECB';
     $('batchArea').style.display = '';
     $('actBar').style.display = 'flex';
     $('scopeInfo').textContent = 'ชุด ' + batch.batch_id + ' · จาก ' + (batch.from_site || '—');
@@ -452,7 +503,8 @@ function render() {
     const on = got.has(k);
     return `<tr class="${on ? 'got' : ''}">
       <td><span class="mark">${on ? '✓' : '·'}</span></td>
-      <td><div class="ref">${esc(it.ref_no)}</div></td>
+      <td><div class="ref">${esc(it.barcode || it.ref_no)}</div>
+          <div class="hint">${esc(it.ref_no)}</div></td>
       <td>${esc(it.item_name || '—')}</td>
       <td>${esc(it.transfer_to || it.dest_warehouse || '—')}</td>
     </tr>`;
@@ -463,12 +515,181 @@ function render() {
     </tr>`));
 
   $('ilist').innerHTML = '<table><thead><tr>' +
-    '<th style="width:38px"></th><th style="width:150px">Reference</th>' +
+    '<th style="width:38px"></th><th style="width:150px">บาร์โค้ด / Reference</th>' +
     '<th>ประเภท</th><th style="width:170px">ปลายทาง</th>' +
     '</tr></thead><tbody>' + rows.join('') + '</tbody></table>';
 }
 
 /* ---------- จบการรับ ---------- */
+
+/* ---------- ขั้นตรวจเอกสารจริง ---------- */
+/* เอกสารตัวจริงเป็นหลักฐาน ถ้าข้อมูลในระบบไม่ตรง ให้แก้ตามกระดาษ
+   ตรวจทุกใบ เพราะถ้าปล่อยผ่านแล้วผิด จะไปพบตอนที่แก้ยากกว่ามาก */
+
+var verifyState = {};    // ref → 'pass' | 'fix' | undefined
+
+/** ช่องที่ให้แก้ได้ตอนตรวจ — เฉพาะที่อ่านได้จากเอกสารจริง */
+var FIX_FIELDS = [
+  { k: 'item_name',     label: 'ประเภทเอกสาร' },
+  { k: 'transfer_from', label: 'โอนจาก' },
+  { k: 'transfer_to',   label: 'โอนไป' },
+  { k: 'sent_qty',      label: 'จำนวนส่ง' },
+  { k: 'doc_date',      label: 'วันที่เอกสาร' },
+  { k: 'barcode',       label: 'บาร์โค้ด' }
+];
+
+function goVerify() {
+  var scanned = items.filter(function (it) { return got.has(it.ref_no); });
+  if (!scanned.length) { alert('ยังไม่ได้ยิงเอกสารสักใบ'); return; }
+
+  $('scanBox').style.display = 'none';
+  $('ilist').style.display = 'none';
+  $('verifyBox').style.display = '';
+  $('btnToVerify').style.display = 'none';
+  $('btnFinish').style.display = '';
+
+  renderVerify();
+}
+
+function renderVerify() {
+  var scanned = items.filter(function (it) { return got.has(it.ref_no); });
+  var done = scanned.filter(function (it) { return verifyState[it.ref_no]; }).length;
+
+  $('vhCount').textContent = 'ตรวจแล้ว ' + done + ' จาก ' + scanned.length + ' ใบ' +
+    (done < scanned.length ? ' — ต้องตรวจให้ครบก่อนยืนยัน' : ' ✓');
+  $('btnFinish').disabled = done < scanned.length;
+
+  $('vlist').innerHTML = scanned.map(vrowHtml).join('');
+
+  $('vlist').querySelectorAll('[data-pass]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      verifyState[b.dataset.pass] = 'pass';
+      renderVerify();
+    });
+  });
+  $('vlist').querySelectorAll('[data-fix]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      verifyState[b.dataset.fix] = 'fix';
+      renderVerify();
+    });
+  });
+  $('vlist').querySelectorAll('[data-save]').forEach(function (b) {
+    b.addEventListener('click', function () { saveFix(b.dataset.save); });
+  });
+}
+
+function vrowHtml(it) {
+  var st = verifyState[it.ref_no] || '';
+
+  var data = [
+    ['ประเภท', it.item_name],
+    ['โอนจาก', it.transfer_from],
+    ['โอนไป', it.transfer_to],
+    ['จำนวน', it.sent_qty],
+    ['วันที่', it.doc_date ? fmtDate(it.doc_date) : '']
+  ].map(function (p) {
+    return '<div><div class="vd-k">' + esc(p[0]) + '</div>' +
+           '<div class="vd-v">' + esc(p[1] || '—') + '</div></div>';
+  }).join('');
+
+  var edit = st === 'fix' ? editHtml(it) : '';
+
+  return '<div class="vrow ' + st + '">' +
+    '<div class="vr-top">' +
+      '<div>' +
+        '<div class="vr-ref">' + esc(it.ref_no) + '</div>' +
+        '<div class="vr-bc">บาร์โค้ด ' + esc(it.barcode || '—') + '</div>' +
+      '</div>' +
+      (st === 'pass' ? '<span class="tag ok">ตรวจแล้ว ตรงกัน</span>' : '') +
+      (st === 'fix' ? '<span class="tag warn">กำลังแก้</span>' : '') +
+      '<div class="vr-act">' +
+        (st === 'pass' ? '' :
+          '<button class="btn ok sm" data-pass="' + esc(it.ref_no) + '">ตรงกัน ✓</button>') +
+        (st === 'fix' ? '' :
+          '<button class="btn ghost sm" data-fix="' + esc(it.ref_no) + '">ไม่ตรง — แก้</button>') +
+      '</div>' +
+    '</div>' +
+    '<div class="vr-data">' + data + '</div>' +
+    edit +
+  '</div>';
+}
+
+function editHtml(it) {
+  var f = FIX_FIELDS.map(function (x) {
+    var v = it[x.k] || '';
+    if (x.k === 'doc_date' && v) v = fmtDateInput(v);
+    return '<div>' +
+      '<label>' + esc(x.label) + '</label>' +
+      '<input data-ref="' + esc(it.ref_no) + '" data-f="' + x.k + '" ' +
+        (x.k === 'doc_date' ? 'type="date" ' : '') +
+        'value="' + esc(v) + '">' +
+    '</div>';
+  }).join('');
+
+  return '<div class="vr-edit">' +
+    '<div class="hint" style="margin-bottom:9px">' +
+      'แก้ตามเอกสารตัวจริง — ระบบจะบันทึกว่าใครแก้และแก้จากอะไร</div>' +
+    '<div class="eg">' + f + '</div>' +
+    '<button class="btn sm" data-save="' + esc(it.ref_no) + '">บันทึกการแก้ไข</button>' +
+  '</div>';
+}
+
+function fmtDateInput(v) {
+  var d = new Date(v);
+  if (isNaN(d.getTime())) return '';
+  return d.toISOString().slice(0, 10);
+}
+
+async function saveFix(ref) {
+  var it = items.find(function (x) { return x.ref_no === ref; });
+  if (!it) return;
+
+  var fields = {};
+  var changed = 0;
+  $('vlist').querySelectorAll('[data-ref="' + ref + '"]').forEach(function (el) {
+    var k = el.dataset.f;
+    var was = String(it[k] || '');
+    if (k === 'doc_date' && was) was = fmtDateInput(was);
+    if (el.value.trim() !== was.trim()) { fields[k] = el.value.trim(); changed++; }
+  });
+
+  if (!changed) { alert('ยังไม่ได้แก้อะไร'); return; }
+
+  var reason = prompt('แก้ ' + changed + ' ช่องของ ' + ref + '\n\n' +
+    'ระบุเหตุผลสั้น ๆ (เช่น เอกสารจริงระบุจำนวน 9 ไม่ใช่ 7)');
+  if (reason === null) return;
+
+  try {
+    var r = await call('docFixOnReceive',
+      { ref_no: ref, fields: fields, reason: reason.trim() }, 60000);
+    if (!r || r.status !== 'ok') { alert((r && r.message) || 'แก้ไม่สำเร็จ'); return; }
+
+    // อัปข้อมูลในหน้าให้ตรงกับที่บันทึกไป
+    Object.keys(fields).forEach(function (k) { it[k] = fields[k]; });
+    verifyState[ref] = 'pass';
+    renderVerify();
+    toast('แก้ ' + ref + ' แล้ว');
+  } catch (e) {
+    alert('แก้ไม่สำเร็จ: ' + (e.message || e));
+  }
+}
+
+$('btnToVerify').addEventListener('click', goVerify);
+
+$('btnAllPass').addEventListener('click', function () {
+  var scanned = items.filter(function (it) { return got.has(it.ref_no); });
+  var left = scanned.filter(function (it) { return !verifyState[it.ref_no]; });
+  if (!left.length) return;
+
+  /* ถามก่อนเสมอ เพราะการกดผ่านรวดเดียวคือการรับรองว่าดูครบทุกใบแล้ว
+     ถ้าไม่ได้ดูจริงแล้วข้อมูลผิด จะไปพบตอนที่แก้ยากกว่ามาก */
+  if (!confirm('ยืนยันว่าตรวจเอกสารจริงครบ ' + left.length + ' ใบแล้ว\n' +
+      'และข้อมูลในระบบตรงกับเอกสารทุกใบ')) return;
+
+  left.forEach(function (it) { verifyState[it.ref_no] = 'pass'; });
+  renderVerify();
+});
+
 $('btnFinish').addEventListener('click', async () => {
   if (!batch) return;
 
