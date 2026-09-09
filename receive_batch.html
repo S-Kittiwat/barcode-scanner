@@ -543,13 +543,17 @@ function render() {
 var verifyState = {};    // ref → 'pass' | 'fix' | undefined
 
 /** ช่องที่ให้แก้ได้ตอนตรวจ — เฉพาะที่อ่านได้จากเอกสารจริง */
+/* 8 ข้อที่ต้องตรวจกับเอกสารจริง เรียงตามที่อยู่บนกระดาษ
+   เพื่อให้ตากวาดจากบนลงล่างได้โดยไม่ต้องกระโดดไปมา */
 var FIX_FIELDS = [
-  { k: 'item_name',     label: 'ประเภทเอกสาร' },
-  { k: 'transfer_from', label: 'โอนจาก' },
-  { k: 'transfer_to',   label: 'โอนไป' },
-  { k: 'sent_qty',      label: 'จำนวนส่ง' },
-  { k: 'doc_date',      label: 'วันที่เอกสาร' },
-  { k: 'barcode',       label: 'บาร์โค้ด' }
+  { k: 'origin_acc',       label: 'Account No. ต้นทาง' },
+  { k: 'transfer_from',    label: 'โอนจาก' },
+  { k: 'dest_acc',         label: 'Account No. ปลายทาง' },
+  { k: 'transfer_to',      label: 'โอนไป' },
+  { k: 'transporter_name', label: 'บริษัทขนส่ง' },
+  { k: 'plate_number',     label: 'ทะเบียนรถ' },
+  { k: 'doc_date',         label: 'วันส่ง', type: 'date' },
+  { k: 'received_date',    label: 'วันรับ', type: 'date' }
 ];
 
 function goVerify() {
@@ -595,13 +599,11 @@ function renderVerify() {
 function vrowHtml(it) {
   var st = verifyState[it.ref_no] || '';
 
-  var data = [
-    ['ประเภท', it.item_name],
-    ['โอนจาก', it.transfer_from],
-    ['โอนไป', it.transfer_to],
-    ['จำนวน', it.sent_qty],
-    ['วันที่', it.doc_date ? fmtDate(it.doc_date) : '']
-  ].map(function (p) {
+  var data = FIX_FIELDS.map(function (f) {
+    var v = it[f.k];
+    if (f.type === 'date' && v) v = fmtDate(v);
+    return [f.label, v];
+  }).map(function (p) {
     return '<div><div class="vd-k">' + esc(p[0]) + '</div>' +
            '<div class="vd-v">' + esc(p[1] || '—') + '</div></div>';
   }).join('');
@@ -631,11 +633,11 @@ function vrowHtml(it) {
 function editHtml(it) {
   var f = FIX_FIELDS.map(function (x) {
     var v = it[x.k] || '';
-    if (x.k === 'doc_date' && v) v = fmtDateInput(v);
+    if (x.type === 'date' && v) v = fmtDateInput(v);
     return '<div>' +
       '<label>' + esc(x.label) + '</label>' +
       '<input data-ref="' + esc(it.ref_no) + '" data-f="' + x.k + '" ' +
-        (x.k === 'doc_date' ? 'type="date" ' : '') +
+        (x.type === 'date' ? 'type="date" ' : '') +
         'value="' + esc(v) + '">' +
     '</div>';
   }).join('');
