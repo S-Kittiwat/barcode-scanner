@@ -467,11 +467,18 @@ async function openBatch(id) {
 
 /* ---------- ยิงทีละใบ ---------- */
 function scanItem(v) {
-  const inList = items.some(it => it.ref_no.toUpperCase() === v);
+  /* คนยิงบาร์โค้ดจากกระดาษ แต่ชุดเก็บเป็นเลข Reference
+     ต้องเทียบทั้งสองอย่าง ไม่งั้นยิงบาร์โค้ดแล้วขึ้นว่าไม่อยู่ในชุด
+     ทั้งที่หน้าจอแสดงบาร์โค้ดตัวนั้นอยู่ */
+  const hit = items.find(it =>
+    String(it.ref_no || '').trim().toUpperCase() === v ||
+    String(it.barcode || '').trim().toUpperCase() === v);
 
-  if (inList) {
-    if (got.has(v)) { beep(false); toast('ยิงซ้ำ ' + v, 'warn'); return; }
-    got.add(v);
+  if (hit) {
+    // เก็บเป็นเลข Reference เสมอ เพื่อให้เทียบกับชุดได้ตรง
+    const key = String(hit.ref_no).trim().toUpperCase();
+    if (got.has(key)) { beep(false); toast('ยิงซ้ำ ' + v, 'warn'); return; }
+    got.add(key);
     beep(true);
     toast('รับ ' + v + '  (' + got.size + '/' + items.length + ')');
   } else {
@@ -539,7 +546,7 @@ var FIX_FIELDS = [
 ];
 
 function goVerify() {
-  var scanned = items.filter(function (it) { return got.has(it.ref_no); });
+  var scanned = items.filter(function (it) { return got.has(String(it.ref_no).trim().toUpperCase()); });
   if (!scanned.length) { alert('ยังไม่ได้ยิงเอกสารสักใบ'); return; }
 
   $('scanBox').style.display = 'none';
@@ -552,7 +559,7 @@ function goVerify() {
 }
 
 function renderVerify() {
-  var scanned = items.filter(function (it) { return got.has(it.ref_no); });
+  var scanned = items.filter(function (it) { return got.has(String(it.ref_no).trim().toUpperCase()); });
   var done = scanned.filter(function (it) { return verifyState[it.ref_no]; }).length;
 
   $('vhCount').textContent = 'ตรวจแล้ว ' + done + ' จาก ' + scanned.length + ' ใบ' +
@@ -677,7 +684,7 @@ async function saveFix(ref) {
 $('btnToVerify').addEventListener('click', goVerify);
 
 $('btnAllPass').addEventListener('click', function () {
-  var scanned = items.filter(function (it) { return got.has(it.ref_no); });
+  var scanned = items.filter(function (it) { return got.has(String(it.ref_no).trim().toUpperCase()); });
   var left = scanned.filter(function (it) { return !verifyState[it.ref_no]; });
   if (!left.length) return;
 
