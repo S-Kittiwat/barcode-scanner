@@ -1692,7 +1692,7 @@ function _makeRow(file, photoType) {
     id: ++_rowIdCounter, client_id: DocScan.newClientId(),
     file: file, photoData: null, pdfPageData: null,
     photoType: photoType, barcode: '', doc: null, status: 'idle',
-    editVals: { refNo:'', itemName:'', transferFrom:'', originAcc:'', transferTo:'', destAcc:'', despatch:'', receivedDate:'', sentQty:'', receivedQty:'' }
+    editVals: { refNo:'', itemName:'', transferFrom:'', originAcc:'', transferTo:'', destAcc:'', despatch:'', receivedDate:'', sentQty:'', receivedQty:'', transporter:'', plate:'' }
   };
 }
 
@@ -2261,8 +2261,13 @@ function fillFromRef(row, doc) {
   ev.originAcc    = doc['customer_start_code']       || ev.originAcc || '';
   ev.transferTo   = doc['customer_destination_name'] || ev.transferTo || '';
   ev.destAcc      = doc['customer_destination_code'] || ev.destAcc || '';
-  if (doc['create_at']) ev.despatch = toInputDate(doc['create_at']);
-  if (doc['real_recived_at']) ev.receivedDate = toInputDate(doc['real_recived_at']);
+
+  /* ข้อมูลที่ปลายทางต้องตรวจกับเอกสารจริง
+     เก็บไว้ตั้งแต่ตอนสแกน จะได้ไม่ต้องกรอกซ้ำตอนรับ */
+  ev.transporter  = doc['transporter_name'] || ev.transporter || '';
+  ev.plate        = doc['plate_number']     || ev.plate || '';
+  if (doc['date']) ev.despatch = toInputDate(doc['date']);
+  if (doc['real_received_at']) ev.receivedDate = toInputDate(doc['real_received_at']);
   if (doc['total']) { ev.sentQty = doc['total']; ev.receivedQty = doc['total']; }
 
   row.doc = doc;
@@ -2311,9 +2316,9 @@ function onBarcodeChange(id, value) {
     row.editVals.originAcc    = doc['customer_start_code']       || '';
     row.editVals.transferTo   = doc['customer_destination_name'] || '';
     row.editVals.destAcc      = doc['customer_destination_code'] || '';
-    row.editVals.despatch     = toInputDate(doc['create_at']     || '');
-    row.editVals.receivedDate = doc['real_recived_at']
-      ? toInputDate(doc['real_recived_at'])
+    row.editVals.despatch     = toInputDate(doc['date']     || '');
+    row.editVals.receivedDate = doc['real_received_at']
+      ? toInputDate(doc['real_received_at'])
       : new Date().toISOString().split('T')[0];
     row.editVals.sentQty      = doc['total'] || '';
     row.editVals.receivedQty  = doc['total'] || '';
@@ -3722,6 +3727,9 @@ async function submitBatch(){
         read_barcode : row.readBarcode || '',
         read_ref     : row.readRef     || '',
         ref_source   : row.refSource   || 'manual',
+        transporter_name: ev.transporter || '',
+        plate_number    : ev.plate       || '',
+        received_date   : ev.receivedDate || '',
         item_name    : ev.itemName     || '',
         transfer_from: ev.transferFrom || '',
         origin_acc   : ev.originAcc    || '',
