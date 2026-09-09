@@ -186,6 +186,8 @@ tr.lv-critical td:first-child{box-shadow:inset 3px 0 0 var(--warn)}
 .progtxt{font-family:var(--mono);font-size:14px;font-weight:600}
 
 .ilist{max-height:44vh;overflow:auto;border:1px solid var(--border);border-radius:var(--rs)}
+/* คอลัมน์ตัวเลขจัดกลาง อ่านง่ายกว่าชิดซ้าย */
+.ilist th.c,.ilist td.c{text-align:center}
 .ilist table{margin:0}
 .ilist thead th{position:sticky;top:0;background:var(--surface2);z-index:1}
 tr.got td{background:rgba(52,211,153,.09)}
@@ -513,17 +515,22 @@ function render() {
       <td><div class="ref">${esc(it.barcode || it.ref_no)}</div>
           <div class="hint">${esc(it.ref_no)}</div></td>
       <td>${esc(it.item_name || '—')}</td>
+      <td>${esc(it.transfer_from || '—')}</td>
       <td>${esc(it.transfer_to || it.dest_warehouse || '—')}</td>
+      <td class="c">${esc(it.sent_qty || '—')}</td>
     </tr>`;
   }).concat(extra.map(x => `<tr class="extra-row">
       <td><span class="mark">+</span></td>
       <td><div class="ref">${esc(x)}</div></td>
-      <td colspan="2" class="hint">ไม่อยู่ในรายการชุดนี้ — รับไว้แล้ว</td>
+      <td colspan="4" class="hint">ไม่อยู่ในรายการชุดนี้ — รับไว้แล้ว</td>
     </tr>`));
 
   $('ilist').innerHTML = '<table><thead><tr>' +
-    '<th style="width:38px"></th><th style="width:150px">บาร์โค้ด / Reference</th>' +
-    '<th>ประเภท</th><th style="width:170px">ปลายทาง</th>' +
+    '<th style="width:38px"></th><th style="width:140px">บาร์โค้ด / Reference</th>' +
+    '<th style="width:130px">ประเภท</th>' +
+    '<th style="width:150px">โอนจาก</th>' +
+    '<th>ปลายทาง</th>' +
+    '<th style="width:80px" class="c">จำนวนพาเลท</th>' +
     '</tr></thead><tbody>' + rows.join('') + '</tbody></table>';
 }
 
