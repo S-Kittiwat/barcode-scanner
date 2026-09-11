@@ -188,6 +188,10 @@ tr.lv-critical td:first-child{box-shadow:inset 3px 0 0 var(--warn)}
 .ilist{max-height:44vh;overflow:auto;border:1px solid var(--border);border-radius:var(--rs)}
 /* คอลัมน์ตัวเลขจัดกลาง อ่านง่ายกว่าชิดซ้าย */
 .ilist th.c,.ilist td.c{text-align:center}
+/* ปุ่มเอาออก — เล็กและไม่เด่น เพราะเป็นทางถอย ไม่ใช่งานหลัก */
+.xbtn{background:none;border:none;color:var(--muted);cursor:pointer;
+  font-size:13px;padding:2px 5px;line-height:1}
+.xbtn:hover{color:var(--danger)}
 .ilist table{margin:0}
 .ilist thead th{position:sticky;top:0;background:var(--surface2);z-index:1}
 tr.got td{background:rgba(52,211,153,.09)}
@@ -239,8 +243,16 @@ tr.got td:first-child{box-shadow:inset 3px 0 0 var(--success)}
 .vr-bc{font-family:var(--mono);font-size:11.5px;color:var(--muted)}
 .vr-act{margin-left:auto;display:flex;gap:7px}
 
-.vr-data{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));
-  gap:10px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
+/* 8 ช่องเรียงบรรทัดเดียว — Account No. แคบเพราะเป็นตัวเลขสั้น
+   ที่เหลือแบ่งพื้นที่เท่ากัน เพราะเป็นชื่อยาว */
+.vr-data{display:grid;
+  grid-template-columns:64px 1fr 64px 1fr 1fr 84px 78px 78px 62px 62px;
+  gap:9px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
+.vr-data>div{min-width:0}
+.vd-v{overflow-wrap:anywhere}
+@media (max-width:1100px){
+  .vr-data{grid-template-columns:repeat(auto-fit,minmax(110px,1fr))}
+}
 .vd-k{font-size:10px;color:var(--muted);text-transform:uppercase}
 .vd-v{font-size:13px;font-weight:600;margin-top:2px}
 
@@ -329,8 +341,11 @@ a.btn{display:inline-flex;align-items:center;text-decoration:none}
           <div class="vh-t">② ตรวจเอกสารจริงกับข้อมูลในระบบ</div>
           <div class="hint" id="vhCount">—</div>
         </div>
-        <button class="btn ghost" id="btnAllPass" style="margin-left:auto">
-          ผ่านทั้งหมด</button>
+        <div style="margin-left:auto;display:flex;gap:7px">
+          <!-- ต้องมีทางกลับไปยิงเพิ่ม ไม่งั้นเจอใบตกหล่นแล้วต้องเริ่มใหม่ทั้งชุด -->
+          <button class="btn ghost" id="btnBackScan">← กลับไปยิงเพิ่ม</button>
+          <button class="btn ghost" id="btnAllPass">ผ่านทั้งหมด</button>
+        </div>
       </div>
       <div class="vsum" id="vSummary"></div>
       <div class="vlist" id="vlist"></div>
@@ -557,13 +572,17 @@ function render() {
           <div class="hint">${esc(it.ref_no)}</div></td>
       <td>${esc(it.item_name || '—')}</td>
       <td>${esc(it.transfer_from || '—')}</td>
-      <td>${esc(it.transfer_to || it.dest_warehouse || '—')}</td>
+      <td>${esc(it.transfer_to || '—')}</td>
       <td class="c">${esc(it.sent_qty || '—')}</td>
+      <td class="c">${on
+        ? `<button class="xbtn" data-undo="${esc(it.ref_no)}" title="เอาออก">✕</button>`
+        : ''}</td>
     </tr>`;
   }).concat(extra.map(x => `<tr class="extra-row">
       <td><span class="mark">+</span></td>
       <td><div class="ref">${esc(x)}</div></td>
       <td colspan="4" class="hint">ไม่อยู่ในรายการชุดนี้ — รับไว้แล้ว</td>
+    <td class="c"><button class="xbtn" data-undox="${esc(x)}" title="เอาออก">✕</button></td>
     </tr>`));
 
   $('ilist').innerHTML = '<table><thead><tr>' +
@@ -572,7 +591,25 @@ function render() {
     '<th style="width:150px">โอนจาก</th>' +
     '<th>ปลายทาง</th>' +
     '<th style="width:80px" class="c">จำนวนพาเลท</th>' +
+    '<th style="width:34px"></th>' +
     '</tr></thead><tbody>' + rows.join('') + '</tbody></table>';
+
+  /* เอาใบที่ยิงผิดออกได้ ก่อนกดจบการรับ
+     ถ้าไม่ให้ลบ คนจะต้องเริ่มชุดใหม่ทั้งหมดเพราะยิงผิดใบเดียว */
+  $('ilist').querySelectorAll('[data-undo]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      got.delete(String(b.dataset.undo).trim().toUpperCase());
+      delete verifyState[keyOf(b.dataset.undo)];
+      render();
+    });
+  });
+  $('ilist').querySelectorAll('[data-undox]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var i = extra.indexOf(b.dataset.undox);
+      if (i >= 0) extra.splice(i, 1);
+      render();
+    });
+  });
 }
 
 /* ---------- จบการรับ ---------- */
@@ -583,6 +620,10 @@ function render() {
 
 var verifyState = {};    // ref → 'pass' | 'fix' | undefined
 var recvNote = '';       // หมายเหตุที่ปลายทางแจ้งกลับต้นทาง
+
+/* คีย์เดียวกันทุกที่ ไม่งั้น got กับ verifyState จะนับไม่ตรงกัน
+   แล้วปุ่มยืนยันจะกดไม่ได้ทั้งที่ตรวจครบแล้ว */
+function keyOf(v) { return String(v == null ? '' : v).trim().toUpperCase(); }
 
 /* รายชื่อคู่ค้าและขนส่งจากไฟล์อ้างอิง
    ให้เลือกแทนพิมพ์เอง เพราะพิมพ์ผิดตัวเดียวก็กลายเป็นคนละราย
@@ -692,7 +733,7 @@ async function goVerify() {
 
 function renderVerify() {
   var scanned = items.filter(function (it) { return got.has(String(it.ref_no).trim().toUpperCase()); });
-  var done = scanned.filter(function (it) { return verifyState[it.ref_no]; }).length;
+  var done = scanned.filter(function (it) { return verifyState[keyOf(it.ref_no)]; }).length;
 
   /* สรุปให้เห็นก่อนกดยืนยัน ว่าชุดนี้ครบไหม ขาดใบไหน เกินใบไหน
      ถ้าไม่บอก คนจะกดยืนยันโดยไม่รู้ว่าขาด แล้วไปพบทีหลังว่าตามไม่ได้ */
@@ -702,7 +743,9 @@ function renderVerify() {
 
   $('vhCount').textContent = 'ตรวจแล้ว ' + done + ' จาก ' + scanned.length + ' ใบ' +
     (done < scanned.length ? ' — ต้องตรวจให้ครบก่อนยืนยัน' : ' ✓');
-  $('btnFinish').disabled = done < scanned.length;
+  /* กดได้เมื่อตรวจครบทุกใบที่ยิงมา
+     ใบที่ขาดไม่นับ เพราะไม่ได้อยู่ในมือให้ตรวจ */
+  $('btnFinish').disabled = scanned.length > 0 && done < scanned.length;
 
   renderSummary(scanned, missing);
 
@@ -710,13 +753,13 @@ function renderVerify() {
 
   $('vlist').querySelectorAll('[data-pass]').forEach(function (b) {
     b.addEventListener('click', function () {
-      verifyState[b.dataset.pass] = 'pass';
+      verifyState[keyOf(b.dataset.pass)] = 'pass';
       renderVerify();
     });
   });
   $('vlist').querySelectorAll('[data-fix]').forEach(function (b) {
     b.addEventListener('click', function () {
-      verifyState[b.dataset.fix] = 'fix';
+      verifyState[keyOf(b.dataset.fix)] = 'fix';
       renderVerify();
     });
   });
@@ -728,7 +771,7 @@ function renderVerify() {
      ไม่ใช่ทำเครื่องหมายว่าผ่าน เพราะยังไม่ได้ตรวจจริง */
   $('vlist').querySelectorAll('[data-cancelfix]').forEach(function (b) {
     b.addEventListener('click', function () {
-      delete verifyState[b.dataset.cancelfix];
+      delete verifyState[keyOf(b.dataset.cancelfix)];
       renderVerify();
     });
   });
@@ -785,7 +828,7 @@ function renderSummary(scanned, missing) {
 }
 
 function vrowHtml(it) {
-  var st = verifyState[it.ref_no] || '';
+  var st = verifyState[keyOf(it.ref_no)] || '';
 
   var data = FIX_FIELDS.map(function (f) {
     var v = it[f.k];
@@ -1065,7 +1108,7 @@ async function saveFix(ref) {
 
     // อัปข้อมูลในหน้าให้ตรงกับที่บันทึกไป
     Object.keys(fields).forEach(function (k) { it[k] = fields[k]; });
-    verifyState[ref] = 'pass';
+    verifyState[keyOf(ref)] = 'pass';
     renderVerify();
     toast('แก้ ' + ref + ' แล้ว');
   } catch (e) {
@@ -1075,9 +1118,21 @@ async function saveFix(ref) {
 
 $('btnToVerify').addEventListener('click', goVerify);
 
+/* กลับไปหน้ายิง — เก็บผลการตรวจไว้
+   ถ้าล้างทิ้ง คนที่ตรวจไป 30 ใบแล้วต้องทำใหม่หมด */
+$('btnBackScan').addEventListener('click', () => {
+  $('verifyBox').style.display = 'none';
+  $('scanBox').style.display = '';
+  $('ilist').style.display = '';
+  $('btnToVerify').style.display = '';
+  $('btnFinish').style.display = 'none';
+  render();
+  keepFocus();
+});
+
 $('btnAllPass').addEventListener('click', function () {
   var scanned = items.filter(function (it) { return got.has(String(it.ref_no).trim().toUpperCase()); });
-  var left = scanned.filter(function (it) { return !verifyState[it.ref_no]; });
+  var left = scanned.filter(function (it) { return !verifyState[keyOf(it.ref_no)]; });
   if (!left.length) return;
 
   /* ถามก่อนเสมอ เพราะการกดผ่านรวดเดียวคือการรับรองว่าดูครบทุกใบแล้ว
@@ -1085,7 +1140,7 @@ $('btnAllPass').addEventListener('click', function () {
   if (!confirm('ยืนยันว่าตรวจเอกสารจริงครบ ' + left.length + ' ใบแล้ว\n' +
       'และข้อมูลในระบบตรงกับเอกสารทุกใบ')) return;
 
-  left.forEach(function (it) { verifyState[it.ref_no] = 'pass'; });
+  left.forEach(function (it) { verifyState[keyOf(it.ref_no)] = 'pass'; });
   renderVerify();
 });
 
