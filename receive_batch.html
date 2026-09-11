@@ -262,7 +262,6 @@ a.btn{display:inline-flex;align-items:center;text-decoration:none}
   border:1px solid var(--border);color:var(--muted)}
 .tag.ok{border-color:var(--success);color:var(--success)}
 .tag.warn{border-color:var(--warn);color:var(--warn)}
-.btn.ok{border-color:var(--success);color:var(--success)}
 </style>
 </head>
 <body>
@@ -381,12 +380,22 @@ const esc = s => String(s == null ? '' : s)
 try { installRefBar(call); }
 catch (e) { console.error('[DocScan] แถบสถานะติดตั้งไม่สำเร็จ', e); }
 
+/** วันที่พร้อมเวลา — ใช้กับเวลาที่เกิดเหตุการณ์ เช่นเวลาส่งชุด */
 function fmt(v) {
   if (!v) return '—';
   const d = new Date(v);
   if (isNaN(d.getTime())) return String(v);
   return d.toLocaleString('th-TH', { day:'2-digit', month:'short', year:'2-digit',
                                      hour:'2-digit', minute:'2-digit' });
+}
+
+/** วันที่อย่างเดียว — ใช้กับวันที่บนเอกสาร
+    ซึ่งไม่มีเวลาอยู่แล้ว แสดง 00:00 ไปก็ไม่มีความหมาย */
+function fmtDay(v) {
+  if (!v) return '—';
+  const d = new Date(v);
+  if (isNaN(d.getTime())) return String(v);
+  return d.toLocaleDateString('th-TH', { day:'2-digit', month:'short', year:'2-digit' });
 }
 
 const CHANNEL_LABEL = {
@@ -681,7 +690,7 @@ function vrowHtml(it) {
 
   var data = FIX_FIELDS.map(function (f) {
     var v = it[f.k];
-    if (f.type === 'date' && v) v = fmt(v);
+    if (f.type === 'date' && v) v = fmtDay(v);
     return [f.label, v];
   }).map(function (p) {
     return '<div><div class="vd-k">' + esc(p[0]) + '</div>' +
@@ -705,7 +714,7 @@ function vrowHtml(it) {
           ? '<a class="btn ghost sm" href="' + esc(it.pdf_url) + '" ' +
             'target="_blank" rel="noopener">ดูไฟล์</a>' : '') +
         (st === 'pass' ? '' :
-          '<button class="btn ok sm" data-pass="' + esc(it.ref_no) + '">ตรงกัน ✓</button>') +
+          '<button class="btn sm" data-pass="' + esc(it.ref_no) + '">ตรงกัน ✓</button>') +
         (st === 'fix' ? '' :
           '<button class="btn ghost sm" data-fix="' + esc(it.ref_no) + '">ไม่ตรง — แก้</button>') +
       '</div>' +
