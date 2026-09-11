@@ -577,9 +577,23 @@ async function loadParties() {
   if (partyData) return partyData;
   try {
     const r = await call('refPartyList', {}, 60000);
-    if (r && r.status === 'ok') partyData = r;
+    if (r && r.status === 'ok') {
+      partyData = r;
+      const n = (r.parties || []).length;
+      console.log('[DocScan] รายชื่อ', n, 'ราย · ขนส่ง',
+        (r.transporters || []).length, '· ทะเบียน', (r.plates || []).length);
+
+      /* รายชื่อว่างแปลว่ายังไม่ได้สร้าง party_list หรืออ่านไฟล์ไม่ได้
+         ต้องบอก ไม่งั้นคนจะเห็นแค่ช่องพิมพ์เปล่าแล้วไม่รู้ว่าทำไม */
+      if (!n) {
+        toast('ยังไม่มีรายชื่อให้เลือก — พิมพ์เองได้', 'warn');
+      }
+    } else {
+      toast('โหลดรายชื่อไม่สำเร็จ — พิมพ์เองได้', 'warn');
+    }
   } catch (e) {
     console.error('[DocScan] โหลดรายชื่อไม่สำเร็จ', e);
+    toast('โหลดรายชื่อไม่สำเร็จ — พิมพ์เองได้', 'warn');
   }
   return partyData;
 }
@@ -595,7 +609,11 @@ var FIX_FIELDS = [
   { k: 'transporter_name', label: 'บริษัทขนส่ง', list: 'transporters' },
   { k: 'plate_number',     label: 'ทะเบียนรถ', list: 'plates' },
   { k: 'doc_date',         label: 'วันส่ง', type: 'date' },
-  { k: 'received_date',    label: 'วันรับ', type: 'date' }
+  { k: 'received_date',    label: 'วันรับ', type: 'date' },
+  /* จำนวนพาเลทสำคัญที่สุด เพราะเป็นตัวที่ใช้วางบิล
+     ถ้าผิดแล้วไม่จับ จะกลายเป็นข้อพิพาทภายหลัง */
+  { k: 'sent_qty',         label: 'จำนวนพาเลทที่ส่ง' },
+  { k: 'received_qty',     label: 'จำนวนพาเลทที่รับ' }
 ];
 
 /** สร้างรายการให้ช่องค้นหาใช้ — ครั้งเดียวพอ */
@@ -682,6 +700,15 @@ function renderVerify() {
     b.addEventListener('click', function () { saveFix(b.dataset.save); });
   });
 
+  /* ยกเลิกการแก้ — กลับไปสถานะยังไม่ตรวจ
+     ไม่ใช่ทำเครื่องหมายว่าผ่าน เพราะยังไม่ได้ตรวจจริง */
+  $('vlist').querySelectorAll('[data-cancelfix]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      delete verifyState[b.dataset.cancelfix];
+      renderVerify();
+    });
+  });
+
   installCombos();
 }
 
@@ -735,7 +762,7 @@ function editHtml(it) {
       return '<div>' +
         '<label>' + esc(x.label) + '</label>' +
         '<input data-ref="' + esc(it.ref_no) + '" data-f="' + x.k + '" ' +
-          (x.type === 'date' ? 'type="date" ' : '') +
+          (x.type === 'date' ? 'placeholder="วว/ดด/ปปปป" ' : '') +
           'value="' + esc(v) + '">' +
       '</div>';
     }
@@ -773,6 +800,9 @@ function editHtml(it) {
       'แก้ตามเอกสารตัวจริง — ระบบจะบันทึกว่าใครแก้และแก้จากอะไร</div>' +
     '<div class="eg">' + f + '</div>' +
     '<button class="btn sm" data-save="' + esc(it.ref_no) + '">บันทึกการแก้ไข</button>' +
+    /* ต้องมีทางถอย คนกดผิดแล้วติดอยู่ในโหมดแก้ไม่ได้ */
+    '<button class="btn ghost sm" data-cancelfix="' + esc(it.ref_no) + '" ' +
+      'style="margin-left:7px">ยกเลิก</button>' +
   '</div>';
 }
 
@@ -884,10 +914,27 @@ function listOf(kind) {
   });
 }
 
+/* ช่องกรอกวันที่ใช้รูปแบบ dd/mm/yyyy
+   เดิมใช้ <input type="date"> ซึ่งแสดงตามภาษาของเครื่อง
+   เครื่องภาษาอังกฤษจะขึ้น mm/dd/yyyy แล้วคนไทยอ่านสลับ */
 function fmtDateInput(v) {
   var d = new Date(v);
   if (isNaN(d.getTime())) return '';
-  return d.toISOString().slice(0, 10);
+  var p = function (x) { return (x < 10 ? '0' : '') + x; };
+  return p(d.getDate()) + '/' + p(d.getMonth() + 1) + '/' + d.getFullYear();
+}
+
+/** dd/mm/yyyy → yyyy-mm-dd ก่อนส่งเซิร์ฟเวอร์ */
+function toIsoDate(v) {
+  var t = String(v || '').trim();
+  if (!t) return '';
+  var m = t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (!m) return t;
+  var y = Number(m[3]);
+  // ปีไทยแปลงเป็นสากล ไม่งั้นจะกลายเป็นปี 2600 กว่า
+  if (y > 2400) y -= 543;
+  var p = function (x) { return x.length < 2 ? '0' + x : x; };
+  return y + '-' + p(m[2]) + '-' + p(m[1]);
 }
 
 async function saveFix(ref) {
@@ -925,7 +972,11 @@ async function saveFix(ref) {
     var was = String(it[k] || '');
     var fd = FIX_FIELDS.find(function (f) { return f.k === k; });
     if (fd && fd.type === 'date' && was) was = fmtDateInput(was);
-    if (picked[k] !== was.trim()) { fields[k] = picked[k]; changed++; }
+    if (picked[k] === was.trim()) return;
+    /* ส่งวันที่เป็นรูปแบบสากล ไม่ใช่ dd/mm/yyyy ที่คนกรอก
+       ไม่งั้นชีตจะตีความผิดว่าเดือนคือวัน */
+    fields[k] = (fd && fd.type === 'date') ? toIsoDate(picked[k]) : picked[k];
+    changed++;
   });
 
   if (!changed) { alert('ยังไม่ได้แก้อะไร'); return; }
