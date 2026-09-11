@@ -239,6 +239,12 @@ tr.got td:first-child{box-shadow:inset 3px 0 0 var(--success)}
   border-radius:var(--rs);color:var(--text);padding:6px 9px;
   font-family:var(--font);font-size:12.5px}
 .vr-edit input.changed{border-color:var(--warn)}
+.vr-edit select{width:100%;background:var(--surface2);border:1px solid var(--border);
+  border-radius:var(--rs);color:var(--text);padding:6px 9px;
+  font-family:var(--font);font-size:12.5px}
+/* ช่องพิมพ์เองเน้นสีเตือน เพราะค่านั้นยังไม่เคยมีในทะเบียน
+   ต้องตรวจก่อนนำไปใช้จริง */
+.vr-edit input.freetext{border-color:var(--warn)}
 
 .btn.sm{padding:5px 11px;font-size:12px}
 .tag{font-size:11px;font-weight:600;padding:3px 10px;border-radius:99px;
@@ -582,7 +588,7 @@ function buildDatalists() {
          เห็นทั้งคู่แล้วเลือกถูกกว่าเห็นชื่ออย่างเดียว */
       (partyData.parties || []).map(function (p) {
         return '<option value="' + esc(p.name) + '">' +
-               esc(p.code ? p.code + ' — ' + p.name : p.name) + '</option>';
+               esc(p.code || '') + '</option>';
       }).join('') +
     '</datalist>' +
     '<datalist id="dl-transporters">' +
@@ -612,9 +618,22 @@ async function goVerify() {
   $('btnToVerify').style.display = 'none';
   $('btnFinish').style.display = '';
 
-  await loadParties();
-  buildDatalists();
+  /* แสดงตารางทันที ไม่รอรายชื่อ
+   *
+   * รายชื่อใช้เฉพาะตอนกด "ไม่ตรง — แก้" ซึ่งเป็นส่วนน้อย
+   * ถ้ารอก่อนแสดง คนต้องรอทุกครั้งทั้งที่ส่วนใหญ่แค่กดผ่าน
+   */
   renderVerify();
+
+  // โหลดรายชื่อเบื้องหลัง พอมาถึงค่อยเติมให้
+  loadParties().then(function () {
+    buildDatalists();
+    // วาดใหม่เฉพาะเมื่อมีแถวที่กำลังแก้อยู่
+    var editing = Object.keys(verifyState).some(function (k) {
+      return verifyState[k] === 'fix';
+    });
+    if (editing) renderVerify();
+  });
 }
 
 function renderVerify() {
@@ -643,18 +662,28 @@ function renderVerify() {
     b.addEventListener('click', function () { saveFix(b.dataset.save); });
   });
 
-  /* เลือกชื่อคู่ค้าแล้วเติมรหัสให้เอง
-     คนจำรหัสไม่ได้อยู่แล้ว และกรอกเองมีโอกาสผิด */
-  $('vlist').querySelectorAll('[data-paircode]').forEach(function (el) {
-    el.addEventListener('change', function () {
-      if (!partyData) return;
-      var p = (partyData.parties || []).find(function (x) {
-        return x.name === el.value.trim();
-      });
-      if (!p || !p.code) return;
-      var codeEl = $('vlist').querySelector(
-        '[data-ref="' + el.dataset.ref + '"][data-f="' + el.dataset.paircode + '"]');
-      if (codeEl) { codeEl.value = p.code; codeEl.classList.add('changed'); }
+  /* เลือก "ไม่มีในรายการ" แล้วเปิดช่องให้พิมพ์เอง */
+  $('vlist').querySelectorAll('[data-sel]').forEach(function (sel) {
+    sel.addEventListener('change', function () {
+      var free = sel.parentNode.querySelector('.freetext');
+      var other = sel.value === '__other__';
+      if (free) {
+        free.style.display = other ? '' : 'none';
+        if (other) free.focus();
+      }
+
+      /* เลือกชื่อคู่ค้าแล้วเติมรหัสให้เอง
+         คนจำรหัสไม่ได้อยู่แล้ว และกรอกเองมีโอกาสผิด */
+      if (!other && sel.dataset.paircode && partyData) {
+        var p = (partyData.parties || []).find(function (x) {
+          return x.name === sel.value;
+        });
+        if (p && p.code) {
+          var codeEl = $('vlist').querySelector(
+            '[data-ref="' + sel.dataset.ref + '"][data-f="' + sel.dataset.paircode + '"]');
+          if (codeEl) { codeEl.value = p.code; codeEl.classList.add('changed'); }
+        }
+      }
     });
   });
 }
@@ -664,7 +693,7 @@ function vrowHtml(it) {
 
   var data = FIX_FIELDS.map(function (f) {
     var v = it[f.k];
-    if (f.type === 'date' && v) v = fmtDate(v);
+    if (f.type === 'date' && v) v = fmt(v);
     return [f.label, v];
   }).map(function (p) {
     return '<div><div class="vd-k">' + esc(p[0]) + '</div>' +
@@ -697,20 +726,45 @@ function editHtml(it) {
   var f = FIX_FIELDS.map(function (x) {
     var v = it[x.k] || '';
     if (x.type === 'date' && v) v = fmtDateInput(v);
-    /* ช่องที่มีรายการให้เลือกใช้ datalist
-       พิมพ์ค้นได้เหมือนช่องปกติ แต่เลือกจากของจริงเท่านั้น */
-    var listId = '';
-    if (x.list && partyData) listId = 'dl-' + x.list;
+
+    /* ช่องธรรมดา หรือรายชื่อยังโหลดไม่เสร็จ
+       ให้พิมพ์ไปก่อนได้ ดีกว่าค้างรอ */
+    if (!x.list || !partyData) {
+      return '<div>' +
+        '<label>' + esc(x.label) + '</label>' +
+        '<input data-ref="' + esc(it.ref_no) + '" data-f="' + x.k + '" ' +
+          (x.type === 'date' ? 'type="date" ' : '') +
+          'value="' + esc(v) + '">' +
+      '</div>';
+    }
+
+    /* ช่องที่มีรายการ ใช้ dropdown จริง ไม่ใช่ช่องพิมพ์อิสระ
+     *
+     * เลือก "ไม่มีในรายการ" ถึงจะพิมพ์เองได้
+     * และระบบจะทำเครื่องหมายไว้ว่าค่านี้คนพิมพ์เอง
+     * เพื่อให้ตรวจก่อนนำไปใช้จริงว่าชื่อถูกต้องหรือแค่ยังไม่มีในทะเบียน
+     */
+    var opts = listOf(x.list);
+    var inList = !v || opts.some(function (o) { return o.value === v; });
+
+    var sel = '<select data-ref="' + esc(it.ref_no) + '" data-sel="' + x.k + '"' +
+      (x.pairCode ? ' data-paircode="' + x.pairCode + '"' : '') + '>' +
+      '<option value="">— เลือก —</option>' +
+      opts.map(function (o) {
+        return '<option value="' + esc(o.value) + '"' +
+          (o.value === v ? ' selected' : '') + '>' + esc(o.label) + '</option>';
+      }).join('') +
+      '<option value="__other__"' + (inList ? '' : ' selected') + '>' +
+      '+ ไม่มีในรายการ — พิมพ์เอง</option>' +
+    '</select>';
+
+    var free = '<input class="freetext" data-ref="' + esc(it.ref_no) + '" ' +
+      'data-f="' + x.k + '" placeholder="พิมพ์ตามเอกสารจริง" ' +
+      'style="margin-top:6px' + (inList ? ';display:none' : '') + '" ' +
+      'value="' + esc(inList ? '' : v) + '">';
 
     return '<div>' +
-      '<label>' + esc(x.label) + '</label>' +
-      '<input data-ref="' + esc(it.ref_no) + '" data-f="' + x.k + '" ' +
-        (x.type === 'date' ? 'type="date" ' : '') +
-        (listId ? 'list="' + listId + '" autocomplete="off" ' : '') +
-        (x.pairCode ? 'data-paircode="' + x.pairCode + '" ' : '') +
-        'value="' + esc(v) + '">' +
-      (x.list ? '<div class="hint" style="font-size:10px;margin-top:2px">' +
-        'พิมพ์เพื่อค้น แล้วเลือกจากรายการ</div>' : '') +
+      '<label>' + esc(x.label) + '</label>' + sel + free +
     '</div>';
   }).join('');
 
@@ -720,6 +774,20 @@ function editHtml(it) {
     '<div class="eg">' + f + '</div>' +
     '<button class="btn sm" data-save="' + esc(it.ref_no) + '">บันทึกการแก้ไข</button>' +
   '</div>';
+}
+
+/** รายการตัวเลือกของแต่ละช่อง */
+function listOf(kind) {
+  if (!partyData) return [];
+  if (kind === 'parties') {
+    return (partyData.parties || []).map(function (p) {
+      // แสดงรหัสประกอบ เพราะรหัสซ้ำกันได้ระหว่างสาขา
+      return { value: p.name, label: p.code ? p.code + ' — ' + p.name : p.name };
+    });
+  }
+  return (partyData[kind] || []).map(function (x) {
+    return { value: x, label: x };
+  });
 }
 
 function fmtDateInput(v) {
@@ -733,12 +801,34 @@ async function saveFix(ref) {
   if (!it) return;
 
   var fields = {};
+  var typed = [];      // ช่องที่คนพิมพ์เอง ไม่ได้เลือกจากรายการ
   var changed = 0;
-  $('vlist').querySelectorAll('[data-ref="' + ref + '"]').forEach(function (el) {
-    var k = el.dataset.f;
+
+  /* อ่านจาก dropdown ก่อน ถ้าเลือก "ไม่มีในรายการ" ค่อยเอาจากช่องพิมพ์
+     และจำไว้ว่าช่องไหนพิมพ์เอง เพื่อให้ตรวจย้อนหลังได้ว่า
+     ชื่อนั้นถูกต้องจริง หรือแค่ยังไม่มีในทะเบียน */
+  var rowBox = $('vlist').querySelectorAll('[data-ref="' + ref + '"]');
+  var picked = {};
+
+  rowBox.forEach(function (el) {
+    if (el.dataset.sel) {
+      if (el.value === '__other__') {
+        var free = el.parentNode.querySelector('.freetext');
+        var v = free ? free.value.trim() : '';
+        if (v) { picked[el.dataset.sel] = v; typed.push(el.dataset.sel); }
+      } else if (el.value) {
+        picked[el.dataset.sel] = el.value;
+      }
+    } else if (el.dataset.f && !el.classList.contains('freetext')) {
+      picked[el.dataset.f] = el.value.trim();
+    }
+  });
+
+  Object.keys(picked).forEach(function (k) {
     var was = String(it[k] || '');
-    if (k === 'doc_date' && was) was = fmtDateInput(was);
-    if (el.value.trim() !== was.trim()) { fields[k] = el.value.trim(); changed++; }
+    var fd = FIX_FIELDS.find(function (f) { return f.k === k; });
+    if (fd && fd.type === 'date' && was) was = fmtDateInput(was);
+    if (picked[k] !== was.trim()) { fields[k] = picked[k]; changed++; }
   });
 
   if (!changed) { alert('ยังไม่ได้แก้อะไร'); return; }
@@ -749,7 +839,8 @@ async function saveFix(ref) {
 
   try {
     var r = await call('docFixOnReceive',
-      { ref_no: ref, fields: fields, reason: reason.trim() }, 60000);
+      { ref_no: ref, fields: fields, reason: reason.trim(),
+        typed_fields: typed }, 60000);
     if (!r || r.status !== 'ok') { alert((r && r.message) || 'แก้ไม่สำเร็จ'); return; }
 
     // อัปข้อมูลในหน้าให้ตรงกับที่บันทึกไป
