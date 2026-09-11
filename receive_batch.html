@@ -542,21 +542,67 @@ function render() {
 
 var verifyState = {};    // ref → 'pass' | 'fix' | undefined
 
+/* รายชื่อคู่ค้าและขนส่งจากไฟล์อ้างอิง
+   ให้เลือกแทนพิมพ์เอง เพราะพิมพ์ผิดตัวเดียวก็กลายเป็นคนละราย
+   แล้วรายงานจะแยกกันโดยไม่มีใครสังเกต */
+var partyData = null;
+
+async function loadParties() {
+  if (partyData) return partyData;
+  try {
+    const r = await call('refPartyList', {}, 60000);
+    if (r && r.status === 'ok') partyData = r;
+  } catch (e) {
+    console.error('[DocScan] โหลดรายชื่อไม่สำเร็จ', e);
+  }
+  return partyData;
+}
+
 /** ช่องที่ให้แก้ได้ตอนตรวจ — เฉพาะที่อ่านได้จากเอกสารจริง */
 /* 8 ข้อที่ต้องตรวจกับเอกสารจริง เรียงตามที่อยู่บนกระดาษ
    เพื่อให้ตากวาดจากบนลงล่างได้โดยไม่ต้องกระโดดไปมา */
 var FIX_FIELDS = [
-  { k: 'origin_acc',       label: 'Account No. ต้นทาง' },
-  { k: 'transfer_from',    label: 'โอนจาก' },
-  { k: 'dest_acc',         label: 'Account No. ปลายทาง' },
-  { k: 'transfer_to',      label: 'โอนไป' },
-  { k: 'transporter_name', label: 'บริษัทขนส่ง' },
-  { k: 'plate_number',     label: 'ทะเบียนรถ' },
+  { k: 'origin_acc',       label: 'Account No. ต้นทาง', pairWith: 'transfer_from' },
+  { k: 'transfer_from',    label: 'โอนจาก', list: 'parties', pairCode: 'origin_acc' },
+  { k: 'dest_acc',         label: 'Account No. ปลายทาง', pairWith: 'transfer_to' },
+  { k: 'transfer_to',      label: 'โอนไป', list: 'parties', pairCode: 'dest_acc' },
+  { k: 'transporter_name', label: 'บริษัทขนส่ง', list: 'transporters' },
+  { k: 'plate_number',     label: 'ทะเบียนรถ', list: 'plates' },
   { k: 'doc_date',         label: 'วันส่ง', type: 'date' },
   { k: 'received_date',    label: 'วันรับ', type: 'date' }
 ];
 
-function goVerify() {
+/** สร้างรายการให้ช่องค้นหาใช้ — ครั้งเดียวพอ */
+function buildDatalists() {
+  if (!partyData || document.getElementById('dl-parties')) return;
+
+  var html =
+    '<datalist id="dl-parties">' +
+      /* แสดงรหัสประกอบ เพราะรหัสซ้ำกันได้ระหว่างสาขา
+         เห็นทั้งคู่แล้วเลือกถูกกว่าเห็นชื่ออย่างเดียว */
+      (partyData.parties || []).map(function (p) {
+        return '<option value="' + esc(p.name) + '">' +
+               esc(p.code ? p.code + ' — ' + p.name : p.name) + '</option>';
+      }).join('') +
+    '</datalist>' +
+    '<datalist id="dl-transporters">' +
+      (partyData.transporters || []).map(function (t) {
+        return '<option value="' + esc(t) + '">';
+      }).join('') +
+    '</datalist>' +
+    '<datalist id="dl-plates">' +
+      (partyData.plates || []).map(function (p) {
+        return '<option value="' + esc(p) + '">';
+      }).join('') +
+    '</datalist>';
+
+  var box = document.createElement('div');
+  box.id = 'dlBox';
+  box.innerHTML = html;
+  document.body.appendChild(box);
+}
+
+async function goVerify() {
   var scanned = items.filter(function (it) { return got.has(String(it.ref_no).trim().toUpperCase()); });
   if (!scanned.length) { alert('ยังไม่ได้ยิงเอกสารสักใบ'); return; }
 
@@ -566,6 +612,8 @@ function goVerify() {
   $('btnToVerify').style.display = 'none';
   $('btnFinish').style.display = '';
 
+  await loadParties();
+  buildDatalists();
   renderVerify();
 }
 
@@ -593,6 +641,21 @@ function renderVerify() {
   });
   $('vlist').querySelectorAll('[data-save]').forEach(function (b) {
     b.addEventListener('click', function () { saveFix(b.dataset.save); });
+  });
+
+  /* เลือกชื่อคู่ค้าแล้วเติมรหัสให้เอง
+     คนจำรหัสไม่ได้อยู่แล้ว และกรอกเองมีโอกาสผิด */
+  $('vlist').querySelectorAll('[data-paircode]').forEach(function (el) {
+    el.addEventListener('change', function () {
+      if (!partyData) return;
+      var p = (partyData.parties || []).find(function (x) {
+        return x.name === el.value.trim();
+      });
+      if (!p || !p.code) return;
+      var codeEl = $('vlist').querySelector(
+        '[data-ref="' + el.dataset.ref + '"][data-f="' + el.dataset.paircode + '"]');
+      if (codeEl) { codeEl.value = p.code; codeEl.classList.add('changed'); }
+    });
   });
 }
 
@@ -634,11 +697,20 @@ function editHtml(it) {
   var f = FIX_FIELDS.map(function (x) {
     var v = it[x.k] || '';
     if (x.type === 'date' && v) v = fmtDateInput(v);
+    /* ช่องที่มีรายการให้เลือกใช้ datalist
+       พิมพ์ค้นได้เหมือนช่องปกติ แต่เลือกจากของจริงเท่านั้น */
+    var listId = '';
+    if (x.list && partyData) listId = 'dl-' + x.list;
+
     return '<div>' +
       '<label>' + esc(x.label) + '</label>' +
       '<input data-ref="' + esc(it.ref_no) + '" data-f="' + x.k + '" ' +
         (x.type === 'date' ? 'type="date" ' : '') +
+        (listId ? 'list="' + listId + '" autocomplete="off" ' : '') +
+        (x.pairCode ? 'data-paircode="' + x.pairCode + '" ' : '') +
         'value="' + esc(v) + '">' +
+      (x.list ? '<div class="hint" style="font-size:10px;margin-top:2px">' +
+        'พิมพ์เพื่อค้น แล้วเลือกจากรายการ</div>' : '') +
     '</div>';
   }).join('');
 
