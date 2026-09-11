@@ -303,6 +303,12 @@ tr.lv-critical td:first-child{box-shadow:inset 3px 0 0 var(--warn)}
 .bc-refs{margin-top:11px;font-size:11.5px;color:var(--muted);
   font-family:var(--mono);line-height:1.8;word-break:break-all}
 .bc-note{margin-top:9px;font-size:12px;color:var(--warn);line-height:1.6}
+/* กลุ่มผลการรับ แยกสีตามความร้ายแรง
+   ขาดเอกสารต้องตามต่อ ส่วนมาเกินแค่บันทึกไว้ */
+.rgrp{margin-top:9px;padding:7px 10px;border-radius:var(--rs);
+  font-family:var(--font);font-size:11.5px;line-height:1.7;word-break:normal}
+.rgrp.bad{background:rgba(248,113,113,.1);color:var(--danger)}
+.rgrp.warn{background:rgba(251,191,36,.1);color:var(--warn)}
 
 .btn.sm{padding:5px 11px;font-size:12px}
 </style>
@@ -523,12 +529,22 @@ function render() {
 
 function cardHtml(b) {
   const st = statusOf(b);
+  /* บอกให้ครบว่ารับแล้วเป็นยังไง ไม่ใช่แค่ว่ารับแล้ว
+     ถ้าขาดเอกสารแล้วไม่บอก ต้นทางจะไม่รู้ว่าต้องตามต่อ */
+  const nMiss = (b.recv_missing || []).length;
+  const nExtra = (b.recv_extra || []).length;
+  const nUnk = (b.recv_unknown || []).length;
+
+  let recvTxt = 'ปลายทางรับแล้ว ' + fmt(b.received_at);
+  if (nMiss) recvTxt = 'รับแล้ว ขาด ' + nMiss + ' ฉบับ · ' + fmt(b.received_at);
+  else if (nExtra || nUnk) recvTxt = 'รับแล้ว มีเกิน · ' + fmt(b.received_at);
+
   const badge = st === 'cancelled'
       ? '<span class="bc-badge cx">ยกเลิกแล้ว</span>'
     : st === 'kept'
       ? '<span class="bc-badge got">เก็บไว้เอง · ปิดงานแล้ว</span>'
     : st === 'received'
-      ? '<span class="bc-badge got">ปลายทางรับแล้ว ' + fmt(b.received_at) + '</span>'
+      ? '<span class="bc-badge ' + (nMiss ? 'cx' : 'got') + '">' + recvTxt + '</span>'
       : '<span class="bc-badge sent">รอปลายทางรับ</span>';
 
   /* ยกเลิกได้ถ้าของยังอยู่กับเรา
@@ -572,6 +588,13 @@ function cardHtml(b) {
 
     <div class="bc-refs" id="refs-${esc(b.batch_id)}" style="display:none">
       ${(b.refs || []).map(esc).join(' · ') || '—'}
+      ${nMiss ? `<div class="rgrp bad"><b>ขาด ${nMiss} ฉบับ</b><br>` +
+        (b.recv_missing || []).map(esc).join(' · ') + '</div>' : ''}
+      ${nExtra ? `<div class="rgrp warn"><b>มาเกิน ${nExtra} ฉบับ — ผิดชุด</b><br>` +
+        (b.recv_extra || []).map(esc).join(' · ') + '</div>' : ''}
+      ${nUnk ? `<div class="rgrp bad"><b>ไม่พบในระบบ ${nUnk} ฉบับ</b><br>` +
+        (b.recv_unknown || []).map(esc).join(' · ') + '</div>' : ''}
+      ${b.recv_note ? `<div class="rgrp">${esc(b.recv_note)}</div>` : ''}
     </div>
   </div>`;
 }
