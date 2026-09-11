@@ -547,10 +547,16 @@ function showAlert(m) {
 
 /** ปลายทางที่มีจริงในข้อมูล ไม่ต้องให้เลือกอันที่ไม่มีเอกสาร */
 /* เติมรายชื่อต้นทางจากข้อมูลจริง ไม่ให้พิมพ์เอง
-   เพราะพิมพ์ผิดนิดเดียวก็กรองไม่เจอ */
+   เพราะพิมพ์ผิดนิดเดียวก็กรองไม่เจอ
+
+   ใช้ transfer_from อย่างเดียว ห้ามตกไปใช้ site
+   เพราะสองอย่างนี้คนละเรื่องกัน
+     transfer_from = โรงงานที่ส่งพาเลท (ข้อมูลบนกระดาษ)
+     site          = ไซต์ที่สแกนเอกสาร (ระบบเราสร้าง)
+   ถ้าปนกัน จะเห็นต้นทางกับปลายทางเป็นที่เดียวกัน ซึ่งเป็นไปไม่ได้ */
 function fillFromFilter() {
   const set = [...new Set(allDocs
-    .map(d => d.transfer_from || d.site).filter(Boolean))].sort();
+    .map(d => d.transfer_from).filter(Boolean))].sort();
   const cur = $('fFrom').value;
   $('fFrom').innerHTML = '<option value="">ต้นทางทั้งหมด</option>' +
     set.map(x => '<option value="' + esc(x) + '">' + esc(x) + '</option>').join('');
@@ -558,7 +564,7 @@ function fillFromFilter() {
 }
 
 function fillDestFilter() {
-  const dests = [...new Set(allDocs.map(d => d.dest_warehouse || d.transfer_to)
+  const dests = [...new Set(allDocs.map(d => d.transfer_to)
                                    .filter(Boolean))].sort();
   $('fDest').innerHTML = '<option value="">ปลายทางทั้งหมด</option>' +
     dests.map(d => `<option value="${esc(d)}">${esc(d)}</option>`).join('');
@@ -594,8 +600,8 @@ function shown() {
   const scan = $('fScan').value;
 
   return allDocs.filter(d => {
-    if (dest && (d.dest_warehouse || d.transfer_to) !== dest) return false;
-    if (from && (d.transfer_from || d.site) !== from) return false;
+    if (dest && d.transfer_to !== dest) return false;
+    if (from && d.transfer_from !== from) return false;
 
     /* กรองตามวันที่สแกน — d.days คือจำนวนวันตั้งแต่สแกน
        0 = วันนี้ จึงเทียบแบบน้อยกว่าหรือเท่ากับ */
@@ -713,9 +719,9 @@ function rowHtml(d) {
       selected.has(d.ref_no) ? ' checked' : ''}></td>
     <td><div class="ref">${esc(d.ref_no)}</div>
         <div class="sub">${fmt(d.doc_date)}</div></td>
-    <td>${esc(d.transfer_from || d.site || '—')}${
+    <td>${esc(d.transfer_from || '—')}${
       d.other_site ? '<div class="unk-tag">ไม่ใช่ไซต์ของคุณ</div>' : ''}</td>
-    <td>${esc(d.dest_warehouse || d.transfer_to || '—')}</td>
+    <td>${esc(d.transfer_to || '—')}</td>
     <td>${d.sent_qty || '—'}</td>
     <td>${d.days == null ? '—'
       : `<b class="${late ? 'warn' : ''}">${d.days} วัน</b>`}</td>
@@ -785,8 +791,8 @@ function renderCart() {
   $('cartList').innerHTML = picked.map(d =>
     '<div class="cart-item">' +
       '<div class="ref">' + esc(d.ref_no) + '</div>' +
-      '<div class="to">' + esc(d.transfer_from || d.site || '—') +
-        ' → ' + esc(d.dest_warehouse || d.transfer_to || '—') + '</div>' +
+      '<div class="to">' + esc(d.transfer_from || '—') +
+        ' → ' + esc(d.transfer_to || '—') + '</div>' +
       '<button data-drop="' + esc(d.ref_no) + '" title="เอาออก">✕</button>' +
     '</div>').join('');
 
