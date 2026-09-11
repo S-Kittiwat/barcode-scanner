@@ -490,7 +490,7 @@ function rowHtml(r) {
         <div class="sub">${fmt(r.doc_date)}</div></td>
     <td>${esc(st.label)}<div class="sub">${esc(st.ownerLabel || '')}</div></td>
     <td>${age}</td>
-    <td>${esc(r.dest_warehouse || r.transfer_to || '—')}
+    <td>${esc(r.transfer_to || '—')}
         <div class="sub">${esc(r.site || '')}</div></td>
     <td>${reason}</td>
   </tr>`;
@@ -625,7 +625,7 @@ $('btnExcel').addEventListener('click', async () => {
     ['ref_no', 'Reference'], ['barcode', 'บาร์โค้ด'], ['doc_date', 'วันที่เอกสาร'],
     ['stage_label', 'ค้างที่ขั้น'], ['owner_label', 'ผู้รับผิดชอบ'],
     ['days', 'ค้างมาแล้ว (วัน)'], ['due', 'กำหนด (วัน)'], ['over', 'เกินมา (วัน)'],
-    ['site', 'ไซต์'], ['dest_warehouse', 'ปลายทาง'],
+    ['site', 'ไซต์'], ['dest_warehouse', 'คลังเก็บเอกสาร'],
     ['reason_label', 'เหตุผล'], ['reason_note', 'หมายเหตุ'],
     ['reason_by', 'ผู้ระบุ'], ['reason_at', 'ระบุเมื่อ']
   ];
