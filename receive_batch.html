@@ -781,11 +781,13 @@ function installCombos() {
 
     function open(q) {
       var s = String(q || '').trim().toLowerCase();
-      /* จำกัด 40 รายการ เพราะเกินกว่านั้นเลื่อนหาไม่ไหวอยู่ดี
-         และการวาดพันกว่าบรรทัดทุกครั้งที่พิมพ์จะหน่วง */
-      var hit = (s ? opts.filter(function (o) {
+      var all = s ? opts.filter(function (o) {
         return o.label.toLowerCase().indexOf(s) >= 0;
-      }) : opts).slice(0, 40);
+      }) : opts;
+
+      /* แสดงไม่เกิน 40 เพราะการวาดพันกว่าบรรทัดทุกครั้งที่พิมพ์จะหน่วง
+         แต่การตรวจว่าเป็นค่าที่รู้จักไหม ยังเทียบกับรายการเต็มเสมอ */
+      var hit = all.slice(0, 40);
 
       if (!hit.length) {
         menu.innerHTML = '<div class="cbo-none">ไม่พบในรายการ — ' +
@@ -794,7 +796,12 @@ function installCombos() {
         menu.innerHTML = hit.map(function (o) {
           return '<div class="cbo-it" data-v="' + esc(o.value) + '">' +
                  esc(o.label) + '</div>';
-        }).join('');
+        }).join('') +
+        /* บอกว่ายังมีอีก ไม่งั้นคนจะคิดว่าไม่มีตัวที่ต้องการ
+           แล้วไปพิมพ์เอง ทั้งที่มีอยู่ในรายการ */
+        (all.length > hit.length
+          ? '<div class="cbo-none">และอีก ' + (all.length - hit.length) +
+            ' รายการ — พิมพ์เพิ่มเพื่อค้นให้แคบลง</div>' : '');
       }
       menu.style.display = '';
 
@@ -1016,6 +1023,16 @@ function reset() {
 }
 
 keepFocus();
+
+/* เปิดชุดให้เลยถ้ามาจากหน้าชุดที่จะมาถึง
+   คนกดปุ่มรับเอกสารแล้วไม่ต้องยิงใบปะหน้าซ้ำ */
+try {
+  var qsBatch = new URLSearchParams(location.search).get('b');
+  if (qsBatch) openBatch(qsBatch.trim().toUpperCase());
+} catch (e) {
+  console.error('[DocScan] เปิดชุดจากลิงก์ไม่สำเร็จ', e);
+}
+
 </script>
 <div class="bldtag">2.15.6</div>
 </body>
