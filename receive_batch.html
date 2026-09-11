@@ -215,6 +215,20 @@ tr.got td:first-child{box-shadow:inset 3px 0 0 var(--success)}
 .vh-t{font-size:15px;font-weight:600}
 .vlist{display:flex;flex-direction:column;gap:9px}
 
+/* สรุปผลการยิง — ต้องเห็นก่อนกดยืนยัน
+   ถ้าอยู่ท้ายหน้า คนจะเลื่อนผ่านแล้วไม่เห็น */
+.vsum{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
+.sm-it{border:1px solid var(--border);border-radius:var(--r);padding:10px 13px;
+  font-size:13px;line-height:1.6}
+.sm-it.ok{border-color:rgba(52,211,153,.45)}
+.sm-it.bad{border-color:var(--danger);background:rgba(248,113,113,.08)}
+.sm-it.warn{border-color:var(--warn);background:rgba(251,191,36,.08)}
+.sm-l{font-family:var(--mono);font-size:11.5px;margin-top:5px;line-height:1.8}
+.sm-n{font-size:11px;color:var(--muted);margin-top:5px}
+.sm-it input{width:100%;background:var(--surface2);border:1px solid var(--border);
+  border-radius:var(--rs);color:var(--text);padding:6px 9px;
+  font-family:var(--font);font-size:12.5px}
+
 .vrow{background:var(--surface);border:1px solid var(--border);
   border-radius:var(--r);padding:12px 14px}
 .vrow.pass{border-color:rgba(52,211,153,.5)}
@@ -318,6 +332,7 @@ a.btn{display:inline-flex;align-items:center;text-decoration:none}
         <button class="btn ghost" id="btnAllPass" style="margin-left:auto">
           ผ่านทั้งหมด</button>
       </div>
+      <div class="vsum" id="vSummary"></div>
       <div class="vlist" id="vlist"></div>
     </div>
   </div>
@@ -567,6 +582,7 @@ function render() {
    ตรวจทุกใบ เพราะถ้าปล่อยผ่านแล้วผิด จะไปพบตอนที่แก้ยากกว่ามาก */
 
 var verifyState = {};    // ref → 'pass' | 'fix' | undefined
+var recvNote = '';       // หมายเหตุที่ปลายทางแจ้งกลับต้นทาง
 
 /* รายชื่อคู่ค้าและขนส่งจากไฟล์อ้างอิง
    ให้เลือกแทนพิมพ์เอง เพราะพิมพ์ผิดตัวเดียวก็กลายเป็นคนละราย
@@ -678,9 +694,17 @@ function renderVerify() {
   var scanned = items.filter(function (it) { return got.has(String(it.ref_no).trim().toUpperCase()); });
   var done = scanned.filter(function (it) { return verifyState[it.ref_no]; }).length;
 
+  /* สรุปให้เห็นก่อนกดยืนยัน ว่าชุดนี้ครบไหม ขาดใบไหน เกินใบไหน
+     ถ้าไม่บอก คนจะกดยืนยันโดยไม่รู้ว่าขาด แล้วไปพบทีหลังว่าตามไม่ได้ */
+  var missing = items.filter(function (it) {
+    return !got.has(String(it.ref_no).trim().toUpperCase());
+  });
+
   $('vhCount').textContent = 'ตรวจแล้ว ' + done + ' จาก ' + scanned.length + ' ใบ' +
     (done < scanned.length ? ' — ต้องตรวจให้ครบก่อนยืนยัน' : ' ✓');
   $('btnFinish').disabled = done < scanned.length;
+
+  renderSummary(scanned, missing);
 
   $('vlist').innerHTML = scanned.map(vrowHtml).join('');
 
@@ -710,6 +734,54 @@ function renderVerify() {
   });
 
   installCombos();
+}
+
+/** สรุปผลการยิง — ครบไหม ขาดใบไหน เกินใบไหน */
+function renderSummary(scanned, missing) {
+  var box = $('vSummary');
+  if (!box) return;
+
+  var parts = [];
+
+  parts.push('<div class="sm-it ok"><b>ยิงแล้ว ' + scanned.length + ' ใบ</b>' +
+    ' จากที่ต้นทางส่งมา ' + items.length + ' ใบ</div>');
+
+  if (missing.length) {
+    parts.push('<div class="sm-it bad"><b>ขาด ' + missing.length + ' ใบ</b>' +
+      '<div class="sm-l">' +
+      missing.map(function (m) {
+        return esc(m.barcode || m.ref_no);
+      }).join(' · ') + '</div>' +
+      '<div class="sm-n">ใบเหล่านี้จะกลับไปเป็นค้างที่ต้นทาง เพื่อให้มีคนตามต่อ</div>' +
+    '</div>');
+  }
+
+  if (extra.length) {
+    parts.push('<div class="sm-it warn"><b>ไม่อยู่ในชุดนี้ ' + extra.length + ' ใบ</b>' +
+      '<div class="sm-l">' + extra.map(esc).join(' · ') + '</div>' +
+      '<div class="sm-n">รับไว้แล้วและบันทึกว่ามาผิดชุด ' +
+      'ถ้าใบไหนไม่มีในระบบเลย จะแจ้งหลังกดยืนยัน</div>' +
+    '</div>');
+  }
+
+  if (!missing.length && !extra.length) {
+    parts.push('<div class="sm-it ok">ครบถ้วนตรงตามชุด ไม่มีขาดไม่มีเกิน</div>');
+  }
+
+  /* ให้ปลายทางเขียนถึงต้นทางได้ เช่นเอกสารเปียก ตราประทับจาง
+     สิ่งที่ระบบตรวจไม่ได้แต่คนเห็นกับตา */
+  if (missing.length || extra.length) {
+    parts.push('<div class="sm-it">' +
+      '<b>แจ้งกลับต้นทาง</b>' +
+      '<input id="recvNote" placeholder="เช่น เอกสาร 2 ใบเปียก อ่านเลขไม่ออก" ' +
+        'value="' + esc(recvNote) + '" style="margin-top:6px">' +
+    '</div>');
+  }
+
+  box.innerHTML = parts.join('');
+
+  var nEl = $('recvNote');
+  if (nEl) nEl.addEventListener('input', function () { recvNote = nEl.value; });
 }
 
 function vrowHtml(it) {
@@ -1040,7 +1112,8 @@ $('btnFinish').addEventListener('click', async () => {
   try {
     const r = await call('shipReceiveBatch', {
       batch_id: batch.batch_id,
-      received: [...got].concat(extra)
+      received: [...got].concat(extra),
+      note: recvNote.trim()
     }, 120000);
 
     if (r.status !== 'ok') { alert(r.message || 'บันทึกไม่สำเร็จ'); return; }
