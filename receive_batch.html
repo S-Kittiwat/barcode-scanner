@@ -122,7 +122,7 @@ body.cart-on .wrap{padding-right:324px}
     cursor:zoom-in;border:1px solid var(--border)}
   .boxcard .ph{width:62px;height:62px;border-radius:6px;background:var(--bg);flex-shrink:0;
     display:flex;align-items:center;justify-content:center;font-size:21px}
-  .boxcard .bid{font-family:var(--mono);font-size:13.5px;font-weight:600}
+  .boxcard .bid{font-family:var(--mono);font-size:14px;font-weight:700}
   .boxcard .bl{font-size:12px;color:var(--muted);margin-top:3px;line-height:1.55}
   .dacts{display:flex;gap:9px;margin-top:14px;flex-wrap:wrap}
   .dacts a{text-decoration:none;display:inline-block}
@@ -172,18 +172,26 @@ tr.lv-critical td:first-child{box-shadow:inset 3px 0 0 var(--warn)}
   font-family:var(--mono);font-size:19px;letter-spacing:.05em}
 #scanInput:focus{outline:2px solid var(--accent);outline-offset:1px}
 
+/* หัวชุดเป็นข้อมูลอ้างอิง ไม่ใช่สาระของหน้า
+   ย่อให้แน่นเพื่อให้รายการที่ต้องตรวจได้พื้นที่มากที่สุด */
 .bhead{background:var(--surface);border:1px solid var(--border);
-  border-radius:var(--r);padding:16px 18px;margin-bottom:14px}
+  border-radius:var(--r);padding:9px 14px;margin-bottom:10px;
+  display:flex;align-items:center;gap:16px;flex-wrap:wrap}
 .bid{font-family:var(--mono);font-size:23px;font-weight:700}
-.bmeta{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
-  gap:11px;margin-top:12px}
+/* ข้อมูลชุดเรียงต่อกันในบรรทัดเดียว ไม่แยกเป็นตาราง */
+.bmeta{display:flex;gap:16px;flex-wrap:wrap;align-items:baseline;
+  font-size:12px;color:var(--muted)}
+.bmeta b{color:var(--text);font-weight:600}
 .bk{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
 .bv{font-size:13.5px;font-weight:600;margin-top:2px}
 
-.prog{height:9px;background:var(--surface2);border-radius:5px;overflow:hidden;margin:12px 0 6px}
+.prog{height:5px;width:120px;background:var(--surface2);
+  border-radius:3px;overflow:hidden}
 .prog i{display:block;height:100%;background:var(--success);
   transition:width .2s ease;width:0}
-.progtxt{font-family:var(--mono);font-size:14px;font-weight:600}
+.progtxt{font-family:var(--mono);font-size:12.5px;font-weight:600}
+/* แถบความคืบหน้ากับตัวเลขอยู่ติดกัน และดันไปชิดขวา */
+.bprog{display:flex;align-items:center;gap:8px;margin-left:auto}
 
 .ilist{max-height:44vh;overflow:auto;border:1px solid var(--border);border-radius:var(--rs)}
 /* คอลัมน์ตัวเลขจัดกลาง อ่านง่ายกว่าชิดซ้าย */
@@ -309,21 +317,24 @@ a.btn{display:inline-flex;align-items:center;text-decoration:none}
 
   <div id="batchArea" style="display:none">
     <div class="bhead">
-      <div style="display:flex;align-items:flex-start;gap:14px">
-        <div>
-          <div class="bid" id="bId">—</div>
-          <div class="hint" id="bWhen">—</div>
-        </div>
-        <button class="btn ghost" id="btnCancel" style="margin-left:auto">ยกเลิกชุดนี้</button>
-      </div>
+      <div class="bid" id="bId">—</div>
+
+      <!-- ข้อมูลชุดเรียงต่อกัน ไม่แยกเป็นตาราง
+           เป็นข้อมูลอ้างอิงที่ดูผ่าน ๆ ไม่ใช่สิ่งที่ต้องอ่านทุกช่อง -->
       <div class="bmeta">
-        <div><div class="bk">ต้นทาง</div><div class="bv" id="bFrom">—</div></div>
-        <div><div class="bk">ผู้ส่ง</div><div class="bv" id="bBy">—</div></div>
-        <div><div class="bk">ช่องทาง</div><div class="bv" id="bChannel">—</div></div>
-        <div><div class="bk">จำนวนในชุด</div><div class="bv" id="bCount">—</div></div>
+        <span id="bWhen">—</span>
+        <span>จาก <b id="bFrom">—</b></span>
+        <span>โดย <b id="bBy">—</b></span>
+        <span id="bChannel">—</span>
+        <span><b id="bCount">—</b></span>
       </div>
-      <div class="prog"><i id="progBar"></i></div>
-      <div class="progtxt" id="progTxt">0 / 0</div>
+
+      <div class="bprog">
+        <div class="prog"><i id="progBar"></i></div>
+        <span class="progtxt" id="progTxt">0 / 0</span>
+      </div>
+
+      <button class="btn ghost sm" id="btnCancel">ยกเลิกชุดนี้</button>
     </div>
 
     <div class="ilist" id="ilist"></div>
