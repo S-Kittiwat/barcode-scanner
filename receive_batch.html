@@ -664,7 +664,9 @@ var FIX_FIELDS = [
   { k: 'dest_acc',         label: 'Account No. ปลายทาง', pairWith: 'transfer_to' },
   { k: 'transfer_to',      label: 'โอนไป', list: 'parties', pairCode: 'dest_acc' },
   { k: 'transporter_name', label: 'บริษัทขนส่ง', list: 'transporters' },
-  { k: 'plate_number',     label: 'ทะเบียนรถ', list: 'plates' },
+  /* ทะเบียนรถไม่มีรายการให้เลือก เพราะเปลี่ยนทุกเที่ยว
+     รายการเก่าจะยาวขึ้นเรื่อยและไม่ช่วยให้กรอกเร็วขึ้น */
+  { k: 'plate_number',     label: 'ทะเบียนรถ' },
   { k: 'doc_date',         label: 'วันส่ง', type: 'date' },
   { k: 'received_date',    label: 'วันรับ', type: 'date' },
   /* จำนวนพาเลทสำคัญที่สุด เพราะเป็นตัวที่ใช้วางบิล
@@ -673,35 +675,6 @@ var FIX_FIELDS = [
   { k: 'received_qty',     label: 'จำนวนพาเลทที่รับ' }
 ];
 
-/** สร้างรายการให้ช่องค้นหาใช้ — ครั้งเดียวพอ */
-function buildDatalists() {
-  if (!partyData || document.getElementById('dl-parties')) return;
-
-  var html =
-    '<datalist id="dl-parties">' +
-      /* แสดงรหัสประกอบ เพราะรหัสซ้ำกันได้ระหว่างสาขา
-         เห็นทั้งคู่แล้วเลือกถูกกว่าเห็นชื่ออย่างเดียว */
-      (partyData.parties || []).map(function (p) {
-        return '<option value="' + esc(p.name) + '">' +
-               esc(p.code || '') + '</option>';
-      }).join('') +
-    '</datalist>' +
-    '<datalist id="dl-transporters">' +
-      (partyData.transporters || []).map(function (t) {
-        return '<option value="' + esc(t) + '">';
-      }).join('') +
-    '</datalist>' +
-    '<datalist id="dl-plates">' +
-      (partyData.plates || []).map(function (p) {
-        return '<option value="' + esc(p) + '">';
-      }).join('') +
-    '</datalist>';
-
-  var box = document.createElement('div');
-  box.id = 'dlBox';
-  box.innerHTML = html;
-  document.body.appendChild(box);
-}
 
 async function goVerify() {
   var scanned = items.filter(function (it) { return got.has(String(it.ref_no).trim().toUpperCase()); });
@@ -722,12 +695,14 @@ async function goVerify() {
 
   // โหลดรายชื่อเบื้องหลัง พอมาถึงค่อยเติมให้
   loadParties().then(function () {
-    buildDatalists();
-    // วาดใหม่เฉพาะเมื่อมีแถวที่กำลังแก้อยู่
-    var editing = Object.keys(verifyState).some(function (k) {
-      return verifyState[k] === 'fix';
-    });
-    if (editing) renderVerify();
+    /* วาดใหม่เสมอเมื่อรายชื่อมาถึง
+     *
+     * เดิมวาดเฉพาะตอนมีแถวที่กำลังแก้อยู่ แต่ตอนนั้นยังไม่มีใครกดแก้
+     * พอกดทีหลัง editHtml เห็น partyData แล้วก็จริง
+     * แต่ตัวเลือกถูกสร้างตอนวาดแถว ซึ่งเกิดก่อนรายชื่อมา
+     * จึงไม่มีรายการให้เลือก
+     */
+    if (partyData) renderVerify();
   });
 }
 
