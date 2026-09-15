@@ -34,8 +34,17 @@ export class ApiError extends Error {
     this.name = 'ApiError';
     this.kind = kind;             // timeout | network | http | app | aborted
     this.detail = detail;
+    /* 404 จาก Apps Script เป็นอาการชั่วคราว ไม่ใช่ปลายทางหาย
+     *
+     * Apps Script ตอบ POST ด้วย redirect ไป googleusercontent
+     * ลิงก์นั้นใช้ได้ครั้งเดียวและมีอายุสั้น
+     * บางครั้งเบราว์เซอร์ตามไปไม่ทันหรือถูกยิงซ้ำ จึงได้ 404
+     *
+     * ลองใหม่แล้วได้คำตอบปกติ จึงต้องนับว่าลองใหม่ได้
+     * ไม่งั้นหน้าจะพังทั้งที่เซิร์ฟเวอร์ทำงานปกติ
+     */
     this.retryable = kind === 'timeout' || kind === 'network' ||
-                     (kind === 'http' && detail >= 500);
+                     (kind === 'http' && (detail >= 500 || detail === 404));
   }
 }
 
@@ -59,7 +68,16 @@ async function once(url, payload, timeoutMs, externalSignal, fetchImpl) {
       body: JSON.stringify(payload),
       signal: ctrl.signal
     });
-    if (!res.ok) throw new ApiError('HTTP ' + res.status, 'http', res.status);
+    if (!res.ok) {
+      /* บอกว่า action ไหนพัง ไม่ใช่แค่เลขสถานะ
+         ถ้าไม่บอกชื่อ ต้องไล่เดาทีละหน้า */
+      console.warn('[DocScan] คำขอไม่สำเร็จ', {
+        action: payload && payload.action, status: res.status
+      });
+      throw new ApiError('HTTP ' + res.status +
+        (payload && payload.action ? ' — ' + payload.action : ''),
+        'http', res.status);
+    }
 
     const text = await res.text();
     let data;
@@ -104,6 +122,8 @@ export async function apiFetch(url, payload, opts = {}) {
     } catch (err) {
       last = err;
       if (!err.retryable || attempt === o.retries) break;
+      console.warn('[DocScan] ลองใหม่ครั้งที่ ' + (attempt + 1),
+        body.action, err.message);
       if (o.onRetry) o.onRetry(attempt + 1, err);
       await sleep(o.backoffMs * Math.pow(2, attempt));
     }
