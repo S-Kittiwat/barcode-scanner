@@ -263,7 +263,16 @@ export async function apiGet(url, action, params = {}, opts = {}) {
     const timer = setTimeout(() => ctrl.abort('timeout'), o.timeoutMs);
     try {
       const res = await fetchImpl(full, { method: 'GET', redirect: 'follow', signal: ctrl.signal });
-      if (!res.ok) throw new ApiError('HTTP ' + res.status, 'http', res.status);
+      if (!res.ok) {
+        /* บอกว่า action ไหนพัง ไม่ใช่แค่เลขสถานะ
+           404 จาก Apps Script มักแปลว่า doGet ไม่รองรับ action นั้น
+           ถ้าไม่บอกชื่อ ต้องไล่เดาทีละหน้า */
+        console.error('[DocScan] เรียกไม่สำเร็จ', {
+          action: action, status: res.status, url: full.slice(0, 120)
+        });
+        throw new ApiError('HTTP ' + res.status + ' — action: ' + action,
+          'http', res.status);
+      }
       const text = await res.text();
 
       // บาง endpoint คืนข้อความดิบ ไม่ใช่ JSON — getCSV คืน CSV ตรง ๆ
