@@ -275,16 +275,6 @@ tr.got td:first-child{box-shadow:inset 3px 0 0 var(--success)}
 .cbo::after{content:'▾';position:absolute;right:9px;bottom:7px;
   color:var(--muted);font-size:11px;pointer-events:none}
 .cbo-in:focus{border-color:var(--accent);outline:none}
-/* วางเมนูที่ body ด้วยพิกัดจริงของช่อง
-   ไม่ผูกกับตำแหน่งของกล่องแม่ จึงไม่มีทางถูกตัดหรือถูกบัง
-   ไม่ว่าโครงข้างนอกจะซับซ้อนแค่ไหน */
-.cbo-menu{display:none;position:fixed;z-index:9999;
-  max-height:240px;overflow:auto;
-  background:var(--surface);border:1px solid var(--accent);
-  border-radius:var(--rs);box-shadow:0 8px 24px rgba(0,0,0,.55)}
-.cbo-it{padding:6px 10px;font-size:12.5px;cursor:pointer}
-.cbo-it:hover{background:var(--surface2)}
-.cbo-none{padding:8px 10px;font-size:11.5px;color:var(--muted)}
 /* ค่าที่พิมพ์เองยังไม่เคยมีในทะเบียน ต้องตรวจก่อนนำไปใช้จริง */
 .cbo-warn{font-size:10px;color:var(--warn);margin-top:3px}
 
@@ -877,18 +867,28 @@ function editHtml(it) {
      * ยังแยกได้ว่าเลือกจากรายการหรือพิมพ์เอง
      * เพราะการเลือกจะตั้งค่าใน data-picked ส่วนการพิมพ์ไม่ตั้ง
      */
+    /* ใช้ datalist ของเบราว์เซอร์
+     *
+     * เคยเขียนเมนูเองแล้วเจอปัญหาวาดไม่ขึ้นซึ่งหาสาเหตุไม่พบ
+     * datalist เบราว์เซอร์วาดให้เอง อยู่นอกโครงหน้าทั้งหมด
+     * จึงไม่มีทางถูกตัดหรือถูกบัง และพิมพ์กรองได้ในตัว
+     *
+     * ยังแยกได้ว่าเลือกจากรายการหรือพิมพ์เอง
+     * เพราะตอนบันทึกเทียบค่ากับรายการเต็มอยู่แล้ว
+     */
     var opts = listOf(x.list);
     var inList = !v || opts.some(function (o) { return o.value === v; });
+    var listId = 'dl-' + x.list;
 
-    return '<div class="cbo" data-list="' + x.list + '">' +
+    return '<div class="cbo">' +
       '<label>' + esc(x.label) + '</label>' +
       '<input class="cbo-in" data-ref="' + esc(it.ref_no) + '" ' +
         'data-sel="' + x.k + '" ' +
+        'data-list="' + esc(x.list) + '" ' +
         (x.pairCode ? 'data-paircode="' + x.pairCode + '" ' : '') +
-        'data-picked="' + (inList && v ? '1' : '') + '" ' +
-        'autocomplete="off" placeholder="พิมพ์เพื่อค้น" ' +
+        'list="' + listId + '" autocomplete="off" ' +
+        'placeholder="พิมพ์เพื่อค้น หรือพิมพ์เอง" ' +
         'value="' + esc(v) + '">' +
-      '<div class="cbo-menu"></div>' +
       (inList ? '' :
         '<div class="cbo-warn">พิมพ์เอง — ไม่มีในรายการ</div>') +
     '</div>';
@@ -910,107 +910,67 @@ function editHtml(it) {
    เลือกจากเมนูถือว่า "เลือก" พิมพ์แล้วไม่เลือกถือว่า "พิมพ์เอง" */
 
 function installCombos() {
-  // ลบเมนูเก่าที่ย้ายไปอยู่ที่ body ก่อนวาดใหม่
-  document.querySelectorAll('body > .cbo-menu').forEach(function (m) { m.remove(); });
+  /* สร้างรายการครั้งเดียวต่อชนิด แล้วทุกช่องใช้ร่วมกัน
+     ถ้าสร้างต่อช่อง จะมีรายการซ้ำพันกว่าบรรทัดหลายชุด */
+  ['parties', 'transporters'].forEach(function (kind) {
+    var id = 'dl-' + kind;
+    var old = document.getElementById(id);
+    if (old) old.remove();
+
+    var opts = listOf(kind);
+    if (!opts.length) return;
+
+    var dl = document.createElement('datalist');
+    dl.id = id;
+    dl.innerHTML = opts.map(function (o) {
+      /* value คือค่าที่จะถูกกรอกลงช่อง ต้องเป็นชื่อล้วน
+         label แสดงประกอบให้เห็นรหัสด้วย */
+      return '<option value="' + esc(o.value) + '">' +
+             esc(o.label) + '</option>';
+    }).join('');
+    document.body.appendChild(dl);
+  });
 
   var els = $('vlist').querySelectorAll('.cbo-in');
   console.log('[DocScan] ติดตั้งช่องค้นหา', els.length, 'ช่อง',
     'รายชื่อ', partyData ? (partyData.parties || []).length : 'ยังไม่มา');
 
   els.forEach(function (el) {
-    var box  = el.parentNode;
-    var menu = box.querySelector('.cbo-menu');
-      var opts0 = listOf(box.dataset.list);
-      console.log('[DocScan] ช่อง', box.dataset.list,
-        '· ตัวเลือก', opts0.length, '· มีเมนู', !!menu);
-    var opts = listOf(box.dataset.list);
+    var box = el.parentNode;
 
-    function close() { menu.style.display = 'none'; }
+    function sync() {
+      var opts = listOf(el.dataset.list);
+      var v = el.value.trim();
+      var known = !v || opts.some(function (o) { return o.value === v; });
 
-    function open(q) {
-      var s = String(q || '').trim().toLowerCase();
-      var all = s ? opts.filter(function (o) {
-        return o.label.toLowerCase().indexOf(s) >= 0;
-      }) : opts;
-
-      /* แสดงไม่เกิน 40 เพราะการวาดพันกว่าบรรทัดทุกครั้งที่พิมพ์จะหน่วง
-         แต่การตรวจว่าเป็นค่าที่รู้จักไหม ยังเทียบกับรายการเต็มเสมอ */
-      var hit = all.slice(0, 40);
-
-      if (!hit.length) {
-        menu.innerHTML = '<div class="cbo-none">ไม่พบในรายการ — ' +
-          'ใช้ค่าที่พิมพ์ได้เลย</div>';
-      } else {
-        menu.innerHTML = hit.map(function (o) {
-          return '<div class="cbo-it" data-v="' + esc(o.value) + '">' +
-                 esc(o.label) + '</div>';
-        }).join('') +
-        /* บอกว่ายังมีอีก ไม่งั้นคนจะคิดว่าไม่มีตัวที่ต้องการ
-           แล้วไปพิมพ์เอง ทั้งที่มีอยู่ในรายการ */
-        (all.length > hit.length
-          ? '<div class="cbo-none">และอีก ' + (all.length - hit.length) +
-            ' รายการ — พิมพ์เพิ่มเพื่อค้นให้แคบลง</div>' : '');
-      }
-      /* คำนวณตำแหน่งจากช่องจริงทุกครั้ง
-         เพราะหน้าอาจเลื่อนหรือแถวอื่นขยายไปแล้ว */
-      var r = el.getBoundingClientRect();
-      var below = window.innerHeight - r.bottom;
-      menu.style.left = r.left + 'px';
-      menu.style.width = r.width + 'px';
-
-      // ถ้าที่ด้านล่างไม่พอ ให้เปิดขึ้นบนแทน
-      if (below < 160 && r.top > below) {
-        menu.style.top = 'auto';
-        menu.style.bottom = (window.innerHeight - r.top + 2) + 'px';
-      } else {
-        menu.style.bottom = 'auto';
-        menu.style.top = (r.bottom + 2) + 'px';
-      }
-
-      if (menu.parentNode !== document.body) document.body.appendChild(menu);
-      menu.style.display = '';
-
-      menu.querySelectorAll('.cbo-it').forEach(function (d) {
-        d.addEventListener('mousedown', function (ev) {
-          ev.preventDefault();          // กันช่องเสีย focus ก่อนคลิกติด
-          pick(d.dataset.v);
-        });
-      });
-    }
-
-    function pick(v) {
-      el.value = v;
-      el.dataset.picked = '1';
+      // เตือนว่าค่านี้ไม่มีในรายการ ต้องตรวจก่อนนำไปใช้
       var w = box.querySelector('.cbo-warn');
-      if (w) w.remove();
-      close();
+      if (known) { if (w) w.remove(); }
+      else if (!w) {
+        w = document.createElement('div');
+        w.className = 'cbo-warn';
+        w.textContent = 'พิมพ์เอง — ไม่มีในรายการ';
+        box.appendChild(w);
+      }
 
       /* เลือกชื่อคู่ค้าแล้วเติมรหัสให้เอง
          คนจำรหัสไม่ได้อยู่แล้ว และกรอกเองมีโอกาสผิด */
-      if (el.dataset.paircode && partyData) {
+      if (known && v && el.dataset.paircode && partyData) {
         var p = (partyData.parties || []).find(function (x) { return x.name === v; });
         if (p && p.code) {
           var codeEl = $('vlist').querySelector(
             '[data-ref="' + el.dataset.ref + '"][data-f="' + el.dataset.paircode + '"]');
-          if (codeEl) { codeEl.value = p.code; codeEl.classList.add('changed'); }
+          if (codeEl && codeEl.value !== p.code) {
+            codeEl.value = p.code;
+            codeEl.classList.add('changed');
+          }
         }
       }
     }
 
-    /* เปิดทั้งตอน focus และ click
-       ถ้าช่องมี focus อยู่แล้ว การคลิกซ้ำจะไม่เกิด focus อีก
-       คนจึงกดแล้วไม่มีอะไรขึ้น */
-    el.addEventListener('focus', function () { open(el.value); });
-    el.addEventListener('click', function () { open(el.value); });
-    el.addEventListener('input', function () {
-      // พิมพ์เอง = ยังไม่ได้เลือก จนกว่าจะคลิกจากเมนู
-      el.dataset.picked = '';
-      markTyped(box, el);
-      open(el.value);
-    });
-    el.addEventListener('blur', function () {
-      setTimeout(function () { close(); markTyped(box, el); }, 150);
-    });
+    el.addEventListener('input', sync);
+    el.addEventListener('change', sync);
+    el.addEventListener('blur', sync);
   });
 }
 
