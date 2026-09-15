@@ -7,13 +7,7 @@
 <title>DocScan — ติดตามเอกสาร</title>
 <script src="config.js"></script>
 <link rel="stylesheet" href="css/auth.css">
-<style>/* กล่องแจ้งข้อผิดพลาด ต้องมีเสมอ
-   ไม่งั้นข้อความผิดพลาดจะไม่แสดงอะไรเลย */
-.alert{display:none;background:rgba(248,113,113,.1);border:1px solid var(--danger);
-  border-radius:var(--r);padding:12px 15px;margin-bottom:14px;font-size:13px}
-.alert.on{display:block}
-
-
+<style>
   body{display:block;padding:0;align-items:stretch}
   .wrap{max-width:1340px;margin:0 auto;padding:22px 24px 90px}
 
@@ -57,9 +51,7 @@ body.cart-on .wrap{padding-right:324px}
   .hint code{font-family:var(--mono);color:var(--accent);background:var(--surface2);
     padding:1px 7px;border-radius:4px;cursor:pointer}
 
-  .filters{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;
-    padding-top:16px;border-top:1px solid var(--border)}
-  .fld{display:flex;flex-direction:column;gap:5px}
+    .fld{display:flex;flex-direction:column;gap:5px}
   .fld label{font-size:11.5px;color:var(--muted)}
   .fld select,.fld input{background:var(--surface2);border:1px solid var(--border);
     border-radius:var(--rs);color:var(--text);font-family:var(--font);font-size:13px;padding:8px 11px}
@@ -130,16 +122,14 @@ body.cart-on .wrap{padding-right:324px}
   .empty{color:var(--muted);font-size:13.5px;padding:34px;text-align:center;
     border:1px dashed var(--border);border-radius:var(--r);line-height:1.8}
   .empty b{color:var(--text);display:block;margin-bottom:6px;font-size:15px}
-  @media (max-width:980px){ .dwrap{grid-template-columns:1fr} th:nth-child(3),td:nth-child(3){display:none} }
+   }
 
 /* ── หน้าติดตามเอกสาร ── */
 
 .tab b{margin-left:6px;font-family:var(--mono)}
-.grow{flex:1}
 .empty{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
   padding:38px;text-align:center;color:var(--muted);font-size:13.5px}
 
-.chk{width:16px;height:16px;cursor:pointer;accent-color:var(--accent)}
 .ref{font-family:var(--mono);font-size:13.5px;font-weight:600}
 .sub{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.5}
 .sub.note{color:var(--text);opacity:.75;font-style:italic}
@@ -161,142 +151,175 @@ tr.lv-critical td:first-child{box-shadow:inset 3px 0 0 var(--warn)}
   padding:9px 11px;font-family:var(--font);font-size:13px}
 .rs-act .hint{margin-right:auto;text-align:left}
 
+/* กล่องแจ้งข้อผิดพลาด — ถูกลบไปตอนตัด CSS ที่ไม่เกี่ยว
+   ต้องมี ไม่งั้นข้อความผิดพลาดจะไม่แสดงอะไรเลย */
+.shp-alert{display:none;background:rgba(248,113,113,.1);border:1px solid var(--danger);
+  border-radius:var(--r);padding:12px 15px;margin-bottom:14px;font-size:13px}
+.shp-alert.on{display:block}
 
-/* ── หน้ารับเอกสารเป็นชุด ── */
-.scanbox{background:var(--surface);border:2px solid var(--accent);
-  border-radius:var(--r);padding:18px 20px;margin-bottom:14px}
-.scanbox.done{border-color:var(--success)}
-.scan-l{font-size:12.5px;color:var(--muted);margin-bottom:7px}
-#scanInput{width:100%;background:var(--surface2);border:1px solid var(--border);
-  border-radius:var(--rs);color:var(--text);padding:14px 16px;
-  font-family:var(--mono);font-size:19px;letter-spacing:.05em}
-#scanInput:focus{outline:2px solid var(--accent);outline-offset:1px}
+/* แถบเตือน */
+.dupbanner{display:none;background:rgba(251,191,36,.1);border:1px solid var(--warn);
+  border-radius:var(--r);padding:12px 15px;margin-bottom:14px;font-size:13px;line-height:1.8}
+.dupbanner.bad{background:rgba(248,113,113,.1);border-color:var(--danger)}
 
-.bhead{background:var(--surface);border:1px solid var(--border);
-  border-radius:var(--r);padding:16px 18px;margin-bottom:14px}
-.bid{font-family:var(--mono);font-size:23px;font-weight:700}
-.bmeta{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
-  gap:11px;margin-top:12px}
-.bk{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
-.bv{font-size:13.5px;font-weight:600;margin-top:2px}
+/* แถวที่ระบบยังไม่รู้จักไซต์ — ต้องเห็นชัดว่าต่างจากแถวปกติ */
 
-.prog{height:9px;background:var(--surface2);border-radius:5px;overflow:hidden;margin:12px 0 6px}
-.prog i{display:block;height:100%;background:var(--success);
-  transition:width .2s ease;width:0}
-.progtxt{font-family:var(--mono);font-size:14px;font-weight:600}
+/* ตะกร้าเอกสารที่เลือก */
+.btn.sm{padding:4px 10px;font-size:12px}
 
-.ilist{max-height:44vh;overflow:auto;border:1px solid var(--border);border-radius:var(--rs)}
-/* คอลัมน์ตัวเลขจัดกลาง อ่านง่ายกว่าชิดซ้าย */
-.ilist th.c,.ilist td.c{text-align:center}
-/* ปุ่มเอาออก — เล็กและไม่เด่น เพราะเป็นทางถอย ไม่ใช่งานหลัก */
-.xbtn{background:none;border:none;color:var(--muted);cursor:pointer;
-  font-size:13px;padding:2px 5px;line-height:1}
-.xbtn:hover{color:var(--danger)}
-.ilist table{margin:0}
-.ilist thead th{position:sticky;top:0;background:var(--surface2);z-index:1}
-tr.got td{background:rgba(52,211,153,.09)}
-tr.got td:first-child{box-shadow:inset 3px 0 0 var(--success)}
-.mark{font-size:15px;width:22px;display:inline-block;text-align:center}
-.extra-row td{background:rgba(96,165,250,.09)}
-.extra-row td:first-child{box-shadow:inset 3px 0 0 var(--accent)}
+/* ── หน้าส่งเอกสารตัวจริง ── */
 
-.toast2{position:fixed;left:50%;bottom:88px;transform:translate(-50%,14px);z-index:200;
-  border-radius:var(--r);padding:13px 24px;font-size:15px;font-weight:600;
-  opacity:0;pointer-events:none;transition:.16s;font-family:var(--mono)}
-.toast2.on{opacity:1;transform:translate(-50%,0)}
-.toast2.ok{background:var(--success);color:#0f172a}
-.toast2.bad{background:var(--danger);color:#fff}
-.toast2.warn{background:var(--warn);color:#0f172a}
 
-.actbar{position:fixed;left:0;right:0;bottom:0;z-index:130;
-  background:var(--surface);border-top:1px solid var(--border);
-  padding:12px 88px 12px 24px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+
+
+
+/* ใบปะหน้า — ต้องพิมพ์ออกมาแล้วอ่านง่ายบนกระดาษขาว
+   จึงใช้สีตรงข้ามกับหน้าจอ ไม่ใช่สีเดียวกัน */
+
+@media print{
+  body>*:not(.cover-wrap){display:none !important}
+  .cover-wrap,.cover{display:block !important;margin:0;padding:0}
+  .cover{box-shadow:none;border-radius:0}
+  .noprint{display:none !important}
+}
 .bldtag{position:fixed;right:8px;bottom:6px;z-index:5;font-family:var(--mono);
   font-size:10px;color:var(--muted);opacity:.5;pointer-events:none}
 @media print{.bldtag{display:none}}
-/* ── ขั้นตรวจเอกสาร ── */
-.vhead{display:flex;align-items:flex-start;gap:14px;margin:18px 0 12px}
-.vh-t{font-size:15px;font-weight:600}
-.vlist{display:flex;flex-direction:column;gap:9px}
 
-/* สรุปผลการยิง — ต้องเห็นก่อนกดยืนยัน
-   ถ้าอยู่ท้ายหน้า คนจะเลื่อนผ่านแล้วไม่เห็น */
-.vsum{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
-.sm-it{border:1px solid var(--border);border-radius:var(--r);padding:10px 13px;
-  font-size:13px;line-height:1.6}
-.sm-it.ok{border-color:rgba(52,211,153,.45)}
-.sm-it.bad{border-color:var(--danger);background:rgba(248,113,113,.08)}
-.sm-it.warn{border-color:var(--warn);background:rgba(251,191,36,.08)}
-.sm-l{font-family:var(--mono);font-size:11.5px;margin-top:5px;line-height:1.8}
-.sm-n{font-size:11px;color:var(--muted);margin-top:5px}
-.sm-it input{width:100%;background:var(--surface2);border:1px solid var(--border);
-  border-radius:var(--rs);color:var(--text);padding:6px 9px;
-  font-family:var(--font);font-size:12.5px}
+/* ============================================================
+   ใบส่งมอบเอกสาร
+   ============================================================
+   ออกแบบให้ผู้รับตรวจของได้จากใบนี้โดยไม่ต้องเปิดระบบ
+   ผู้ส่งกับผู้รับแยกกล่องกันชัด แบบใบปะหน้าพัสดุ
+   ============================================================ */
+.cover-wrap{display:none;max-width:1000px;margin:0 auto;padding:20px 24px 80px}
+.cover{background:#fff;color:#111;border-radius:8px;padding:18px 22px;
+  font-family:'IBM Plex Sans Thai',system-ui,sans-serif;line-height:1.4}
 
-.vrow{background:var(--surface);border:1px solid var(--border);
-  border-radius:var(--r);padding:12px 14px}
-.vrow.pass{border-color:rgba(52,211,153,.5)}
-.vrow.fix{border-color:var(--warn)}
+/* หัวเอกสาร — บาร์โค้ดอยู่ซ้ายสุด */
+.cover .hd{display:flex;align-items:flex-start;gap:16px;
+  padding-bottom:9px;border-bottom:2px solid #111;margin-bottom:10px}
+.cover .hd-bc{flex:none}
+.cover .hd-bc svg{display:block}
+.cover .hd-tt{flex:1;padding-top:2px}
+.cover .hd-tt h2{margin:0;font-size:17px;font-weight:700;letter-spacing:-.01em}
+.cover .hd-sub{font-size:11.5px;color:#666;margin-top:2px}
+.cover .hd-no{text-align:right;flex:none;min-width:150px}
+.cover .hd-no .k{font-size:9.5px;color:#666;text-transform:uppercase;
+  letter-spacing:.05em}
+.cover .hd-no .v{font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:700}
+.cover .hd-no .v.sm{font-size:11.5px;font-weight:500}
 
-.vr-top{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-.vr-ref{font-family:var(--mono);font-size:15px;font-weight:700}
-.vr-bc{font-family:var(--mono);font-size:11.5px;color:var(--muted)}
-.vr-act{margin-left:auto;display:flex;gap:7px}
+/* ผู้ส่ง / ผู้รับ */
+.cover .pair{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.cover .hs-box{border:1px solid #bbb;border-radius:5px;padding:7px 10px}
+.cover .hs-box.to{border:2px solid #111;background:#fafafa}
+.cover .hs-box-t{font-size:9.5px;font-weight:700;text-transform:uppercase;
+  letter-spacing:.08em;color:#666;padding-bottom:4px;margin-bottom:5px;
+  border-bottom:1px solid #ddd}
+.cover .hs-box.to .hs-box-t{color:#111}
+.cover .row{display:flex;gap:8px;font-size:11.5px;padding:1px 0}
+.cover .row .k{width:84px;flex:none;color:#666}
+.cover .row .v{font-weight:600;flex:1}
+.cover .row .v.big{font-size:13px}
 
-/* 8 ช่องเรียงบรรทัดเดียว — Account No. แคบเพราะเป็นตัวเลขสั้น
-   ที่เหลือแบ่งพื้นที่เท่ากัน เพราะเป็นชื่อยาว */
-.vr-data{display:grid;
-  grid-template-columns:64px 1fr 64px 1fr 1fr 84px 78px 78px 62px 62px;
-  gap:9px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
-.vr-data>div{min-width:0}
-.vd-v{overflow-wrap:anywhere}
-@media (max-width:1100px){
-  .vr-data{grid-template-columns:repeat(auto-fit,minmax(110px,1fr))}
+.cover .note{border:1px solid #ddd;border-radius:5px;padding:8px 12px;
+  font-size:12px;margin-bottom:14px;background:#fafafa}
+
+/* รายการเอกสาร */
+.cover table.items{width:100%;border-collapse:collapse;margin-bottom:12px;
+  font-size:10.5px}
+.cover .items th,.cover .items td{border:1px solid #ccc;padding:2.5px 5px;
+  text-align:left;vertical-align:middle}
+.cover .items th{background:#eee;font-weight:600;font-size:9.5px}
+/* หัวตารางซ้ำทุกหน้าเวลาพิมพ์ เพราะ 200 รายการกินหลายหน้า */
+.cover .items thead{display:table-header-group}
+.cover .items tr{page-break-inside:avoid}
+.cover .items td.c{text-align:center}
+.cover .items td.r{text-align:right;font-weight:600}
+.cover .items .mono{font-family:'IBM Plex Mono',monospace;font-weight:600}
+.cover .items .sm{font-size:10.5px}
+.cover .items .ar{color:#999}
+/* ช่องให้ผู้รับติ๊กตอนตรวจนับ */
+.cover .items .chkbox{width:34px}
+.cover .items tbody .chkbox::after{content:'';display:block;width:13px;height:13px;
+  border:1.5px solid #666;margin:0 auto}
+.cover .items tfoot td{background:#f5f5f5;font-weight:700}
+
+/* ลายเซ็น */
+.cover .sign{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:4px;
+  page-break-inside:avoid}
+.cover .sg{border:1px solid #ddd;border-radius:5px;padding:8px 10px}
+.cover .sg-t{font-size:10.5px;font-weight:700;margin-bottom:8px}
+.cover .ln{border-bottom:1px dotted #999;height:19px;margin-bottom:7px;
+  font-size:9.5px;color:#888}
+.cover .ft{margin-top:12px;padding-top:7px;border-top:1px solid #ddd;
+  font-size:9px;color:#777;text-align:center;line-height:1.6}
+
+.cover-act{display:flex;gap:10px;justify-content:center;margin-top:18px}
+
+@media print{
+  @page{size:A4 portrait;margin:10mm 12mm}
+  body>*:not(.cover-wrap){display:none !important}
+  .cover-wrap{display:block !important;max-width:none;margin:0;padding:0}
+  .cover{border-radius:0;padding:0;box-shadow:none}
+  .noprint{display:none !important}
+  .cover .items{font-size:9.5px}
+  .cover .items th,.cover .items td{padding:2px 4px}
 }
-.vd-k{font-size:10px;color:var(--muted);text-transform:uppercase}
-.vd-v{font-size:13px;font-weight:600;margin-top:2px}
 
-/* ช่องแก้ไข — โผล่เฉพาะเมื่อกดว่าไม่ตรง */
-.vr-edit{margin-top:11px;padding-top:11px;border-top:1px solid var(--warn)}
-.vr-edit .eg{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
-  gap:9px;margin-bottom:9px}
-.vr-edit label{display:block;font-size:10.5px;color:var(--muted);margin-bottom:3px}
-.vr-edit input{width:100%;background:var(--surface2);border:1px solid var(--border);
-  border-radius:var(--rs);color:var(--text);padding:6px 9px;
-  font-family:var(--font);font-size:12.5px}
-.vr-edit input.changed{border-color:var(--warn)}
-/* ช่องค้นหา — พิมพ์กรองรายการได้ */
-.cbo{position:relative}
-.cbo-in{width:100%;background:var(--surface2);border:1px solid var(--border);
-  border-radius:var(--rs);color:var(--text);padding:6px 9px;
-  font-family:var(--font);font-size:12.5px}
-.cbo-in:focus{border-color:var(--accent);outline:none}
-.cbo-menu{display:none;position:absolute;z-index:60;left:0;right:0;top:100%;
-  margin-top:2px;max-height:220px;overflow:auto;
-  background:var(--surface);border:1px solid var(--accent);
-  border-radius:var(--rs);box-shadow:0 8px 24px rgba(0,0,0,.45)}
-.cbo-it{padding:6px 10px;font-size:12.5px;cursor:pointer}
-.cbo-it:hover{background:var(--surface2)}
-.cbo-none{padding:8px 10px;font-size:11.5px;color:var(--muted)}
-/* ค่าที่พิมพ์เองยังไม่เคยมีในทะเบียน ต้องตรวจก่อนนำไปใช้จริง */
-.cbo-warn{font-size:10px;color:var(--warn);margin-top:3px}
+/* ── หน้าชุดที่ส่งไปแล้ว ── */
+.filters{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+.filters input,.filters select{background:var(--surface2);border:1px solid var(--border);
+  border-radius:var(--rs);color:var(--text);padding:8px 11px;
+  font-family:var(--font);font-size:13px}
+.filters input{min-width:210px}
+/* ช่องวันที่แคบกว่าช่องค้นหา และปรับสีปุ่มปฏิทินให้เข้ากับธีมมืด */
+.filters input[type=date]{min-width:auto;width:140px;color-scheme:dark}
+.grow{flex:1}
+
+.blist{display:flex;flex-direction:column;gap:11px}
+
+.bcard{background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r);padding:14px 16px}
+.bcard.cancelled{opacity:.6;border-style:dashed}
+.bcard.received,.bcard.kept{border-color:rgba(52,211,153,.4)}
+
+.bc-top{display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.bc-id{font-family:var(--mono);font-size:17px;font-weight:700}
+.bc-when{font-size:11.5px;color:var(--muted);margin-top:2px}
+.bc-badge{font-size:11px;font-weight:600;padding:3px 10px;border-radius:99px;
+  border:1px solid var(--border);color:var(--muted)}
+.bc-badge.sent{border-color:var(--warn);color:var(--warn)}
+.bc-badge.got{border-color:var(--success);color:var(--success)}
+.bc-badge.cx{border-color:var(--danger);color:var(--danger)}
+.bc-act{margin-left:auto;display:flex;gap:7px;flex-wrap:wrap}
+
+.bc-meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));
+  gap:10px;margin-top:12px;padding-top:11px;border-top:1px solid var(--border)}
+.bk{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.bv{font-size:13px;font-weight:600;margin-top:2px}
+
+.bc-refs{margin-top:11px;font-size:11.5px;color:var(--muted);
+  font-family:var(--mono);line-height:1.8;word-break:break-all}
+.bc-note{margin-top:9px;font-size:12px;color:var(--warn);line-height:1.6}
+/* กลุ่มผลการรับ แยกสีตามความร้ายแรง
+   ขาดเอกสารต้องตามต่อ ส่วนมาเกินแค่บันทึกไว้ */
+.rgrp{margin-top:9px;padding:7px 10px;border-radius:var(--rs);
+  font-family:var(--font);font-size:11.5px;line-height:1.7;word-break:normal}
+.rgrp.bad{background:rgba(248,113,113,.1);color:var(--danger)}
+.rgrp.warn{background:rgba(251,191,36,.1);color:var(--warn)}
 
 .btn.sm{padding:5px 11px;font-size:12px}
-/* ลิงก์ที่ใช้เป็นปุ่ม ต้องจัดกึ่งกลางเองเพราะ a ไม่ใช่ flex โดยปริยาย */
-a.btn{display:inline-flex;align-items:center;text-decoration:none}
-.tag{font-size:11px;font-weight:600;padding:3px 10px;border-radius:99px;
-  border:1px solid var(--border);color:var(--muted)}
-.tag.ok{border-color:var(--success);color:var(--success)}
-.tag.warn{border-color:var(--warn);color:var(--warn)}
 </style>
 </head>
 <body>
 
-<div class="topbar">
+<div class="topbar noprint">
   <a class="back" href="home.html">← หน้าหลัก</a>
   <div class="tb-title">
-    <div class="tb-name">รับเอกสารเป็นชุด</div>
-    <div class="tb-sub" id="scopeInfo">ยิงบาร์โค้ดบนใบปะหน้าเพื่อเริ่ม</div>
+    <div class="tb-name">ชุดที่ส่งไปแล้ว</div>
+    <div class="tb-sub" id="scopeInfo">ตรวจสอบ ยกเลิก และพิมพ์ใบส่งมอบซ้ำ</div>
   </div>
   <div class="tb-user">
     <span id="who">—</span>
@@ -304,69 +327,43 @@ a.btn{display:inline-flex;align-items:center;text-decoration:none}
   </div>
 </div>
 
-<div class="wrap">
-  <div class="alert bad" id="alert"></div>
+<div class="wrap noprint" id="mainWrap">
+  <div class="shp-alert" id="alert"></div>
 
-  <div class="scanbox" id="scanBox">
-    <div class="scan-l" id="scanLabel">① ยิงบาร์โค้ดบนใบปะหน้า</div>
-    <input id="scanInput" placeholder="B26082701" autocomplete="off" autocapitalize="off">
+  <div class="filters">
+    <input id="q" placeholder="ค้นเลขชุด เลข Reference หรือผู้รับ" autocomplete="off">
+    <select id="fStatus">
+      <option value="">ทุกสถานะ</option>
+      <option value="sent">ส่งแล้ว รอปลายทางรับ</option>
+      <option value="received">ปลายทางรับแล้ว</option>
+      <option value="kept">เก็บไว้เอง</option>
+      <option value="cancelled">ยกเลิกแล้ว</option>
+    </select>
+
+    <!-- คนจำจากวันที่ตัวเองส่งออกไป จึงต้องกรองด้วยวันที่ได้ -->
+    <select id="fDate">
+      <option value="">ทุกวัน</option>
+      <option value="0">วันนี้</option>
+      <option value="1">เมื่อวาน</option>
+      <option value="7">7 วันล่าสุด</option>
+      <option value="30">30 วันล่าสุด</option>
+      <option value="pick">ระบุวันเอง…</option>
+    </select>
+    <input type="date" id="fFrom" style="display:none" title="ตั้งแต่วันที่">
+    <input type="date" id="fTo" style="display:none" title="ถึงวันที่">
+    <div class="grow"></div>
+    <span class="hint" id="cnt"></span>
+    <button class="btn ghost" id="btnReload">รีเฟรช</button>
   </div>
 
-  <div id="batchArea" style="display:none">
-    <div class="bhead">
-      <div style="display:flex;align-items:flex-start;gap:14px">
-        <div>
-          <div class="bid" id="bId">—</div>
-          <div class="hint" id="bWhen">—</div>
-        </div>
-        <button class="btn ghost" id="btnCancel" style="margin-left:auto">ยกเลิกชุดนี้</button>
-      </div>
-      <div class="bmeta">
-        <div><div class="bk">ต้นทาง</div><div class="bv" id="bFrom">—</div></div>
-        <div><div class="bk">ผู้ส่ง</div><div class="bv" id="bBy">—</div></div>
-        <div><div class="bk">ช่องทาง</div><div class="bv" id="bChannel">—</div></div>
-        <div><div class="bk">จำนวนในชุด</div><div class="bv" id="bCount">—</div></div>
-      </div>
-      <div class="prog"><i id="progBar"></i></div>
-      <div class="progtxt" id="progTxt">0 / 0</div>
-    </div>
-
-    <div class="ilist" id="ilist"></div>
-
-    <!-- ขั้นตรวจเอกสารจริง
-         เอกสารตัวจริงเป็นหลักฐาน ถ้าข้อมูลในระบบไม่ตรง แก้ตามกระดาษได้ทันที -->
-    <div id="verifyBox" style="display:none">
-      <div class="vhead">
-        <div>
-          <div class="vh-t">② ตรวจเอกสารจริงกับข้อมูลในระบบ</div>
-          <div class="hint" id="vhCount">—</div>
-        </div>
-        <div style="margin-left:auto;display:flex;gap:7px">
-          <!-- ต้องมีทางกลับไปยิงเพิ่ม ไม่งั้นเจอใบตกหล่นแล้วต้องเริ่มใหม่ทั้งชุด -->
-          <button class="btn ghost" id="btnBackScan">← กลับไปยิงเพิ่ม</button>
-          <button class="btn ghost" id="btnAllPass">ผ่านทั้งหมด</button>
-        </div>
-      </div>
-      <div class="vsum" id="vSummary"></div>
-      <div class="vlist" id="vlist"></div>
-    </div>
-  </div>
+  <div class="blist" id="blist"></div>
 </div>
 
-<div class="toast2" id="toast2"></div>
-
-<div class="actbar" id="actBar" style="display:none">
-  <span class="hint" id="actInfo">—</span>
-  <div class="grow"></div>
-  <button class="btn ghost" id="btnToVerify">ตรวจเอกสาร →</button>
-  <button class="btn" id="btnFinish" style="display:none">ยืนยันรับเอกสาร</button>
-</div>
+<div class="cover-wrap" id="coverWrap" style="display:none"></div>
 
 <script type="module">
 
 import { authFetch, requireAuth, logout } from './js/auth.js';
-/* installNav และ guardPage อยู่ใน nav.js ไม่ใช่ auth.js
-   เขียนผิดไฟล์ทำให้โมดูลพังทั้งก้อน หน้าจึงว่างเปล่าเงียบ ๆ */
 import { installNav, guardPage } from './js/nav.js';
 import { installSupport, installErrorCapture } from './js/support.js';
 import { installRefBar } from './js/refstatus.js';
@@ -381,9 +378,7 @@ if (session) {
   $('who').textContent = session.empName || session.empId || '';
   $('whoSite').textContent = session.site || '';
 
-  /* ของเสริมต้องไม่ทำให้หน้าหลักพัง
-     เดิมวางไว้ก่อนแสดงชื่อผู้ใช้ ถ้าตัวใดตัวหนึ่งพัง
-     ทั้งหน้าจะหยุดตั้งแต่ต้น และไม่มีอะไรบอกว่าเพราะอะไร */
+  /* ของเสริมต้องไม่ทำให้หน้าหลักพัง */
   try {
     installErrorCapture();
     installSupport(session, call);
@@ -392,12 +387,16 @@ if (session) {
   }
 }
 
-async function call(action, payload = {}, timeoutMs) {
+async function call(action, payload = {}, timeoutMs, opts) {
   try {
+    /* opts ให้ผู้เรียกกำหนดพฤติกรรมเพิ่มได้ เช่นไม่ต้องลองใหม่
+       ของประกอบไม่ควรลองซ้ำจนหน่วงหน้าหลัก */
     return await authFetch(API, { action, ...payload },
-      timeoutMs ? { timeoutMs } : undefined);
+      { ...(timeoutMs ? { timeoutMs } : {}), ...(opts || {}) });
   } catch (err) {
-    if (err.code === 'auth_required') { alert('เซสชันหมดอายุ'); location.href = 'login.html'; }
+    if (err.code === 'auth_required') {
+      alert('เซสชันหมดอายุ'); location.href = 'login.html';
+    }
     throw err;
   }
 }
@@ -405,12 +404,15 @@ async function call(action, payload = {}, timeoutMs) {
 const esc = s => String(s == null ? '' : s)
   .replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
 
-/* แถบสถานะข้อมูลอ้างอิง — ต้องรู้ก่อนเริ่มทำอะไร
-   ว่าข้อมูลมีไหม เก่าแค่ไหน และเชื่อมเซิร์ฟเวอร์ได้ไหม */
 try { installRefBar(call); }
 catch (e) { console.error('[DocScan] แถบสถานะติดตั้งไม่สำเร็จ', e); }
 
-/** วันที่พร้อมเวลา — ใช้กับเวลาที่เกิดเหตุการณ์ เช่นเวลาส่งชุด */
+const CHANNEL_LABEL = {
+  company_van: 'รถบริษัท', courier: 'ขนส่งเอกชน',
+  post: 'ไปรษณีย์', hand: 'คนถือไปเอง',
+  keep_self: 'เก็บไว้เอง ไม่ได้ส่งออก'
+};
+
 function fmt(v) {
   if (!v) return '—';
   const d = new Date(v);
@@ -419,794 +421,387 @@ function fmt(v) {
                                      hour:'2-digit', minute:'2-digit' });
 }
 
-/** วันที่อย่างเดียว — ใช้กับวันที่บนเอกสาร
-    ซึ่งไม่มีเวลาอยู่แล้ว แสดง 00:00 ไปก็ไม่มีความหมาย */
-function fmtDay(v) {
-  if (!v) return '—';
-  const d = new Date(v);
-  if (isNaN(d.getTime())) return String(v);
-  return d.toLocaleDateString('th-TH', { day:'2-digit', month:'short', year:'2-digit' });
-}
+let batches = [];
 
-const CHANNEL_LABEL = {
-  company_van: 'รถบริษัท', courier: 'ขนส่งเอกชน',
-  post: 'ไปรษณีย์', hand: 'คนถือไปเอง'
-};
-
-/* ---------- สถานะ ---------- */
-let batch = null, items = [];
-const got = new Set();       // ที่ยิงแล้วและอยู่ในชุด
-const extra = [];            // ที่ยิงแล้วแต่ไม่อยู่ในชุด
-
-/* ช่องยิงต้องมีโฟกัสตลอด คนใช้เครื่องยิงบาร์โค้ดซึ่งพิมพ์เข้าช่องที่โฟกัสอยู่
-   ถ้าโฟกัสหลุด การยิงจะหายไปเงียบ ๆ แล้วคนไม่รู้ว่าใบนั้นตกหล่น */
-function keepFocus() {
-  const el = $('scanInput');
-  if (document.activeElement !== el) el.focus();
-}
-setInterval(keepFocus, 400);
-document.addEventListener('click', () => setTimeout(keepFocus, 40));
-
-function toast(msg, kind) {
-  const el = $('toast2');
-  el.textContent = msg;
-  el.className = 'toast2 on ' + (kind || 'ok');
-  clearTimeout(el._t);
-  el._t = setTimeout(() => el.classList.remove('on'), 1600);
-}
-
-function beep(ok) {
-  /* เสียงต่างกันระหว่างสำเร็จกับผิดพลาด
-     คนยิงเอกสารจะมองรายการอยู่ ไม่ได้มองข้อความบนจอตลอด */
+/* ---------- โหลดรายการ ---------- */
+async function load() {
+  $('blist').innerHTML = '<div class="empty">กำลังโหลด…</div>';
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const o = ctx.createOscillator(), g = ctx.createGain();
-    o.connect(g); g.connect(ctx.destination);
-    o.frequency.value = ok ? 880 : 240;
-    g.gain.value = 0.07;
-    o.start();
-    setTimeout(() => { o.stop(); ctx.close(); }, ok ? 90 : 220);
-  } catch (e) {}
-}
-
-/* ---------- ยิงบาร์โค้ด ---------- */
-$('scanInput').addEventListener('keydown', async (e) => {
-  if (e.key !== 'Enter') return;
-  e.preventDefault();
-  const v = $('scanInput').value.trim().toUpperCase();
-  $('scanInput').value = '';
-  if (!v) return;
-
-  if (!batch) await openBatch(v);
-  else scanItem(v);
-});
-
-/* ---------- เปิดชุด ---------- */
-async function openBatch(id) {
-  $('scanInput').disabled = true;
-  try {
-    const r = await call('shipOpenBatch', { batch_id: id }, 45000);
-    if (r.status !== 'ok') { beep(false); alert(r.message || 'เปิดชุดไม่สำเร็จ'); return; }
-
-    batch = r.batch;
-    items = r.items || [];
-    got.clear();
-    extra.length = 0;
-
-    /* ใบที่รับไปแล้วจากที่อื่น ให้ติ๊กไว้เลย ไม่ต้องให้ยิงซ้ำ
-       แต่ยังนับรวมเพื่อให้ยอดตรงกับใบปะหน้า */
-    items.forEach(it => { if (it.already_received) got.add(it.ref_no.toUpperCase()); });
-
-    $('bId').textContent = batch.batch_id;
-    $('bWhen').textContent = 'ส่งเมื่อ ' + fmt(batch.created_at);
-    $('bFrom').textContent = batch.from_site || '—';
-    $('bBy').textContent = batch.created_name || '—';
-    $('bChannel').textContent = (CHANNEL_LABEL[batch.channel] || batch.channel || '—') +
-      (batch.vehicle ? ' · ' + batch.vehicle : '');
-    $('bCount').textContent = items.length + ' ใบ';
-
-    $('scanLabel').textContent = '② ยิงบาร์โค้ดบนเอกสารทีละใบ';
-    $('scanInput').placeholder = 'เช่น 990ECB';
-    $('batchArea').style.display = '';
-    $('actBar').style.display = 'flex';
-    $('scopeInfo').textContent = 'ชุด ' + batch.batch_id + ' · จาก ' + (batch.from_site || '—');
-
-    beep(true);
-    toast('เปิดชุด ' + batch.batch_id + ' · ' + items.length + ' ใบ');
+    const r = await call('shipBatchList', {}, 60000);
+    if (!r || r.status !== 'ok') throw new Error((r && r.message) || 'โหลดไม่สำเร็จ');
+    if (!Array.isArray(r.rows)) {
+      throw new Error('เซิร์ฟเวอร์ไม่ได้ส่งรายการกลับมา\n' +
+        'มักเกิดเมื่อยังไม่ได้ Deploy Documents.gs เป็นเวอร์ชันใหม่');
+    }
+    batches = r.rows;
     render();
   } catch (e) {
-    beep(false);
-    alert('เปิดชุดไม่สำเร็จ: ' + (e.message || e));
-  } finally {
-    $('scanInput').disabled = false;
-    keepFocus();
+    console.error('[DocScan] โหลดชุดส่งไม่สำเร็จ', e);
+    $('blist').innerHTML = '<div class="empty">โหลดไม่สำเร็จ<br>' +
+      '<span class="hint">' + esc(e.message || String(e)) + '</span></div>';
   }
 }
 
-/* ---------- ยิงทีละใบ ---------- */
-function scanItem(v) {
-  /* คนยิงบาร์โค้ดจากกระดาษ แต่ชุดเก็บเป็นเลข Reference
-     ต้องเทียบทั้งสองอย่าง ไม่งั้นยิงบาร์โค้ดแล้วขึ้นว่าไม่อยู่ในชุด
-     ทั้งที่หน้าจอแสดงบาร์โค้ดตัวนั้นอยู่ */
-  const hit = items.find(it =>
-    String(it.ref_no || '').trim().toUpperCase() === v ||
-    String(it.barcode || '').trim().toUpperCase() === v);
-
-  if (hit) {
-    // เก็บเป็นเลข Reference เสมอ เพื่อให้เทียบกับชุดได้ตรง
-    const key = String(hit.ref_no).trim().toUpperCase();
-    if (got.has(key)) { beep(false); toast('ยิงซ้ำ ' + v, 'warn'); return; }
-    got.add(key);
-    beep(true);
-    toast('รับ ' + v + '  (' + got.size + '/' + items.length + ')');
-  } else {
-    if (extra.indexOf(v) >= 0) { beep(false); toast('ยิงซ้ำ ' + v, 'warn'); return; }
-    /* มาผิดชุด — รับไว้แล้วทำเครื่องหมาย ดีกว่าปฏิเสธแล้วเอกสารตกหล่น */
-    extra.push(v);
-    beep(true);
-    toast(v + ' ไม่อยู่ในชุดนี้ — รับไว้แล้ว', 'warn');
-  }
-  render();
+/** สถานะของชุด — ใช้ทั้งกรองและแสดงป้าย
+ *
+ * เก็บไว้เองแยกจากรับแล้ว เพราะความหมายต่างกัน
+ * รับแล้ว = ปลายทางอีกที่หนึ่งรับไป
+ * เก็บเอง = จัดส่งเก็บไว้เอง ไม่ได้ส่งไปไหน
+ */
+function statusOf(b) {
+  if (String(b.status || '') === 'cancelled') return 'cancelled';
+  if (b.channel === 'keep_self') return 'kept';
+  if (b.received_at) return 'received';
+  return 'sent';
 }
 
-/* ---------- แสดงผล ---------- */
+/** เริ่มต้นวัน — ใช้เทียบช่วงวันโดยไม่สนเวลา */
+function dayStart(v) {
+  const d = new Date(v);
+  if (isNaN(d.getTime())) return null;
+  d.setHours(0, 0, 0, 0);
+  return d.getTime();
+}
+
+/** ชุดนี้อยู่ในช่วงวันที่เลือกไหม */
+function inDateRange(b) {
+  const mode = $('fDate').value;
+  if (!mode) return true;
+
+  const t = dayStart(b.created_at);
+  if (t == null) return false;
+
+  if (mode === 'pick') {
+    /* ระบุเองแล้วยังไม่กรอก ให้ผ่านไปก่อน
+       ไม่งั้นรายการจะหายหมดตอนเพิ่งเลือกโหมด */
+    const f = $('fFrom').value ? dayStart($('fFrom').value) : null;
+    const to = $('fTo').value ? dayStart($('fTo').value) : null;
+    if (f != null && t < f) return false;
+    if (to != null && t > to) return false;
+    return true;
+  }
+
+  const today = dayStart(new Date());
+  const n = Number(mode);
+
+  // เมื่อวานคือวันเดียว ไม่ใช่ช่วง จึงเทียบแบบเท่ากับ
+  if (n === 1) return t === today - 86400000;
+
+  return t >= today - n * 86400000 && t <= today;
+}
+
+function shown() {
+  const q = $('q').value.trim().toUpperCase();
+  const st = $('fStatus').value;
+  return batches.filter(b => {
+    if (st && statusOf(b) !== st) return false;
+    if (!inDateRange(b)) return false;
+    if (!q) return true;
+    return String(b.batch_id).toUpperCase().includes(q) ||
+           String(b.receiver || '').toUpperCase().includes(q) ||
+           (b.refs || []).some(r => String(r).toUpperCase().includes(q));
+  });
+}
+
 function render() {
-  const done = got.size;
-  const pct = items.length ? Math.round(done / items.length * 100) : 0;
-  $('progBar').style.width = pct + '%';
-  $('progTxt').textContent = done + ' / ' + items.length +
-    (extra.length ? '   (+' + extra.length + ' ไม่อยู่ในชุด)' : '');
-  $('scanBox').classList.toggle('done', done === items.length && items.length > 0);
+  const rows = shown();
+  $('cnt').textContent = rows.length + ' ชุด จากทั้งหมด ' + batches.length;
 
-  const missing = items.length - done;
-  $('actInfo').textContent = missing
-    ? 'ยังไม่ได้ยิง ' + missing + ' ใบ — ถ้าจบตอนนี้จะถือว่าไม่มาในชุดนี้'
-    : 'ยิงครบทุกใบแล้ว';
-
-  const rows = items.map(it => {
-    const k = it.ref_no.toUpperCase();
-    const on = got.has(k);
-    return `<tr class="${on ? 'got' : ''}">
-      <td><span class="mark">${on ? '✓' : '·'}</span></td>
-      <td><div class="ref">${esc(it.barcode || it.ref_no)}</div>
-          <div class="hint">${esc(it.ref_no)}</div></td>
-      <td>${esc(it.item_name || '—')}</td>
-      <td>${esc(it.transfer_from || '—')}</td>
-      <td>${esc(it.transfer_to || '—')}</td>
-      <td class="c">${esc(it.sent_qty || '—')}</td>
-      <td class="c">${on
-        ? `<button class="xbtn" data-undo="${esc(it.ref_no)}" title="เอาออก">✕</button>`
-        : ''}</td>
-    </tr>`;
-  }).concat(extra.map(x => `<tr class="extra-row">
-      <td><span class="mark">+</span></td>
-      <td><div class="ref">${esc(x)}</div></td>
-      <td colspan="4" class="hint">ไม่อยู่ในรายการชุดนี้ — รับไว้แล้ว</td>
-    <td class="c"><button class="xbtn" data-undox="${esc(x)}" title="เอาออก">✕</button></td>
-    </tr>`));
-
-  $('ilist').innerHTML = '<table><thead><tr>' +
-    '<th style="width:38px"></th><th style="width:140px">บาร์โค้ด / Reference</th>' +
-    '<th style="width:130px">ประเภท</th>' +
-    '<th style="width:150px">โอนจาก</th>' +
-    '<th>ปลายทาง</th>' +
-    '<th style="width:80px" class="c">จำนวนพาเลท</th>' +
-    '<th style="width:34px"></th>' +
-    '</tr></thead><tbody>' + rows.join('') + '</tbody></table>';
-
-  /* เอาใบที่ยิงผิดออกได้ ก่อนกดจบการรับ
-     ถ้าไม่ให้ลบ คนจะต้องเริ่มชุดใหม่ทั้งหมดเพราะยิงผิดใบเดียว */
-  $('ilist').querySelectorAll('[data-undo]').forEach(function (b) {
-    b.addEventListener('click', function () {
-      got.delete(String(b.dataset.undo).trim().toUpperCase());
-      delete verifyState[keyOf(b.dataset.undo)];
-      render();
-    });
-  });
-  $('ilist').querySelectorAll('[data-undox]').forEach(function (b) {
-    b.addEventListener('click', function () {
-      var i = extra.indexOf(b.dataset.undox);
-      if (i >= 0) extra.splice(i, 1);
-      render();
-    });
-  });
-}
-
-/* ---------- จบการรับ ---------- */
-
-/* ---------- ขั้นตรวจเอกสารจริง ---------- */
-/* เอกสารตัวจริงเป็นหลักฐาน ถ้าข้อมูลในระบบไม่ตรง ให้แก้ตามกระดาษ
-   ตรวจทุกใบ เพราะถ้าปล่อยผ่านแล้วผิด จะไปพบตอนที่แก้ยากกว่ามาก */
-
-var verifyState = {};    // ref → 'pass' | 'fix' | undefined
-var recvNote = '';       // หมายเหตุที่ปลายทางแจ้งกลับต้นทาง
-
-/* คีย์เดียวกันทุกที่ ไม่งั้น got กับ verifyState จะนับไม่ตรงกัน
-   แล้วปุ่มยืนยันจะกดไม่ได้ทั้งที่ตรวจครบแล้ว */
-function keyOf(v) { return String(v == null ? '' : v).trim().toUpperCase(); }
-
-/* รายชื่อคู่ค้าและขนส่งจากไฟล์อ้างอิง
-   ให้เลือกแทนพิมพ์เอง เพราะพิมพ์ผิดตัวเดียวก็กลายเป็นคนละราย
-   แล้วรายงานจะแยกกันโดยไม่มีใครสังเกต */
-var partyData = null;
-
-async function loadParties() {
-  if (partyData) return partyData;
-  try {
-    console.log('[DocScan] กำลังขอรายชื่อ…');
-    const r = await call('refPartyList', {}, 60000);
-    console.log('[DocScan] เซิร์ฟเวอร์ตอบ', r);
-    if (r && r.status === 'ok') {
-      partyData = r;
-      const n = (r.parties || []).length;
-      console.log('[DocScan] รายชื่อ', n, 'ราย · ขนส่ง',
-        (r.transporters || []).length, '· ทะเบียน', (r.plates || []).length);
-
-      /* รายชื่อว่างแปลว่ายังไม่ได้สร้าง party_list หรืออ่านไฟล์ไม่ได้
-         ต้องบอก ไม่งั้นคนจะเห็นแค่ช่องพิมพ์เปล่าแล้วไม่รู้ว่าทำไม */
-      if (!n) {
-        toast('ยังไม่มีรายชื่อให้เลือก — พิมพ์เองได้', 'warn');
-      }
-    } else {
-      toast('โหลดรายชื่อไม่สำเร็จ — พิมพ์เองได้', 'warn');
-    }
-  } catch (e) {
-    console.error('[DocScan] โหลดรายชื่อไม่สำเร็จ', e);
-    toast('โหลดรายชื่อไม่สำเร็จ — พิมพ์เองได้', 'warn');
-  }
-  return partyData;
-}
-
-/** ช่องที่ให้แก้ได้ตอนตรวจ — เฉพาะที่อ่านได้จากเอกสารจริง */
-/* 8 ข้อที่ต้องตรวจกับเอกสารจริง เรียงตามที่อยู่บนกระดาษ
-   เพื่อให้ตากวาดจากบนลงล่างได้โดยไม่ต้องกระโดดไปมา */
-var FIX_FIELDS = [
-  { k: 'origin_acc',       label: 'ต้นทาง', pairWith: 'transfer_from' },
-  { k: 'transfer_from',    label: 'โอนจาก', list: 'parties', pairCode: 'origin_acc' },
-  { k: 'dest_acc',         label: 'ปลายทาง', pairWith: 'transfer_to' },
-  { k: 'transfer_to',      label: 'โอนไป', list: 'parties', pairCode: 'dest_acc' },
-  { k: 'transporter_name', label: 'บริษัทขนส่ง', list: 'transporters' },
-  /* ทะเบียนรถไม่มีรายการให้เลือก เพราะเปลี่ยนทุกเที่ยว
-     รายการเก่าจะยาวขึ้นเรื่อยและไม่ช่วยให้กรอกเร็วขึ้น */
-  { k: 'plate_number',     label: 'ทะเบียนรถ' },
-  { k: 'doc_date',         label: 'วันส่ง', type: 'date' },
-  { k: 'received_date',    label: 'วันรับ', type: 'date' },
-  /* จำนวนพาเลทสำคัญที่สุด เพราะเป็นตัวที่ใช้วางบิล
-     ถ้าผิดแล้วไม่จับ จะกลายเป็นข้อพิพาทภายหลัง */
-  { k: 'sent_qty',         label: 'จำนวนส่ง' },
-  { k: 'received_qty',     label: 'จำนวนรับ' }
-];
-
-
-async function goVerify() {
-  var scanned = items.filter(function (it) { return got.has(String(it.ref_no).trim().toUpperCase()); });
-  if (!scanned.length) { alert('ยังไม่ได้ยิงเอกสารสักใบ'); return; }
-
-  $('scanBox').style.display = 'none';
-  $('ilist').style.display = 'none';
-  $('verifyBox').style.display = '';
-  $('btnToVerify').style.display = 'none';
-  $('btnFinish').style.display = '';
-
-  /* แสดงตารางทันที ไม่รอรายชื่อ
-   *
-   * รายชื่อใช้เฉพาะตอนกด "ไม่ตรง — แก้" ซึ่งเป็นส่วนน้อย
-   * ถ้ารอก่อนแสดง คนต้องรอทุกครั้งทั้งที่ส่วนใหญ่แค่กดผ่าน
-   */
-  renderVerify();
-
-  // โหลดรายชื่อเบื้องหลัง พอมาถึงค่อยเติมให้
-  loadParties().then(function () {
-    /* วาดใหม่เสมอเมื่อรายชื่อมาถึง
-     *
-     * เดิมวาดเฉพาะตอนมีแถวที่กำลังแก้อยู่ แต่ตอนนั้นยังไม่มีใครกดแก้
-     * พอกดทีหลัง editHtml เห็น partyData แล้วก็จริง
-     * แต่ตัวเลือกถูกสร้างตอนวาดแถว ซึ่งเกิดก่อนรายชื่อมา
-     * จึงไม่มีรายการให้เลือก
-     */
-    if (partyData) renderVerify();
-  });
-}
-
-function renderVerify() {
-  var scanned = items.filter(function (it) { return got.has(String(it.ref_no).trim().toUpperCase()); });
-  var done = scanned.filter(function (it) { return verifyState[keyOf(it.ref_no)]; }).length;
-
-  /* สรุปให้เห็นก่อนกดยืนยัน ว่าชุดนี้ครบไหม ขาดใบไหน เกินใบไหน
-     ถ้าไม่บอก คนจะกดยืนยันโดยไม่รู้ว่าขาด แล้วไปพบทีหลังว่าตามไม่ได้ */
-  var missing = items.filter(function (it) {
-    return !got.has(String(it.ref_no).trim().toUpperCase());
-  });
-
-  $('vhCount').textContent = 'ตรวจแล้ว ' + done + ' จาก ' + scanned.length + ' ใบ' +
-    (done < scanned.length ? ' — ต้องตรวจให้ครบก่อนยืนยัน' : ' ✓');
-  /* กดได้เมื่อตรวจครบทุกใบที่ยิงมา
-     ใบที่ขาดไม่นับ เพราะไม่ได้อยู่ในมือให้ตรวจ */
-  $('btnFinish').disabled = scanned.length > 0 && done < scanned.length;
-
-  renderSummary(scanned, missing);
-
-  $('vlist').innerHTML = scanned.map(vrowHtml).join('');
-
-  $('vlist').querySelectorAll('[data-pass]').forEach(function (b) {
-    b.addEventListener('click', function () {
-      verifyState[keyOf(b.dataset.pass)] = 'pass';
-      renderVerify();
-    });
-  });
-  $('vlist').querySelectorAll('[data-fix]').forEach(function (b) {
-    b.addEventListener('click', function () {
-      verifyState[keyOf(b.dataset.fix)] = 'fix';
-      renderVerify();
-    });
-  });
-  $('vlist').querySelectorAll('[data-save]').forEach(function (b) {
-    b.addEventListener('click', function () { saveFix(b.dataset.save); });
-  });
-
-  /* ยกเลิกการแก้ — กลับไปสถานะยังไม่ตรวจ
-     ไม่ใช่ทำเครื่องหมายว่าผ่าน เพราะยังไม่ได้ตรวจจริง */
-  $('vlist').querySelectorAll('[data-cancelfix]').forEach(function (b) {
-    b.addEventListener('click', function () {
-      delete verifyState[keyOf(b.dataset.cancelfix)];
-      renderVerify();
-    });
-  });
-
-  installCombos();
-}
-
-/** สรุปผลการยิง — ครบไหม ขาดใบไหน เกินใบไหน */
-function renderSummary(scanned, missing) {
-  var box = $('vSummary');
-  if (!box) return;
-
-  var parts = [];
-
-  parts.push('<div class="sm-it ok"><b>ยิงแล้ว ' + scanned.length + ' ใบ</b>' +
-    ' จากที่ต้นทางส่งมา ' + items.length + ' ใบ</div>');
-
-  if (missing.length) {
-    parts.push('<div class="sm-it bad"><b>ขาด ' + missing.length + ' ใบ</b>' +
-      '<div class="sm-l">' +
-      missing.map(function (m) {
-        return esc(m.barcode || m.ref_no);
-      }).join(' · ') + '</div>' +
-      '<div class="sm-n">ใบเหล่านี้จะกลับไปเป็นค้างที่ต้นทาง เพื่อให้มีคนตามต่อ</div>' +
-    '</div>');
-  }
-
-  if (extra.length) {
-    parts.push('<div class="sm-it warn"><b>ไม่อยู่ในชุดนี้ ' + extra.length + ' ใบ</b>' +
-      '<div class="sm-l">' + extra.map(esc).join(' · ') + '</div>' +
-      '<div class="sm-n">รับไว้แล้วและบันทึกว่ามาผิดชุด ' +
-      'ถ้าใบไหนไม่มีในระบบเลย จะแจ้งหลังกดยืนยัน</div>' +
-    '</div>');
-  }
-
-  if (!missing.length && !extra.length) {
-    parts.push('<div class="sm-it ok">ครบถ้วนตรงตามชุด ไม่มีขาดไม่มีเกิน</div>');
-  }
-
-  /* ให้ปลายทางเขียนถึงต้นทางได้ เช่นเอกสารเปียก ตราประทับจาง
-     สิ่งที่ระบบตรวจไม่ได้แต่คนเห็นกับตา */
-  if (missing.length || extra.length) {
-    parts.push('<div class="sm-it">' +
-      '<b>แจ้งกลับต้นทาง</b>' +
-      '<input id="recvNote" placeholder="เช่น เอกสาร 2 ใบเปียก อ่านเลขไม่ออก" ' +
-        'value="' + esc(recvNote) + '" style="margin-top:6px">' +
-    '</div>');
-  }
-
-  box.innerHTML = parts.join('');
-
-  var nEl = $('recvNote');
-  if (nEl) nEl.addEventListener('input', function () { recvNote = nEl.value; });
-}
-
-function vrowHtml(it) {
-  var st = verifyState[keyOf(it.ref_no)] || '';
-
-  var data = FIX_FIELDS.map(function (f) {
-    var v = it[f.k];
-    if (f.type === 'date' && v) v = fmtDay(v);
-    return [f.label, v];
-  }).map(function (p) {
-    return '<div><div class="vd-k">' + esc(p[0]) + '</div>' +
-           '<div class="vd-v">' + esc(p[1] || '—') + '</div></div>';
-  }).join('');
-
-  var edit = st === 'fix' ? editHtml(it) : '';
-
-  return '<div class="vrow ' + st + '">' +
-    '<div class="vr-top">' +
-      '<div>' +
-        '<div class="vr-ref">' + esc(it.ref_no) + '</div>' +
-        '<div class="vr-bc">บาร์โค้ด ' + esc(it.barcode || '—') + '</div>' +
-      '</div>' +
-      (st === 'pass' ? '<span class="tag ok">ตรวจแล้ว ตรงกัน</span>' : '') +
-      (st === 'fix' ? '<span class="tag warn">กำลังแก้</span>' : '') +
-      '<div class="vr-act">' +
-        /* ลิงก์ไฟล์สแกน เปิดแท็บใหม่เพื่อไม่ให้เสียการตรวจที่ค้างอยู่
-           ไม่มีไฟล์ก็ไม่แสดงปุ่ม ดีกว่าปุ่มที่กดแล้วไม่เกิดอะไร */
-        (it.pdf_url
-          ? '<a class="btn ghost sm" href="' + esc(it.pdf_url) + '" ' +
-            'target="_blank" rel="noopener">ดูไฟล์</a>' : '') +
-        (st === 'pass' ? '' :
-          '<button class="btn sm" data-pass="' + esc(it.ref_no) + '">ตรงกัน ✓</button>') +
-        (st === 'fix' ? '' :
-          '<button class="btn ghost sm" data-fix="' + esc(it.ref_no) + '">ไม่ตรง — แก้</button>') +
-      '</div>' +
-    '</div>' +
-    '<div class="vr-data">' + data + '</div>' +
-    edit +
-  '</div>';
-}
-
-function editHtml(it) {
-  var f = FIX_FIELDS.map(function (x) {
-    var v = it[x.k] || '';
-    if (x.type === 'date' && v) v = fmtDateInput(v);
-
-    /* ช่องธรรมดา หรือรายชื่อยังโหลดไม่เสร็จ
-       ให้พิมพ์ไปก่อนได้ ดีกว่าค้างรอ */
-    if (!x.list || !partyData) {
-      return '<div>' +
-        '<label>' + esc(x.label) + '</label>' +
-        '<input data-ref="' + esc(it.ref_no) + '" data-f="' + x.k + '" ' +
-          (x.type === 'date' ? 'placeholder="วว/ดด/ปปปป" ' : '') +
-          'value="' + esc(v) + '">' +
+  if (!rows.length) {
+    $('blist').innerHTML = '<div class="empty">' +
+      (batches.length ? 'ไม่มีชุดที่ตรงกับที่ค้น' : 'ยังไม่เคยส่งเอกสาร') +
       '</div>';
-    }
-
-    /* ช่องที่มีรายการ ใช้ dropdown จริง ไม่ใช่ช่องพิมพ์อิสระ
-     *
-     * เลือก "ไม่มีในรายการ" ถึงจะพิมพ์เองได้
-     * และระบบจะทำเครื่องหมายไว้ว่าค่านี้คนพิมพ์เอง
-     * เพื่อให้ตรวจก่อนนำไปใช้จริงว่าชื่อถูกต้องหรือแค่ยังไม่มีในทะเบียน
-     */
-    /* ช่องค้นหา — พิมพ์กรองรายการได้ ไม่ต้องเลื่อนหาในพันกว่ารายการ
-     *
-     * ยังแยกได้ว่าเลือกจากรายการหรือพิมพ์เอง
-     * เพราะการเลือกจะตั้งค่าใน data-picked ส่วนการพิมพ์ไม่ตั้ง
-     */
-    var opts = listOf(x.list);
-    var inList = !v || opts.some(function (o) { return o.value === v; });
-
-    return '<div class="cbo" data-list="' + x.list + '">' +
-      '<label>' + esc(x.label) + '</label>' +
-      '<input class="cbo-in" data-ref="' + esc(it.ref_no) + '" ' +
-        'data-sel="' + x.k + '" ' +
-        (x.pairCode ? 'data-paircode="' + x.pairCode + '" ' : '') +
-        'data-picked="' + (inList && v ? '1' : '') + '" ' +
-        'autocomplete="off" placeholder="พิมพ์เพื่อค้น" ' +
-        'value="' + esc(v) + '">' +
-      '<div class="cbo-menu"></div>' +
-      (inList ? '' :
-        '<div class="cbo-warn">พิมพ์เอง — ไม่มีในรายการ</div>') +
-    '</div>';
-  }).join('');
-
-  return '<div class="vr-edit">' +
-    '<div class="hint" style="margin-bottom:9px">' +
-      'แก้ตามเอกสารตัวจริง — ระบบจะบันทึกว่าใครแก้และแก้จากอะไร</div>' +
-    '<div class="eg">' + f + '</div>' +
-    '<button class="btn sm" data-save="' + esc(it.ref_no) + '">บันทึกการแก้ไข</button>' +
-    /* ต้องมีทางถอย คนกดผิดแล้วติดอยู่ในโหมดแก้ไม่ได้ */
-    '<button class="btn ghost sm" data-cancelfix="' + esc(it.ref_no) + '" ' +
-      'style="margin-left:7px">ยกเลิก</button>' +
-  '</div>';
-}
-
-/* ---------- ช่องค้นหา ---------- */
-/* พิมพ์แล้วกรองรายการทันที ไม่ต้องเลื่อนหาในพันกว่ารายการ
-   เลือกจากเมนูถือว่า "เลือก" พิมพ์แล้วไม่เลือกถือว่า "พิมพ์เอง" */
-
-function installCombos() {
-  var els = $('vlist').querySelectorAll('.cbo-in');
-  console.log('[DocScan] ติดตั้งช่องค้นหา', els.length, 'ช่อง',
-    'รายชื่อ', partyData ? (partyData.parties || []).length : 'ยังไม่มา');
-
-  els.forEach(function (el) {
-    var box  = el.parentNode;
-    var menu = box.querySelector('.cbo-menu');
-      var opts0 = listOf(box.dataset.list);
-      console.log('[DocScan] ช่อง', box.dataset.list,
-        '· ตัวเลือก', opts0.length, '· มีเมนู', !!menu);
-    var opts = listOf(box.dataset.list);
-
-    function close() { menu.style.display = 'none'; }
-
-    function open(q) {
-      var s = String(q || '').trim().toLowerCase();
-      var all = s ? opts.filter(function (o) {
-        return o.label.toLowerCase().indexOf(s) >= 0;
-      }) : opts;
-
-      /* แสดงไม่เกิน 40 เพราะการวาดพันกว่าบรรทัดทุกครั้งที่พิมพ์จะหน่วง
-         แต่การตรวจว่าเป็นค่าที่รู้จักไหม ยังเทียบกับรายการเต็มเสมอ */
-      var hit = all.slice(0, 40);
-
-      if (!hit.length) {
-        menu.innerHTML = '<div class="cbo-none">ไม่พบในรายการ — ' +
-          'ใช้ค่าที่พิมพ์ได้เลย</div>';
-      } else {
-        menu.innerHTML = hit.map(function (o) {
-          return '<div class="cbo-it" data-v="' + esc(o.value) + '">' +
-                 esc(o.label) + '</div>';
-        }).join('') +
-        /* บอกว่ายังมีอีก ไม่งั้นคนจะคิดว่าไม่มีตัวที่ต้องการ
-           แล้วไปพิมพ์เอง ทั้งที่มีอยู่ในรายการ */
-        (all.length > hit.length
-          ? '<div class="cbo-none">และอีก ' + (all.length - hit.length) +
-            ' รายการ — พิมพ์เพิ่มเพื่อค้นให้แคบลง</div>' : '');
-      }
-      menu.style.display = '';
-      console.log('[DocScan] เปิดเมนู', hit.length, 'รายการ');
-
-      menu.querySelectorAll('.cbo-it').forEach(function (d) {
-        d.addEventListener('mousedown', function (ev) {
-          ev.preventDefault();          // กันช่องเสีย focus ก่อนคลิกติด
-          pick(d.dataset.v);
-        });
-      });
-    }
-
-    function pick(v) {
-      el.value = v;
-      el.dataset.picked = '1';
-      var w = box.querySelector('.cbo-warn');
-      if (w) w.remove();
-      close();
-
-      /* เลือกชื่อคู่ค้าแล้วเติมรหัสให้เอง
-         คนจำรหัสไม่ได้อยู่แล้ว และกรอกเองมีโอกาสผิด */
-      if (el.dataset.paircode && partyData) {
-        var p = (partyData.parties || []).find(function (x) { return x.name === v; });
-        if (p && p.code) {
-          var codeEl = $('vlist').querySelector(
-            '[data-ref="' + el.dataset.ref + '"][data-f="' + el.dataset.paircode + '"]');
-          if (codeEl) { codeEl.value = p.code; codeEl.classList.add('changed'); }
-        }
-      }
-    }
-
-    el.addEventListener('focus', function () { open(el.value); });
-    el.addEventListener('input', function () {
-      // พิมพ์เอง = ยังไม่ได้เลือก จนกว่าจะคลิกจากเมนู
-      el.dataset.picked = '';
-      markTyped(box, el);
-      open(el.value);
-    });
-    el.addEventListener('blur', function () {
-      setTimeout(function () { close(); markTyped(box, el); }, 150);
-    });
-  });
-}
-
-/** เตือนว่าค่านี้ไม่มีในรายการ ต้องตรวจก่อนนำไปใช้ */
-function markTyped(box, el) {
-  var opts = listOf(box.dataset.list);
-  var v = el.value.trim();
-  var known = !v || opts.some(function (o) { return o.value === v; });
-  var w = box.querySelector('.cbo-warn');
-
-  if (known) { if (w) w.remove(); return; }
-  if (!w) {
-    w = document.createElement('div');
-    w.className = 'cbo-warn';
-    w.textContent = 'พิมพ์เอง — ไม่มีในรายการ';
-    box.appendChild(w);
+    return;
   }
+
+  $('blist').innerHTML = rows.map(cardHtml).join('');
+
+  $('blist').querySelectorAll('[data-print]').forEach(b =>
+    b.addEventListener('click', () => reprint(b.dataset.print)));
+  $('blist').querySelectorAll('[data-cancel]').forEach(b =>
+    b.addEventListener('click', () => cancelBatch(b.dataset.cancel)));
+  $('blist').querySelectorAll('[data-refs]').forEach(b =>
+    b.addEventListener('click', () => {
+      const box = document.getElementById('refs-' + b.dataset.refs);
+      const open = box.style.display !== 'none';
+      box.style.display = open ? 'none' : '';
+      b.textContent = open ? 'ดูรายการ' : 'ซ่อนรายการ';
+    }));
 }
 
-/** รายการตัวเลือกของแต่ละช่อง */
-function listOf(kind) {
-  if (!partyData) return [];
-  if (kind === 'parties') {
-    return (partyData.parties || []).map(function (p) {
-      // แสดงรหัสประกอบ เพราะรหัสซ้ำกันได้ระหว่างสาขา
-      return { value: p.name, label: p.code ? p.code + ' — ' + p.name : p.name };
-    });
-  }
-  return (partyData[kind] || []).map(function (x) {
-    return { value: x, label: x };
-  });
+function cardHtml(b) {
+  const st = statusOf(b);
+  /* บอกให้ครบว่ารับแล้วเป็นยังไง ไม่ใช่แค่ว่ารับแล้ว
+     ถ้าขาดเอกสารแล้วไม่บอก ต้นทางจะไม่รู้ว่าต้องตามต่อ */
+  const nMiss = (b.recv_missing || []).length;
+  const nExtra = (b.recv_extra || []).length;
+  const nUnk = (b.recv_unknown || []).length;
+
+  let recvTxt = 'ปลายทางรับแล้ว ' + fmt(b.received_at);
+  if (nMiss) recvTxt = 'รับแล้ว ขาด ' + nMiss + ' ฉบับ · ' + fmt(b.received_at);
+  else if (nExtra || nUnk) recvTxt = 'รับแล้ว มีเกิน · ' + fmt(b.received_at);
+
+  const badge = st === 'cancelled'
+      ? '<span class="bc-badge cx">ยกเลิกแล้ว</span>'
+    : st === 'kept'
+      ? '<span class="bc-badge got">เก็บไว้เอง · ปิดงานแล้ว</span>'
+    : st === 'received'
+      ? '<span class="bc-badge ' + (nMiss ? 'cx' : 'got') + '">' + recvTxt + '</span>'
+      : '<span class="bc-badge sent">รอปลายทางรับ</span>';
+
+  /* ยกเลิกได้ถ้าของยังอยู่กับเรา
+   *
+   * รอปลายทางรับ  ยกเลิกได้ ของยังไม่ถึงมือใคร
+   * เก็บไว้เอง     ยกเลิกได้ ของอยู่กับจัดส่งเอง
+   * ปลายทางรับแล้ว ยกเลิกไม่ได้ ต้องให้ปลายทางจัดการ
+   */
+  const canCancel = st === 'sent' || st === 'kept';
+
+  return `<div class="bcard ${st}">
+    <div class="bc-top">
+      <div>
+        <div class="bc-id">${esc(b.batch_id)}</div>
+        <div class="bc-when">ส่งเมื่อ ${fmt(b.created_at)} · โดย ${esc(b.created_name || '—')}</div>
+      </div>
+      ${badge}
+      <div class="bc-act">
+        <button class="btn ghost sm" data-refs="${esc(b.batch_id)}">ดูรายการ</button>
+        ${st === 'kept' ? ''
+          : `<button class="btn ghost sm" data-print="${esc(b.batch_id)}">พิมพ์ใบส่งมอบ</button>`}
+        ${canCancel
+          ? `<button class="btn ghost sm" data-cancel="${esc(b.batch_id)}"
+                     style="color:var(--danger)">ยกเลิก</button>` : ''}
+      </div>
+    </div>
+
+    <div class="bc-meta">
+      <div><div class="bk">ต้นทาง</div><div class="bv">${esc(b.from_site || '—')}</div></div>
+      <div><div class="bk">${st === 'kept' ? 'เก็บไว้ที่' : 'คลังปลายทาง'}</div>
+        <div class="bv">${esc(b.to_site || '—')}</div></div>
+      <div><div class="bk">${st === 'kept' ? 'ผู้เก็บ' : 'ผู้รับ'}</div>
+        <div class="bv">${esc(b.receiver || '—')}</div></div>
+      <div><div class="bk">ช่องทาง</div><div class="bv">${
+        esc(CHANNEL_LABEL[b.channel] || b.channel || '—')}${
+        b.vehicle ? ' · ' + esc(b.vehicle) : ''}</div></div>
+      <div><div class="bk">จำนวน</div><div class="bv">${b.doc_count || 0} ฉบับ</div></div>
+    </div>
+
+    ${b.note ? `<div class="bc-note">${esc(b.note)}</div>` : ''}
+
+    <div class="bc-refs" id="refs-${esc(b.batch_id)}" style="display:none">
+      ${(b.refs || []).map(esc).join(' · ') || '—'}
+      ${nMiss ? `<div class="rgrp bad"><b>ขาด ${nMiss} ฉบับ</b><br>` +
+        (b.recv_missing || []).map(esc).join(' · ') + '</div>' : ''}
+      ${nExtra ? `<div class="rgrp warn"><b>มาเกิน ${nExtra} ฉบับ — ผิดชุด</b><br>` +
+        (b.recv_extra || []).map(esc).join(' · ') + '</div>' : ''}
+      ${nUnk ? `<div class="rgrp bad"><b>ไม่พบในระบบ ${nUnk} ฉบับ</b><br>` +
+        (b.recv_unknown || []).map(esc).join(' · ') + '</div>' : ''}
+      ${b.recv_note ? `<div class="rgrp">${esc(b.recv_note)}</div>` : ''}
+    </div>
+  </div>`;
 }
 
-/* ช่องกรอกวันที่ใช้รูปแบบ dd/mm/yyyy
-   เดิมใช้ <input type="date"> ซึ่งแสดงตามภาษาของเครื่อง
-   เครื่องภาษาอังกฤษจะขึ้น mm/dd/yyyy แล้วคนไทยอ่านสลับ */
-function fmtDateInput(v) {
-  var d = new Date(v);
-  if (isNaN(d.getTime())) return '';
-  var p = function (x) { return (x < 10 ? '0' : '') + x; };
-  return p(d.getDate()) + '/' + p(d.getMonth() + 1) + '/' + d.getFullYear();
-}
+/* ---------- ยกเลิกชุด ---------- */
+async function cancelBatch(id) {
+  const b = batches.find(x => x.batch_id === id);
+  if (!b) return;
 
-/** dd/mm/yyyy → yyyy-mm-dd ก่อนส่งเซิร์ฟเวอร์ */
-function toIsoDate(v) {
-  var t = String(v || '').trim();
-  if (!t) return '';
-  var m = t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-  if (!m) return t;
-  var y = Number(m[3]);
-  // ปีไทยแปลงเป็นสากล ไม่งั้นจะกลายเป็นปี 2600 กว่า
-  if (y > 2400) y -= 543;
-  var p = function (x) { return x.length < 2 ? '0' + x : x; };
-  return y + '-' + p(m[2]) + '-' + p(m[1]);
-}
+  /* บอกให้ชัดว่าจะเกิดอะไรขึ้น ไม่ใช่แค่ถามว่าแน่ใจไหม */
+  const reason = prompt(
+    'ยกเลิกชุด ' + id + '\n\n' +
+    'เอกสาร ' + (b.doc_count || 0) + ' ฉบับจะกลับไปอยู่หน้าส่งเอกสาร\n' +
+    'เพื่อให้สร้างชุดใหม่ได้\n\n' +
+    'กรุณาระบุเหตุผลที่ยกเลิก');
 
-async function saveFix(ref) {
-  var it = items.find(function (x) { return x.ref_no === ref; });
-  if (!it) return;
-
-  var fields = {};
-  var typed = [];      // ช่องที่คนพิมพ์เอง ไม่ได้เลือกจากรายการ
-  var changed = 0;
-
-  /* อ่านจาก dropdown ก่อน ถ้าเลือก "ไม่มีในรายการ" ค่อยเอาจากช่องพิมพ์
-     และจำไว้ว่าช่องไหนพิมพ์เอง เพื่อให้ตรวจย้อนหลังได้ว่า
-     ชื่อนั้นถูกต้องจริง หรือแค่ยังไม่มีในทะเบียน */
-  var rowBox = $('vlist').querySelectorAll('[data-ref="' + ref + '"]');
-  var picked = {};
-
-  rowBox.forEach(function (el) {
-    if (el.dataset.sel) {
-      var v = el.value.trim();
-      if (!v) return;
-      picked[el.dataset.sel] = v;
-
-      /* ไม่ได้เลือกจากเมนู และค่านั้นไม่มีในรายการ = พิมพ์เอง
-         ต้องบันทึกไว้ให้ตรวจก่อนนำไปใช้จริง */
-      var opts = listOf(el.parentNode.dataset.list);
-      var known = opts.some(function (o) { return o.value === v; });
-      if (!known) typed.push(el.dataset.sel);
-
-    } else if (el.dataset.f) {
-      picked[el.dataset.f] = el.value.trim();
-    }
-  });
-
-  Object.keys(picked).forEach(function (k) {
-    var was = String(it[k] || '');
-    var fd = FIX_FIELDS.find(function (f) { return f.k === k; });
-    if (fd && fd.type === 'date' && was) was = fmtDateInput(was);
-    if (picked[k] === was.trim()) return;
-    /* ส่งวันที่เป็นรูปแบบสากล ไม่ใช่ dd/mm/yyyy ที่คนกรอก
-       ไม่งั้นชีตจะตีความผิดว่าเดือนคือวัน */
-    fields[k] = (fd && fd.type === 'date') ? toIsoDate(picked[k]) : picked[k];
-    changed++;
-  });
-
-  if (!changed) { alert('ยังไม่ได้แก้อะไร'); return; }
-
-  var reason = prompt('แก้ ' + changed + ' ช่องของ ' + ref + '\n\n' +
-    'ระบุเหตุผลสั้น ๆ (เช่น เอกสารจริงระบุจำนวน 9 ไม่ใช่ 7)');
   if (reason === null) return;
+  if (reason.trim().length < 3) { alert('กรุณาระบุเหตุผล'); return; }
 
   try {
-    var r = await call('docFixOnReceive',
-      { ref_no: ref, fields: fields, reason: reason.trim(),
-        typed_fields: typed }, 60000);
-    if (!r || r.status !== 'ok') { alert((r && r.message) || 'แก้ไม่สำเร็จ'); return; }
-
-    // อัปข้อมูลในหน้าให้ตรงกับที่บันทึกไป
-    Object.keys(fields).forEach(function (k) { it[k] = fields[k]; });
-    verifyState[keyOf(ref)] = 'pass';
-    renderVerify();
-    toast('แก้ ' + ref + ' แล้ว');
+    const r = await call('shipCancelBatch',
+      { batch_id: id, reason: reason.trim() }, 90000);
+    if (!r || r.status !== 'ok') { alert((r && r.message) || 'ยกเลิกไม่สำเร็จ'); return; }
+    alert(r.message);
+    load();
   } catch (e) {
-    alert('แก้ไม่สำเร็จ: ' + (e.message || e));
+    alert('ยกเลิกไม่สำเร็จ: ' + (e.message || e));
   }
 }
 
-$('btnToVerify').addEventListener('click', goVerify);
+/* ---------- พิมพ์ใบส่งมอบซ้ำ ---------- */
+async function reprint(id) {
+  try {
+    const r = await call('shipBatchDetail', { batch_id: id }, 60000);
+    if (!r || r.status !== 'ok') { alert((r && r.message) || 'ดึงข้อมูลไม่สำเร็จ'); return; }
+    showCover(r);
+  } catch (e) {
+    alert('ดึงข้อมูลไม่สำเร็จ: ' + (e.message || e));
+  }
+}
 
-/* กลับไปหน้ายิง — เก็บผลการตรวจไว้
-   ถ้าล้างทิ้ง คนที่ตรวจไป 30 ใบแล้วต้องทำใหม่หมด */
-$('btnBackScan').addEventListener('click', () => {
-  $('verifyBox').style.display = 'none';
-  $('scanBox').style.display = '';
-  $('ilist').style.display = '';
-  $('btnToVerify').style.display = '';
-  $('btnFinish').style.display = 'none';
+$('btnReload').addEventListener('click', load);
+['q', 'fStatus', 'fFrom', 'fTo'].forEach(id =>
+  $(id).addEventListener('input', render));
+
+// ช่องระบุวันโผล่เฉพาะตอนเลือกโหมดนั้น
+$('fDate').addEventListener('change', () => {
+  const pick = $('fDate').value === 'pick';
+  $('fFrom').style.display = pick ? '' : 'none';
+  $('fTo').style.display = pick ? '' : 'none';
   render();
-  keepFocus();
 });
 
-$('btnAllPass').addEventListener('click', function () {
-  var scanned = items.filter(function (it) { return got.has(String(it.ref_no).trim().toUpperCase()); });
-  var left = scanned.filter(function (it) { return !verifyState[keyOf(it.ref_no)]; });
-  if (!left.length) return;
+load();
 
-  /* ถามก่อนเสมอ เพราะการกดผ่านรวดเดียวคือการรับรองว่าดูครบทุกใบแล้ว
-     ถ้าไม่ได้ดูจริงแล้วข้อมูลผิด จะไปพบตอนที่แก้ยากกว่ามาก */
-  if (!confirm('ยืนยันว่าตรวจเอกสารจริงครบ ' + left.length + ' ใบแล้ว\n' +
-      'และข้อมูลในระบบตรงกับเอกสารทุกใบ')) return;
+/* ============================================================
+   ใบส่งมอบเอกสาร — โครงเดียวกับหน้าส่งเอกสาร
+   ============================================================
+   ใช้ซ้ำเพื่อให้ใบที่พิมพ์ซ้ำหน้าตาเหมือนตอนส่งจริงทุกอย่าง
+   ถ้าเขียนแยก สองที่จะค่อย ๆ ต่างกันโดยไม่มีใครสังเกต
+   ============================================================ */
+function showCover(r) {
+  $('mainWrap').style.display = 'none';
+  const w = $('coverWrap');
+  w.style.display = 'block';
 
-  left.forEach(function (it) { verifyState[keyOf(it.ref_no)] = 'pass'; });
-  renderVerify();
-});
+  const items = r.items || (r.shipped || []).map(x => ({ ref_no: x }));
+  const totalQty = items.reduce((a, d) => a + (Number(d.sent_qty) || 0), 0);
 
-$('btnFinish').addEventListener('click', async () => {
-  if (!batch) return;
+  const rows = items.map((d, n) => `<tr>
+      <td class="c">${n + 1}</td>
+      <td class="mono">${esc(d.ref_no || '')}</td>
+      <td class="mono sm">${esc(d.barcode || '—')}</td>
+      <td>${esc(d.item_name || '—')}</td>
+      <td class="sm">${esc(d.transfer_from || '—')} <span class="ar">→</span>
+          ${esc(d.transfer_to || '—')}</td>
+      <td class="c">${d.sent_qty || '—'}</td>
+      <td class="chkbox"></td>
+    </tr>`).join('');
 
-  const missing = items.filter(it => !got.has(it.ref_no.toUpperCase()));
+  w.innerHTML = `
+    <div class="cover">
 
-  /* บอกให้ชัดว่าใบที่ขาดจะไปไหนต่อ
-     ไม่ใช่แค่ถามว่าแน่ใจไหม ซึ่งไม่ช่วยให้ตัดสินใจได้ */
-  let msg = 'จบการรับชุด ' + batch.batch_id + '\n\n' +
-            'รับแล้ว ' + got.size + ' ใบ';
-  if (extra.length) msg += '\nไม่อยู่ในชุดแต่รับไว้ ' + extra.length + ' ใบ';
-  if (missing.length) {
-    msg += '\n\nไม่มาในชุดนี้ ' + missing.length + ' ใบ:\n' +
-           missing.slice(0, 10).map(m => '  ' + m.ref_no).join('\n') +
-           (missing.length > 10 ? '\n  และอีก ' + (missing.length - 10) : '') +
-           '\n\nใบเหล่านี้จะกลับไปเป็นค้างที่ต้นทาง เพื่อให้มีคนตามต่อ';
-  }
-  if (!confirm(msg)) return;
+      <!-- บาร์โค้ดมุมซ้ายบน ขนาดพอสแกน ไม่กินพื้นที่หัวเอกสาร -->
+      <div class="hd">
+        <div class="hd-bc"><svg id="coverBc"></svg></div>
+        <div class="hd-tt">
+          <h2>ใบส่งมอบเอกสาร</h2>
+          <div class="hd-sub">DocScan — ระบบติดตามเอกสารพาเลท</div>
+        </div>
+        <div class="hd-no">
+          <div class="k">เลขที่ชุด</div>
+          <div class="v">${esc(r.batch_id)}</div>
+          <div class="k" style="margin-top:6px">วันที่ส่ง</div>
+          <div class="v sm">${new Date(r.created_at)
+            .toLocaleString('th-TH', { day:'2-digit', month:'short', year:'numeric',
+                                       hour:'2-digit', minute:'2-digit' })}</div>
+        </div>
+      </div>
 
-  const btn = $('btnFinish');
-  btn.disabled = true; btn.textContent = 'กำลังบันทึก…';
-  try {
-    const r = await call('shipReceiveBatch', {
-      batch_id: batch.batch_id,
-      received: [...got].concat(extra),
-      note: recvNote.trim()
-    }, 120000);
+      <!-- ผู้ส่งและผู้รับแยกกันชัดเจน แบบใบปะหน้าพัสดุ -->
+      <div class="pair">
+        <div class="hs-box">
+          <div class="hs-box-t">ผู้ส่ง</div>
+          <div class="row"><span class="k">คลัง/โรงงาน</span>
+            <span class="v">${esc(r.from_site || '—')}</span></div>
+          <div class="row"><span class="k">ผู้จัดส่ง</span>
+            <span class="v">${esc(r.created_name || '—')}</span></div>
+          <div class="row"><span class="k">ช่องทาง</span>
+            <span class="v">${esc(CHANNEL_LABEL[r.channel] || r.channel || '—')}</span></div>
+          ${r.vehicle ? `<div class="row"><span class="k">ทะเบียน/เลขพัสดุ</span>
+            <span class="v">${esc(r.vehicle)}</span></div>` : ''}
+        </div>
 
-    if (r.status !== 'ok') { alert(r.message || 'บันทึกไม่สำเร็จ'); return; }
+        <div class="hs-box to">
+          <div class="hs-box-t">ผู้รับ</div>
+          <div class="row"><span class="k">คลัง/โรงงาน</span>
+            <span class="v big">${esc(r.to_site || '—')}</span></div>
+          <div class="row"><span class="k">ชื่อผู้รับ</span>
+            <span class="v">${esc(r.receiver || '—')}</span></div>
+          <div class="row"><span class="k">จำนวนเอกสาร</span>
+            <span class="v big">${r.count} ฉบับ</span></div>
+          ${totalQty ? `<div class="row"><span class="k">รวมพาเลท</span>
+            <span class="v">${totalQty}</span></div>` : ''}
+        </div>
+      </div>
 
-    let done = 'บันทึกแล้ว\n\nรับ ' + r.received + ' ใบ';
-    if (r.extra && r.extra.length) done += '\nไม่อยู่ในชุด ' + r.extra.length + ' ใบ';
-    if (r.extra_not_found && r.extra_not_found.length) {
-      done += '\nไม่พบในระบบ ' + r.extra_not_found.length + ' ใบ: ' +
-              r.extra_not_found.slice(0, 5).join(', ');
-    }
-    if (r.missing && r.missing.length) {
-      done += '\nส่งกลับไปค้างที่ต้นทาง ' + r.missing_marked + ' ใบ';
-    }
-    alert(done);
-    reset();
-  } catch (e) {
-    alert('บันทึกไม่สำเร็จ: ' + (e.message || e));
-  } finally {
-    btn.disabled = false; btn.textContent = 'จบการรับ';
-  }
-});
+      ${r.note ? `<div class="note"><b>หมายเหตุ</b> ${esc(r.note)}</div>` : ''}
 
-$('btnCancel').addEventListener('click', () => {
-  if (got.size || extra.length) {
-    if (!confirm('ยกเลิกชุดนี้\n\nที่ยิงไปแล้ว ' + (got.size + extra.length) +
-                 ' ใบจะไม่ถูกบันทึก')) return;
-  }
-  reset();
-});
+      <table class="items">
+        <thead><tr>
+          <th style="width:26px">#</th>
+          <th style="width:96px">Reference</th>
+          <th style="width:80px">Barcode</th>
+          <th style="width:130px">ประเภทเอกสาร</th>
+          <th>โอนจาก → โอนไป</th>
+          <th style="width:40px">พาเลท</th>
+          <th style="width:30px">ตรวจ</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot><tr>
+          <td colspan="5" class="r">รวม</td>
+          <td class="c">${totalQty || '—'}</td>
+          <td class="chkbox"></td>
+        </tr></tfoot>
+      </table>
 
-function reset() {
-  batch = null; items = []; got.clear(); extra.length = 0;
-  $('batchArea').style.display = 'none';
-  $('actBar').style.display = 'none';
-  $('scanBox').classList.remove('done');
-  $('scanLabel').textContent = '① ยิงบาร์โค้ดบนใบปะหน้า';
-  $('scanInput').placeholder = 'B26082701';
-  $('scopeInfo').textContent = 'ยิงบาร์โค้ดบนใบปะหน้าเพื่อเริ่ม';
-  keepFocus();
+      <div class="sign">
+        <div class="sg">
+          <div class="sg-t">ผู้ส่งมอบ (ทีมจัดส่ง)</div>
+          <div class="ln">ลงชื่อ</div>
+          <div class="ln">ชื่อ-สกุล</div>
+          <div class="ln">วันที่ / เวลา</div>
+        </div>
+        <div class="sg">
+          <div class="sg-t">ผู้รับมอบ (ทีมคลัง)</div>
+          <div class="ln">ลงชื่อ</div>
+          <div class="ln">ชื่อ-สกุล</div>
+          <div class="ln">วันที่ / เวลา</div>
+        </div>
+      </div>
+
+      <div class="ft">
+        พิมพ์จากระบบ DocScan · ${esc(r.batch_id)} ·
+        ${new Date().toLocaleString('th-TH')}
+        <br>ผู้รับกรุณาตรวจนับตามรายการ แล้วยิงบาร์โค้ดชุดนี้ที่หน้า "รับเอกสาร"
+      </div>
+    </div>
+
+    <div class="cover-act noprint">
+      <button class="btn" onclick="window.print()">พิมพ์ใบส่งมอบ</button>
+      <button class="btn ghost" id="backList">กลับไปรายการชุดส่ง</button>
+    </div>`;
+
+  $('backList').addEventListener('click', () => {
+    w.style.display = 'none';
+    $('mainWrap').style.display = '';
+    load();
+  });
+
+  drawBarcode(r.batch_id);
 }
 
-keepFocus();
+async function drawBarcode(text) {
+  try {
+    if (!window.JsBarcode) await loadScript('vendor/JsBarcode.all.min.js');
+    /* ขนาดพอให้เครื่องสแกนอ่านได้ แต่ไม่กินพื้นที่หัวเอกสาร
+       ความกว้างแท่ง 1.6 ที่ความสูง 40 อ่านได้ในระยะปกติ */
+    JsBarcode('#coverBc', text, {
+      format: 'CODE128', width: 1.6, height: 40,
+      displayValue: true, fontSize: 11, margin: 2
+    });
+  } catch (e) {
+    console.warn('[DocScan] วาดบาร์โค้ดไม่ได้', e);
+  }
+}
 
-/* เปิดชุดให้เลยถ้ามาจากหน้าชุดที่จะมาถึง
-   คนกดปุ่มรับเอกสารแล้วไม่ต้องยิงใบปะหน้าซ้ำ */
-try {
-  var qsBatch = new URLSearchParams(location.search).get('b');
-  if (qsBatch) openBatch(qsBatch.trim().toUpperCase());
-} catch (e) {
-  console.error('[DocScan] เปิดชุดจากลิงก์ไม่สำเร็จ', e);
+function loadScript(src) {
+  return new Promise((res, rej) => {
+    const el = document.createElement('script');
+    el.src = src; el.onload = res; el.onerror = rej;
+    document.head.appendChild(el);
+  });
 }
 
 </script>
-<div class="bldtag">2.15.6</div>
 </body>
 </html>
