@@ -13,7 +13,7 @@
 //  ถ้าต้องการให้เห็นทันที ให้กด Ctrl+Shift+R
 // ============================================================
 var DOCSCAN_CONFIG = {
-  API_URL: 'https://script.google.com/macros/s/AKfycbxZyv6_SxoHLWFRvToT5OxDq0qebfQAwGrQmnwxI-o3yKB-Q5PSaBwYtTCkjF97ZpFztQ/exec',
+  API_URL: 'https://script.google.com/macros/s/AKfycby9cZ58Bpy5f6cceQrchVJbwEjQSPlDvLe5iVuwL9CLpyyWUWj2r02y2G128LYJuIcXZw/exec',
   APP_NAME: 'DocScan',
   VERSION: '2.15.7'
 };
