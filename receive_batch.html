@@ -903,7 +903,11 @@ function editHtml(it) {
    เลือกจากเมนูถือว่า "เลือก" พิมพ์แล้วไม่เลือกถือว่า "พิมพ์เอง" */
 
 function installCombos() {
-  $('vlist').querySelectorAll('.cbo-in').forEach(function (el) {
+  var els = $('vlist').querySelectorAll('.cbo-in');
+  console.log('[DocScan] ติดตั้งช่องค้นหา', els.length, 'ช่อง',
+    'รายชื่อ', partyData ? (partyData.parties || []).length : 'ยังไม่มา');
+
+  els.forEach(function (el) {
     var box  = el.parentNode;
     var menu = box.querySelector('.cbo-menu');
     var opts = listOf(box.dataset.list);
