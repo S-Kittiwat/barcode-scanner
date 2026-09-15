@@ -633,7 +633,9 @@ var partyData = null;
 async function loadParties() {
   if (partyData) return partyData;
   try {
+    console.log('[DocScan] กำลังขอรายชื่อ…');
     const r = await call('refPartyList', {}, 60000);
+    console.log('[DocScan] เซิร์ฟเวอร์ตอบ', r);
     if (r && r.status === 'ok') {
       partyData = r;
       const n = (r.parties || []).length;
@@ -659,9 +661,9 @@ async function loadParties() {
 /* 8 ข้อที่ต้องตรวจกับเอกสารจริง เรียงตามที่อยู่บนกระดาษ
    เพื่อให้ตากวาดจากบนลงล่างได้โดยไม่ต้องกระโดดไปมา */
 var FIX_FIELDS = [
-  { k: 'origin_acc',       label: 'Account No. ต้นทาง', pairWith: 'transfer_from' },
+  { k: 'origin_acc',       label: 'ต้นทาง', pairWith: 'transfer_from' },
   { k: 'transfer_from',    label: 'โอนจาก', list: 'parties', pairCode: 'origin_acc' },
-  { k: 'dest_acc',         label: 'Account No. ปลายทาง', pairWith: 'transfer_to' },
+  { k: 'dest_acc',         label: 'ปลายทาง', pairWith: 'transfer_to' },
   { k: 'transfer_to',      label: 'โอนไป', list: 'parties', pairCode: 'dest_acc' },
   { k: 'transporter_name', label: 'บริษัทขนส่ง', list: 'transporters' },
   /* ทะเบียนรถไม่มีรายการให้เลือก เพราะเปลี่ยนทุกเที่ยว
@@ -671,8 +673,8 @@ var FIX_FIELDS = [
   { k: 'received_date',    label: 'วันรับ', type: 'date' },
   /* จำนวนพาเลทสำคัญที่สุด เพราะเป็นตัวที่ใช้วางบิล
      ถ้าผิดแล้วไม่จับ จะกลายเป็นข้อพิพาทภายหลัง */
-  { k: 'sent_qty',         label: 'จำนวนพาเลทที่ส่ง' },
-  { k: 'received_qty',     label: 'จำนวนพาเลทที่รับ' }
+  { k: 'sent_qty',         label: 'จำนวนส่ง' },
+  { k: 'received_qty',     label: 'จำนวนรับ' }
 ];
 
 
