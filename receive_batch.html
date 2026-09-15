@@ -275,10 +275,13 @@ tr.got td:first-child{box-shadow:inset 3px 0 0 var(--success)}
 .cbo::after{content:'▾';position:absolute;right:9px;bottom:7px;
   color:var(--muted);font-size:11px;pointer-events:none}
 .cbo-in:focus{border-color:var(--accent);outline:none}
-.cbo-menu{display:none;position:absolute;z-index:60;left:0;right:0;top:100%;
-  margin-top:2px;max-height:220px;overflow:auto;
+/* วางเมนูที่ body ด้วยพิกัดจริงของช่อง
+   ไม่ผูกกับตำแหน่งของกล่องแม่ จึงไม่มีทางถูกตัดหรือถูกบัง
+   ไม่ว่าโครงข้างนอกจะซับซ้อนแค่ไหน */
+.cbo-menu{display:none;position:fixed;z-index:9999;
+  max-height:240px;overflow:auto;
   background:var(--surface);border:1px solid var(--accent);
-  border-radius:var(--rs);box-shadow:0 8px 24px rgba(0,0,0,.45)}
+  border-radius:var(--rs);box-shadow:0 8px 24px rgba(0,0,0,.55)}
 .cbo-it{padding:6px 10px;font-size:12.5px;cursor:pointer}
 .cbo-it:hover{background:var(--surface2)}
 .cbo-none{padding:8px 10px;font-size:11.5px;color:var(--muted)}
@@ -907,6 +910,9 @@ function editHtml(it) {
    เลือกจากเมนูถือว่า "เลือก" พิมพ์แล้วไม่เลือกถือว่า "พิมพ์เอง" */
 
 function installCombos() {
+  // ลบเมนูเก่าที่ย้ายไปอยู่ที่ body ก่อนวาดใหม่
+  document.querySelectorAll('body > .cbo-menu').forEach(function (m) { m.remove(); });
+
   var els = $('vlist').querySelectorAll('.cbo-in');
   console.log('[DocScan] ติดตั้งช่องค้นหา', els.length, 'ช่อง',
     'รายชื่อ', partyData ? (partyData.parties || []).length : 'ยังไม่มา');
@@ -945,8 +951,24 @@ function installCombos() {
           ? '<div class="cbo-none">และอีก ' + (all.length - hit.length) +
             ' รายการ — พิมพ์เพิ่มเพื่อค้นให้แคบลง</div>' : '');
       }
+      /* คำนวณตำแหน่งจากช่องจริงทุกครั้ง
+         เพราะหน้าอาจเลื่อนหรือแถวอื่นขยายไปแล้ว */
+      var r = el.getBoundingClientRect();
+      var below = window.innerHeight - r.bottom;
+      menu.style.left = r.left + 'px';
+      menu.style.width = r.width + 'px';
+
+      // ถ้าที่ด้านล่างไม่พอ ให้เปิดขึ้นบนแทน
+      if (below < 160 && r.top > below) {
+        menu.style.top = 'auto';
+        menu.style.bottom = (window.innerHeight - r.top + 2) + 'px';
+      } else {
+        menu.style.bottom = 'auto';
+        menu.style.top = (r.bottom + 2) + 'px';
+      }
+
+      if (menu.parentNode !== document.body) document.body.appendChild(menu);
       menu.style.display = '';
-      console.log('[DocScan] เปิดเมนู', hit.length, 'รายการ');
 
       menu.querySelectorAll('.cbo-it').forEach(function (d) {
         d.addEventListener('mousedown', function (ev) {
