@@ -105,7 +105,9 @@ export function installRefBar(call, opts = {}) {
     bar.className = 'refbar';
     bar.innerHTML = '<span class="dot"></span><span>กำลังตรวจข้อมูลอ้างอิง…</span>';
     try {
-      const r = await call('refsStatus', {}, 30000);
+      /* ไม่ลองใหม่ เพราะเป็นของประกอบ
+       ถ้าลองซ้ำจะยิ่งหน่วงหน้าโดยไม่ได้อะไรเพิ่ม */
+    const r = await call('refsStatus', {}, 20000, { retries: 0 });
 
       if (!r || r.status !== 'ok') {
         /* แยกสองกรณีให้ชัด
