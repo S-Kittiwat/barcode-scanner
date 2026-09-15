@@ -267,13 +267,11 @@ tr.got td:first-child{box-shadow:inset 3px 0 0 var(--success)}
 .vr-edit input.changed{border-color:var(--warn)}
 /* ช่องค้นหา — พิมพ์กรองรายการได้ */
 .cbo{position:relative}
-/* ต้องดูออกว่ากดแล้วมีรายการ ไม่งั้นคนนึกว่าเป็นช่องพิมพ์ธรรมดา
-   ใส่ลูกศรท้ายช่องเหมือน dropdown ทั่วไป */
+/* ไม่วาดลูกศรเอง เพราะเบราว์เซอร์วาดให้อยู่แล้วเมื่อช่องผูกกับ datalist
+   ถ้าวาดซ้ำจะเห็นลูกศรสองอันซ้อนกัน */
 .cbo-in{width:100%;background:var(--surface2);border:1px solid var(--border);
-  border-radius:var(--rs);color:var(--text);padding:6px 26px 6px 9px;
+  border-radius:var(--rs);color:var(--text);padding:6px 9px;
   font-family:var(--font);font-size:12.5px}
-.cbo::after{content:'▾';position:absolute;right:9px;bottom:7px;
-  color:var(--muted);font-size:11px;pointer-events:none}
 .cbo-in:focus{border-color:var(--accent);outline:none}
 /* ค่าที่พิมพ์เองยังไม่เคยมีในทะเบียน ต้องตรวจก่อนนำไปใช้จริง */
 .cbo-warn{font-size:10px;color:var(--warn);margin-top:3px}
@@ -877,7 +875,7 @@ function editHtml(it) {
      * เพราะตอนบันทึกเทียบค่ากับรายการเต็มอยู่แล้ว
      */
     var opts = listOf(x.list);
-    var inList = !v || opts.some(function (o) { return o.value === v; });
+    var inList = !v || !!opts.known[v];
     var listId = 'dl-' + x.list;
 
     return '<div class="cbo">' +
@@ -909,13 +907,22 @@ function editHtml(it) {
 /* พิมพ์แล้วกรองรายการทันที ไม่ต้องเลื่อนหาในพันกว่ารายการ
    เลือกจากเมนูถือว่า "เลือก" พิมพ์แล้วไม่เลือกถือว่า "พิมพ์เอง" */
 
-function installCombos() {
-  /* สร้างรายการครั้งเดียวต่อชนิด แล้วทุกช่องใช้ร่วมกัน
-     ถ้าสร้างต่อช่อง จะมีรายการซ้ำพันกว่าบรรทัดหลายชุด */
+/* สร้างรายการครั้งเดียวต่อการเปิดหน้า
+ *
+ * 625 รายการต้องต่อสตริงและให้เบราว์เซอร์ parse ~20-50 ms
+ * ถ้าสร้างใหม่ทุกครั้งที่วาดแถว จะช้าสะสม
+ * เพราะกด "ตรงกัน" ทีละใบ 40 ใบ = สร้างใหม่ 40 รอบ
+ *
+ * รายการไม่เปลี่ยนระหว่างใช้งาน จึงสร้างครั้งเดียวพอ
+ */
+var datalistsBuilt = false;
+
+function buildDatalists() {
+  if (datalistsBuilt || !partyData) return;
+
   ['parties', 'transporters'].forEach(function (kind) {
     var id = 'dl-' + kind;
-    var old = document.getElementById(id);
-    if (old) old.remove();
+    if (document.getElementById(id)) return;
 
     var opts = listOf(kind);
     if (!opts.length) return;
@@ -931,6 +938,13 @@ function installCombos() {
     document.body.appendChild(dl);
   });
 
+  datalistsBuilt = true;
+  console.log('[DocScan] สร้างรายการแล้ว');
+}
+
+function installCombos() {
+  buildDatalists();
+
   var els = $('vlist').querySelectorAll('.cbo-in');
   console.log('[DocScan] ติดตั้งช่องค้นหา', els.length, 'ช่อง',
     'รายชื่อ', partyData ? (partyData.parties || []).length : 'ยังไม่มา');
@@ -941,7 +955,7 @@ function installCombos() {
     function sync() {
       var opts = listOf(el.dataset.list);
       var v = el.value.trim();
-      var known = !v || opts.some(function (o) { return o.value === v; });
+      var known = !v || !!opts.known[v];
 
       // เตือนว่าค่านี้ไม่มีในรายการ ต้องตรวจก่อนนำไปใช้
       var w = box.querySelector('.cbo-warn');
@@ -974,34 +988,34 @@ function installCombos() {
   });
 }
 
-/** เตือนว่าค่านี้ไม่มีในรายการ ต้องตรวจก่อนนำไปใช้ */
-function markTyped(box, el) {
-  var opts = listOf(box.dataset.list);
-  var v = el.value.trim();
-  var known = !v || opts.some(function (o) { return o.value === v; });
-  var w = box.querySelector('.cbo-warn');
 
-  if (known) { if (w) w.remove(); return; }
-  if (!w) {
-    w = document.createElement('div');
-    w.className = 'cbo-warn';
-    w.textContent = 'พิมพ์เอง — ไม่มีในรายการ';
-    box.appendChild(w);
-  }
-}
+/* เก็บผลไว้ เพราะ sync() เรียกทุกครั้งที่กดแป้น
+   ถ้าสร้าง array 530 ตัวใหม่ทุกตัวอักษร จะหน่วงเห็นได้ */
+var _listCache = {};
 
 /** รายการตัวเลือกของแต่ละช่อง */
 function listOf(kind) {
   if (!partyData) return [];
+  if (_listCache[kind]) return _listCache[kind];
+  var out;
   if (kind === 'parties') {
-    return (partyData.parties || []).map(function (p) {
+    out = (partyData.parties || []).map(function (p) {
       // แสดงรหัสประกอบ เพราะรหัสซ้ำกันได้ระหว่างสาขา
       return { value: p.name, label: p.code ? p.code + ' — ' + p.name : p.name };
     });
+  } else {
+    out = (partyData[kind] || []).map(function (x) {
+      return { value: x, label: x };
+    });
   }
-  return (partyData[kind] || []).map(function (x) {
-    return { value: x, label: x };
-  });
+
+  /* เก็บชุดชื่อไว้ด้วย เพื่อตรวจว่ารู้จักไหมโดยไม่ต้องวนทั้ง array
+     การวน 530 ตัวทุกครั้งที่กดแป้นทำให้พิมพ์แล้วหน่วง */
+  out.known = {};
+  out.forEach(function (o) { out.known[o.value] = 1; });
+
+  _listCache[kind] = out;
+  return out;
 }
 
 /* ช่องกรอกวันที่ใช้รูปแบบ dd/mm/yyyy
@@ -1050,8 +1064,7 @@ async function saveFix(ref) {
       /* ไม่ได้เลือกจากเมนู และค่านั้นไม่มีในรายการ = พิมพ์เอง
          ต้องบันทึกไว้ให้ตรวจก่อนนำไปใช้จริง */
       var opts = listOf(el.parentNode.dataset.list);
-      var known = opts.some(function (o) { return o.value === v; });
-      if (!known) typed.push(el.dataset.sel);
+      if (!opts.known[v]) typed.push(el.dataset.sel);
 
     } else if (el.dataset.f) {
       picked[el.dataset.f] = el.value.trim();
