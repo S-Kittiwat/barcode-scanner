@@ -398,10 +398,12 @@ if (session) {
   }
 }
 
-async function call(action, payload = {}, timeoutMs) {
+async function call(action, payload = {}, timeoutMs, opts) {
   try {
+    /* opts ให้ผู้เรียกกำหนดพฤติกรรมเพิ่มได้ เช่นไม่ต้องลองใหม่
+       ของประกอบไม่ควรลองซ้ำจนหน่วงหน้าหลัก */
     return await authFetch(API, { action, ...payload },
-      timeoutMs ? { timeoutMs } : undefined);
+      { ...(timeoutMs ? { timeoutMs } : {}), ...(opts || {}) });
   } catch (err) {
     if (err.code === 'auth_required') { alert('เซสชันหมดอายุ'); location.href = 'login.html'; }
     throw err;
