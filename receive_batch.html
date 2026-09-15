@@ -267,9 +267,13 @@ tr.got td:first-child{box-shadow:inset 3px 0 0 var(--success)}
 .vr-edit input.changed{border-color:var(--warn)}
 /* ช่องค้นหา — พิมพ์กรองรายการได้ */
 .cbo{position:relative}
+/* ต้องดูออกว่ากดแล้วมีรายการ ไม่งั้นคนนึกว่าเป็นช่องพิมพ์ธรรมดา
+   ใส่ลูกศรท้ายช่องเหมือน dropdown ทั่วไป */
 .cbo-in{width:100%;background:var(--surface2);border:1px solid var(--border);
-  border-radius:var(--rs);color:var(--text);padding:6px 9px;
+  border-radius:var(--rs);color:var(--text);padding:6px 26px 6px 9px;
   font-family:var(--font);font-size:12.5px}
+.cbo::after{content:'▾';position:absolute;right:9px;bottom:7px;
+  color:var(--muted);font-size:11px;pointer-events:none}
 .cbo-in:focus{border-color:var(--accent);outline:none}
 .cbo-menu{display:none;position:absolute;z-index:60;left:0;right:0;top:100%;
   margin-top:2px;max-height:220px;overflow:auto;
@@ -910,6 +914,9 @@ function installCombos() {
   els.forEach(function (el) {
     var box  = el.parentNode;
     var menu = box.querySelector('.cbo-menu');
+      var opts0 = listOf(box.dataset.list);
+      console.log('[DocScan] ช่อง', box.dataset.list,
+        '· ตัวเลือก', opts0.length, '· มีเมนู', !!menu);
     var opts = listOf(box.dataset.list);
 
     function close() { menu.style.display = 'none'; }
@@ -939,6 +946,7 @@ function installCombos() {
             ' รายการ — พิมพ์เพิ่มเพื่อค้นให้แคบลง</div>' : '');
       }
       menu.style.display = '';
+      console.log('[DocScan] เปิดเมนู', hit.length, 'รายการ');
 
       menu.querySelectorAll('.cbo-it').forEach(function (d) {
         d.addEventListener('mousedown', function (ev) {
@@ -967,7 +975,11 @@ function installCombos() {
       }
     }
 
+    /* เปิดทั้งตอน focus และ click
+       ถ้าช่องมี focus อยู่แล้ว การคลิกซ้ำจะไม่เกิด focus อีก
+       คนจึงกดแล้วไม่มีอะไรขึ้น */
     el.addEventListener('focus', function () { open(el.value); });
+    el.addEventListener('click', function () { open(el.value); });
     el.addEventListener('input', function () {
       // พิมพ์เอง = ยังไม่ได้เลือก จนกว่าจะคลิกจากเมนู
       el.dataset.picked = '';
